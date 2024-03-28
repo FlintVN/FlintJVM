@@ -1,0 +1,40 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C/C++: g++.exe build active file",
+			"command": "C:/MinGW/bin/g++.exe",
+			"args": [
+				"-m32",
+				"-fdiagnostics-color=always",
+				"-g",
+				"MJVM/Src/*.cpp",
+				"Drivers/Src/*.cpp",
+				"User/Src/*.cpp",
+				"-IMJVM/Inc",
+				"-IDrivers/Inc",
+				"-IUser/Inc",
+				"-o",
+				"${workspaceFolder}/Build/Bin/WinMJVM.exe"
+			],
+			"presentation": {
+                "echo": true,
+                "reveal": "never",
+                "showReuseMessage": false,
+                "clear": true
+            },
+            "options": {
+                "cwd": "${workspaceFolder}",
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+			"detail": "compiler: C:/MinGW/bin/g++.exe"
+		}
+	]
+}

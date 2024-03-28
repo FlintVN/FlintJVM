@@ -1,0 +1,429 @@
+
+#include <string.h>
+#include "mjvm_heap.h"
+#include "mjvm_class_loader.h"
+
+ClassLoader::ClassLoader(const char *fileName) {
+    this->fileName = (const char *)MJVM_Malloc(strlen(fileName) + 1);
+    strcpy((char *)this->fileName, fileName);
+    ClassFile file(fileName);
+    load(file);
+    file.close();
+}
+
+void ClassLoader::load(ClassFile &file) {
+    magic = file.readUInt32();
+    minorVersion = file.readUInt16();
+    majorVersion = file.readUInt16();
+    poolCount = file.readUInt16() - 1;
+    poolTable = (ConstPool *)MJVM_Malloc(poolCount * sizeof(ConstPool));
+    for(uint32_t i = 0; i < poolCount; i++) {
+        *(ConstPoolTag *)&poolTable[i].tag = (ConstPoolTag)file.readUInt8();
+        switch(poolTable[i].tag) {
+            case CONST_UTF8: {
+                uint16_t length = file.readUInt16();
+                *(uint32_t *)&poolTable[i].value = (uint32_t)MJVM_Malloc(length + 3);
+                *(uint16_t *)&((ConstUtf8 *)poolTable[i].value)->length = length;
+                file.read((char *)((ConstUtf8 *)poolTable[i].value)->text, length);
+                break;
+            }
+            case CONST_INTEGER:
+            case CONST_FLOAT:
+                *(uint32_t *)&poolTable[i].value = file.readUInt32();
+                break;
+            case CONST_FIELD:
+            case CONST_METHOD:
+            case CONST_INTERFACE_METHOD:
+            case CONST_NAME_AND_TYPE:
+            case CONST_INVOKE_DYNAMIC:
+                *(uint8_t *)&poolTable[i].tag |= 0x80;
+                ((uint16_t *)&poolTable[i].value)[0] = file.readUInt16();
+                ((uint16_t *)&poolTable[i].value)[1] = file.readUInt16();
+                break;
+            case CONST_LONG:
+            case CONST_DOUBLE:
+                *(uint32_t *)&poolTable[i].value = (uint32_t)MJVM_Malloc(sizeof(long));
+                *(uint64_t *)poolTable[i].value = file.readUInt64();
+                i++;
+                break;
+            case CONST_CLASS:
+            case CONST_STRING:
+            case CONST_METHOD_TYPE:
+                *(uint32_t *)&poolTable[i].value = file.readUInt16();
+                break;
+            case CONST_METHOD_HANDLE:
+                *(uint8_t *)&poolTable[i].tag |= 0x80;
+                ((uint8_t *)poolTable[i].value)[0] = file.readUInt8();
+                ((uint16_t *)poolTable[i].value)[1] = file.readUInt16();
+                break;
+            default:
+                throw "uknow pool type";
+        }
+    }
+    accessFlags = file.readUInt16();
+    thisClass = file.readUInt16();
+    superClass = file.readUInt16();
+    interfacesCount = file.readUInt16();
+    if(interfacesCount) {
+        interfaces = (uint16_t *)MJVM_Malloc(interfacesCount * sizeof(uint16_t));
+        file.read(interfaces, interfacesCount * sizeof(uint16_t));
+    }
+    fieldsCount = file.readUInt16();
+    if(fieldsCount) {
+        fields = (FieldInfo *)MJVM_Malloc(fieldsCount * sizeof(FieldInfo));
+        for(uint16_t i = 0; i < fieldsCount; i++) {
+            FieldAccessFlag flag = (FieldAccessFlag)file.readUInt16();
+            uint16_t fieldsNameIndex = file.readUInt16();
+            uint16_t fieldsDescriptorIndex = file.readUInt16();
+            uint16_t fieldsAttributesCount = file.readUInt16();
+            new (&fields[i])FieldInfo(flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
+            AttributeInfo **fieldAttributes = (AttributeInfo **)MJVM_Malloc(fieldsAttributesCount * sizeof(AttributeInfo *));
+            fields[i].setAttributes(fieldAttributes, fieldsAttributesCount);
+            for(uint16_t attrIdx = 0; attrIdx < fieldsAttributesCount; attrIdx++)
+                fieldAttributes[attrIdx] = &readAttribute(file);
+        }
+    }
+    methodsCount = file.readUInt16();
+    if(methodsCount) {
+        methods = (MethodInfo *)MJVM_Malloc(methodsCount * sizeof(MethodInfo));
+        for(uint16_t i = 0; i < methodsCount; i++) {
+            MethodAccessFlag flag = (MethodAccessFlag)file.readUInt16();
+            uint16_t methodNameIndex = file.readUInt16();
+            uint16_t methodDescriptorIndex = file.readUInt16();
+            uint16_t methodAttributesCount = file.readUInt16();
+            new (&methods[i])MethodInfo(flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
+            AttributeInfo **methodAttributes = (AttributeInfo **)MJVM_Malloc(methodAttributesCount * sizeof(AttributeInfo *));
+            methods[i].setAttributes(methodAttributes, methodAttributesCount);
+            for(uint16_t attrIdx = 0; attrIdx < methodAttributesCount; attrIdx++)
+                methodAttributes[attrIdx] = &readAttribute(file);
+        }
+    }
+    attributesCount = file.readUInt16();
+    if(attributesCount) {
+        attributes = (AttributeInfo **)MJVM_Malloc(attributesCount * sizeof(AttributeInfo *));
+        for(uint16_t attrIdx = 0; attrIdx < attributesCount; attrIdx++)
+            attributes[attrIdx] = &readAttribute(file);
+    }
+    // TODO
+}
+
+AttributeInfo &ClassLoader::readAttribute(ClassFile &file) {
+    uint16_t nameIndex = file.readUInt16();
+    uint32_t length = file.readUInt32();
+    AttributeType type = AttributeInfo::parseAttributeType(getConstUtf8(nameIndex));
+    switch(type) {
+        case ATTRIBUTE_CODE:
+            return readAttributeCode(file);
+        // case ATTRIBUTE_LINE_NUMBER_TABLE:
+        //     return readAttributeLineNumberTable(file);
+        // case ATTRIBUTE_LOCAL_VARIABLE_TABLE:
+        //     return readAttributeLocalVariableTable(file);
+        // case ATTRIBUTE_STACK_MAP_TABLE:
+        //     return readAttributeStackMapTable(file);
+        default:
+            while(length--)
+                file.readUInt8();
+            break;
+            // throw "attribute is not yet implemented in class loader";
+    }
+}
+
+AttributeInfo &ClassLoader::readAttributeCode(ClassFile &file) {
+    AttributeCode *attribute = (AttributeCode *)MJVM_Malloc(sizeof(AttributeCode));
+    uint16_t maxStack = file.readUInt16();
+    uint16_t maxLocals = file.readUInt16();
+    uint32_t codeLength = file.readUInt32();
+    uint8_t *code = (uint8_t *)MJVM_Malloc(codeLength);
+    new (attribute)AttributeCode(maxStack, maxLocals);
+    file.read(code, codeLength);
+    attribute->setCode(code, codeLength);
+    uint16_t exceptionTableLength = file.readUInt16();
+    if(exceptionTableLength) {
+        ExceptionTable *exceptionTable = (ExceptionTable *)MJVM_Malloc(exceptionTableLength * sizeof(ExceptionTable));
+        attribute->setExceptionTable(exceptionTable, exceptionTableLength);
+        for(uint16_t i = 0; i < exceptionTableLength; i++) {
+            uint16_t startPc = file.readUInt16();
+            uint16_t endPc = file.readUInt16();
+            uint16_t handlerPc = file.readUInt16();
+            uint16_t catchType = file.readUInt16();
+            new (&attribute[i])ExceptionTable(startPc, endPc, handlerPc, getConstUtf8(catchType));
+        }
+    }
+    uint16_t attrbutesCount = file.readUInt16();
+    if(attrbutesCount) {
+        AttributeInfo **codeAttributes = (AttributeInfo **)MJVM_Malloc(attrbutesCount * sizeof(AttributeInfo *));
+        attribute->setAttributes(codeAttributes, attrbutesCount);
+        for(uint16_t i = 0; i < attrbutesCount; i++)
+            codeAttributes[i] = &readAttribute(file);
+    }
+    return *attribute;
+}
+
+AttributeInfo &ClassLoader::readAttributeLineNumberTable(ClassFile &file) {
+    // TODO
+    uint16_t lineNumberTableLength = file.readUInt16();
+    for(uint16_t i = 0; i < lineNumberTableLength; i++) {
+        uint16_t startPc = file.readUInt16();
+        uint16_t lineNumber = file.readUInt16();
+        // TODO
+    }
+}
+
+AttributeInfo &ClassLoader::readAttributeLocalVariableTable(ClassFile &file) {
+    // TODO
+    uint16_t localVariableTableLength = file.readUInt16();
+    for(uint16_t i = 0; i < localVariableTableLength; i++) {
+        uint16_t startPc = file.readUInt16();
+        uint16_t length = file.readUInt16();
+        uint16_t nameIndex = file.readUInt16();
+        uint16_t descriptorIndex = file.readUInt16();
+        uint16_t index = file.readUInt16();
+        // TODO
+    }
+}
+
+AttributeInfo &ClassLoader::readAttributeStackMapTable(ClassFile &file) {
+    // TODO
+}
+
+const uint32_t ClassLoader::getMagic(void) const {
+    return magic;
+}
+
+const uint16_t ClassLoader::getMinorVersion(void) const {
+    return minorVersion;
+}
+
+const uint16_t ClassLoader::getMajorversion(void) const {
+    return majorVersion;
+}
+
+const int32_t ClassLoader::getConstInteger(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_INTEGER)
+        return (int32_t)poolTable[poolIndex].value;
+    throw "index for const integer is invalid";
+}
+
+const float ClassLoader::getConstFloat(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_FLOAT)
+        return *(float *)&poolTable[poolIndex].value;
+    throw "index for const float is invalid";
+}
+
+const int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_DOUBLE)
+        return *(int64_t *)poolTable[poolIndex].value;
+    throw "index for const long is invalid";
+}
+
+const double ClassLoader::getConstDouble(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_DOUBLE)
+        return *(double *)poolTable[poolIndex].value;
+    throw "index for const double is invalid";
+}
+
+const ConstUtf8 &ClassLoader::getConstUtf8(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_UTF8)
+        return *(ConstUtf8 *)poolTable[poolIndex].value;
+    throw "index for const utf8 is invalid";
+}
+
+const ConstUtf8 &ClassLoader::getConstClass(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_CLASS)
+        return getConstUtf8(poolTable[poolIndex].value);
+    throw "index for const class is invalid";
+}
+
+const ConstUtf8 &ClassLoader::getConstString(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_STRING)
+        return getConstUtf8(poolTable[poolIndex].value);
+    throw "index for const string is invalid";
+}
+
+const ConstUtf8 &ClassLoader::getConstMethodType(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_METHOD)
+        return getConstUtf8(poolTable[poolIndex].value);
+    throw "index for const method type is invalid";
+}
+
+const ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_NAME_AND_TYPE) {
+        if(poolTable[poolIndex].tag & 0x80) {
+            uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+            uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)MJVM_Malloc(sizeof(ConstNameAndType));
+            new ((ConstNameAndType *)poolTable[poolIndex].value)ConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
+        }
+        return *(ConstNameAndType *)poolTable[poolIndex].value;
+    }
+    throw "index for const name and type is invalid";
+}
+
+const ConstField &ClassLoader::getConstField(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_FIELD) {
+        if(poolTable[poolIndex].tag & 0x80) {
+            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)MJVM_Malloc(sizeof(ConstField));
+            new ((ConstField *)poolTable[poolIndex].value)ConstField(getConstClass(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+        }
+        return *(ConstField *)poolTable[poolIndex].value;
+    }
+    throw "index for const field is invalid";
+}
+
+const ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_METHOD) {
+        if(poolTable[poolIndex].tag & 0x80) {
+            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)MJVM_Malloc(sizeof(ConstMethod));
+            new ((ConstMethod *)poolTable[poolIndex].value)ConstMethod(getConstClass(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+        }
+        return *(ConstMethod *)poolTable[poolIndex].value;
+    }
+    throw "index for const method is invalid";
+}
+
+const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_INTERFACE_METHOD) {
+        if(poolTable[poolIndex].tag & 0x80) {
+            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)MJVM_Malloc(sizeof(ConstInterfaceMethod));
+            new ((ConstInterfaceMethod *)poolTable[poolIndex].value)ConstInterfaceMethod(getConstClass(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+        }
+        return *(ConstInterfaceMethod *)poolTable[poolIndex].value;
+    }
+    throw "index for const interface method is invalid";
+}
+
+const ClassAccessFlag ClassLoader::getAccessFlag(void) const {
+    return (ClassAccessFlag)accessFlags;
+}
+
+const ConstUtf8 &ClassLoader::getThisClass(void) const {
+    return getConstClass(thisClass);
+}
+
+const ConstUtf8 &ClassLoader::getSupperClass(void) const {
+    if(superClass == 0)
+        return *(ConstUtf8 *)0;
+    return getConstClass(superClass);
+}
+
+const ConstUtf8 &ClassLoader::getInterface(uint8_t interfaceIndex) const {
+    if(interfaceIndex < interfacesCount)
+        return getConstClass(interfaces[interfaceIndex]);
+    throw "index for const interface is invalid";
+}
+
+const FieldInfo &ClassLoader::getFieldInfo(uint8_t fieldIndex) const {
+    if(fieldIndex < fieldsCount)
+        return fields[fieldIndex];
+    throw "index for field info is invalid";
+}
+
+const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &field) const {
+    for(uint16_t i = 0; i < fieldsCount; i++) {
+        if(field.name.length == fields[i].name.length && field.descriptor.length == fields[i].descriptor.length) {
+            if(
+                strncmp(field.name.text, fields[i].name.text, field.name.length) == 0 &&
+                strncmp(field.descriptor.text, fields[i].descriptor.text, field.descriptor.length) == 0
+            )
+                return fields[i];
+        }
+    }
+    throw "can't find the field";
+}
+
+const MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
+    if(methodIndex < methodsCount)
+        return methods[methodIndex];
+    throw "index for method info is invalid";
+}
+
+const MethodInfo &ClassLoader::getMethodInfo(const ConstNameAndType &method) const {
+    for(uint16_t i = 0; i < methodsCount; i++) {
+        if(method.name.length == methods[i].name.length && method.descriptor.length == methods[i].descriptor.length) {
+            if(
+                strncmp(method.name.text, methods[i].name.text, method.name.length) == 0 &&
+                strncmp(method.descriptor.text, methods[i].descriptor.text, method.descriptor.length) == 0
+            )
+                return methods[i];
+        }
+    }
+    throw "can't find the method";
+}
+
+const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
+    for(uint16_t i = 0; i < methodsCount; i++) {
+        if(methods[i].name.length == (sizeof("main") - 1) && methods[i].descriptor.length == (sizeof("([Ljava/lang/String;)V") - 1)) {
+            if(
+                strncmp(methods[i].name.text, "main", sizeof("main") - 1) == 0 &&
+                strncmp(methods[i].descriptor.text, "([Ljava/lang/String;)V", sizeof("([Ljava/lang/String;)V") - 1) == 0
+            ) {
+                if((methods[i].accessFlag & (METHOD_PUBLIC | METHOD_STATIC)) == (METHOD_PUBLIC | METHOD_STATIC))
+                    return methods[i];
+                throw "can't find the method";
+            }
+        }
+    }
+    throw "can't find the method";
+}
+
+ClassLoader::~ClassLoader(void) {
+    MJVM_Free((void *)fileName);
+    for(uint32_t i = 0; i < poolCount; i++) {
+        switch (poolTable[i].tag) {
+            case CONST_UTF8:
+            case CONST_FIELD:
+            case CONST_METHOD:
+            case CONST_INTERFACE_METHOD:
+            case CONST_NAME_AND_TYPE:
+            case CONST_INVOKE_DYNAMIC:
+                MJVM_Free((void *)poolTable[i].value);
+                break;
+            case CONST_LONG:
+            case CONST_DOUBLE:
+                MJVM_Free((void *)poolTable[i].value);
+                i++;
+                break;
+            case CONST_METHOD_HANDLE:
+                MJVM_Free((void *)poolTable[i].value);
+                break;
+            default:
+                break;
+        }
+    }
+    MJVM_Free(poolTable);
+    if(interfacesCount)
+        MJVM_Free(interfaces);
+    if(fieldsCount) {
+        for(uint32_t i = 0; i < fieldsCount; i++)
+            fields[i].~FieldInfo();
+        MJVM_Free(fields);
+    }
+    if(attributesCount) {
+        // TODO
+        // for(uint32_t i = 0; i < attributesCount; i++)
+        //     attributes[i]->~AttributeInfo();
+        MJVM_Free(attributes);
+    }
+}
