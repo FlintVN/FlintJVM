@@ -36,7 +36,6 @@ private:
     AttributeInfo &readAttributeCode(ClassFile &file);
     AttributeInfo &readAttributeLineNumberTable(ClassFile &file);
     AttributeInfo &readAttributeLocalVariableTable(ClassFile &file);
-    AttributeInfo &readAttributeStackMapTable(ClassFile &file);
 public:
     ClassLoader(const char *fileName);
     const uint32_t getMagic(void) const;

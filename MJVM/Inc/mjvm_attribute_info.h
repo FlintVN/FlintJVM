@@ -34,11 +34,28 @@ private:
     AttributeInfo(const AttributeInfo &) = delete;
     void operator=(const AttributeInfo &) = delete;
 protected:
-    AttributeInfo(AttributeType attributeType);
+    AttributeInfo(AttributeType type);
 public:
     static AttributeType parseAttributeType(const ConstUtf8 &name);
 
     virtual ~AttributeInfo(void) = 0;
+};
+
+class AttributeRaw : public AttributeInfo {
+public:
+    const uint32_t length;
+private:
+    uint8_t raw[];
+
+    AttributeRaw(AttributeType type, uint16_t length);
+    AttributeRaw(const AttributeRaw &) = delete;
+    void operator=(const AttributeRaw &) = delete;
+
+    friend class ClassLoader;
+public:
+    const uint8_t *getRaw(void) const;
+
+    ~AttributeRaw(void);
 };
 
 class ExceptionTable {
@@ -47,11 +64,12 @@ public:
     const uint16_t endPc;
     const uint16_t handlerPc;
     const ConstUtf8 &catchType;
-
-    ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, const ConstUtf8 &catchType);
 private:
+    ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, const ConstUtf8 &catchType);
     ExceptionTable(const ExceptionTable &) = delete;
     void operator=(const ExceptionTable &) = delete;
+
+    friend class ClassLoader;
 };
 
 class AttributeCode : public AttributeInfo {
@@ -66,6 +84,7 @@ private:
     const ExceptionTable *exceptionTable;
     const AttributeInfo **attributes;
 
+    AttributeCode(uint16_t maxStack, uint16_t maxLocals);
     AttributeCode(const AttributeCode &) = delete;
     void operator=(const AttributeCode &) = delete;
 
@@ -75,12 +94,71 @@ private:
 
     friend class ClassLoader;
 public:
-    AttributeCode(uint16_t maxStack, uint16_t maxLocals);
-
     const ExceptionTable &getException(uint16_t index) const;
     const AttributeInfo &getAttributes(uint16_t index) const;
 
     ~AttributeCode(void);
+};
+
+class LineNumber {
+public:
+    const uint16_t startPc;
+    const uint16_t lineNumber;
+private:
+    LineNumber(uint16_t startPc, uint16_t lineNumber);
+    LineNumber(const LineNumber &) = delete;
+    void operator=(const LineNumber &) = delete;
+
+    friend class ClassLoader;
+};
+
+class AttributeLineNumberTable : public AttributeInfo {
+public:
+    const uint16_t LineNumberLenght;
+private:
+    LineNumber lineNumberTable[];
+
+    AttributeLineNumberTable(uint16_t length);
+    AttributeLineNumberTable(const AttributeLineNumberTable &) = delete;
+    void operator=(const AttributeLineNumberTable &) = delete;
+
+    friend class ClassLoader;
+public:
+    const LineNumber &getLineNumber(uint16_t index) const;
+
+    ~AttributeLineNumberTable(void);
+};
+
+class LocalVariable {
+public:
+    const uint16_t startPc;
+    const uint16_t length;
+    const uint16_t index;
+    const ConstUtf8 &name;
+    const ConstUtf8 &descriptor;
+private:
+    LocalVariable(uint16_t startPc, uint16_t length, const ConstUtf8 &name, const ConstUtf8 &descriptor, uint16_t index);
+    LocalVariable(const LocalVariable &) = delete;
+    void operator=(const LocalVariable &) = delete;
+
+    friend class ClassLoader;
+};
+
+class AttributeLocalVariableTable : public AttributeInfo {
+public:
+    const uint16_t localVariableLength;
+private:
+    LocalVariable lineNumberTable[];
+
+    AttributeLocalVariableTable(uint16_t length);
+    AttributeLocalVariableTable(const AttributeLocalVariableTable &) = delete;
+    void operator=(const AttributeLocalVariableTable &) = delete;
+
+    friend class ClassLoader;
+public:
+    const LocalVariable &getLocalVariable(uint16_t index) const;
+
+    ~AttributeLocalVariableTable(void);
 };
 
 #endif /* __MJVM_ATTRIBUTE_INFO_H */

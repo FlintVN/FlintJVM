@@ -29,8 +29,10 @@ const AttributeInfo &MethodInfo::getAttribute(AttributeType type) const {
 
 MethodInfo::~MethodInfo(void) {
     if(attributes) {
-        for(uint16_t i = 0; i < attributesCount; i++)
+        for(uint16_t i = 0; i < attributesCount; i++) {
             attributes[i]->~AttributeInfo();
+            MJVM_Free((void *)attributes[i]);
+        }
         MJVM_Free((void *)attributes);
     }
 }

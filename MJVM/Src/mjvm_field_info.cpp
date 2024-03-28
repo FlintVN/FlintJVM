@@ -29,8 +29,10 @@ const AttributeInfo &FieldInfo::getAttribute(AttributeType type) const {
 
 FieldInfo::~FieldInfo(void) {
     if(attributes) {
-        for(uint16_t i = 0; i < attributesCount; i++)
+        for(uint16_t i = 0; i < attributesCount; i++) {
             attributes[i]->~AttributeInfo();
+            MJVM_Free((void *)attributes[i]);
+        }
         MJVM_Free((void *)attributes);
     }
 }

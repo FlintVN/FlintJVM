@@ -22,8 +22,8 @@ void ClassLoader::load(ClassFile &file) {
         switch(poolTable[i].tag) {
             case CONST_UTF8: {
                 uint16_t length = file.readUInt16();
-                *(uint32_t *)&poolTable[i].value = (uint32_t)MJVM_Malloc(length + 3);
-                *(uint16_t *)&((ConstUtf8 *)poolTable[i].value)->length = length;
+                *(uint32_t *)&poolTable[i].value = (uint32_t)MJVM_Malloc(sizeof(ConstUtf8) + length);
+                new ((ConstUtf8 *)poolTable[i].value)ConstUtf8(length);
                 file.read((char *)((ConstUtf8 *)poolTable[i].value)->text, length);
                 break;
             }
@@ -104,7 +104,6 @@ void ClassLoader::load(ClassFile &file) {
         for(uint16_t attrIdx = 0; attrIdx < attributesCount; attrIdx++)
             attributes[attrIdx] = &readAttribute(file);
     }
-    // TODO
 }
 
 AttributeInfo &ClassLoader::readAttribute(ClassFile &file) {
@@ -114,18 +113,17 @@ AttributeInfo &ClassLoader::readAttribute(ClassFile &file) {
     switch(type) {
         case ATTRIBUTE_CODE:
             return readAttributeCode(file);
-        // case ATTRIBUTE_LINE_NUMBER_TABLE:
-        //     return readAttributeLineNumberTable(file);
-        // case ATTRIBUTE_LOCAL_VARIABLE_TABLE:
-        //     return readAttributeLocalVariableTable(file);
-        // case ATTRIBUTE_STACK_MAP_TABLE:
-        //     return readAttributeStackMapTable(file);
+        case ATTRIBUTE_LINE_NUMBER_TABLE:
+            return readAttributeLineNumberTable(file);
+        case ATTRIBUTE_LOCAL_VARIABLE_TABLE:
+            return readAttributeLocalVariableTable(file);
         default:
-            while(length--)
-                file.readUInt8();
             break;
-            // throw "attribute is not yet implemented in class loader";
     }
+    AttributeRaw *attribute = (AttributeRaw *)MJVM_Malloc(sizeof(AttributeRaw) + length);
+    new (attribute)AttributeRaw(type, length);
+    file.read((uint8_t *)attribute->raw, length);
+    return *attribute;
 }
 
 AttributeInfo &ClassLoader::readAttributeCode(ClassFile &file) {
@@ -160,30 +158,30 @@ AttributeInfo &ClassLoader::readAttributeCode(ClassFile &file) {
 }
 
 AttributeInfo &ClassLoader::readAttributeLineNumberTable(ClassFile &file) {
-    // TODO
     uint16_t lineNumberTableLength = file.readUInt16();
+    AttributeLineNumberTable *attribute = (AttributeLineNumberTable *)MJVM_Malloc(sizeof(AttributeLineNumberTable) + lineNumberTableLength * sizeof(LineNumber));
+    new (attribute)AttributeLineNumberTable(lineNumberTableLength);
     for(uint16_t i = 0; i < lineNumberTableLength; i++) {
         uint16_t startPc = file.readUInt16();
         uint16_t lineNumber = file.readUInt16();
-        // TODO
+        new ((LineNumber *)&attribute->getLineNumber(i))LineNumber(startPc, lineNumber);
     }
+    return *attribute;
 }
 
 AttributeInfo &ClassLoader::readAttributeLocalVariableTable(ClassFile &file) {
-    // TODO
     uint16_t localVariableTableLength = file.readUInt16();
+    AttributeLocalVariableTable *attribute = (AttributeLocalVariableTable *)MJVM_Malloc(sizeof(AttributeLocalVariableTable) + localVariableTableLength * sizeof(LocalVariable));
+    new (attribute)AttributeLocalVariableTable(localVariableTableLength);
     for(uint16_t i = 0; i < localVariableTableLength; i++) {
         uint16_t startPc = file.readUInt16();
         uint16_t length = file.readUInt16();
         uint16_t nameIndex = file.readUInt16();
         uint16_t descriptorIndex = file.readUInt16();
         uint16_t index = file.readUInt16();
-        // TODO
+        new ((LocalVariable *)&attribute->getLocalVariable(i))LocalVariable(startPc, length, getConstUtf8(nameIndex), getConstUtf8(descriptorIndex), index);
     }
-}
-
-AttributeInfo &ClassLoader::readAttributeStackMapTable(ClassFile &file) {
-    // TODO
+    return *attribute;
 }
 
 const uint32_t ClassLoader::getMagic(void) const {
@@ -344,8 +342,8 @@ const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &field) const 
     for(uint16_t i = 0; i < fieldsCount; i++) {
         if(field.name.length == fields[i].name.length && field.descriptor.length == fields[i].descriptor.length) {
             if(
-                strncmp(field.name.text, fields[i].name.text, field.name.length) == 0 &&
-                strncmp(field.descriptor.text, fields[i].descriptor.text, field.descriptor.length) == 0
+                strncmp(field.name.getText(), fields[i].name.getText(), field.name.length) == 0 &&
+                strncmp(field.descriptor.getText(), fields[i].descriptor.getText(), field.descriptor.length) == 0
             )
                 return fields[i];
         }
@@ -381,7 +379,7 @@ const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
             ) {
                 if((methods[i].accessFlag & (METHOD_PUBLIC | METHOD_STATIC)) == (METHOD_PUBLIC | METHOD_STATIC))
                     return methods[i];
-                throw "can't find the method";
+                throw "main must be static public method";
             }
         }
     }
@@ -420,10 +418,16 @@ ClassLoader::~ClassLoader(void) {
             fields[i].~FieldInfo();
         MJVM_Free(fields);
     }
+    if(methodsCount) {
+        for(uint32_t i = 0; i < methodsCount; i++)
+            methods[i].~MethodInfo();
+        MJVM_Free(methods);
+    }
     if(attributesCount) {
-        // TODO
-        // for(uint32_t i = 0; i < attributesCount; i++)
-        //     attributes[i]->~AttributeInfo();
+        for(uint32_t i = 0; i < attributesCount; i++) {
+            attributes[i]->~AttributeInfo();
+            MJVM_Free(attributes[i]);
+        }
         MJVM_Free(attributes);
     }
 }

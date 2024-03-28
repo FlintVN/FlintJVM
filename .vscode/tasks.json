@@ -7,6 +7,7 @@
 			"command": "C:/MinGW/bin/g++.exe",
 			"args": [
 				"-m32",
+				"-std=c++14",
 				"-fdiagnostics-color=always",
 				"-g",
 				"MJVM/Src/*.cpp",
