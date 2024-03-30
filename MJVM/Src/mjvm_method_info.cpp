@@ -3,8 +3,8 @@
 #include "mjvm_heap.h"
 #include "mjvm_method_info.h"
 
-MethodInfo::MethodInfo(MethodAccessFlag accessFlag, const ConstUtf8 &name, const ConstUtf8 &descriptor) :
-accessFlag(accessFlag), name(name), descriptor(descriptor), attributesCount(0), attributes(0) {
+MethodInfo::MethodInfo(const ClassLoader &classLoader, MethodAccessFlag accessFlag, const ConstUtf8 &name, const ConstUtf8 &descriptor) :
+classLoader(classLoader), accessFlag(accessFlag), name(name), descriptor(descriptor), attributesCount(0), attributes(0) {
 
 }
 

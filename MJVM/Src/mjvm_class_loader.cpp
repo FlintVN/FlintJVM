@@ -76,7 +76,7 @@ void ClassLoader::load(ClassFile &file) {
             uint16_t fieldsNameIndex = file.readUInt16();
             uint16_t fieldsDescriptorIndex = file.readUInt16();
             uint16_t fieldsAttributesCount = file.readUInt16();
-            new (&fields[i])FieldInfo(flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
+            new (&fields[i])FieldInfo(*this, flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
             AttributeInfo **fieldAttributes = (AttributeInfo **)MJVM_Malloc(fieldsAttributesCount * sizeof(AttributeInfo *));
             fields[i].setAttributes(fieldAttributes, fieldsAttributesCount);
             for(uint16_t attrIdx = 0; attrIdx < fieldsAttributesCount; attrIdx++)
@@ -91,7 +91,7 @@ void ClassLoader::load(ClassFile &file) {
             uint16_t methodNameIndex = file.readUInt16();
             uint16_t methodDescriptorIndex = file.readUInt16();
             uint16_t methodAttributesCount = file.readUInt16();
-            new (&methods[i])MethodInfo(flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
+            new (&methods[i])MethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
             AttributeInfo **methodAttributes = (AttributeInfo **)MJVM_Malloc(methodAttributesCount * sizeof(AttributeInfo *));
             methods[i].setAttributes(methodAttributes, methodAttributesCount);
             for(uint16_t attrIdx = 0; attrIdx < methodAttributesCount; attrIdx++)
