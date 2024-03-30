@@ -42,20 +42,34 @@ public:
     const uint16_t getMinorVersion(void) const;
     const uint16_t getMajorversion(void) const;
 
+    const ConstPool &getConstPool(uint16_t index) const;
+
     const int32_t getConstInteger(uint16_t poolIndex) const;
+    const int32_t getConstInteger(const ConstPool &constPool) const;
     const float getConstFloat(uint16_t poolIndex) const;
+    const float getConstFloat(const ConstPool &constPool) const;
     const int64_t getConstLong(uint16_t poolIndex) const;
+    const int64_t getConstLong(const ConstPool &constPool) const;
     const double getConstDouble(uint16_t poolIndex) const;
+    const double getConstDouble(const ConstPool &constPool) const;
 
     const ConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
+    const ConstUtf8 &getConstUtf8(const ConstPool &constPool) const;
     const ConstUtf8 &getConstClass(uint16_t poolIndex) const;
+    const ConstUtf8 &getConstClass(const ConstPool &constPool) const;
     const ConstUtf8 &getConstString(uint16_t poolIndex) const;
+    const ConstUtf8 &getConstString(const ConstPool &constPool) const;
     const ConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
+    const ConstUtf8 &getConstMethodType(const ConstPool &constPool) const;
 
     const ConstNameAndType &getConstNameAndType(uint16_t poolIndex) const;
+    const ConstNameAndType &getConstNameAndType(const ConstPool &constPool) const;
     const ConstField &getConstField(uint16_t poolIndex) const;
+    const ConstField &getConstField(const ConstPool &constPool) const;
     const ConstMethod &getConstMethod(uint16_t poolIndex) const;
+    const ConstMethod &getConstMethod(const ConstPool &constPool) const;
     const ConstInterfaceMethod &getConstInterfaceMethod(uint16_t poolIndex) const;
+    const ConstInterfaceMethod &getConstInterfaceMethod(const ConstPool &constPool) const;
 
     const ClassAccessFlag getAccessFlag(void) const;
 

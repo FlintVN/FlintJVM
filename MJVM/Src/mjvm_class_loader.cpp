@@ -196,11 +196,24 @@ const uint16_t ClassLoader::getMajorversion(void) const {
     return majorVersion;
 }
 
+const ConstPool &ClassLoader::getConstPool(uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount)
+        return poolTable[poolIndex];
+    throw "index for const pool is invalid";
+}
+
 const int32_t ClassLoader::getConstInteger(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_INTEGER)
         return (int32_t)poolTable[poolIndex].value;
     throw "index for const integer is invalid";
+}
+
+const int32_t ClassLoader::getConstInteger(const ConstPool &constPool) const {
+    if(constPool.tag == CONST_INTEGER)
+        return (int32_t)constPool.value;
+    throw "const pool tag is not integer tag";
 }
 
 const float ClassLoader::getConstFloat(uint16_t poolIndex) const {
@@ -210,11 +223,23 @@ const float ClassLoader::getConstFloat(uint16_t poolIndex) const {
     throw "index for const float is invalid";
 }
 
+const float ClassLoader::getConstFloat(const ConstPool &constPool) const {
+    if(constPool.tag == CONST_FLOAT)
+        return *(float *)&constPool.value;
+    throw "const pool tag is not float tag";
+}
+
 const int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
     poolIndex--;
-    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_DOUBLE)
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_LONG)
         return *(int64_t *)poolTable[poolIndex].value;
     throw "index for const long is invalid";
+}
+
+const int64_t ClassLoader::getConstLong(const ConstPool &constPool) const {
+    if(constPool.tag == CONST_LONG)
+        return *(int64_t *)constPool.value;
+    throw "const pool tag is not long tag";
 }
 
 const double ClassLoader::getConstDouble(uint16_t poolIndex) const {
@@ -224,11 +249,23 @@ const double ClassLoader::getConstDouble(uint16_t poolIndex) const {
     throw "index for const double is invalid";
 }
 
+const double ClassLoader::getConstDouble(const ConstPool &constPool) const {
+    if(constPool.tag == CONST_DOUBLE)
+        return *(double *)constPool.value;
+    throw "const pool tag is not double tag";
+}
+
 const ConstUtf8 &ClassLoader::getConstUtf8(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_UTF8)
         return *(ConstUtf8 *)poolTable[poolIndex].value;
     throw "index for const utf8 is invalid";
+}
+
+const ConstUtf8 &ClassLoader::getConstUtf8(const ConstPool &constPool) const {
+    if(constPool.tag == CONST_UTF8)
+        return *(ConstUtf8 *)constPool.value;
+    throw "const pool tag is not utf8 tag";
 }
 
 const ConstUtf8 &ClassLoader::getConstClass(uint16_t poolIndex) const {
@@ -238,6 +275,12 @@ const ConstUtf8 &ClassLoader::getConstClass(uint16_t poolIndex) const {
     throw "index for const class is invalid";
 }
 
+const ConstUtf8 &ClassLoader::getConstClass(const ConstPool &constPool) const {
+    if(constPool.tag == CONST_CLASS)
+        return getConstUtf8(constPool.value);
+    throw "const pool tag is not class tag";
+}
+
 const ConstUtf8 &ClassLoader::getConstString(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_STRING)
@@ -245,11 +288,23 @@ const ConstUtf8 &ClassLoader::getConstString(uint16_t poolIndex) const {
     throw "index for const string is invalid";
 }
 
+const ConstUtf8 &ClassLoader::getConstString(const ConstPool &constPool) const {
+    if(constPool.tag == CONST_STRING)
+        return getConstUtf8(constPool.value);
+    throw "const pool tag is not string tag";
+}
+
 const ConstUtf8 &ClassLoader::getConstMethodType(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_METHOD)
         return getConstUtf8(poolTable[poolIndex].value);
     throw "index for const method type is invalid";
+}
+
+const ConstUtf8 &ClassLoader::getConstMethodType(const ConstPool &constPool) const {
+    if(constPool.tag == CONST_METHOD)
+        return getConstUtf8(constPool.value);
+    throw "const pool tag is not method type tag";
 }
 
 const ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) const {
@@ -267,6 +322,10 @@ const ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) con
     throw "index for const name and type is invalid";
 }
 
+const ConstNameAndType &ClassLoader::getConstNameAndType(const ConstPool &constPool) const {
+    return getConstNameAndType((uint16_t)(&constPool - poolTable) + 1);
+}
+
 const ConstField &ClassLoader::getConstField(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_FIELD) {
@@ -280,6 +339,10 @@ const ConstField &ClassLoader::getConstField(uint16_t poolIndex) const {
         return *(ConstField *)poolTable[poolIndex].value;
     }
     throw "index for const field is invalid";
+}
+
+const ConstField &ClassLoader::getConstField(const ConstPool &constPool) const {
+    return getConstField((uint16_t)(&constPool - poolTable) + 1);
 }
 
 const ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) const {
@@ -297,6 +360,10 @@ const ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) const {
     throw "index for const method is invalid";
 }
 
+const ConstMethod &ClassLoader::getConstMethod(const ConstPool &constPool) const {
+    return getConstMethod((uint16_t)(&constPool - poolTable) + 1);
+}
+
 const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_INTERFACE_METHOD) {
@@ -310,6 +377,10 @@ const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIn
         return *(ConstInterfaceMethod *)poolTable[poolIndex].value;
     }
     throw "index for const interface method is invalid";
+}
+
+const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(const ConstPool &constPool) const {
+    return getConstInterfaceMethod((uint16_t)(&constPool - poolTable) + 1);
 }
 
 const ClassAccessFlag ClassLoader::getAccessFlag(void) const {
