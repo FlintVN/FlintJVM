@@ -340,7 +340,9 @@ const FieldInfo &ClassLoader::getFieldInfo(uint8_t fieldIndex) const {
 
 const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &field) const {
     for(uint16_t i = 0; i < fieldsCount; i++) {
-        if(field.name.length == fields[i].name.length && field.descriptor.length == fields[i].descriptor.length) {
+        if(&field.name == &fields[i].name && &field.descriptor == &fields[i].descriptor)
+            return fields[i];
+        else if(field.name.length == fields[i].name.length && field.descriptor.length == fields[i].descriptor.length) {
             if(
                 strncmp(field.name.getText(), fields[i].name.getText(), field.name.length) == 0 &&
                 strncmp(field.descriptor.getText(), fields[i].descriptor.getText(), field.descriptor.length) == 0
@@ -359,7 +361,9 @@ const MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
 
 const MethodInfo &ClassLoader::getMethodInfo(const ConstNameAndType &method) const {
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(method.name.length == methods[i].name.length && method.descriptor.length == methods[i].descriptor.length) {
+        if(&method.name == &methods[i].name && &method.descriptor == &methods[i].descriptor)
+            return methods[i];
+        else if(method.name.length == methods[i].name.length && method.descriptor.length == methods[i].descriptor.length) {
             if(
                 strncmp(method.name.text, methods[i].name.text, method.name.length) == 0 &&
                 strncmp(method.descriptor.text, methods[i].descriptor.text, method.descriptor.length) == 0
