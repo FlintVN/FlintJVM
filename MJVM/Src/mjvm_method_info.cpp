@@ -27,6 +27,10 @@ const AttributeInfo &MethodInfo::getAttribute(AttributeType type) const {
     throw "can't find the attribute";
 }
 
+const AttributeCode &MethodInfo::getAttributeCode(void) const {
+    return *(AttributeCode *)&getAttribute(ATTRIBUTE_CODE);
+}
+
 MethodInfo::~MethodInfo(void) {
     if(attributes) {
         for(uint16_t i = 0; i < attributesCount; i++) {
