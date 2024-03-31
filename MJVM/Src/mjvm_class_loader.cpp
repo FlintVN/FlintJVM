@@ -3,15 +3,61 @@
 #include "mjvm_heap.h"
 #include "mjvm_class_loader.h"
 
+ClassLoader *ClassLoader::head = 0;
+
+const ClassLoader &ClassLoader::load(const char *fileName) {
+    uint32_t len = strlen(fileName);
+    for(ClassLoader *loader = head; loader != 0; loader = loader->next) {
+        const ConstUtf8 &name = loader->getThisClass();
+        if(len == name.length && strncmp(fileName, name.getText(), len)) {
+            loader->referenceCount++;
+            return *loader;
+        }
+    }
+    ClassLoader *newLoader = (ClassLoader *)MjvmHeap::malloc(sizeof(ClassLoader));
+    new (newLoader)ClassLoader(fileName);
+    newLoader->next = head;
+    newLoader->referenceCount++;
+    head = newLoader;
+    return *newLoader;
+}
+
+void ClassLoader::destroy(const ClassLoader &classLoader) {
+    ClassLoader *prev = 0;
+    for(ClassLoader *loader = head; loader != 0; loader = loader->next) {
+        if(loader == &classLoader) {
+            if(--loader->referenceCount == 0) {
+                if(prev == 0)
+                    head = loader->next;
+                else
+                    prev->next = loader->next;
+                loader->~ClassLoader();
+                MjvmHeap::free(loader);
+            }
+            return;
+        }
+        prev = loader;
+    }
+    throw "the class is not loaded";
+}
+
 ClassLoader::ClassLoader(const char *fileName) {
-    this->fileName = (const char *)MjvmHeap::malloc(strlen(fileName) + 1);
-    strcpy((char *)this->fileName, fileName);
+    next = 0;
+    referenceCount = 0;
     ClassFile file(fileName);
-    load(file);
+    readFile(file);
     file.close();
 }
 
-void ClassLoader::load(ClassFile &file) {
+ClassLoader::ClassLoader(const ConstUtf8 &fileName) {
+    next = 0;
+    referenceCount = 0;
+    ClassFile file(fileName.getText());
+    readFile(file);
+    file.close();
+}
+
+void ClassLoader::readFile(ClassFile &file) {
     magic = file.readUInt32();
     minorVersion = file.readUInt16();
     majorVersion = file.readUInt16();
@@ -22,9 +68,11 @@ void ClassLoader::load(ClassFile &file) {
         switch(poolTable[i].tag) {
             case CONST_UTF8: {
                 uint16_t length = file.readUInt16();
-                *(uint32_t *)&poolTable[i].value = (uint32_t)MjvmHeap::malloc(sizeof(ConstUtf8) + length);
+                *(uint32_t *)&poolTable[i].value = (uint32_t)MjvmHeap::malloc(sizeof(ConstUtf8) + length + 1);
                 new ((ConstUtf8 *)poolTable[i].value)ConstUtf8(length);
-                file.read((char *)((ConstUtf8 *)poolTable[i].value)->text, length);
+                char *textBuff = (char *)((ConstUtf8 *)poolTable[i].value)->text;
+                file.read(textBuff, length);
+                textBuff[length] = 0;
                 break;
             }
             case CONST_INTEGER:
@@ -397,10 +445,18 @@ const ConstUtf8 &ClassLoader::getSupperClass(void) const {
     return getConstClass(superClass);
 }
 
+const uint16_t ClassLoader::getInterfacesCount(void) const {
+    return interfacesCount;
+}
+
 const ConstUtf8 &ClassLoader::getInterface(uint8_t interfaceIndex) const {
     if(interfaceIndex < interfacesCount)
         return getConstClass(interfaces[interfaceIndex]);
     throw "index for const interface is invalid";
+}
+
+const uint16_t ClassLoader::getFieldsCount(void) const {
+    return fieldsCount;
 }
 
 const FieldInfo &ClassLoader::getFieldInfo(uint8_t fieldIndex) const {
@@ -422,6 +478,10 @@ const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &field) const 
         }
     }
     throw "can't find the field";
+}
+
+const uint16_t ClassLoader::getMethodsCount(void) const {
+    return methodsCount;
 }
 
 const MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
@@ -462,7 +522,6 @@ const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
 }
 
 ClassLoader::~ClassLoader(void) {
-    MjvmHeap::free((void *)fileName);
     for(uint32_t i = 0; i < poolCount; i++) {
         switch (poolTable[i].tag) {
             case CONST_UTF8:

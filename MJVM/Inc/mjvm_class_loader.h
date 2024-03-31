@@ -9,7 +9,10 @@
 
 class ClassLoader {
 private:
-    const char *fileName;
+    static ClassLoader *head;
+
+    ClassLoader *next;
+    uint32_t referenceCount;
 
     uint32_t magic;
     uint16_t minorVersion;
@@ -28,17 +31,22 @@ private:
     MethodInfo *methods;
     AttributeInfo **attributes;
 
+    ClassLoader(const char *fileName);
+    ClassLoader(const ConstUtf8 &fileName);
     ClassLoader(const ClassLoader &) = delete;
     void operator=(const ClassLoader &) = delete;
 
-    void load(ClassFile &file);
+    void readFile(ClassFile &file);
     AttributeInfo &readAttribute(ClassFile &file);
     AttributeInfo &readAttributeCode(ClassFile &file);
     AttributeInfo &readAttributeLineNumberTable(ClassFile &file);
     AttributeInfo &readAttributeLocalVariableTable(ClassFile &file);
-public:
-    ClassLoader(const char *fileName);
 
+    static const ClassLoader &load(const char *fileName);
+    static void destroy(const ClassLoader &classLoader);
+
+    ~ClassLoader(void);
+public:
     const uint32_t getMagic(void) const;
     const uint16_t getMinorVersion(void) const;
     const uint16_t getMajorversion(void) const;
@@ -77,15 +85,17 @@ public:
     const ConstUtf8 &getThisClass(void) const;
     const ConstUtf8 &getSupperClass(void) const;
 
+    const uint16_t getInterfacesCount(void) const;
     const ConstUtf8 &getInterface(uint8_t interfaceIndex) const;
 
+    const uint16_t getFieldsCount(void) const;
     const FieldInfo &getFieldInfo(uint8_t fieldIndex) const;
     const FieldInfo &getFieldInfo(const ConstNameAndType &field) const;
+
+    const uint16_t getMethodsCount(void) const;
     const MethodInfo &getMethodInfo(uint8_t methodIndex) const;
     const MethodInfo &getMethodInfo(const ConstNameAndType &method) const;
     const MethodInfo &getMainMethodInfo(void) const;
-
-    ~ClassLoader(void);
 };
 
 #endif /* __MJVM_CLASS_LOADER_H */
