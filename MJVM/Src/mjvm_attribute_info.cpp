@@ -93,15 +93,15 @@ const AttributeInfo &AttributeCode::getAttributes(uint16_t index) const {
 
 AttributeCode::~AttributeCode(void) {
     if(code)
-        MJVM_Free((void *)code);
+        MjvmHeap::free((void *)code);
     if(exceptionTable)
-        MJVM_Free((void *)exceptionTable);
+        MjvmHeap::free((void *)exceptionTable);
     if(attributes) {
         for(uint16_t i = 0; i < attributesCount; i++) {
             attributes[i]->~AttributeInfo();
-            MJVM_Free((void *)attributes[i]);
+            MjvmHeap::free((void *)attributes[i]);
         }
-        MJVM_Free((void *)attributes);
+        MjvmHeap::free((void *)attributes);
     }
 }
 

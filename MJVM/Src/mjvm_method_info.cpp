@@ -35,8 +35,8 @@ MethodInfo::~MethodInfo(void) {
     if(attributes) {
         for(uint16_t i = 0; i < attributesCount; i++) {
             attributes[i]->~AttributeInfo();
-            MJVM_Free((void *)attributes[i]);
+            MjvmHeap::free((void *)attributes[i]);
         }
-        MJVM_Free((void *)attributes);
+        MjvmHeap::free((void *)attributes);
     }
 }

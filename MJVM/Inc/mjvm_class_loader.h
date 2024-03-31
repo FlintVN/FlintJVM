@@ -38,6 +38,7 @@ private:
     AttributeInfo &readAttributeLocalVariableTable(ClassFile &file);
 public:
     ClassLoader(const char *fileName);
+
     const uint32_t getMagic(void) const;
     const uint16_t getMinorVersion(void) const;
     const uint16_t getMajorversion(void) const;
