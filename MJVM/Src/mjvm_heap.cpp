@@ -1,8 +1,13 @@
 
+#include <new>
 #include <stdlib.h>
 #include "mjvm_heap.h"
 
 static uint32_t objectCount = 0;
+
+MjvmObject::MjvmObject(uint32_t size, const ConstUtf8 &type) : size(size), type(type) {
+
+}
 
 void *MjvmHeap::malloc(uint32_t size) {
     void *ret = ::malloc(size);
@@ -15,4 +20,10 @@ void *MjvmHeap::malloc(uint32_t size) {
 void MjvmHeap::free(void *p) {
     objectCount--;
     ::free(p);
+}
+
+MjvmObject *MjvmHeap::createNew(uint32_t size, const ConstUtf8 &type) {
+    MjvmObject *ret = (MjvmObject *)MjvmHeap::malloc(sizeof(MjvmObject) + size);
+    new (ret)MjvmObject(size, type);
+    return ret;
 }
