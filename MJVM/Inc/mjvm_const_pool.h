@@ -27,12 +27,18 @@ private:
     friend class ClassLoader;
 public:
     const char *getText(void) const;
+
+    bool operator==(const ConstUtf8 &another) const;
+    bool operator!=(const ConstUtf8 &another) const;
 };
 
 class ConstNameAndType {
 public:
     const ConstUtf8 &name;
     const ConstUtf8 &descriptor;
+
+    bool operator==(const ConstNameAndType &another) const;
+    bool operator!=(const ConstNameAndType &another) const;
 private:
     ConstNameAndType(const ConstUtf8 &name, const ConstUtf8 &descriptor);
     ConstNameAndType(const ConstNameAndType &) = delete;

@@ -465,17 +465,12 @@ const FieldInfo &ClassLoader::getFieldInfo(uint8_t fieldIndex) const {
     throw "index for field info is invalid";
 }
 
-const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &field) const {
+const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &fieldName) const {
     for(uint16_t i = 0; i < fieldsCount; i++) {
-        if(&field.name == &fields[i].name && &field.descriptor == &fields[i].descriptor)
+        if(&fieldName.name == &fields[i].name && &fieldName.descriptor == &fields[i].descriptor)
             return fields[i];
-        else if(field.name.length == fields[i].name.length && field.descriptor.length == fields[i].descriptor.length) {
-            if(
-                strncmp(field.name.getText(), fields[i].name.getText(), field.name.length) == 0 &&
-                strncmp(field.descriptor.getText(), fields[i].descriptor.getText(), field.descriptor.length) == 0
-            )
-                return fields[i];
-        }
+        else if(fieldName.name == fields[i].name && fieldName.descriptor == fields[i].descriptor)
+            return fields[i];
     }
     throw "can't find the field";
 }
@@ -490,27 +485,22 @@ const MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
     throw "index for method info is invalid";
 }
 
-const MethodInfo &ClassLoader::getMethodInfo(const ConstNameAndType &method) const {
+const MethodInfo &ClassLoader::getMethodInfo(const ConstNameAndType &methodName) const {
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(&method.name == &methods[i].name && &method.descriptor == &methods[i].descriptor)
+        if(&methodName.name == &methods[i].name && &methodName.descriptor == &methods[i].descriptor)
             return methods[i];
-        else if(method.name.length == methods[i].name.length && method.descriptor.length == methods[i].descriptor.length) {
-            if(
-                strncmp(method.name.text, methods[i].name.text, method.name.length) == 0 &&
-                strncmp(method.descriptor.text, methods[i].descriptor.text, method.descriptor.length) == 0
-            )
-                return methods[i];
-        }
+        else if(methodName.name == methods[i].name && methodName.descriptor == methods[i].descriptor)
+            return methods[i];
     }
     throw "can't find the method";
 }
 
 const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(methods[i].name.length == (sizeof("main") - 1) && methods[i].descriptor.length == (sizeof("([Ljava/lang/String;)V") - 1)) {
+        if(methods[i].name.length == (sizeof("main") - 1) && methods[i].descriptor.length >= sizeof("([Ljava/lang/String;)")) {
             if(
                 strncmp(methods[i].name.text, "main", sizeof("main") - 1) == 0 &&
-                strncmp(methods[i].descriptor.text, "([Ljava/lang/String;)V", sizeof("([Ljava/lang/String;)V") - 1) == 0
+                strncmp(methods[i].descriptor.text, "([Ljava/lang/String;)V", sizeof("([Ljava/lang/String;)") - 1) == 0
             ) {
                 if((methods[i].accessFlag & (METHOD_PUBLIC | METHOD_STATIC)) == (METHOD_PUBLIC | METHOD_STATIC))
                     return methods[i];

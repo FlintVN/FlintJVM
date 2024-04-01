@@ -92,12 +92,12 @@ private:
     void setExceptionTable(ExceptionTable *exceptionTable, uint16_t length);
     void setAttributes(AttributeInfo **attributes, uint16_t length);
 
+    ~AttributeCode(void);
+
     friend class ClassLoader;
 public:
     const ExceptionTable &getException(uint16_t index) const;
     const AttributeInfo &getAttributes(uint16_t index) const;
-
-    ~AttributeCode(void);
 };
 
 class LineNumber {
@@ -122,11 +122,11 @@ private:
     AttributeLineNumberTable(const AttributeLineNumberTable &) = delete;
     void operator=(const AttributeLineNumberTable &) = delete;
 
+    ~AttributeLineNumberTable(void);
+
     friend class ClassLoader;
 public:
     const LineNumber &getLineNumber(uint16_t index) const;
-
-    ~AttributeLineNumberTable(void);
 };
 
 class LocalVariable {
@@ -154,11 +154,11 @@ private:
     AttributeLocalVariableTable(const AttributeLocalVariableTable &) = delete;
     void operator=(const AttributeLocalVariableTable &) = delete;
 
+    ~AttributeLocalVariableTable(void);
+
     friend class ClassLoader;
 public:
     const LocalVariable &getLocalVariable(uint16_t index) const;
-
-    ~AttributeLocalVariableTable(void);
 };
 
 #endif /* __MJVM_ATTRIBUTE_INFO_H */

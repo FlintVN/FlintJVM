@@ -10,6 +10,18 @@ const char *ConstUtf8::getText(void) const {
     return (const char *)text;
 }
 
+bool ConstUtf8::operator==(const ConstUtf8 &another) const {
+    if(this == &another || (length == another.length && strncmp(text, another.text, length) == 0))
+        return true;
+    return false;
+}
+
+bool ConstUtf8::operator!=(const ConstUtf8 &another) const {
+    if(length != another.length || strncmp(text, another.text, length) != 0)
+        return true;
+    return false;
+}
+
 ConstNameAndType::ConstNameAndType(const ConstUtf8 &name, const ConstUtf8 &descriptor) :
 name(name),
 descriptor(descriptor) {
@@ -20,4 +32,28 @@ ConstField::ConstField(const ConstUtf8 &className, const ConstNameAndType &nameA
 className(className),
 nameAndType(nameAndType) {
 
+}
+
+bool ConstNameAndType::operator==(const ConstNameAndType &another) const {
+    if(
+        name.length == another.name.length &&
+        descriptor.length == another.descriptor.length &&
+        strncmp(name.getText(), another.name.getText(), name.length) == 0 &&
+        strncmp(descriptor.getText(), another.descriptor.getText(), descriptor.length) == 0
+    ) {
+        return true;
+    }
+    return false;
+}
+
+bool ConstNameAndType::operator!=(const ConstNameAndType &another) const {
+    if(
+        name.length != another.name.length ||
+        descriptor.length != another.descriptor.length ||
+        strncmp(name.getText(), another.name.getText(), name.length) != 0 ||
+        strncmp(descriptor.getText(), another.descriptor.getText(), descriptor.length) != 0
+    ) {
+        return true;
+    }
+    return false;
 }

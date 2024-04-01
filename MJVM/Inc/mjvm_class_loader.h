@@ -90,11 +90,11 @@ public:
 
     const uint16_t getFieldsCount(void) const;
     const FieldInfo &getFieldInfo(uint8_t fieldIndex) const;
-    const FieldInfo &getFieldInfo(const ConstNameAndType &field) const;
+    const FieldInfo &getFieldInfo(const ConstNameAndType &fieldName) const;
 
     const uint16_t getMethodsCount(void) const;
     const MethodInfo &getMethodInfo(uint8_t methodIndex) const;
-    const MethodInfo &getMethodInfo(const ConstNameAndType &method) const;
+    const MethodInfo &getMethodInfo(const ConstNameAndType &methodName) const;
     const MethodInfo &getMainMethodInfo(void) const;
 };
 
