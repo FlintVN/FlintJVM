@@ -7,6 +7,11 @@
 
 class ClassLoader;
 
+typedef struct {
+    uint8_t argc;
+    uint8_t retType;
+} ParamInfo;
+
 class MethodInfo {
 public:
     const ClassLoader &classLoader;
@@ -29,6 +34,8 @@ public:
     const AttributeInfo &getAttribute(uint16_t index) const;
     const AttributeInfo &getAttribute(AttributeType type) const;
     const AttributeCode &getAttributeCode(void) const;
+
+    ParamInfo parseParamInfo(void) const;
 
     ~MethodInfo(void);
 };
