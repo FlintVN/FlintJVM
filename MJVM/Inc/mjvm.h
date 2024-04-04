@@ -2,6 +2,6 @@
 #ifndef __MJVM_H
 #define __MJVM_H
 
-#include "mjvm_class_loader.h"
+#include "mjvm_execution.h"
 
 #endif /* __MJVM_H */

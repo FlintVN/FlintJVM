@@ -47,6 +47,8 @@ private:
     static void destroy(const ClassLoader &classLoader);
 
     ~ClassLoader(void);
+
+    friend class Execution;
 public:
     const uint32_t getMagic(void) const;
     const uint16_t getMinorVersion(void) const;

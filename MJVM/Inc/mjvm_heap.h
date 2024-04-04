@@ -9,9 +9,12 @@ class MjvmObject {
 public:
     const uint32_t size;
     const ConstUtf8 &type;
+    const uint8_t dimensions;
     uint8_t data[];
+
+    uint8_t parseTypeSize(void) const;
 private:
-    MjvmObject(uint32_t size, const ConstUtf8 &type);
+    MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions);
     MjvmObject(const MjvmObject &) = delete;
     void operator=(const MjvmObject &) = delete;
 
@@ -23,7 +26,7 @@ public:
     static void *malloc(uint32_t size);
     static void free(void *p);
 
-    static MjvmObject *createNew(uint32_t size, const ConstUtf8 &type);
+    static MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
 private:
     MjvmHeap(void) = delete;
     MjvmHeap(const MjvmHeap &) = delete;

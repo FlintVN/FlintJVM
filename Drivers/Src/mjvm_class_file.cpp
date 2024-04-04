@@ -1,9 +1,13 @@
 
+#include <string.h>
 #include "mjvm_common.h"
 #include "mjvm_class_file.h"
 
 ClassFile::ClassFile(const char *fileName) {
-    fptr = fopen(fileName, "rb");
+    char buff[256];
+    strcpy(buff, fileName);
+    strcat(buff, ".class");
+    fptr = fopen(buff, "rb");
     if(fptr == 0)
         throw "open file error";
 }
