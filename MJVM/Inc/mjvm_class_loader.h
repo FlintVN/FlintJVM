@@ -43,6 +43,7 @@ private:
     AttributeInfo &readAttributeLocalVariableTable(ClassFile &file);
 
     static const ClassLoader &load(const char *fileName);
+    static const ClassLoader &load(const ConstUtf8 &fileName);
     static void destroy(const ClassLoader &classLoader);
 
     ~ClassLoader(void);
@@ -96,6 +97,7 @@ public:
     const MethodInfo &getMethodInfo(uint8_t methodIndex) const;
     const MethodInfo &getMethodInfo(const ConstNameAndType &methodName) const;
     const MethodInfo &getMainMethodInfo(void) const;
+    const MethodInfo &getStaticContructor(void) const;
 };
 
 #endif /* __MJVM_CLASS_LOADER_H */

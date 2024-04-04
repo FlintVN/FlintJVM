@@ -22,6 +22,21 @@ const ClassLoader &ClassLoader::load(const char *fileName) {
     return *newLoader;
 }
 
+const ClassLoader &ClassLoader::load(const ConstUtf8 &fileName) {
+    for(ClassLoader *loader = head; loader != 0; loader = loader->next) {
+        if(fileName == loader->getThisClass()) {
+            loader->referenceCount++;
+            return *loader;
+        }
+    }
+    ClassLoader *newLoader = (ClassLoader *)MjvmHeap::malloc(sizeof(ClassLoader));
+    new (newLoader)ClassLoader(fileName);
+    newLoader->next = head;
+    newLoader->referenceCount++;
+    head = newLoader;
+    return *newLoader;
+}
+
 void ClassLoader::destroy(const ClassLoader &classLoader) {
     ClassLoader *prev = 0;
     for(ClassLoader *loader = head; loader != 0; loader = loader->next) {
@@ -472,7 +487,7 @@ const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &fieldName) co
         else if(fieldName.name == fields[i].name && fieldName.descriptor == fields[i].descriptor)
             return fields[i];
     }
-    throw "can't find the field";
+    return *(const FieldInfo *)0;;
 }
 
 const uint16_t ClassLoader::getMethodsCount(void) const {
@@ -492,7 +507,7 @@ const MethodInfo &ClassLoader::getMethodInfo(const ConstNameAndType &methodName)
         else if(methodName.name == methods[i].name && methodName.descriptor == methods[i].descriptor)
             return methods[i];
     }
-    throw "can't find the method";
+    return *(const MethodInfo *)0;
 }
 
 const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
@@ -508,7 +523,22 @@ const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
             }
         }
     }
-    throw "can't find the method";
+    return *(const MethodInfo *)0;
+}
+
+const MethodInfo &ClassLoader::getStaticContructor(void) const {
+    for(int32_t i = methodsCount - 1; i >= 0; i--) {
+        if(
+            methods[i].accessFlag == METHOD_STATIC &&
+            methods[i].name.length == (sizeof("<clinit>") - 1) &&
+            methods[i].descriptor.length == (sizeof("()V") - 1) &&
+            strncmp(methods[i].name.text, "<clinit>", sizeof("main") - 1) == 0 &&
+            strncmp(methods[i].descriptor.text, "()V", sizeof("()V") - 1) == 0
+        ) {
+            return methods[i];
+        }
+    }
+    return *(MethodInfo *)0;
 }
 
 ClassLoader::~ClassLoader(void) {
