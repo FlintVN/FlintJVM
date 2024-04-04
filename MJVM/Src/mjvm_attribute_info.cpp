@@ -15,6 +15,14 @@ AttributeType AttributeInfo::parseAttributeType(const ConstUtf8 &name) {
             if(strncmp(name.getText(), "SourceFile", name.length) == 0)
                 return ATTRIBUTE_SOURCE_FILE;
             break;
+        case 11:
+            if(strncmp(name.getText(), "NestMembers", name.length) == 0)
+                return ATTRIBUTE_NEST_MEMBERS;
+            break;
+        case 12:
+            if(strncmp(name.getText(), "InnerClasses", name.length) == 0)
+                return ATTRIBUTE_INNER_CLASSES;
+            break;
         case 13:
             if(strncmp(name.getText(), "StackMapTable", name.length) == 0)
                 return ATTRIBUTE_STACK_MAP_TABLE;
@@ -30,7 +38,7 @@ AttributeType AttributeInfo::parseAttributeType(const ConstUtf8 &name) {
         default:
             break;
     }
-    throw "unkown the attribute the name";
+    return ATTRIBUTE_UNKNOW;
 }
 
 AttributeInfo::AttributeInfo(AttributeType type) : attributeType(type) {
