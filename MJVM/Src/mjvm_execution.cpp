@@ -303,20 +303,11 @@ int64_t Execution::run(const char *mainClass) {
         (ConstUtf8 *)longConstUtf8,
     };
 
-    const ClassLoader *classToInit = &load(mainClass);
-    method = &classToInit->getMainMethodInfo();
+    method = &load(mainClass).getMainMethodInfo();
 
     initNewContext(*method);
 
     goto *opcodes[code[pc]];
-
-    init_static_field: {
-        initStaticField(*classToInit);
-        const MethodInfo &staticContructor = classToInit->getStaticContructor();
-        if((int32_t)&staticContructor)
-            callMethod(staticContructor);
-        goto *opcodes[code[pc]];
-    }
     op_nop:
         goto *opcodes[code[pc]];
     op_iconst_m1:
@@ -395,7 +386,6 @@ int64_t Execution::run(const char *mainClass) {
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
             case CONST_STRING:
-                // TODO
                 goto *opcodes[code[pc]];
             case CONST_CLASS:
                 // TODO
@@ -1343,7 +1333,7 @@ int64_t Execution::run(const char *mainClass) {
         const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         const FieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
-            classToInit = &load(constField.className);
+            stackPushInt32((int32_t)&load(constField.className));
             goto init_static_field;
         }
         switch(constField.nameAndType.descriptor.getText()[0]) {
@@ -1382,7 +1372,7 @@ int64_t Execution::run(const char *mainClass) {
         const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         const FieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
-            classToInit = &load(constField.className);
+            stackPushInt32((int32_t)&load(constField.className));
             goto init_static_field;
         }
         pc += 3;
@@ -1622,6 +1612,13 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     op_unknow:
         throw "unknow opcode";
+    init_static_field: {
+        const ClassLoader &classToInit = *(const ClassLoader *)stackPopInt32();
+        const MethodInfo &staticContructor = classToInit.getStaticContructor();
+        if((int32_t)&staticContructor)
+            callMethod(staticContructor);
+        goto *opcodes[code[pc]];
+    }
 }
 
 Execution::~Execution(void) {
