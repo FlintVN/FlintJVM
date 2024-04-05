@@ -5,6 +5,13 @@
 
 static uint32_t objectCount = 0;
 
+typedef struct MemInfoNode {
+    uint32_t id;
+    MemInfoNode *next;
+} MemInfoNode;
+
+static MemInfoNode *objectList = 0;
+
 MjvmObject::MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) : size(size), type(type), dimensions(dimensions) {
 
 }
@@ -38,8 +45,34 @@ void MjvmHeap::free(void *p) {
     ::free(p);
 }
 
-MjvmObject *MjvmHeap::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) {
-    MjvmObject *ret = (MjvmObject *)MjvmHeap::malloc(sizeof(MjvmObject) + size);
+void MjvmHeap::freeObject(MjvmObject *obj) {
+    free(((uint8_t *)obj) - sizeof(MemInfoNode));
+}
+
+void MjvmHeap::freeAllObject(uint32_t id) {
+    MemInfoNode *prev = 0;
+    for(MemInfoNode *node = objectList; node != 0;) {
+        if(node->id == id) {
+            MemInfoNode *next = node->next;
+            if(prev == 0)
+                objectList = next;
+            else
+                prev->next = next;
+            free(node);
+            node = next;
+            continue;
+        }
+        prev = node;
+        node = node->next;
+    }
+}
+
+MjvmObject *MjvmHeap::newObject(uint32_t id, uint32_t size, const ConstUtf8 &type, uint8_t dimensions) {
+    MemInfoNode *newNode = (MemInfoNode *)MjvmHeap::malloc(sizeof(MemInfoNode) + sizeof(MjvmObject) + size);
+    newNode->id = id;
+    newNode->next = objectList;
+    objectList = newNode;
+    MjvmObject *ret = (MjvmObject *)(((uint8_t *)newNode) + sizeof(MemInfoNode));
     new (ret)MjvmObject(size, type, dimensions);
     return ret;
 }

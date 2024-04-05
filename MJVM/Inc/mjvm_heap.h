@@ -25,8 +25,10 @@ class MjvmHeap {
 public:
     static void *malloc(uint32_t size);
     static void free(void *p);
+    static void freeObject(MjvmObject *obj);
+    static void freeAllObject(uint32_t id);
 
-    static MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
+    static MjvmObject *newObject(uint32_t id, uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
 private:
     MjvmHeap(void) = delete;
     MjvmHeap(const MjvmHeap &) = delete;

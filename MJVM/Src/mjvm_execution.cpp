@@ -32,6 +32,10 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     staticClassDataHead = 0;
 }
 
+MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) const {
+    return MjvmHeap::newObject((uint32_t)this, size, type, dimensions);
+}
+
 const ClassLoader &Execution::load(const char *className) {
     uint16_t len = strlen(className);
     for(ClassDataNode *node = staticClassDataHead; node != 0; node = node->next) {
@@ -1554,7 +1558,7 @@ int64_t Execution::run(const char *mainClass) {
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
-        MjvmObject *obj = MjvmHeap::newObject(sizeof(FieldsData), constClass);
+        MjvmObject *obj = newObject(sizeof(FieldsData), constClass);
         new ((FieldsData *)obj->data)FieldsData(*this, load(constClass), false);
         stackPushObject(obj);
         pc += 3;
@@ -1567,15 +1571,22 @@ int64_t Execution::run(const char *mainClass) {
         }
         uint8_t atype = code[pc + 1];
         uint8_t typeSize = primitiveTypeSize[atype - 4];
-        MjvmObject *obj = MjvmHeap::newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1);
-        memset(obj->data, 0, typeSize * count);
+        MjvmObject *obj = newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1);
+        memset(obj->data, 0, obj->size);
         stackPushObject(obj);
         pc += 2;
         goto *opcodes[code[pc]];
     }
-    op_anewarray:
-        // TODO
+    op_anewarray: {
+        int32_t count = stackPopInt32();
+        uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
+        const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
+        MjvmObject *obj = newObject(4 * count, constClass, 1);
+        memset(obj->data, 0, obj->size);
+        stackPushObject(obj);
+        pc += 3;
         goto *opcodes[code[pc]];
+    }
     op_arraylength: {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
@@ -1629,4 +1640,5 @@ Execution::~Execution(void) {
             node = next;
         }
     }
+    MjvmHeap::freeAllObject((uint32_t)this);
 }

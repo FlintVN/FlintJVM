@@ -32,6 +32,8 @@ private:
     uint8_t *stackType;
     ClassDataNode *staticClassDataHead;
 
+    MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0) const;
+
     void initStaticField(const ClassLoader &classLoader);
     const FieldsData &getStaticFields(const ConstUtf8 &className) const;
     const FieldsData &getStaticFields(const ClassLoader &classLoader) const;
