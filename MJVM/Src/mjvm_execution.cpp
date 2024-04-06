@@ -228,15 +228,52 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
     throw "can't find the method";
 }
 
-void Execution::callMethod(const MethodInfo &methodInfo, uint32_t retPc) {
-    uint8_t argc = methodInfo.parseParamInfo().argc;
-    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
+void Execution::invokeStatic(const ConstMethod &constMethod, uint32_t retPc) {
+    uint8_t argc = constMethod.parseParamInfo().argc;
+    const MethodInfo &methodInfo = findMethod(constMethod);
+    if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
+        for(uint32_t i = 0; i < argc; i++)
+            stack[sp - i + 4] = stack[sp - i];
+        sp -= argc;
+        stackSaveContext(retPc);
+        initNewContext(methodInfo, argc);
+    }
+    else
+        throw "invoke static to non-static method";
+}
+
+void Execution::invokeSpecial(const ConstMethod &constMethod, uint32_t retPc) {
+    uint8_t argc = constMethod.parseParamInfo().argc + 1;
+    const MethodInfo &methodInfo = findMethod(constMethod);
+    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+        for(uint32_t i = 0; i < argc; i++)
+            stack[sp - i + 4] = stack[sp - i];
+        sp -= argc;
+        stackSaveContext(retPc);
+        initNewContext(methodInfo, argc);
+    }
+    else
+        throw "invoke special to static method";
+}
+
+void Execution::invokeVirtual(const ConstMethod &constMethod, uint32_t retPc) {
+    uint8_t argc = constMethod.parseParamInfo().argc;
+    MjvmObject *obj = (MjvmObject *)stack[sp - argc];
+    uint32_t virtualConstMethod[] = {
+        (uint32_t)&obj->type,                /* class name */
+        (uint32_t)&constMethod.nameAndType   /* name and type */
+    };
+    const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)virtualConstMethod);
+    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         argc++;
-    for(uint32_t i = 0; i < argc; i++)
-        stack[sp - i + 4] = stack[sp - i];
-    sp -= argc;
-    stackSaveContext(retPc);
-    initNewContext(methodInfo, argc);
+        for(uint32_t i = 0; i < argc; i++)
+            stack[sp - i + 4] = stack[sp - i];
+        sp -= argc;
+        stackSaveContext(retPc);
+        initNewContext(methodInfo, argc);
+    }
+    else
+        throw "invoke virtual to static method";
 }
 
 int64_t Execution::run(const char *mainClass) {
@@ -273,14 +310,14 @@ int64_t Execution::run(const char *mainClass) {
         sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
     };
     static const ConstUtf8 *primTypeConstUtf8List[] = {
-        (ConstUtf8 *)"\1\0Z",
-        (ConstUtf8 *)"\1\0C",
-        (ConstUtf8 *)"\1\0F",
-        (ConstUtf8 *)"\1\0D",
-        (ConstUtf8 *)"\1\0B",
-        (ConstUtf8 *)"\1\0S",
-        (ConstUtf8 *)"\1\0I",
-        (ConstUtf8 *)"\1\0J",
+        (ConstUtf8 *)"\x01\x00""Z",
+        (ConstUtf8 *)"\x01\x00""C",
+        (ConstUtf8 *)"\x01\x00""F",
+        (ConstUtf8 *)"\x01\x00""D",
+        (ConstUtf8 *)"\x01\x00""B",
+        (ConstUtf8 *)"\x01\x00""S",
+        (ConstUtf8 *)"\x01\x00""I",
+        (ConstUtf8 *)"\x01\x00""J",
     };
 
     method = &load(mainClass).getMainMethodInfo();
@@ -367,7 +404,7 @@ int64_t Execution::run(const char *mainClass) {
                 goto *opcodes[code[pc]];
             case CONST_STRING:
                 stackPushInt32((int32_t)&method->classLoader.getConstString(constPool));
-                goto new_string;
+                goto create_new_string;
             case CONST_CLASS:
                 // TODO
                 goto *opcodes[code[pc]];
@@ -394,7 +431,7 @@ int64_t Execution::run(const char *mainClass) {
                 goto *opcodes[code[pc]];
             case CONST_STRING:
                 stackPushInt32((int32_t)&method->classLoader.getConstString(constPool));
-                goto new_string;
+                goto create_new_string;
             case CONST_CLASS:
                 // TODO
                 goto *opcodes[code[pc]];
@@ -1501,35 +1538,17 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_invokevirtual: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        ParamInfo paramInfo = constMethod.parseParamInfo();
-        MjvmObject *obj = (MjvmObject *)stack[sp - paramInfo.argc];
-        uint32_t virtualConstMethod[] = {
-            (uint32_t)&obj->type,                /* class name */
-            (uint32_t)&constMethod.nameAndType   /* name and type */
-        };
-        const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)virtualConstMethod);
-        if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
-            callMethod(methodInfo, pc + 3);
-        else
-            throw "invoke special to static method";
+        invokeVirtual(constMethod, pc + 3);
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        const MethodInfo &methodInfo = findMethod(constMethod);
-        if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
-            callMethod(methodInfo, pc + 3);
-        else
-            throw "invoke special to static method";
+        invokeSpecial(constMethod, pc + 3);
         goto *opcodes[code[pc]];
     }
     op_invokestatic: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        const MethodInfo &methodInfo = findMethod(constMethod);
-        if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC)
-            callMethod(methodInfo, pc + 3);
-        else
-            throw "invoke static to non-static method";
+        invokeStatic(constMethod, pc + 3);
         goto *opcodes[code[pc]];
     }
     op_invokeinterface:
@@ -1607,35 +1626,37 @@ int64_t Execution::run(const char *mainClass) {
         throw "unknow opcode";
     init_static_field: {
         const ClassLoader &classToInit = *(const ClassLoader *)stackPopInt32();
-        const MethodInfo &staticContructor = classToInit.getStaticContructor();
-        if((int32_t)&staticContructor)
-            callMethod(staticContructor, pc);
+        static const uint32_t nameAndType[] = {
+            (uint32_t)"\x08\x00<clinit>",               /* method name */
+            (uint32_t)"\x03\x00()V"                     /* method type */
+        };
+        uint32_t ctorConstMethod[] = {
+            (uint32_t)&classToInit.getThisClass(),      /* class name */
+            (uint32_t)nameAndType                       /* method type */
+        };
+        invokeStatic(*(const ConstMethod *)ctorConstMethod, pc);
         goto *opcodes[code[pc]];
     }
-    new_string: {
+    create_new_string: {
         static const uint32_t nameAndType[] = {
-            (uint32_t)"\6\0<init>",             /* method name */
-            (uint32_t)"\5\0([B)V"               /* method type */
+            (uint32_t)"\x06\x00""<init>",               /* method name */
+            (uint32_t)"\x05\x00""([B)V"                 /* method type */
         };
-        static const uint32_t strCtorConstMethod[] = {
-            (uint32_t)"\16\0java/lang/String",  /* class name */
-            (uint32_t)nameAndType               /* name and type */
+        static const uint32_t ctorConstMethod[] = {
+            (uint32_t)"\x10\x00""java/lang/String",     /* class name */
+            (uint32_t)nameAndType                       /* name and type */
         };
         const ConstUtf8 &text = *(const ConstUtf8 *)stackPopInt32();
         /* create new string object and call string contructor */
-        const MethodInfo &methodInfo = findMethod(*(ConstMethod *)strCtorConstMethod);
-        MjvmObject *strObj = newObject(sizeof(FieldsData), methodInfo.classLoader.getThisClass());
-        new ((FieldsData *)strObj->data)FieldsData(*this, methodInfo.classLoader, false);
+        MjvmObject *strObj = newObject(sizeof(FieldsData), ((const ConstMethod *)ctorConstMethod)->className);
+        new ((FieldsData *)strObj->data)FieldsData(*this, load(((const ConstMethod *)ctorConstMethod)->className), false);
         stackPushObject(strObj);
-        stackPushObject(strObj);                /* Dup */
+        stackPushObject(strObj);                        /* Dup */
         /* create new byte array to store text */
         MjvmObject *byteArray = newObject(text.length, *primTypeConstUtf8List[4], 1);
         memcpy(byteArray->data, text.getText(), text.length);
         stackPushObject(byteArray);
-        if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
-            callMethod(methodInfo, pc);
-        else
-            throw "invoke special to static method";
+        invokeSpecial(*(const ConstMethod *)ctorConstMethod, pc);
         goto *opcodes[code[pc]];
     }
 }

@@ -61,7 +61,9 @@ private:
     void initNewContext(const MethodInfo &methodInfo, uint16_t argc = 0);
 
     const MethodInfo &findMethod(const ConstMethod &constMethod);
-    void callMethod(const MethodInfo &methodInfo, uint32_t retPc);
+    void invokeStatic(const ConstMethod &constMethod, uint32_t retPc);
+    void invokeSpecial(const ConstMethod &constMethod, uint32_t retPc);
+    void invokeVirtual(const ConstMethod &constMethod, uint32_t retPc);
 public:
     Execution(void);
     Execution(uint32_t stackSize);
