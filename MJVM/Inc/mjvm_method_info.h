@@ -7,11 +7,6 @@
 
 class ClassLoader;
 
-typedef struct {
-    uint8_t argc;
-    uint8_t retType;
-} ParamInfo;
-
 class MethodInfo {
 public:
     const ClassLoader &classLoader;

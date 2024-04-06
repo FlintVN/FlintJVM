@@ -32,34 +32,7 @@ const AttributeCode &MethodInfo::getAttributeCode(void) const {
 }
 
 ParamInfo MethodInfo::parseParamInfo(void) const {
-    const char *text = descriptor.getText();
-    ParamInfo retVal = {0, 0};
-    if(*text != '(')
-        throw "the descriptor is not a description of the method";
-    text++;
-    while(*text) {
-        if(*text == ')') {
-            retVal.retType = text[1];
-            return retVal;
-        }
-        else {
-            retVal.argc += (*text == 'J' || *text == 'D') ? 2 : 1;
-            if(*text++ == 'L') {
-                while(*text) {
-                    if(*text == ')') {
-                        retVal.retType = text[1];
-                        return retVal;
-                    }
-                    else if(*text == ';') {
-                        text++;
-                        break;
-                    }
-                    text++;
-                }
-            }
-        }
-    }
-    throw "descriptor is invalid";
+    return ::parseParamInfo(descriptor);
 }
 
 MethodInfo::~MethodInfo(void) {

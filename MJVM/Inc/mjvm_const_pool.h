@@ -59,7 +59,27 @@ private:
     friend class ClassLoader;
 };
 
-typedef ConstField ConstMethod;
-typedef ConstField ConstInterfaceMethod;
+typedef struct {
+    uint8_t argc;
+    uint8_t retType;
+} ParamInfo;
+
+ParamInfo parseParamInfo(const ConstUtf8 &descriptor);
+
+class ConstMethod {
+public:
+    const ConstUtf8 &className;
+    const ConstNameAndType &nameAndType;
+
+    ParamInfo parseParamInfo(void) const;
+private:
+    ConstMethod(const ConstUtf8 &className, const ConstNameAndType &nameAndType);
+    ConstMethod(const ConstMethod &) = delete;
+    void operator=(const ConstMethod &) = delete;
+
+    friend class ClassLoader;
+};
+
+typedef ConstMethod ConstInterfaceMethod;
 
 #endif /* __MJVM_CONST_POOL_H */
