@@ -55,18 +55,19 @@ private:
     double stackPopDouble(void);
     MjvmObject *stackPopObject(void);
 
-    void stackSaveContext(void);
+    void stackSaveContext(uint32_t retPc);
     void stackRestoreContext(void);
 
     void initNewContext(const MethodInfo &methodInfo, uint16_t argc = 0);
 
     const MethodInfo &findMethod(const ConstMethod &constMethod);
-    void callMethod(const MethodInfo &methodInfo);
+    void callMethod(const MethodInfo &methodInfo, uint32_t retPc);
 public:
     Execution(void);
     Execution(uint32_t stackSize);
 
     const ClassLoader &load(const char *className);
+    const ClassLoader &load(const char *className, uint16_t length);
     const ClassLoader &load(const ConstUtf8 &className);
 
     int64_t run(const char *mainClass);

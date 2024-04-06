@@ -9,15 +9,6 @@
 #define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
 #define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[0] << 16) | ((array)[0] << 8) | (array)[1])
 
-const uint8_t booleanConstUtf8[] = {1, 0, 'Z', 0};
-const uint8_t charConstUtf8[] = {1, 0, 'C', 0};
-const uint8_t floatConstUtf8[] = {1, 0, 'F', 0};
-const uint8_t doubleConstUtf8[] = {1, 0, 'D', 0};
-const uint8_t byteConstUtf8[] = {1, 0, 'B', 0};
-const uint8_t shortConstUtf8[] = {1, 0, 'S', 0};
-const uint8_t integerConstUtf8[] = {1, 0, 'I', 0};
-const uint8_t longConstUtf8[] = {1, 0, 'J', 0};
-
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     sp = -1;
     stack = (int32_t *)MjvmHeap::malloc(DEFAULT_STACK_SIZE);
@@ -37,10 +28,13 @@ MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t d
 }
 
 const ClassLoader &Execution::load(const char *className) {
-    uint16_t len = strlen(className);
+    return load(className, strlen(className));
+}
+
+const ClassLoader &Execution::load(const char *className, uint16_t length) {
     for(ClassDataNode *node = staticClassDataHead; node != 0; node = node->next) {
         const ConstUtf8 &name = node->classLoader.getThisClass();
-        if(name.length == len && strncmp(name.getText(), className, len))
+        if(name.length == length && strncmp(name.getText(), className, length))
             return node->classLoader;
     }
     ClassDataNode *newNode = (ClassDataNode *)MjvmHeap::malloc(sizeof(ClassDataNode));
@@ -187,23 +181,9 @@ MjvmObject *Execution::stackPopObject(void) {
     return (MjvmObject *)stack[sp--];
 }
 
-void Execution::stackSaveContext(void) {
-    uint8_t opcodeSize;
-    switch(code[pc]) {
-        case OP_INVOKEINTERFACE:
-        case OP_INVOKEDYNAMIC:
-            opcodeSize = 5;
-            break;
-        case OP_INVOKEVIRTUAL:
-        case OP_INVOKESPECIAL:
-        case OP_INVOKESTATIC:
-            opcodeSize = 3;
-            break;
-        default:
-            opcodeSize = 0;
-    }
+void Execution::stackSaveContext(uint32_t retPc) {
     stackPushInt32((int32_t)method);
-    stackPushInt32(pc + opcodeSize);
+    stackPushInt32(retPc);
     stackPushInt32(startSp);
     stackPushInt32((int32_t)locals);
     startSp = sp;
@@ -248,14 +228,14 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
     throw "can't find the method";
 }
 
-void Execution::callMethod(const MethodInfo &methodInfo) {
+void Execution::callMethod(const MethodInfo &methodInfo, uint32_t retPc) {
     uint8_t argc = methodInfo.parseParamInfo().argc;
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
         argc++;
     for(uint32_t i = 0; i < argc; i++)
         stack[sp - i + 4] = stack[sp - i];
     sp -= argc;
-    stackSaveContext();
+    stackSaveContext(retPc);
     initNewContext(methodInfo, argc);
 }
 
@@ -292,15 +272,15 @@ int64_t Execution::run(const char *mainClass) {
         sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
         sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
     };
-    static const ConstUtf8 *primTypeConstUtf8List[] {
-        (ConstUtf8 *)booleanConstUtf8,
-        (ConstUtf8 *)charConstUtf8,
-        (ConstUtf8 *)floatConstUtf8,
-        (ConstUtf8 *)doubleConstUtf8,
-        (ConstUtf8 *)byteConstUtf8,
-        (ConstUtf8 *)shortConstUtf8,
-        (ConstUtf8 *)integerConstUtf8,
-        (ConstUtf8 *)longConstUtf8,
+    static const ConstUtf8 *primTypeConstUtf8List[] = {
+        (ConstUtf8 *)"\1\0Z",
+        (ConstUtf8 *)"\1\0C",
+        (ConstUtf8 *)"\1\0F",
+        (ConstUtf8 *)"\1\0D",
+        (ConstUtf8 *)"\1\0B",
+        (ConstUtf8 *)"\1\0S",
+        (ConstUtf8 *)"\1\0I",
+        (ConstUtf8 *)"\1\0J",
     };
 
     method = &load(mainClass).getMainMethodInfo();
@@ -386,7 +366,8 @@ int64_t Execution::run(const char *mainClass) {
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
             case CONST_STRING:
-                goto *opcodes[code[pc]];
+                stackPushInt32((int32_t)&method->classLoader.getConstString(constPool));
+                goto new_string;
             case CONST_CLASS:
                 // TODO
                 goto *opcodes[code[pc]];
@@ -412,8 +393,8 @@ int64_t Execution::run(const char *mainClass) {
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
             case CONST_STRING:
-                // TODO
-                goto *opcodes[code[pc]];
+                stackPushInt32((int32_t)&method->classLoader.getConstString(constPool));
+                goto new_string;
             case CONST_CLASS:
                 // TODO
                 goto *opcodes[code[pc]];
@@ -1518,14 +1499,26 @@ int64_t Execution::run(const char *mainClass) {
             }
         }
     }
-    op_invokevirtual:
-        // TODO
+    op_invokevirtual: {
+        const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        ParamInfo paramInfo = constMethod.parseParamInfo();
+        MjvmObject *obj = (MjvmObject *)stack[sp - paramInfo.argc];
+        uint32_t virtualConstMethod[] = {
+            (uint32_t)&obj->type,                /* class name */
+            (uint32_t)&constMethod.nameAndType   /* name and type */
+        };
+        const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)virtualConstMethod);
+        if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
+            callMethod(methodInfo, pc + 3);
+        else
+            throw "invoke special to static method";
         goto *opcodes[code[pc]];
+    }
     op_invokespecial: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         const MethodInfo &methodInfo = findMethod(constMethod);
         if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
-            callMethod(methodInfo);
+            callMethod(methodInfo, pc + 3);
         else
             throw "invoke special to static method";
         goto *opcodes[code[pc]];
@@ -1534,7 +1527,7 @@ int64_t Execution::run(const char *mainClass) {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         const MethodInfo &methodInfo = findMethod(constMethod);
         if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC)
-            callMethod(methodInfo);
+            callMethod(methodInfo, pc + 3);
         else
             throw "invoke static to non-static method";
         goto *opcodes[code[pc]];
@@ -1616,7 +1609,33 @@ int64_t Execution::run(const char *mainClass) {
         const ClassLoader &classToInit = *(const ClassLoader *)stackPopInt32();
         const MethodInfo &staticContructor = classToInit.getStaticContructor();
         if((int32_t)&staticContructor)
-            callMethod(staticContructor);
+            callMethod(staticContructor, pc);
+        goto *opcodes[code[pc]];
+    }
+    new_string: {
+        static const uint32_t nameAndType[] = {
+            (uint32_t)"\6\0<init>",             /* method name */
+            (uint32_t)"\5\0([B)V"               /* method type */
+        };
+        static const uint32_t strCtorConstMethod[] = {
+            (uint32_t)"\16\0java/lang/String",  /* class name */
+            (uint32_t)nameAndType               /* name and type */
+        };
+        const ConstUtf8 &text = *(const ConstUtf8 *)stackPopInt32();
+        /* create new string object and call string contructor */
+        const MethodInfo &methodInfo = findMethod(*(ConstMethod *)strCtorConstMethod);
+        MjvmObject *strObj = newObject(sizeof(FieldsData), methodInfo.classLoader.getThisClass());
+        new ((FieldsData *)strObj->data)FieldsData(*this, methodInfo.classLoader, false);
+        stackPushObject(strObj);
+        stackPushObject(strObj);                /* Dup */
+        /* create new byte array to store text */
+        MjvmObject *byteArray = newObject(text.length, *primTypeConstUtf8List[4], 1);
+        memcpy(byteArray->data, text.getText(), text.length);
+        stackPushObject(byteArray);
+        if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
+            callMethod(methodInfo, pc);
+        else
+            throw "invoke special to static method";
         goto *opcodes[code[pc]];
     }
 }
