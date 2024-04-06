@@ -105,7 +105,7 @@ void ClassLoader::readFile(ClassFile &file) {
                 break;
             case CONST_LONG:
             case CONST_DOUBLE:
-                *(uint32_t *)&poolTable[i].value = (uint32_t)MjvmHeap::malloc(sizeof(long));
+                *(uint32_t *)&poolTable[i].value = (uint32_t)MjvmHeap::malloc(sizeof(int64_t));
                 *(uint64_t *)poolTable[i].value = file.readUInt64();
                 i++;
                 break;
