@@ -1634,6 +1634,7 @@ int64_t Execution::run(const char *mainClass) {
             (uint32_t)&classToInit.getThisClass(),      /* class name */
             (uint32_t)nameAndType                       /* method type */
         };
+        initStaticField(classToInit);
         invokeStatic(*(const ConstMethod *)ctorConstMethod, pc);
         goto *opcodes[code[pc]];
     }
