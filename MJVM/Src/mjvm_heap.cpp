@@ -5,13 +5,6 @@
 
 static uint32_t objectCount = 0;
 
-typedef struct MemInfoNode {
-    uint32_t id;
-    MemInfoNode *next;
-} MemInfoNode;
-
-static MemInfoNode *objectList = 0;
-
 MjvmObject::MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) : size(size), type(type), dimensions(dimensions) {
 
 }
@@ -76,3 +69,5 @@ MjvmObject *MjvmHeap::newObject(uint32_t id, uint32_t size, const ConstUtf8 &typ
     new (ret)MjvmObject(size, type, dimensions);
     return ret;
 }
+
+MjvmHeap::MemInfoNode *MjvmHeap::objectList = 0;

@@ -30,6 +30,13 @@ public:
 
     static MjvmObject *newObject(uint32_t id, uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
 private:
+    typedef struct MemInfoNode {
+        uint32_t id;
+        MemInfoNode *next;
+    } MemInfoNode;
+
+    static MemInfoNode *objectList;
+
     MjvmHeap(void) = delete;
     MjvmHeap(const MjvmHeap &) = delete;
     void operator=(const MjvmHeap &) = delete;
