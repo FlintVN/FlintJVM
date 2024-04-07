@@ -9,16 +9,6 @@
 
 #define DEFAULT_STACK_SIZE      (MEAG_BYTE(1))
 
-typedef enum : uint8_t {
-    STACK_TYPE_NON_OBJECT = 0,
-    STACK_TYPE_OBJECT = 1,
-} StackType;
-
-typedef struct {
-    StackType type;
-    int32_t value;
-} StackValue;
-
 class Execution {
 private:
     const uint32_t stackLength;
@@ -31,6 +21,16 @@ private:
     int32_t *locals;
     uint8_t *stackType;
     ClassDataNode *staticClassDataHead;
+
+    typedef enum : uint8_t {
+        STACK_TYPE_NON_OBJECT = 0,
+        STACK_TYPE_OBJECT = 1,
+    } StackType;
+
+    typedef struct {
+        StackType type;
+        int32_t value;
+    } StackValue;
 
     MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0) const;
 

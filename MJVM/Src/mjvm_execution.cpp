@@ -82,11 +82,11 @@ void Execution::initStaticField(const ClassLoader &classLoader) {
     staticClassDataHead = newNode;
 }
 
-StackType Execution::getStackType(uint32_t index) {
+Execution::StackType Execution::getStackType(uint32_t index) {
     return (stackType[index / 8] & (1 << (index % 8))) ? STACK_TYPE_OBJECT : STACK_TYPE_NON_OBJECT;
 }
 
-StackValue Execution::getStackValue(uint32_t index) {
+Execution::StackValue Execution::getStackValue(uint32_t index) {
     StackValue ret = {
         .type = (stackType[index / 8] & (1 << (index % 8))) ? STACK_TYPE_OBJECT : STACK_TYPE_NON_OBJECT,
         .value = stack[index],
