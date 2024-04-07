@@ -64,6 +64,7 @@ private:
     void invokeStatic(const ConstMethod &constMethod, uint32_t retPc);
     void invokeSpecial(const ConstMethod &constMethod, uint32_t retPc);
     void invokeVirtual(const ConstMethod &constMethod, uint32_t retPc);
+    void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc, uint32_t retPc);
 public:
     Execution(void);
     Execution(uint32_t stackSize);

@@ -260,8 +260,8 @@ void Execution::invokeVirtual(const ConstMethod &constMethod, uint32_t retPc) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
     uint32_t virtualConstMethod[] = {
-        (uint32_t)&obj->type,                /* class name */
-        (uint32_t)&constMethod.nameAndType   /* name and type */
+        (uint32_t)&obj->type,                           /* class name */
+        (uint32_t)&constMethod.nameAndType              /* name and type */
     };
     const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)virtualConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
@@ -274,6 +274,25 @@ void Execution::invokeVirtual(const ConstMethod &constMethod, uint32_t retPc) {
     }
     else
         throw "invoke virtual to static method";
+}
+
+void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc, uint32_t retPc) {
+    MjvmObject *obj = (MjvmObject *)stack[sp - argc];
+    uint32_t interfaceConstMethod[] = {
+        (uint32_t)&obj->type,                           /* class name */
+        (uint32_t)&interfaceMethod.nameAndType          /* name and type */
+    };
+    const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)interfaceConstMethod);
+    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+        argc++;
+        for(uint32_t i = 0; i < argc; i++)
+            stack[sp - i + 4] = stack[sp - i];
+        sp -= argc;
+        stackSaveContext(retPc);
+        initNewContext(methodInfo, argc);
+    }
+    else
+        throw "invoke interface to static method";
 }
 
 int64_t Execution::run(const char *mainClass) {
@@ -1551,9 +1570,12 @@ int64_t Execution::run(const char *mainClass) {
         invokeStatic(constMethod, pc + 3);
         goto *opcodes[code[pc]];
     }
-    op_invokeinterface:
-        // TODO
+    op_invokeinterface: {
+        const ConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        uint8_t count = code[pc + 3];
+        invokeInterface(interfaceMethod, count, pc + 5);
         goto *opcodes[code[pc]];
+    }
     op_invokedynamic:
         // TODO
         goto *opcodes[code[pc]];

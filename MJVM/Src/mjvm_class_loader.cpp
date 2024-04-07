@@ -116,8 +116,8 @@ void ClassLoader::readFile(ClassFile &file) {
                 break;
             case CONST_METHOD_HANDLE:
                 *(uint8_t *)&poolTable[i].tag |= 0x80;
-                ((uint8_t *)poolTable[i].value)[0] = file.readUInt8();
-                ((uint16_t *)poolTable[i].value)[1] = file.readUInt16();
+                ((uint8_t *)&poolTable[i].value)[0] = file.readUInt8();
+                ((uint16_t *)&poolTable[i].value)[1] = file.readUInt16();
                 break;
             default:
                 throw "uknow pool type";
