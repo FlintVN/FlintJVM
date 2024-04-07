@@ -256,6 +256,11 @@ ClassData::ClassData(const ClassLoader &classLoader, FieldsData *filedsData) : c
 
 }
 
+ClassData::~ClassData() {
+    if(filedsData)
+        MjvmHeap::free(filedsData);
+}
+
 ClassDataNode::ClassDataNode(const ClassLoader &classLoader, FieldsData *filedsData) : ClassData(classLoader, filedsData) {
     next = 0;
 }

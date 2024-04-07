@@ -105,6 +105,8 @@ public:
     FieldsData *filedsData;
 protected:
     ClassData(const ClassLoader &classLoader, FieldsData *filedsData);
+
+    ~ClassData(void);
 private:
     ClassData(const ClassData &) = delete;
     void operator=(const ClassData &) = delete;

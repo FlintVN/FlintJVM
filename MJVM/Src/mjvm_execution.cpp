@@ -1691,10 +1691,6 @@ Execution::~Execution(void) {
         for(ClassDataNode *node = staticClassDataHead; node != 0;) {
             ClassDataNode *next = node->next;
             ClassLoader::destroy(node->classLoader);
-            if(node->filedsData) {
-                node->filedsData->~FieldsData();
-                MjvmHeap::free(node->filedsData);
-            }
             node->~ClassDataNode();
             MjvmHeap::free(node);
             node = next;
