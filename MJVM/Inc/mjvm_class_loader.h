@@ -41,6 +41,7 @@ private:
     AttributeInfo &readAttributeCode(ClassFile &file);
     AttributeInfo &readAttributeLineNumberTable(ClassFile &file);
     AttributeInfo &readAttributeLocalVariableTable(ClassFile &file);
+    AttributeInfo &readAttributeBootstrapMethods(ClassFile &file);
 
     static const ClassLoader &load(const char *fileName);
     static const ClassLoader &load(const ConstUtf8 &fileName);

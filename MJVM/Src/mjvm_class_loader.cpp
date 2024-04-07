@@ -180,6 +180,8 @@ AttributeInfo &ClassLoader::readAttribute(ClassFile &file) {
             return readAttributeLineNumberTable(file);
         case ATTRIBUTE_LOCAL_VARIABLE_TABLE:
             return readAttributeLocalVariableTable(file);
+        case ATTRIBUTE_BOOTSTRAP_METHODS:
+            return readAttributeBootstrapMethods(file);
         default:
             break;
     }
@@ -207,7 +209,7 @@ AttributeInfo &ClassLoader::readAttributeCode(ClassFile &file) {
             uint16_t endPc = file.readUInt16();
             uint16_t handlerPc = file.readUInt16();
             uint16_t catchType = file.readUInt16();
-            new (&attribute[i])ExceptionTable(startPc, endPc, handlerPc, getConstUtf8(catchType));
+            new (&attribute[i])ExceptionTable(startPc, endPc, handlerPc, catchType);
         }
     }
     uint16_t attrbutesCount = file.readUInt16();
@@ -243,6 +245,22 @@ AttributeInfo &ClassLoader::readAttributeLocalVariableTable(ClassFile &file) {
         uint16_t descriptorIndex = file.readUInt16();
         uint16_t index = file.readUInt16();
         new ((LocalVariable *)&attribute->getLocalVariable(i))LocalVariable(startPc, length, getConstUtf8(nameIndex), getConstUtf8(descriptorIndex), index);
+    }
+    return *attribute;
+}
+
+AttributeInfo &ClassLoader::readAttributeBootstrapMethods(ClassFile &file) {
+    uint16_t numBootstrapMethods = file.readUInt16();
+    AttributeBootstrapMethods *attribute = (AttributeBootstrapMethods *)MjvmHeap::malloc(sizeof(AttributeBootstrapMethods));
+    new (attribute)AttributeBootstrapMethods(numBootstrapMethods);
+    for(uint16_t i = 0; i < numBootstrapMethods; i++) {
+        uint16_t bootstrapMethodRef = file.readUInt16();
+        uint16_t numBootstrapArguments = file.readUInt16();
+        BootstrapMethod *bootstrapMethod = (BootstrapMethod *)MjvmHeap::malloc(sizeof(BootstrapMethod) + numBootstrapArguments * sizeof(uint16_t));
+        new (bootstrapMethod)BootstrapMethod(bootstrapMethodRef, numBootstrapArguments);
+        uint16_t *bootstrapArguments = (uint16_t *)(((uint8_t *)bootstrapMethod) + sizeof(BootstrapMethod));
+        file.read(bootstrapArguments, numBootstrapArguments * sizeof(uint16_t));
+        attribute->setBootstrapMethod(i, *bootstrapMethod);
     }
     return *attribute;
 }

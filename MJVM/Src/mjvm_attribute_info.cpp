@@ -6,11 +6,10 @@
 
 AttributeType AttributeInfo::parseAttributeType(const ConstUtf8 &name) {
     switch(name.length) {
-        case 4: {
+        case 4:
             if(strncmp(name.getText(), "Code", name.length) == 0)
                 return ATTRIBUTE_CODE;
             break;
-        }
         case 10:
             if(strncmp(name.getText(), "SourceFile", name.length) == 0)
                 return ATTRIBUTE_SOURCE_FILE;
@@ -30,6 +29,10 @@ AttributeType AttributeInfo::parseAttributeType(const ConstUtf8 &name) {
         case 15:
             if(strncmp(name.getText(), "LineNumberTable", name.length) == 0)
                 return ATTRIBUTE_LINE_NUMBER_TABLE;
+            break;
+        case 16:
+            if(strncmp(name.getText(), "BootstrapMethods", name.length) == 0)
+                return ATTRIBUTE_BOOTSTRAP_METHODS;
             break;
         case 18:
             if(strncmp(name.getText(), "LocalVariableTable", name.length) == 0)
@@ -61,7 +64,7 @@ AttributeRaw::~AttributeRaw(void) {
 
 }
 
-ExceptionTable::ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, const ConstUtf8 &catchType) :
+ExceptionTable::ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
 startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 }
@@ -90,7 +93,7 @@ void AttributeCode::setAttributes(AttributeInfo **attributes, uint16_t length) {
 const ExceptionTable &AttributeCode::getException(uint16_t index) const {
     if(index < exceptionTableLength)
         return exceptionTable[index];
-    throw "index for exception table is invalid";
+    throw "index for ExceptionTable is invalid";
 }
 
 const AttributeInfo &AttributeCode::getAttributes(uint16_t index) const {
@@ -124,7 +127,7 @@ AttributeLineNumberTable::AttributeLineNumberTable(uint16_t length) : AttributeI
 const LineNumber &AttributeLineNumberTable::getLineNumber(uint16_t index) const {
     if(index < LineNumberLenght)
         return lineNumberTable[index];
-    throw "index for line number table is invalid";
+    throw "index for LineNumberTable is invalid";
 }
 
 AttributeLineNumberTable::~AttributeLineNumberTable(void) {
@@ -143,9 +146,41 @@ AttributeLocalVariableTable::AttributeLocalVariableTable(uint16_t length) : Attr
 const LocalVariable &AttributeLocalVariableTable::getLocalVariable(uint16_t index) const {
     if(index < localVariableLength)
         return lineNumberTable[index];
-    throw "index for local variable table is invalid";
+    throw "index for LocalVariableTable is invalid";
 }
 
 AttributeLocalVariableTable::~AttributeLocalVariableTable(void) {
 
+}
+
+BootstrapMethod::BootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments) :
+bootstrapMethodRef(bootstrapMethodRef), numBootstrapArguments(numBootstrapArguments) {
+
+}
+
+const uint16_t BootstrapMethod::getBootstrapArgument(uint16_t index) const {
+    if(index < numBootstrapArguments)
+        return bootstrapArguments[index];
+    throw "index for BootstrapArgument is invalid";
+}
+
+AttributeBootstrapMethods::AttributeBootstrapMethods(uint16_t numBootstrapMethods) :
+AttributeInfo(ATTRIBUTE_BOOTSTRAP_METHODS), numBootstrapMethods(numBootstrapMethods) {
+    bootstrapMethods = (const BootstrapMethod **)MjvmHeap::malloc(numBootstrapMethods * sizeof(BootstrapMethod *));
+}
+
+const BootstrapMethod &AttributeBootstrapMethods::getBootstrapMethod(uint16_t index) {
+    if(index < numBootstrapMethods)
+        return *bootstrapMethods[index];
+    throw "index for BootstrapMethod is invalid";
+}
+
+void AttributeBootstrapMethods::setBootstrapMethod(uint16_t index, const BootstrapMethod &bootstrapMethod) {
+    bootstrapMethods[index] = &bootstrapMethod;
+}
+
+AttributeBootstrapMethods::~AttributeBootstrapMethods(void) {
+    for(uint16_t i = 0; i < numBootstrapMethods; i++)
+        MjvmHeap::free((void *)bootstrapMethods[i]);
+    MjvmHeap::free(bootstrapMethods);
 }

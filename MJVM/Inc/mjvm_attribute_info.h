@@ -65,9 +65,9 @@ public:
     const uint16_t startPc;
     const uint16_t endPc;
     const uint16_t handlerPc;
-    const ConstUtf8 &catchType;
+    const uint16_t catchType;
 private:
-    ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, const ConstUtf8 &catchType);
+    ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType);
     ExceptionTable(const ExceptionTable &) = delete;
     void operator=(const ExceptionTable &) = delete;
 
@@ -161,6 +161,40 @@ private:
     friend class ClassLoader;
 public:
     const LocalVariable &getLocalVariable(uint16_t index) const;
+};
+
+class BootstrapMethod {
+public:
+    const uint16_t bootstrapMethodRef;
+    const uint16_t numBootstrapArguments;
+
+    const uint16_t getBootstrapArgument(uint16_t index) const;
+private:
+    uint16_t bootstrapArguments[];
+
+    BootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments);
+    BootstrapMethod(const BootstrapMethod &) = delete;
+    void operator=(const BootstrapMethod &) = delete;
+
+    friend class ClassLoader;
+};
+
+class AttributeBootstrapMethods : public AttributeInfo {
+public:
+    const uint16_t numBootstrapMethods;
+private:
+    const BootstrapMethod **bootstrapMethods;
+
+    AttributeBootstrapMethods(uint16_t numBootstrapMethods);
+    AttributeBootstrapMethods(const AttributeBootstrapMethods &) = delete;
+    void operator=(const AttributeBootstrapMethods &) = delete;
+
+    const BootstrapMethod &getBootstrapMethod(uint16_t index);
+    void setBootstrapMethod(uint16_t index, const BootstrapMethod &bootstrapMethod);
+
+    ~AttributeBootstrapMethods(void);
+
+    friend class ClassLoader;
 };
 
 #endif /* __MJVM_ATTRIBUTE_INFO_H */
