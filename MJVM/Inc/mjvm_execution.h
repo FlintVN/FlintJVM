@@ -65,6 +65,8 @@ private:
     void invokeSpecial(const ConstMethod &constMethod, uint32_t retPc);
     void invokeVirtual(const ConstMethod &constMethod, uint32_t retPc);
     void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc, uint32_t retPc);
+
+    void garbageCollectionProtectObject(MjvmObject *obj);
 public:
     Execution(void);
     Execution(uint32_t stackSize);
@@ -74,6 +76,8 @@ public:
     const ClassLoader &load(const ConstUtf8 &className);
 
     int64_t run(const char *mainClass);
+
+    void garbageCollection(void);
 
     ~Execution(void);
 };

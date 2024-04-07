@@ -295,6 +295,55 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
         throw "invoke interface to static method";
 }
 
+static bool isPrimType(const ConstUtf8 &type) {
+    if(type.length == 1) {
+        switch(type.getText()[0]) {
+            case 'Z':
+            case 'C':
+            case 'F':
+            case 'D':
+            case 'B':
+            case 'S':
+            case 'I':
+            case 'J':
+                return true; 
+        }
+    }
+    return false;
+}
+
+void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
+    bool isPrim = isPrimType(obj->type);
+    if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
+        uint32_t count = obj->size / 4;
+        for(uint32_t i = 0; i < count; i++) {
+            MjvmObject *tmp = (MjvmObject *)((int32_t *)obj->data)[i];
+            if(tmp && !tmp->isProtected())
+                garbageCollectionProtectObject(tmp);
+        }
+    }
+    else if(!isPrim) {
+        FieldsData &fieldData = *(FieldsData *)obj->data;
+        for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
+            MjvmObject *tmp = fieldData.fieldsObject[i].object;
+            if(tmp && !tmp->isProtected())
+                garbageCollectionProtectObject(tmp);
+        }
+    }
+    obj->setProtected();
+}
+
+void Execution::garbageCollection(void) {
+    for(uint32_t i = 0; i <= sp; i++) {
+        if(getStackType(i) == STACK_TYPE_OBJECT) {
+            MjvmObject *obj = (MjvmObject *)stack[i];
+            if(obj && !obj->isProtected())
+                garbageCollectionProtectObject(obj);
+        }
+    }
+    MjvmHeap::garbageCollection((uint32_t)this);
+}
+
 int64_t Execution::run(const char *mainClass) {
     static const void *opcodes[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
