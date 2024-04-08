@@ -1374,13 +1374,12 @@ int64_t Execution::run(const char *mainClass) {
         while(npairs--) {
             int32_t pairs = ARRAY_TO_INT32(table);
             if(key == pairs) {
-                pc = ARRAY_TO_INT32(&table[4]);
+                pc += ARRAY_TO_INT32(&table[4]);
                 goto *opcodes[code[pc]];
             }
             table = &table[8];
         }
-        table = &code[pc + padding + 1];
-        pc = ARRAY_TO_INT32(table);
+        pc += defaultPc;
         goto *opcodes[code[pc]];
     }
     op_ireturn:
