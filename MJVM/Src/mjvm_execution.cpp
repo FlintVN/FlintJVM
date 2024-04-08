@@ -1386,8 +1386,10 @@ int64_t Execution::run(const char *mainClass) {
     op_ireturn:
     op_freturn: {
         int32_t retVal = stackPopInt32();
-        if(startSp < 0)
+        if(startSp < 0) {
+            sp = startSp;
             return retVal;
+        }
         stackRestoreContext();
         stackPushInt32(retVal);
         goto *opcodes[code[pc]];
@@ -1395,23 +1397,29 @@ int64_t Execution::run(const char *mainClass) {
     op_lreturn:
     op_dreturn: {
         int64_t retVal = stackPopInt64();
-        if(startSp < 0)
+        if(startSp < 0) {
+            sp = startSp;
             return retVal;
+        }
         stackRestoreContext();
         stackPushInt64(retVal);
         goto *opcodes[code[pc]];
     }
     op_areturn: {
         int32_t retVal = (int32_t)stackPopObject();
-        if(startSp < 0)
+        if(startSp < 0) {
+            sp = startSp;
             return retVal;
+        }
         stackRestoreContext();
         stackPushObject((MjvmObject *)retVal);
         goto *opcodes[code[pc]];
     }
     op_return: {
-        if(startSp < 0)
+        if(startSp < 0) {
+            sp = startSp;
             return 0;
+        }
         stackRestoreContext();
         goto *opcodes[code[pc]];
     }
