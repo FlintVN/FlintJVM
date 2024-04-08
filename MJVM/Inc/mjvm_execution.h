@@ -21,6 +21,7 @@ private:
     int32_t *locals;
     uint8_t *stackType;
     ClassDataNode *staticClassDataHead;
+    MjvmObjectNode *objectList;
 
     typedef enum : uint8_t {
         STACK_TYPE_NON_OBJECT = 0,
@@ -32,7 +33,11 @@ private:
         int32_t value;
     } StackValue;
 
-    MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0) const;
+    void addToObjectList(MjvmObjectNode *objNode);
+    void removeFromObjectList(MjvmObjectNode *objNode);
+    MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
+    void freeAllObject(void);
+    void garbageCollectionProtectObject(MjvmObject *obj);
 
     void initStaticField(const ClassLoader &classLoader);
     const FieldsData &getStaticFields(const ConstUtf8 &className) const;
@@ -65,8 +70,6 @@ private:
     void invokeSpecial(const ConstMethod &constMethod, uint32_t retPc);
     void invokeVirtual(const ConstMethod &constMethod, uint32_t retPc);
     void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc, uint32_t retPc);
-
-    void garbageCollectionProtectObject(MjvmObject *obj);
 public:
     Execution(void);
     Execution(uint32_t stackSize);

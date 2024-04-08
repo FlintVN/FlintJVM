@@ -14,6 +14,7 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     stack = (int32_t *)MjvmHeap::malloc(DEFAULT_STACK_SIZE);
     stackType = (uint8_t *)MjvmHeap::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
+    objectList = 0;
 }
 
 Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
@@ -21,10 +22,105 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     stack = (int32_t *)MjvmHeap::malloc(size);
     stackType = (uint8_t *)MjvmHeap::malloc(size / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
+    objectList = 0;
 }
 
-MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) const {
-    return MjvmHeap::newObject((uint32_t)this, size, type, dimensions);
+void Execution::addToObjectList(MjvmObjectNode *objNode) {
+    objNode->prev = 0;
+    objNode->next = objectList;
+    if(objectList)
+        objectList->prev = objNode;
+    objectList = objNode;
+}
+
+void Execution::removeFromObjectList(MjvmObjectNode *objNode) {
+    if(objNode->prev)
+        objNode->prev->next = objNode->next;
+    else
+        objectList = objNode->next;
+    if(objNode->next)
+        objNode->next->prev = objNode->prev;
+}
+
+MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) {
+    MjvmObjectNode *newNode = (MjvmObjectNode *)MjvmHeap::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + size);
+    addToObjectList(newNode);
+    MjvmObject *ret = newNode->getMjvmObject();
+    new (ret)MjvmObject(size, type, dimensions);
+    return ret;
+}
+
+static bool isPrimType(const ConstUtf8 &type) {
+    if(type.length == 1) {
+        switch(type.getText()[0]) {
+            case 'Z':
+            case 'C':
+            case 'F':
+            case 'D':
+            case 'B':
+            case 'S':
+            case 'I':
+            case 'J':
+                return true; 
+        }
+    }
+    return false;
+}
+
+void Execution::freeAllObject(void) {
+    for(MjvmObjectNode *node = objectList; node != 0;) {
+        MjvmObjectNode *next = node->next;
+        MjvmObject *obj = node->getMjvmObject();
+        if(obj->dimensions == 0) {
+            FieldsData *fields = (FieldsData *)obj->data;
+            fields->~FieldsData();
+        }
+        MjvmHeap::free(node);
+        node = next;
+    }
+    objectList = 0;
+}
+
+void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
+    bool isPrim = isPrimType(obj->type);
+    if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
+        uint32_t count = obj->size / 4;
+        for(uint32_t i = 0; i < count; i++) {
+            MjvmObject *tmp = (MjvmObject *)((int32_t *)obj->data)[i];
+            if(tmp && !tmp->isProtected())
+                garbageCollectionProtectObject(tmp);
+        }
+    }
+    else if(!isPrim) {
+        FieldsData &fieldData = *(FieldsData *)obj->data;
+        for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
+            MjvmObject *tmp = fieldData.fieldsObject[i].object;
+            if(tmp && !tmp->isProtected())
+                garbageCollectionProtectObject(tmp);
+        }
+    }
+    obj->setProtected();
+}
+
+void Execution::garbageCollection(void) {
+    for(int32_t i = 0; i <= sp; i++) {
+        if(getStackType(i) == STACK_TYPE_OBJECT) {
+            MjvmObject *obj = (MjvmObject *)stack[i];
+            if(obj && !obj->isProtected())
+                garbageCollectionProtectObject(obj);
+        }
+    }
+    for(MjvmObjectNode *node = objectList; node != 0;) {
+        MjvmObjectNode *next = node->next;
+        removeFromObjectList(node);
+        MjvmObject *obj = node->getMjvmObject();
+        if(obj->dimensions == 0) {
+            FieldsData *fields = (FieldsData *)obj->data;
+            fields->~FieldsData();
+        }
+        MjvmHeap::free(node);
+        node = next;
+    }
 }
 
 const ClassLoader &Execution::load(const char *className) {
@@ -293,55 +389,6 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
     }
     else
         throw "invoke interface to static method";
-}
-
-static bool isPrimType(const ConstUtf8 &type) {
-    if(type.length == 1) {
-        switch(type.getText()[0]) {
-            case 'Z':
-            case 'C':
-            case 'F':
-            case 'D':
-            case 'B':
-            case 'S':
-            case 'I':
-            case 'J':
-                return true; 
-        }
-    }
-    return false;
-}
-
-void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
-    bool isPrim = isPrimType(obj->type);
-    if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
-        uint32_t count = obj->size / 4;
-        for(uint32_t i = 0; i < count; i++) {
-            MjvmObject *tmp = (MjvmObject *)((int32_t *)obj->data)[i];
-            if(tmp && !tmp->isProtected())
-                garbageCollectionProtectObject(tmp);
-        }
-    }
-    else if(!isPrim) {
-        FieldsData &fieldData = *(FieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
-            MjvmObject *tmp = fieldData.fieldsObject[i].object;
-            if(tmp && !tmp->isProtected())
-                garbageCollectionProtectObject(tmp);
-        }
-    }
-    obj->setProtected();
-}
-
-void Execution::garbageCollection(void) {
-    for(int32_t i = 0; i <= sp; i++) {
-        if(getStackType(i) == STACK_TYPE_OBJECT) {
-            MjvmObject *obj = (MjvmObject *)stack[i];
-            if(obj && !obj->isProtected())
-                garbageCollectionProtectObject(obj);
-        }
-    }
-    MjvmHeap::garbageCollection((uint32_t)this);
 }
 
 int64_t Execution::run(const char *mainClass) {
@@ -1752,5 +1799,5 @@ Execution::~Execution(void) {
             node = next;
         }
     }
-    MjvmHeap::freeAllObject((uint32_t)this);
+    freeAllObject();
 }
