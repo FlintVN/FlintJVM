@@ -7,7 +7,7 @@
 #define DOUBLE_NAN                  0x7FF8000000000000
 
 #define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
-#define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[0] << 16) | ((array)[0] << 8) | (array)[1])
+#define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
 
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     sp = -1;
@@ -334,7 +334,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
 }
 
 void Execution::garbageCollection(void) {
-    for(uint32_t i = 0; i <= sp; i++) {
+    for(int32_t i = 0; i <= sp; i++) {
         if(getStackType(i) == STACK_TYPE_OBJECT) {
             MjvmObject *obj = (MjvmObject *)stack[i];
             if(obj && !obj->isProtected())
