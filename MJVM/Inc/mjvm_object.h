@@ -1,4 +1,7 @@
 
+#ifndef __MJVM_OBJECT_H
+#define __MJVM_OBJECT_H
+
 #include "mjvm_std_types.h"
 #include "mjvm_const_pool.h"
 
@@ -33,3 +36,5 @@ public:
 private:
     uint8_t data[];
 };
+
+#endif /* __MJVM_OBJECT_H */

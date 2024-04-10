@@ -1,4 +1,7 @@
 
+#ifndef __MJVM_EXECUTION_H
+#define __MJVM_EXECUTION_H
+
 #include "mjvm_common.h"
 #include "mjvm_heap.h"
 #include "mjvm_class_loader.h"
@@ -84,3 +87,5 @@ public:
 
     ~Execution(void);
 };
+
+#endif /* __MJVM_EXECUTION_H */
