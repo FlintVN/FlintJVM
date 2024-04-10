@@ -7,6 +7,7 @@
 static uint32_t objectCount = 0;
 
 Mjvm::ClassLoaderNode *Mjvm::classLoaderHead = 0;
+Mjvm::ExecutionNode *Mjvm::executionHead = 0;
 
 Mjvm::ClassLoaderNode::ClassLoaderNode(const char *fileName) : ClassLoader(fileName) {
     referenceCount = 0;
@@ -16,6 +17,16 @@ Mjvm::ClassLoaderNode::ClassLoaderNode(const char *fileName) : ClassLoader(fileN
 
 Mjvm::ClassLoaderNode::ClassLoaderNode(const ConstUtf8 &fileName) : ClassLoader(fileName) {
     referenceCount = 0;
+    prev = 0;
+    next = 0;
+}
+
+Mjvm::ExecutionNode::ExecutionNode(void) : Execution() {
+    prev = 0;
+    next = 0;
+}
+
+Mjvm::ExecutionNode::ExecutionNode(uint32_t stackSize) : Execution(stackSize) {
     prev = 0;
     next = 0;
 }
@@ -84,16 +95,31 @@ void Mjvm::destroy(const ClassLoader &classLoader) {
 }
 
 Execution &Mjvm::newExecution(void) {
-    Execution *execution = (Execution *)Mjvm::malloc(sizeof(Execution));
-    return *new (execution)Execution();
+    ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
+    newNode->next = executionHead;
+    if(executionHead)
+        executionHead->prev = newNode;
+    executionHead = newNode;
+    return *new (newNode)ExecutionNode();
 }
 
 Execution &Mjvm::newExecution(uint32_t stackSize) {
-    Execution *execution = (Execution *)Mjvm::malloc(sizeof(Execution));
-    return *new (execution)Execution(stackSize);
+    ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
+    newNode->next = executionHead;
+    if(executionHead)
+        executionHead->prev = newNode;
+    executionHead = newNode;
+    return *new (newNode)ExecutionNode(stackSize);
 }
 
 void Mjvm::destroy(const Execution &execution) {
-    execution.~Execution();
-    Mjvm::free((void *)&execution);
+    ExecutionNode *node = (ExecutionNode *)&execution;
+    if(node->prev)
+        node->prev->next = node->next;
+    else
+        executionHead = node->next;
+    if(node->next)
+        node->next->prev = node->prev;
+    node->~Execution();
+    Mjvm::free(node);
 }

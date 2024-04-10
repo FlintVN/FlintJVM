@@ -19,7 +19,17 @@ private:
         void operator=(const ClassLoaderNode &) = delete;
     };
 
+    class ExecutionNode : public Execution {
+    public:
+        ExecutionNode *prev;
+        ExecutionNode *next;
+
+        ExecutionNode(void);
+        ExecutionNode(uint32_t stackSize);
+    };
+
     static ClassLoaderNode *classLoaderHead;
+    static ExecutionNode *executionHead;
 
     Mjvm(void) = delete;
     Mjvm(const Mjvm &) = delete;

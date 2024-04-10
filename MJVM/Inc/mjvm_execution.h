@@ -37,6 +37,8 @@ private:
 
     Execution(void);
     Execution(uint32_t stackSize);
+    Execution(const Execution &) = delete;
+    void operator=(const Execution &) = delete;
 
     void addToObjectList(MjvmObjectNode *objNode);
     void removeFromObjectList(MjvmObjectNode *objNode);
