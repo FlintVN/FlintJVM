@@ -1,6 +1,6 @@
 
 #include <string.h>
-#include "mjvm_heap.h"
+#include "mjvm.h"
 #include "mjvm_field_info.h"
 
 FieldInfo::FieldInfo(const ClassLoader &classLoader, FieldAccessFlag accessFlag, const ConstUtf8 &name, const ConstUtf8 &descriptor) :
@@ -31,8 +31,8 @@ FieldInfo::~FieldInfo(void) {
     if(attributes) {
         for(uint16_t i = 0; i < attributesCount; i++) {
             attributes[i]->~AttributeInfo();
-            MjvmHeap::free((void *)attributes[i]);
+            Mjvm::free((void *)attributes[i]);
         }
-        MjvmHeap::free((void *)attributes);
+        Mjvm::free((void *)attributes);
     }
 }

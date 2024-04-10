@@ -3,7 +3,6 @@
 #define __MJVM_EXECUTION_H
 
 #include "mjvm_common.h"
-#include "mjvm_heap.h"
 #include "mjvm_class_loader.h"
 #include "mjvm_fields_data.h"
 
@@ -35,6 +34,9 @@ private:
         StackType type;
         int32_t value;
     } StackValue;
+
+    Execution(void);
+    Execution(uint32_t stackSize);
 
     void addToObjectList(MjvmObjectNode *objNode);
     void removeFromObjectList(MjvmObjectNode *objNode);
@@ -73,19 +75,18 @@ private:
     void invokeSpecial(const ConstMethod &constMethod, uint32_t retPc);
     void invokeVirtual(const ConstMethod &constMethod, uint32_t retPc);
     void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc, uint32_t retPc);
-public:
-    Execution(void);
-    Execution(uint32_t stackSize);
 
+    void garbageCollection(void);
+
+    ~Execution(void);
+
+    friend class Mjvm;
+public:
     const ClassLoader &load(const char *className);
     const ClassLoader &load(const char *className, uint16_t length);
     const ClassLoader &load(const ConstUtf8 &className);
 
     int64_t run(const char *mainClass);
-
-    void garbageCollection(void);
-
-    ~Execution(void);
 };
 
 #endif /* __MJVM_EXECUTION_H */

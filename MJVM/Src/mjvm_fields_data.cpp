@@ -1,4 +1,5 @@
 
+#include "mjvm.h"
 #include "mjvm_fields_data.h"
 #include "mjvm_execution.h"
 
@@ -66,11 +67,11 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
         }
     }
 
-    fieldsData8 = (fields8Count) ? (FieldData8 *)MjvmHeap::malloc(fields8Count * sizeof(FieldData8)) : 0;
-    fieldsData16 = (fields16Count) ? (FieldData16 *)MjvmHeap::malloc(fields16Count * sizeof(FieldData16)) : 0;
-    fieldsData32 = (fields32Count) ? (FieldData32 *)MjvmHeap::malloc(fields32Count * sizeof(FieldData32)) : 0;
-    fieldsData64 = (fields64Count) ? (FieldData64 *)MjvmHeap::malloc(fields64Count * sizeof(FieldData64)) : 0;
-    fieldsObject = (fieldsObjCount) ? (FieldObject *)MjvmHeap::malloc(fieldsObjCount * sizeof(FieldObject)) : 0;
+    fieldsData8 = (fields8Count) ? (FieldData8 *)Mjvm::malloc(fields8Count * sizeof(FieldData8)) : 0;
+    fieldsData16 = (fields16Count) ? (FieldData16 *)Mjvm::malloc(fields16Count * sizeof(FieldData16)) : 0;
+    fieldsData32 = (fields32Count) ? (FieldData32 *)Mjvm::malloc(fields32Count * sizeof(FieldData32)) : 0;
+    fieldsData64 = (fields64Count) ? (FieldData64 *)Mjvm::malloc(fields64Count * sizeof(FieldData64)) : 0;
+    fieldsObject = (fieldsObjCount) ? (FieldObject *)Mjvm::malloc(fieldsObjCount * sizeof(FieldObject)) : 0;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
         const FieldInfo &fieldInfo = classLoader.getFieldInfo(index);
@@ -143,11 +144,11 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
         loader = ((int32_t)&supperClass) ? &execution.load(supperClass) : 0;
     }
 
-    fieldsData8 = (fields8Count) ? (FieldData8 *)MjvmHeap::malloc(fields8Count * sizeof(FieldData8)) : 0;
-    fieldsData16 = (fields16Count) ? (FieldData16 *)MjvmHeap::malloc(fields16Count * sizeof(FieldData16)) : 0;
-    fieldsData32 = (fields32Count) ? (FieldData32 *)MjvmHeap::malloc(fields32Count * sizeof(FieldData32)) : 0;
-    fieldsData64 = (fields64Count) ? (FieldData64 *)MjvmHeap::malloc(fields64Count * sizeof(FieldData64)) : 0;
-    fieldsObject = (fieldsObjCount) ? (FieldObject *)MjvmHeap::malloc(fieldsObjCount * sizeof(FieldObject)) : 0;
+    fieldsData8 = (fields8Count) ? (FieldData8 *)Mjvm::malloc(fields8Count * sizeof(FieldData8)) : 0;
+    fieldsData16 = (fields16Count) ? (FieldData16 *)Mjvm::malloc(fields16Count * sizeof(FieldData16)) : 0;
+    fieldsData32 = (fields32Count) ? (FieldData32 *)Mjvm::malloc(fields32Count * sizeof(FieldData32)) : 0;
+    fieldsData64 = (fields64Count) ? (FieldData64 *)Mjvm::malloc(fields64Count * sizeof(FieldData64)) : 0;
+    fieldsObject = (fieldsObjCount) ? (FieldObject *)Mjvm::malloc(fieldsObjCount * sizeof(FieldObject)) : 0;
 
     loader = &classLoader;
     while(loader) {
@@ -241,15 +242,15 @@ FieldObject &FieldsData::getFieldObject(const ConstNameAndType &fieldName) const
 
 FieldsData::~FieldsData(void) {
     if(fieldsData8)
-        MjvmHeap::free(fieldsData8);
+        Mjvm::free(fieldsData8);
     if(fieldsData16)
-        MjvmHeap::free(fieldsData16);
+        Mjvm::free(fieldsData16);
     if(fieldsData32)
-        MjvmHeap::free(fieldsData32);
+        Mjvm::free(fieldsData32);
     if(fieldsData64)
-        MjvmHeap::free(fieldsData64);
+        Mjvm::free(fieldsData64);
     if(fieldsObject)
-        MjvmHeap::free(fieldsObject);
+        Mjvm::free(fieldsObject);
 }
 
 ClassData::ClassData(const ClassLoader &classLoader, FieldsData *filedsData) : classLoader(classLoader), filedsData(filedsData) {
@@ -258,7 +259,7 @@ ClassData::ClassData(const ClassLoader &classLoader, FieldsData *filedsData) : c
 
 ClassData::~ClassData() {
     if(filedsData)
-        MjvmHeap::free(filedsData);
+        Mjvm::free(filedsData);
 }
 
 ClassDataNode::ClassDataNode(const ClassLoader &classLoader, FieldsData *filedsData) : ClassData(classLoader, filedsData) {

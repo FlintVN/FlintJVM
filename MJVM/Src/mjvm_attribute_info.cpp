@@ -1,6 +1,6 @@
 
 #include <string.h>
-#include "mjvm_heap.h"
+#include "mjvm.h"
 #include "mjvm_common.h"
 #include "mjvm_attribute_info.h"
 
@@ -104,15 +104,15 @@ const AttributeInfo &AttributeCode::getAttributes(uint16_t index) const {
 
 AttributeCode::~AttributeCode(void) {
     if(code)
-        MjvmHeap::free((void *)code);
+        Mjvm::free((void *)code);
     if(exceptionTable)
-        MjvmHeap::free((void *)exceptionTable);
+        Mjvm::free((void *)exceptionTable);
     if(attributes) {
         for(uint16_t i = 0; i < attributesCount; i++) {
             attributes[i]->~AttributeInfo();
-            MjvmHeap::free((void *)attributes[i]);
+            Mjvm::free((void *)attributes[i]);
         }
-        MjvmHeap::free((void *)attributes);
+        Mjvm::free((void *)attributes);
     }
 }
 
@@ -166,7 +166,7 @@ const uint16_t BootstrapMethod::getBootstrapArgument(uint16_t index) const {
 
 AttributeBootstrapMethods::AttributeBootstrapMethods(uint16_t numBootstrapMethods) :
 AttributeInfo(ATTRIBUTE_BOOTSTRAP_METHODS), numBootstrapMethods(numBootstrapMethods) {
-    bootstrapMethods = (const BootstrapMethod **)MjvmHeap::malloc(numBootstrapMethods * sizeof(BootstrapMethod *));
+    bootstrapMethods = (const BootstrapMethod **)Mjvm::malloc(numBootstrapMethods * sizeof(BootstrapMethod *));
 }
 
 const BootstrapMethod &AttributeBootstrapMethods::getBootstrapMethod(uint16_t index) {
@@ -181,6 +181,6 @@ void AttributeBootstrapMethods::setBootstrapMethod(uint16_t index, const Bootstr
 
 AttributeBootstrapMethods::~AttributeBootstrapMethods(void) {
     for(uint16_t i = 0; i < numBootstrapMethods; i++)
-        MjvmHeap::free((void *)bootstrapMethods[i]);
-    MjvmHeap::free(bootstrapMethods);
+        Mjvm::free((void *)bootstrapMethods[i]);
+    Mjvm::free(bootstrapMethods);
 }

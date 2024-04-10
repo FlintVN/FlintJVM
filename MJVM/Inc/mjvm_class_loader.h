@@ -9,8 +9,6 @@
 
 class ClassLoader {
 private:
-    static ClassLoader *head;
-
     ClassLoader *next;
     uint32_t referenceCount;
 
@@ -43,13 +41,9 @@ private:
     AttributeInfo &readAttributeLocalVariableTable(ClassFile &file);
     AttributeInfo &readAttributeBootstrapMethods(ClassFile &file);
 
-    static const ClassLoader &load(const char *fileName);
-    static const ClassLoader &load(const ConstUtf8 &fileName);
-    static void destroy(const ClassLoader &classLoader);
-
     ~ClassLoader(void);
 
-    friend class Execution;
+    friend class Mjvm;
 public:
     const uint32_t getMagic(void) const;
     const uint16_t getMinorVersion(void) const;

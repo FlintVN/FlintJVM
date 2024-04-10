@@ -1,5 +1,6 @@
 
 #include <string.h>
+#include "mjvm.h"
 #include "mjvm_opcodes.h"
 #include "mjvm_execution.h"
 
@@ -11,16 +12,16 @@
 
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     sp = -1;
-    stack = (int32_t *)MjvmHeap::malloc(DEFAULT_STACK_SIZE);
-    stackType = (uint8_t *)MjvmHeap::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
+    stack = (int32_t *)Mjvm::malloc(DEFAULT_STACK_SIZE);
+    stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
     objectList = 0;
 }
 
 Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     sp = -1;
-    stack = (int32_t *)MjvmHeap::malloc(size);
-    stackType = (uint8_t *)MjvmHeap::malloc(size / sizeof(int32_t) / 8);
+    stack = (int32_t *)Mjvm::malloc(size);
+    stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
     objectList = 0;
 }
@@ -43,7 +44,7 @@ void Execution::removeFromObjectList(MjvmObjectNode *objNode) {
 }
 
 MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) {
-    MjvmObjectNode *newNode = (MjvmObjectNode *)MjvmHeap::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + size);
+    MjvmObjectNode *newNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + size);
     addToObjectList(newNode);
     MjvmObject *ret = newNode->getMjvmObject();
     new (ret)MjvmObject(size, type, dimensions);
@@ -75,7 +76,7 @@ void Execution::freeAllObject(void) {
             FieldsData *fields = (FieldsData *)obj->data;
             fields->~FieldsData();
         }
-        MjvmHeap::free(node);
+        Mjvm::free(node);
         node = next;
     }
     objectList = 0;
@@ -118,7 +119,7 @@ void Execution::garbageCollection(void) {
             FieldsData *fields = (FieldsData *)obj->data;
             fields->~FieldsData();
         }
-        MjvmHeap::free(node);
+        Mjvm::free(node);
         node = next;
     }
 }
@@ -133,8 +134,8 @@ const ClassLoader &Execution::load(const char *className, uint16_t length) {
         if(name.length == length && strncmp(name.getText(), className, length))
             return node->classLoader;
     }
-    ClassDataNode *newNode = (ClassDataNode *)MjvmHeap::malloc(sizeof(ClassDataNode));
-    new (newNode)ClassDataNode(ClassLoader::load(className), 0);
+    ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
+    new (newNode)ClassDataNode(Mjvm::load(className), 0);
     newNode->next = staticClassDataHead;
     staticClassDataHead = newNode;
     return newNode->classLoader;
@@ -146,8 +147,8 @@ const ClassLoader &Execution::load(const ConstUtf8 &className) {
         if(node->classLoader.getThisClass() == className)
             return node->classLoader;
     }
-    ClassDataNode *newNode = (ClassDataNode *)MjvmHeap::malloc(sizeof(ClassDataNode));
-    new (newNode)ClassDataNode(ClassLoader::load(className), 0);
+    ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
+    new (newNode)ClassDataNode(Mjvm::load(className), 0);
     newNode->next = staticClassDataHead;
     staticClassDataHead = newNode;
     return newNode->classLoader;
@@ -170,8 +171,8 @@ const FieldsData &Execution::getStaticFields(const ClassLoader &classLoader) con
 }
 
 void Execution::initStaticField(const ClassLoader &classLoader) {
-    ClassDataNode *newNode = (ClassDataNode *)MjvmHeap::malloc(sizeof(ClassDataNode));
-    FieldsData *fieldsData = (FieldsData *)MjvmHeap::malloc(sizeof(FieldsData));
+    ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
+    FieldsData *fieldsData = (FieldsData *)Mjvm::malloc(sizeof(FieldsData));
     new (fieldsData)FieldsData(*this, classLoader, true);
     new (newNode)ClassDataNode(classLoader, fieldsData);
     newNode->next = staticClassDataHead;
@@ -1788,14 +1789,14 @@ int64_t Execution::run(const char *mainClass) {
 }
 
 Execution::~Execution(void) {
-    MjvmHeap::free(stack);
-    MjvmHeap::free(stackType);
+    Mjvm::free(stack);
+    Mjvm::free(stackType);
     if(staticClassDataHead) {
         for(ClassDataNode *node = staticClassDataHead; node != 0;) {
             ClassDataNode *next = node->next;
-            ClassLoader::destroy(node->classLoader);
+            Mjvm::destroy(node->classLoader);
             node->~ClassDataNode();
-            MjvmHeap::free(node);
+            Mjvm::free(node);
             node = next;
         }
     }

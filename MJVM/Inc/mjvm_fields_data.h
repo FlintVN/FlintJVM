@@ -2,7 +2,6 @@
 #ifndef __MJVM_FIELD_DATA_H
 #define __MJVM_FIELD_DATA_H
 
-#include "mjvm_heap.h"
 #include "mjvm_object.h"
 #include "mjvm_class_loader.h"
 
