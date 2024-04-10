@@ -7,7 +7,18 @@
 
 class Mjvm {
 private:
-    static ClassLoader *classLoaderHead;
+    class ClassLoaderNode : public ClassLoader {
+    public:
+        uint32_t referenceCount;
+        ClassLoaderNode *next;
+
+        ClassLoaderNode(const char *fileName);
+        ClassLoaderNode(const ConstUtf8 &fileName);
+        ClassLoaderNode(const ClassLoaderNode &) = delete;
+        void operator=(const ClassLoaderNode &) = delete;
+    };
+
+    static ClassLoaderNode *classLoaderHead;
 
     Mjvm(void) = delete;
     Mjvm(const Mjvm &) = delete;

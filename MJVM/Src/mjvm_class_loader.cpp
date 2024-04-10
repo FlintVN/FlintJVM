@@ -4,16 +4,12 @@
 #include "mjvm_class_loader.h"
 
 ClassLoader::ClassLoader(const char *fileName) {
-    next = 0;
-    referenceCount = 0;
     ClassFile file(fileName);
     readFile(file);
     file.close();
 }
 
 ClassLoader::ClassLoader(const ConstUtf8 &fileName) {
-    next = 0;
-    referenceCount = 0;
     ClassFile file(fileName.getText());
     readFile(file);
     file.close();

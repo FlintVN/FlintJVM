@@ -9,9 +9,6 @@
 
 class ClassLoader {
 private:
-    ClassLoader *next;
-    uint32_t referenceCount;
-
     uint32_t magic;
     uint16_t minorVersion;
     uint16_t majorVersion;
