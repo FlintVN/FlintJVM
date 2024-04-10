@@ -48,6 +48,8 @@ public:
 
     static Execution &newExecution(void);
     static Execution &newExecution(uint32_t stackSize);
+
+    static void garbageCollection(void);
 };
 
 #endif /* __MJVM_H */

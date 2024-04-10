@@ -41,8 +41,12 @@ void Mjvm::unlock(void) {
 
 void *Mjvm::malloc(uint32_t size) {
     void *ret = ::malloc(size);
-    if(ret == 0)
-        throw "not enough memory to allocate";
+    if(ret == 0) {
+        Mjvm::garbageCollection();
+        ret = ::malloc(size);
+        if(ret == 0)
+            throw "not enough memory to allocate";
+    }
     objectCount++;
     return ret;
 }
@@ -144,4 +148,11 @@ void Mjvm::destroy(const Execution &execution) {
     unlock();
     node->~Execution();
     Mjvm::free(node);
+}
+
+void Mjvm::garbageCollection(void) {
+    lock();
+    for(ExecutionNode *node = executionHead; node != 0; node = node->next)
+        node->garbageCollection();
+    unlock();
 }
