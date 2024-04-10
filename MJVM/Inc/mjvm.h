@@ -10,6 +10,7 @@ private:
     class ClassLoaderNode : public ClassLoader {
     public:
         uint32_t referenceCount;
+        ClassLoaderNode *prev;
         ClassLoaderNode *next;
 
         ClassLoaderNode(const char *fileName);

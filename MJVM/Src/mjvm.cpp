@@ -10,11 +10,13 @@ Mjvm::ClassLoaderNode *Mjvm::classLoaderHead = 0;
 
 Mjvm::ClassLoaderNode::ClassLoaderNode(const char *fileName) : ClassLoader(fileName) {
     referenceCount = 0;
+    prev = 0;
     next = 0;
 }
 
 Mjvm::ClassLoaderNode::ClassLoaderNode(const ConstUtf8 &fileName) : ClassLoader(fileName) {
     referenceCount = 0;
+    prev = 0;
     next = 0;
 }
 
@@ -43,6 +45,8 @@ const ClassLoader &Mjvm::load(const char *fileName) {
     ClassLoaderNode *newLoader = (ClassLoaderNode *)Mjvm::malloc(sizeof(ClassLoaderNode));
     new (newLoader)ClassLoaderNode(fileName);
     newLoader->next = classLoaderHead;
+    if(classLoaderHead)
+        classLoaderHead->prev = newLoader;
     newLoader->referenceCount++;
     classLoaderHead = newLoader;
     return *newLoader;
@@ -58,28 +62,25 @@ const ClassLoader &Mjvm::load(const ConstUtf8 &fileName) {
     ClassLoaderNode *newLoader = (ClassLoaderNode *)Mjvm::malloc(sizeof(ClassLoaderNode));
     new (newLoader)ClassLoaderNode(fileName);
     newLoader->next = classLoaderHead;
+    if(classLoaderHead)
+        classLoaderHead->prev = newLoader;
     newLoader->referenceCount++;
     classLoaderHead = newLoader;
     return *newLoader;
 }
 
 void Mjvm::destroy(const ClassLoader &classLoader) {
-    ClassLoaderNode *prev = 0;
-    for(ClassLoaderNode *node = classLoaderHead; node != 0; node = node->next) {
-        if(node == &classLoader) {
-            if(--node->referenceCount == 0) {
-                if(prev == 0)
-                    classLoaderHead = node->next;
-                else
-                    prev->next = node->next;
-                node->~ClassLoader();
-                Mjvm::free(node);
-            }
-            return;
-        }
-        prev = node;
+    ClassLoaderNode *node = (ClassLoaderNode *)&classLoader;
+    if(--node->referenceCount == 0) {
+        if(node->prev)
+            node->prev->next = node->next;
+        else
+            classLoaderHead = node->next;
+        if(node->next)
+            node->next->prev = node->prev;
+        node->~ClassLoader();
+        Mjvm::free(node);
     }
-    throw "the class is not loaded";
 }
 
 Execution &Mjvm::newExecution(void) {
