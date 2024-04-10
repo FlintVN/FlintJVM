@@ -34,6 +34,9 @@ private:
     Mjvm(void) = delete;
     Mjvm(const Mjvm &) = delete;
     void operator=(const Mjvm &) = delete;
+
+    static void lock(void);
+    static void unlock(void);
 public:
     static void *malloc(uint32_t size);
     static void free(void *p);

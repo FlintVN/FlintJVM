@@ -31,6 +31,14 @@ Mjvm::ExecutionNode::ExecutionNode(uint32_t stackSize) : Execution(stackSize) {
     next = 0;
 }
 
+void Mjvm::lock(void) {
+
+}
+
+void Mjvm::unlock(void) {
+
+}
+
 void *Mjvm::malloc(uint32_t size) {
     void *ret = ::malloc(size);
     if(ret == 0)
@@ -46,10 +54,12 @@ void Mjvm::free(void *p) {
 
 const ClassLoader &Mjvm::load(const char *fileName) {
     uint32_t len = strlen(fileName);
+    lock();
     for(ClassLoaderNode *node = classLoaderHead; node != 0; node = node->next) {
         const ConstUtf8 &name = node->getThisClass();
         if(len == name.length && strncmp(fileName, name.getText(), len)) {
             node->referenceCount++;
+            unlock();
             return *node;
         }
     }
@@ -60,13 +70,16 @@ const ClassLoader &Mjvm::load(const char *fileName) {
         classLoaderHead->prev = newLoader;
     newLoader->referenceCount++;
     classLoaderHead = newLoader;
+    unlock();
     return *newLoader;
 }
 
 const ClassLoader &Mjvm::load(const ConstUtf8 &fileName) {
+    lock();
     for(ClassLoaderNode *node = classLoaderHead; node != 0; node = node->next) {
         if(fileName == node->getThisClass()) {
             node->referenceCount++;
+            unlock();
             return *node;
         }
     }
@@ -77,11 +90,13 @@ const ClassLoader &Mjvm::load(const ConstUtf8 &fileName) {
         classLoaderHead->prev = newLoader;
     newLoader->referenceCount++;
     classLoaderHead = newLoader;
+    unlock();
     return *newLoader;
 }
 
 void Mjvm::destroy(const ClassLoader &classLoader) {
     ClassLoaderNode *node = (ClassLoaderNode *)&classLoader;
+    lock();
     if(--node->referenceCount == 0) {
         if(node->prev)
             node->prev->next = node->next;
@@ -92,34 +107,41 @@ void Mjvm::destroy(const ClassLoader &classLoader) {
         node->~ClassLoader();
         Mjvm::free(node);
     }
+    unlock();
 }
 
 Execution &Mjvm::newExecution(void) {
     ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
+    lock();
     newNode->next = executionHead;
     if(executionHead)
         executionHead->prev = newNode;
     executionHead = newNode;
+    unlock();
     return *new (newNode)ExecutionNode();
 }
 
 Execution &Mjvm::newExecution(uint32_t stackSize) {
     ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
+    lock();
     newNode->next = executionHead;
     if(executionHead)
         executionHead->prev = newNode;
     executionHead = newNode;
+    unlock();
     return *new (newNode)ExecutionNode(stackSize);
 }
 
 void Mjvm::destroy(const Execution &execution) {
     ExecutionNode *node = (ExecutionNode *)&execution;
+    lock();
     if(node->prev)
         node->prev->next = node->next;
     else
         executionHead = node->next;
     if(node->next)
         node->next->prev = node->prev;
+    unlock();
     node->~Execution();
     Mjvm::free(node);
 }
