@@ -16,6 +16,7 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
     objectList = 0;
+    objectCountToGc = 0;
 }
 
 Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
@@ -24,6 +25,7 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
     objectList = 0;
+    objectCountToGc = 0;
 }
 
 void Execution::addToObjectList(MjvmObjectNode *objNode) {
@@ -44,6 +46,8 @@ void Execution::removeFromObjectList(MjvmObjectNode *objNode) {
 }
 
 MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) {
+    if(objectCountToGc++ == NUM_OBJECT_TO_GC)
+        garbageCollection();
     MjvmObjectNode *newNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + size);
     addToObjectList(newNode);
     MjvmObject *ret = newNode->getMjvmObject();
@@ -104,6 +108,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
 }
 
 void Execution::garbageCollection(void) {
+    objectCountToGc = 0;
     for(int32_t i = 0; i <= sp; i++) {
         if(getStackType(i) == STACK_TYPE_OBJECT) {
             MjvmObject *obj = (MjvmObject *)stack[i];

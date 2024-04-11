@@ -11,6 +11,8 @@
 
 #define DEFAULT_STACK_SIZE      (MEAG_BYTE(1))
 
+#define NUM_OBJECT_TO_GC        1000
+
 class Execution {
 private:
     const uint32_t stackLength;
@@ -24,6 +26,7 @@ private:
     uint8_t *stackType;
     ClassDataNode *staticClassDataHead;
     MjvmObjectNode *objectList;
+    uint32_t objectCountToGc;
 
     typedef enum : uint8_t {
         STACK_TYPE_NON_OBJECT = 0,
