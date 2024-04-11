@@ -399,6 +399,13 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
         throw "invoke interface to static method";
 }
 
+static uint32_t countDimensions(const ConstUtf8 &objectType) {
+    const char *text = objectType.getText();
+    while(*text == '[')
+        text++;
+    return text - objectType.getText();
+}
+
 int64_t Execution::run(const char *mainClass) {
     static const void *opcodes[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
@@ -1737,9 +1744,44 @@ int64_t Execution::run(const char *mainClass) {
     op_checkcast:
         // TODO
         goto *opcodes[code[pc]];
-    op_instanceof:
-        // TODO
-        goto *opcodes[code[pc]];
+    op_instanceof: {
+        MjvmObject *obj = stackPopObject();
+        const ConstUtf8 *typeName = &method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
+        uint32_t dimensions = countDimensions(*typeName);
+        const char *typeNameText = typeName->getText();
+        uint32_t length = typeName->length - dimensions;
+        if(typeNameText[dimensions] != 'L')
+            typeNameText = &typeNameText[dimensions];
+        else {
+            typeNameText = &typeNameText[dimensions + 1];
+            length -= 2;
+        }
+        pc += 3;
+        if(length == 16 && obj->dimensions >= dimensions && strncmp(typeNameText, "java/lang/Object", length) == 0) {
+            stackPushInt32(1);
+            goto *opcodes[code[pc]];
+        }
+        else if(dimensions != obj->dimensions) {
+            stackPushInt32(0);
+            goto *opcodes[code[pc]];
+        }
+        else {
+            const ConstUtf8 *objType = &obj->type;
+            while(1) {
+                if(length == objType->length && strncmp(objType->getText(), typeNameText, length) == 0) {
+                    stackPushInt32(1);
+                    goto *opcodes[code[pc]];
+                }
+                else {
+                    objType = &load(*objType).getSupperClass();
+                    if(objType == 0) {
+                        stackPushInt32(0);
+                        goto *opcodes[code[pc]];
+                    }
+                }
+            }
+        }
+    }
     op_monitorenter:
         // TODO
         goto *opcodes[code[pc]];
@@ -1785,7 +1827,7 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *strObj = newObject(sizeof(FieldsData), ((const ConstMethod *)ctorConstMethod)->className);
         new ((FieldsData *)strObj->data)FieldsData(*this, load(((const ConstMethod *)ctorConstMethod)->className), false);
         stackPushObject(strObj);
-        stackPushObject(strObj);                        /* Dup */
+        stackPushObject(strObj);                        /* dup */
         /* create new byte array to store text */
         MjvmObject *byteArray = newObject(text.length, *primTypeConstUtf8List[4], 1);
         memcpy(byteArray->data, text.getText(), text.length);
