@@ -118,13 +118,15 @@ void Execution::garbageCollection(void) {
     }
     for(MjvmObjectNode *node = objectList; node != 0;) {
         MjvmObjectNode *next = node->next;
-        removeFromObjectList(node);
         MjvmObject *obj = node->getMjvmObject();
-        if(obj->dimensions == 0) {
-            FieldsData *fields = (FieldsData *)obj->data;
-            fields->~FieldsData();
+        if(!obj->isProtected()) {
+            removeFromObjectList(node);
+            if(obj->dimensions == 0) {
+                FieldsData *fields = (FieldsData *)obj->data;
+                fields->~FieldsData();
+            }
+            Mjvm::free(node);
         }
-        Mjvm::free(node);
         node = next;
     }
 }
