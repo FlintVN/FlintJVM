@@ -15,6 +15,12 @@ Mjvm::ClassLoaderNode::ClassLoaderNode(const char *fileName) : ClassLoader(fileN
     next = 0;
 }
 
+Mjvm::ClassLoaderNode::ClassLoaderNode(const char *fileName, uint16_t length) : ClassLoader(fileName, length) {
+    referenceCount = 0;
+    prev = 0;
+    next = 0;
+}
+
 Mjvm::ClassLoaderNode::ClassLoaderNode(const ConstUtf8 &fileName) : ClassLoader(fileName) {
     referenceCount = 0;
     prev = 0;
@@ -58,17 +64,21 @@ void Mjvm::free(void *p) {
 
 const ClassLoader &Mjvm::load(const char *fileName) {
     uint32_t len = strlen(fileName);
+    return Mjvm::load(fileName, len);
+}
+
+const ClassLoader &Mjvm::load(const char *fileName, uint16_t length) {
     lock();
     for(ClassLoaderNode *node = classLoaderHead; node != 0; node = node->next) {
         const ConstUtf8 &name = node->getThisClass();
-        if(len == name.length && strncmp(fileName, name.getText(), len)) {
+        if(length == name.length && strncmp(fileName, name.getText(), length)) {
             node->referenceCount++;
             unlock();
             return *node;
         }
     }
     ClassLoaderNode *newLoader = (ClassLoaderNode *)Mjvm::malloc(sizeof(ClassLoaderNode));
-    new (newLoader)ClassLoaderNode(fileName);
+    new (newLoader)ClassLoaderNode(fileName, length);
     newLoader->next = classLoaderHead;
     if(classLoaderHead)
         classLoaderHead->prev = newLoader;

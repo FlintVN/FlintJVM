@@ -9,6 +9,12 @@ ClassLoader::ClassLoader(const char *fileName) {
     file.close();
 }
 
+ClassLoader::ClassLoader(const char *fileName, uint16_t length) {
+    ClassFile file(fileName, length);
+    readFile(file);
+    file.close();
+}
+
 ClassLoader::ClassLoader(const ConstUtf8 &fileName) {
     ClassFile file(fileName.getText());
     readFile(file);

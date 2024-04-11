@@ -81,6 +81,8 @@ private:
     void invokeVirtual(const ConstMethod &constMethod, uint32_t retPc);
     void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc, uint32_t retPc);
 
+    MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
+
     void garbageCollection(void);
 
     ~Execution(void);

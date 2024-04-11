@@ -10,6 +10,21 @@
 #define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
 #define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
 
+static const uint8_t primitiveTypeSize[8] = {
+    sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
+    sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
+};
+static const ConstUtf8 *primTypeConstUtf8List[] = {
+    (ConstUtf8 *)"\x01\x00""Z",
+    (ConstUtf8 *)"\x01\x00""C",
+    (ConstUtf8 *)"\x01\x00""F",
+    (ConstUtf8 *)"\x01\x00""D",
+    (ConstUtf8 *)"\x01\x00""B",
+    (ConstUtf8 *)"\x01\x00""S",
+    (ConstUtf8 *)"\x01\x00""I",
+    (ConstUtf8 *)"\x01\x00""J",
+};
+
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     sp = -1;
     stack = (int32_t *)Mjvm::malloc(DEFAULT_STACK_SIZE);
@@ -55,21 +70,32 @@ MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t d
     return ret;
 }
 
-static bool isPrimType(const ConstUtf8 &type) {
-    if(type.length == 1) {
-        switch(type.getText()[0]) {
-            case 'Z':
-            case 'C':
-            case 'F':
-            case 'D':
-            case 'B':
-            case 'S':
-            case 'I':
-            case 'J':
-                return true; 
-        }
+static uint8_t convertToAType(char type) {
+    switch(type) {
+        case 'Z':
+            return 4;
+        case 'C':
+            return 5;
+        case 'F':
+            return 6;
+        case 'D':
+            return 7;
+        case 'B':
+            return 8;
+        case 'S':
+            return 8;
+        case 'I':
+            return 10;
+        case 'J':
+            return 11;
     }
-    return false;
+    return 0;
+}
+
+static uint8_t isPrimType(const ConstUtf8 &type) {
+    if(type.length == 1)
+        convertToAType(type.getText()[0]);
+    return 0;
 }
 
 void Execution::freeAllObject(void) {
@@ -91,7 +117,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
     if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
         uint32_t count = obj->size / 4;
         for(uint32_t i = 0; i < count; i++) {
-            MjvmObject *tmp = (MjvmObject *)((int32_t *)obj->data)[i];
+            MjvmObject *tmp = ((MjvmObject **)obj->data)[i];
             if(tmp && !tmp->isProtected())
                 garbageCollectionProtectObject(tmp);
         }
@@ -142,7 +168,7 @@ const ClassLoader &Execution::load(const char *className, uint16_t length) {
             return node->classLoader;
     }
     ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
-    new (newNode)ClassDataNode(Mjvm::load(className), 0);
+    new (newNode)ClassDataNode(Mjvm::load(className, length), 0);
     newNode->next = staticClassDataHead;
     staticClassDataHead = newNode;
     return newNode->classLoader;
@@ -406,6 +432,22 @@ static uint32_t countDimensions(const ConstUtf8 &objectType) {
     return text - objectType.getText();
 }
 
+MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
+    if(dimensions > 1) {
+        MjvmObject *array = newObject(counts[0] * sizeof(MjvmObject *), typeName, dimensions);
+        for(uint32_t i = 0; i < counts[0]; i++)
+            ((MjvmObject **)(array->data))[i] = newMultiArray(typeName, dimensions - 1, &counts[1]);
+        return array;
+    }
+    else {
+        uint8_t atype = isPrimType(typeName);
+        uint8_t typeSize = atype ? primitiveTypeSize[atype - 4] : sizeof(MjvmObject *);
+        MjvmObject *array = newObject(typeSize * counts[0], typeName, 1);
+        memset(array->data, 0, array->size);
+        return array;
+    }
+}
+
 int64_t Execution::run(const char *mainClass) {
     static const void *opcodes[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
@@ -434,20 +476,6 @@ int64_t Execution::run(const char *mainClass) {
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
-    };
-    static const uint8_t primitiveTypeSize[8] = {
-        sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
-        sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
-    };
-    static const ConstUtf8 *primTypeConstUtf8List[] = {
-        (ConstUtf8 *)"\x01\x00""Z",
-        (ConstUtf8 *)"\x01\x00""C",
-        (ConstUtf8 *)"\x01\x00""F",
-        (ConstUtf8 *)"\x01\x00""D",
-        (ConstUtf8 *)"\x01\x00""B",
-        (ConstUtf8 *)"\x01\x00""S",
-        (ConstUtf8 *)"\x01\x00""I",
-        (ConstUtf8 *)"\x01\x00""J",
     };
 
     method = &load(mainClass).getMainMethodInfo();
@@ -697,7 +725,7 @@ int64_t Execution::run(const char *mainClass) {
         else if(index < 0 || index >= (obj->size / 4)) {
             // TODO
         }
-        stackPushObject((MjvmObject *)((int32_t *)obj->data)[index]);
+        stackPushObject(((MjvmObject **)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1791,9 +1819,25 @@ int64_t Execution::run(const char *mainClass) {
     op_wide:
         // TODO
         goto *opcodes[code[pc]];
-    op_multianewarray:
-        // TODO
+    op_multianewarray: {
+        const ConstUtf8 *typeName = &method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
+        const uint8_t dimensions = code[pc + 3];
+        const char *typeNameText = typeName->getText();
+        uint32_t length = typeName->length - dimensions;
+        if(typeNameText[dimensions] != 'L') {
+            uint8_t atype = convertToAType(typeNameText[dimensions]);
+            if(atype == 0)
+                throw "invalid primative type";
+            typeName = primTypeConstUtf8List[atype - 4];
+        }
+        else
+            typeName = &load(&typeNameText[dimensions + 1], length - 2).getThisClass();
+        sp -= dimensions - 1;
+        MjvmObject *array = newMultiArray(*typeName, dimensions, &stack[sp]);
+        stackPushObject(array);
+        pc += 4;
         goto *opcodes[code[pc]];
+    }
     op_breakpoint:
         pc++;
         goto *opcodes[code[pc]];

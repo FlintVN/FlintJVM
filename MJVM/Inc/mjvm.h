@@ -14,6 +14,7 @@ private:
         ClassLoaderNode *next;
 
         ClassLoaderNode(const char *fileName);
+        ClassLoaderNode(const char *fileName, uint16_t length);
         ClassLoaderNode(const ConstUtf8 &fileName);
         ClassLoaderNode(const ClassLoaderNode &) = delete;
         void operator=(const ClassLoaderNode &) = delete;
@@ -42,6 +43,7 @@ public:
     static void free(void *p);
 
     static const ClassLoader &load(const char *fileName);
+    static const ClassLoader &load(const char *fileName, uint16_t length);
     static const ClassLoader &load(const ConstUtf8 &fileName);
     static void destroy(const ClassLoader &classLoader);
     static void destroy(const Execution &execution);

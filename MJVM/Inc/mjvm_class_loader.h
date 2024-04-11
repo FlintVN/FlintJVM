@@ -27,6 +27,7 @@ private:
     AttributeInfo **attributes;
 
     ClassLoader(const char *fileName);
+    ClassLoader(const char *fileName, uint16_t length);
     ClassLoader(const ConstUtf8 &fileName);
     ClassLoader(const ClassLoader &) = delete;
     void operator=(const ClassLoader &) = delete;

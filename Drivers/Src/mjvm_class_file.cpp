@@ -12,6 +12,15 @@ ClassFile::ClassFile(const char *fileName) {
         throw "open file error";
 }
 
+ClassFile::ClassFile(const char *fileName, uint16_t length) {
+    char buff[256];
+    strncpy(buff, fileName, length);
+    strcpy(&buff[length], ".class");
+    fptr = fopen(buff, "rb");
+    if(fptr == 0)
+        throw "open file error";
+}
+
 void ClassFile::read(void *buff, uint32_t size) {
     uint8_t *u8Buff = (uint8_t *)buff;
     while(size) {
