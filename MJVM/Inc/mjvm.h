@@ -35,12 +35,12 @@ private:
     Mjvm(void) = delete;
     Mjvm(const Mjvm &) = delete;
     void operator=(const Mjvm &) = delete;
-
-    static void lock(void);
-    static void unlock(void);
 public:
     static void *malloc(uint32_t size);
     static void free(void *p);
+
+    static void lock(void);
+    static void unlock(void);
 
     static const ClassLoader &load(const char *fileName);
     static const ClassLoader &load(const char *fileName, uint16_t length);

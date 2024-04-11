@@ -1728,9 +1728,11 @@ int64_t Execution::run(const char *mainClass) {
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
+        Mjvm::lock();
         MjvmObject *obj = newObject(sizeof(FieldsData), constClass);
-        new ((FieldsData *)obj->data)FieldsData(*this, load(constClass), false);
         stackPushObject(obj);
+        Mjvm::unlock();
+        new ((FieldsData *)obj->data)FieldsData(*this, load(constClass), false);
         pc += 3;
         goto *opcodes[code[pc]];
     }
@@ -1741,9 +1743,11 @@ int64_t Execution::run(const char *mainClass) {
         }
         uint8_t atype = code[pc + 1];
         uint8_t typeSize = primitiveTypeSize[atype - 4];
+        Mjvm::lock();
         MjvmObject *obj = newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1);
-        memset(obj->data, 0, obj->size);
         stackPushObject(obj);
+        Mjvm::unlock();
+        memset(obj->data, 0, obj->size);
         pc += 2;
         goto *opcodes[code[pc]];
     }
@@ -1751,9 +1755,11 @@ int64_t Execution::run(const char *mainClass) {
         int32_t count = stackPopInt32();
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
+        Mjvm::lock();
         MjvmObject *obj = newObject(4 * count, constClass, 1);
-        memset(obj->data, 0, obj->size);
         stackPushObject(obj);
+        Mjvm::unlock();
+        memset(obj->data, 0, obj->size);
         pc += 3;
         goto *opcodes[code[pc]];
     }
@@ -1833,8 +1839,10 @@ int64_t Execution::run(const char *mainClass) {
         else
             typeName = &load(&typeNameText[dimensions + 1], length - 2).getThisClass();
         sp -= dimensions - 1;
+        Mjvm::lock();
         MjvmObject *array = newMultiArray(*typeName, dimensions, &stack[sp]);
         stackPushObject(array);
+        Mjvm::unlock();
         pc += 4;
         goto *opcodes[code[pc]];
     }
@@ -1868,14 +1876,16 @@ int64_t Execution::run(const char *mainClass) {
         };
         const ConstUtf8 &text = *(const ConstUtf8 *)stackPopInt32();
         /* create new string object and call string contructor */
+        Mjvm::lock();
         MjvmObject *strObj = newObject(sizeof(FieldsData), ((const ConstMethod *)ctorConstMethod)->className);
         new ((FieldsData *)strObj->data)FieldsData(*this, load(((const ConstMethod *)ctorConstMethod)->className), false);
         stackPushObject(strObj);
         stackPushObject(strObj);                        /* dup */
         /* create new byte array to store text */
         MjvmObject *byteArray = newObject(text.length, *primTypeConstUtf8List[4], 1);
-        memcpy(byteArray->data, text.getText(), text.length);
         stackPushObject(byteArray);
+        Mjvm::unlock();
+        memcpy(byteArray->data, text.getText(), text.length);
         invokeSpecial(*(const ConstMethod *)ctorConstMethod, pc);
         goto *opcodes[code[pc]];
     }
