@@ -26,7 +26,9 @@ static const ConstUtf8 *primTypeConstUtf8List[] = {
 };
 
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
+    lr = -1;
     sp = -1;
+    startSp = sp;
     stack = (int32_t *)Mjvm::malloc(DEFAULT_STACK_SIZE);
     stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
@@ -35,7 +37,9 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
 }
 
 Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
+    lr = -1;
     sp = -1;
+    startSp = sp;
     stack = (int32_t *)Mjvm::malloc(size);
     stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
@@ -311,21 +315,22 @@ MjvmObject *Execution::stackPopObject(void) {
     return (MjvmObject *)stack[sp--];
 }
 
-void Execution::stackSaveContext(uint32_t retPc) {
+void Execution::stackSaveContext(void) {
     stackPushInt32((int32_t)method);
-    stackPushInt32(retPc);
+    stackPushInt32(pc);
+    stackPushInt32(lr);
     stackPushInt32(startSp);
-    stackPushInt32((int32_t)locals);
     startSp = sp;
 }
 
 void Execution::stackRestoreContext(void) {
     sp = startSp;
-    locals = (int32_t *)stackPopInt32();
     startSp = stackPopInt32();
+    lr = stackPopInt32();
     pc = stackPopInt32();
     method = (const MethodInfo *)stackPopInt32();
     code = method->getAttributeCode().code;
+    locals = &stack[startSp + 1];
 }
 
 void Execution::initNewContext(const MethodInfo &methodInfo, uint16_t argc) {
@@ -334,7 +339,6 @@ void Execution::initNewContext(const MethodInfo &methodInfo, uint16_t argc) {
         throw "stack overflow";
     method = &methodInfo;
     code = attributeCode.code;
-    startSp = sp;
     pc = 0;
     locals = &stack[sp + 1];
     for(uint32_t i = argc; i < attributeCode.maxLocals; i++)
@@ -358,35 +362,35 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
     throw "can't find the method";
 }
 
-void Execution::invokeStatic(const ConstMethod &constMethod, uint32_t retPc) {
+void Execution::invokeStatic(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     const MethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
         for(uint32_t i = 0; i < argc; i++)
             stack[sp - i + 4] = stack[sp - i];
         sp -= argc;
-        stackSaveContext(retPc);
+        stackSaveContext();
         initNewContext(methodInfo, argc);
     }
     else
         throw "invoke static to non-static method";
 }
 
-void Execution::invokeSpecial(const ConstMethod &constMethod, uint32_t retPc) {
+void Execution::invokeSpecial(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc + 1;
     const MethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         for(uint32_t i = 0; i < argc; i++)
             stack[sp - i + 4] = stack[sp - i];
         sp -= argc;
-        stackSaveContext(retPc);
+        stackSaveContext();
         initNewContext(methodInfo, argc);
     }
     else
         throw "invoke special to static method";
 }
 
-void Execution::invokeVirtual(const ConstMethod &constMethod, uint32_t retPc) {
+void Execution::invokeVirtual(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
     uint32_t virtualConstMethod[] = {
@@ -399,14 +403,14 @@ void Execution::invokeVirtual(const ConstMethod &constMethod, uint32_t retPc) {
         for(uint32_t i = 0; i < argc; i++)
             stack[sp - i + 4] = stack[sp - i];
         sp -= argc;
-        stackSaveContext(retPc);
+        stackSaveContext();
         initNewContext(methodInfo, argc);
     }
     else
         throw "invoke virtual to static method";
 }
 
-void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc, uint32_t retPc) {
+void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
     uint32_t interfaceConstMethod[] = {
         (uint32_t)&obj->type,                           /* class name */
@@ -418,7 +422,7 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
         for(uint32_t i = 0; i < argc; i++)
             stack[sp - i + 4] = stack[sp - i];
         sp -= argc;
-        stackSaveContext(retPc);
+        stackSaveContext();
         initNewContext(methodInfo, argc);
     }
     else
@@ -1481,6 +1485,7 @@ int64_t Execution::run(const char *mainClass) {
         }
         stackRestoreContext();
         stackPushInt32(retVal);
+        pc = lr;
         goto *opcodes[code[pc]];
     }
     op_lreturn:
@@ -1492,6 +1497,7 @@ int64_t Execution::run(const char *mainClass) {
         }
         stackRestoreContext();
         stackPushInt64(retVal);
+        pc = lr;
         goto *opcodes[code[pc]];
     }
     op_areturn: {
@@ -1502,6 +1508,7 @@ int64_t Execution::run(const char *mainClass) {
         }
         stackRestoreContext();
         stackPushObject((MjvmObject *)retVal);
+        pc = lr;
         goto *opcodes[code[pc]];
     }
     op_return: {
@@ -1510,6 +1517,7 @@ int64_t Execution::run(const char *mainClass) {
             return 0;
         }
         stackRestoreContext();
+        pc = lr;
         goto *opcodes[code[pc]];
     }
     op_getstatic: {
@@ -1703,23 +1711,27 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_invokevirtual: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        invokeVirtual(constMethod, pc + 3);
+        lr = pc + 3;
+        invokeVirtual(constMethod);
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        invokeSpecial(constMethod, pc + 3);
+        lr = pc + 3;
+        invokeSpecial(constMethod);
         goto *opcodes[code[pc]];
     }
     op_invokestatic: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        invokeStatic(constMethod, pc + 3);
+        lr = pc + 3;
+        invokeStatic(constMethod);
         goto *opcodes[code[pc]];
     }
     op_invokeinterface: {
         const ConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t count = code[pc + 3];
-        invokeInterface(interfaceMethod, count, pc + 5);
+        lr = pc + 5;
+        invokeInterface(interfaceMethod, count);
         goto *opcodes[code[pc]];
     }
     op_invokedynamic:
@@ -1862,7 +1874,8 @@ int64_t Execution::run(const char *mainClass) {
             (uint32_t)nameAndType                       /* method type */
         };
         initStaticField(classToInit);
-        invokeStatic(*(const ConstMethod *)ctorConstMethod, pc);
+        lr = pc;
+        invokeStatic(*(const ConstMethod *)ctorConstMethod);
         goto *opcodes[code[pc]];
     }
     create_new_string: {
@@ -1886,7 +1899,8 @@ int64_t Execution::run(const char *mainClass) {
         stackPushObject(byteArray);
         Mjvm::unlock();
         memcpy(byteArray->data, text.getText(), text.length);
-        invokeSpecial(*(const ConstMethod *)ctorConstMethod, pc);
+        lr = pc;
+        invokeSpecial(*(const ConstMethod *)ctorConstMethod);
         goto *opcodes[code[pc]];
     }
 }

@@ -19,6 +19,7 @@ private:
     const MethodInfo *method;
     const uint8_t *code;
     uint32_t pc;
+    uint32_t lr;
     int32_t sp;
     int32_t startSp;
     int32_t *stack;
@@ -70,16 +71,16 @@ private:
     double stackPopDouble(void);
     MjvmObject *stackPopObject(void);
 
-    void stackSaveContext(uint32_t retPc);
+    void stackSaveContext(void);
     void stackRestoreContext(void);
 
     void initNewContext(const MethodInfo &methodInfo, uint16_t argc = 0);
 
     const MethodInfo &findMethod(const ConstMethod &constMethod);
-    void invokeStatic(const ConstMethod &constMethod, uint32_t retPc);
-    void invokeSpecial(const ConstMethod &constMethod, uint32_t retPc);
-    void invokeVirtual(const ConstMethod &constMethod, uint32_t retPc);
-    void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc, uint32_t retPc);
+    void invokeStatic(const ConstMethod &constMethod);
+    void invokeSpecial(const ConstMethod &constMethod);
+    void invokeVirtual(const ConstMethod &constMethod);
+    void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
     MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
