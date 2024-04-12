@@ -141,6 +141,16 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
 
 void Execution::garbageCollection(void) {
     objectCountToGc = 0;
+    for(ClassDataNode *node = staticClassDataHead; node != 0; node = node->next) {
+        FieldsData *fieldsData = node->filedsData;
+        if(fieldsData->fieldsObjCount) {
+            for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
+                MjvmObject *obj = fieldsData->fieldsObject[i].object;
+                if(obj && !obj->isProtected())
+                    garbageCollectionProtectObject(obj);
+            }
+        }
+    }
     for(int32_t i = 0; i <= peakSp; i++) {
         if(getStackType(i) == STACK_TYPE_OBJECT) {
             MjvmObject *obj = (MjvmObject *)stack[i];
