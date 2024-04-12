@@ -1510,7 +1510,7 @@ int64_t Execution::run(const char *mainClass) {
     op_freturn: {
         int32_t retVal = stackPopInt32();
         if(startSp < 0) {
-            sp = startSp;
+            sp = peakSp = startSp;
             return retVal;
         }
         stackRestoreContext();
@@ -1522,7 +1522,7 @@ int64_t Execution::run(const char *mainClass) {
     op_dreturn: {
         int64_t retVal = stackPopInt64();
         if(startSp < 0) {
-            sp = startSp;
+            sp = peakSp = startSp;
             return retVal;
         }
         stackRestoreContext();
@@ -1533,7 +1533,7 @@ int64_t Execution::run(const char *mainClass) {
     op_areturn: {
         int32_t retVal = (int32_t)stackPopObject();
         if(startSp < 0) {
-            sp = startSp;
+            sp = peakSp = startSp;
             return retVal;
         }
         stackRestoreContext();
@@ -1543,10 +1543,11 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_return: {
         if(startSp < 0) {
-            sp = startSp;
+            sp = peakSp = startSp;
             return 0;
         }
         stackRestoreContext();
+        peakSp = sp;
         pc = lr;
         goto *opcodes[code[pc]];
     }
@@ -1780,7 +1781,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_newarray: {
         int32_t count = stackPopInt32();
-        if(count < 0) {
+        if(count <= 0) {
             // TODO
         }
         uint8_t atype = code[pc + 1];
@@ -1843,9 +1844,16 @@ int64_t Execution::run(const char *mainClass) {
         stackPushObject(obj);
         goto exception_handler;
     }
-    op_checkcast:
-        // TODO
+    op_checkcast: {
+        MjvmObject *obj = (MjvmObject *)stack[sp];
+        const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
+        if(obj == 0 || !isInstanceof(obj, type)) {
+            // TODO
+            goto exception_handler;
+        }
+        pc += 3;
         goto *opcodes[code[pc]];
+    }
     op_instanceof: {
         MjvmObject *obj = stackPopObject();
         const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
