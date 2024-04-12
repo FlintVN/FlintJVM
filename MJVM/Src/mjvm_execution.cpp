@@ -1805,9 +1805,35 @@ int64_t Execution::run(const char *mainClass) {
         pc++;
         goto *opcodes[code[pc]];
     }
-    op_athrow:
-        // TODO
-        goto *opcodes[code[pc]];
+    op_athrow: {
+        MjvmObject *obj = (MjvmObject *)stack[sp];
+        if(obj == 0) {
+            stackPopObject();
+            // TODO
+        }
+        goto exception_handler;
+    }
+    exception_handler: {
+        MjvmObject *obj = stackPopObject();
+        sp = startSp + method->getAttributeCode().maxLocals;
+        stackPushObject(obj);
+        const AttributeCode &attributeCode = method->getAttributeCode();
+        for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
+            const ExceptionTable &exceptionTable = attributeCode.getException(i);
+            if(exceptionTable.startPc <= pc && pc < exceptionTable.endPc) {
+                if(isInstanceof(obj, method->classLoader.getConstClass(exceptionTable.catchType))) {
+                    pc = exceptionTable.handlerPc;
+                    goto *opcodes[code[pc]];
+                }
+            }
+        }
+        if(startSp < 0)
+            throw "Exception is not handled";
+        stackRestoreContext();
+        sp = startSp + method->getAttributeCode().maxLocals;
+        stackPushObject(obj);
+        goto exception_handler;
+    }
     op_checkcast:
         // TODO
         goto *opcodes[code[pc]];
