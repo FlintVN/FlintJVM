@@ -429,11 +429,32 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
         throw "invoke interface to static method";
 }
 
-static uint32_t countDimensions(const ConstUtf8 &objectType) {
-    const char *text = objectType.getText();
+bool Execution::isInstanceof(MjvmObject *obj, const ConstUtf8 &type) {
+    const char *text = type.getText();
     while(*text == '[')
         text++;
-    return text - objectType.getText();
+    uint32_t dimensions = text - type.getText();
+    uint32_t length = type.length - dimensions;
+    if(*text == 'L') {
+        text++;
+        length -= 2;
+    }
+    if(length == 16 && obj->dimensions >= dimensions && strncmp(text, "java/lang/Object", length) == 0)
+        return true;
+    else if(dimensions != obj->dimensions)
+        return false;
+    else {
+        const ConstUtf8 *objType = &obj->type;
+        while(1) {
+            if(length == objType->length && strncmp(objType->getText(), text, length) == 0)
+                return true;
+            else {
+                objType = &load(*objType).getSupperClass();
+                if(objType == 0)
+                    return false;
+            }
+        }
+    }
 }
 
 MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
@@ -1792,41 +1813,10 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     op_instanceof: {
         MjvmObject *obj = stackPopObject();
-        const ConstUtf8 *typeName = &method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
-        uint32_t dimensions = countDimensions(*typeName);
-        const char *typeNameText = typeName->getText();
-        uint32_t length = typeName->length - dimensions;
-        if(typeNameText[dimensions] != 'L')
-            typeNameText = &typeNameText[dimensions];
-        else {
-            typeNameText = &typeNameText[dimensions + 1];
-            length -= 2;
-        }
+        const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
+        stackPushInt32(isInstanceof(obj, type));
         pc += 3;
-        if(length == 16 && obj->dimensions >= dimensions && strncmp(typeNameText, "java/lang/Object", length) == 0) {
-            stackPushInt32(1);
-            goto *opcodes[code[pc]];
-        }
-        else if(dimensions != obj->dimensions) {
-            stackPushInt32(0);
-            goto *opcodes[code[pc]];
-        }
-        else {
-            const ConstUtf8 *objType = &obj->type;
-            while(1) {
-                if(length == objType->length && strncmp(objType->getText(), typeNameText, length) == 0) {
-                    stackPushInt32(1);
-                    goto *opcodes[code[pc]];
-                }
-                else {
-                    objType = &load(*objType).getSupperClass();
-                    if(objType == 0) {
-                        stackPushInt32(0);
-                        goto *opcodes[code[pc]];
-                    }
-                }
-            }
-        }
+        goto *opcodes[code[pc]];
     }
     op_monitorenter:
         // TODO

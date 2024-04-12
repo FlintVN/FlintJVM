@@ -84,6 +84,8 @@ private:
 
     MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
+    bool isInstanceof(MjvmObject *obj, const ConstUtf8 &type);
+
     void garbageCollection(void);
 
     ~Execution(void);
