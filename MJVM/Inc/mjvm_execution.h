@@ -22,6 +22,7 @@ private:
     uint32_t lr;
     int32_t sp;
     int32_t startSp;
+    int32_t peakSp;
     int32_t *stack;
     int32_t *locals;
     uint8_t *stackType;
@@ -71,12 +72,12 @@ private:
     double stackPopDouble(void);
     MjvmObject *stackPopObject(void);
 
-    void stackSaveContext(void);
     void stackRestoreContext(void);
 
     void initNewContext(const MethodInfo &methodInfo, uint16_t argc = 0);
 
     const MethodInfo &findMethod(const ConstMethod &constMethod);
+    void invoke(const MethodInfo &methodInfo, uint8_t argc);
     void invokeStatic(const ConstMethod &constMethod);
     void invokeSpecial(const ConstMethod &constMethod);
     void invokeVirtual(const ConstMethod &constMethod);

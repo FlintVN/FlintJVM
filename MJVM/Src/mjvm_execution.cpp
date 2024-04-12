@@ -29,6 +29,7 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     lr = -1;
     sp = -1;
     startSp = sp;
+    peakSp = sp;
     stack = (int32_t *)Mjvm::malloc(DEFAULT_STACK_SIZE);
     stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
@@ -40,6 +41,7 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     lr = -1;
     sp = -1;
     startSp = sp;
+    peakSp = sp;
     stack = (int32_t *)Mjvm::malloc(size);
     stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
     staticClassDataHead = 0;
@@ -65,7 +67,7 @@ void Execution::removeFromObjectList(MjvmObjectNode *objNode) {
 }
 
 MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) {
-    if(objectCountToGc++ == NUM_OBJECT_TO_GC)
+    if(objectCountToGc++ >= NUM_OBJECT_TO_GC)
         garbageCollection();
     MjvmObjectNode *newNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + size);
     addToObjectList(newNode);
@@ -139,7 +141,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
 
 void Execution::garbageCollection(void) {
     objectCountToGc = 0;
-    for(int32_t i = 0; i <= sp; i++) {
+    for(int32_t i = 0; i <= peakSp; i++) {
         if(getStackType(i) == STACK_TYPE_OBJECT) {
             MjvmObject *obj = (MjvmObject *)stack[i];
             if(obj && !obj->isProtected())
@@ -237,7 +239,7 @@ void Execution::setStackValue(uint32_t index, const StackValue &value) {
 }
 
 void Execution::stackPush(const StackValue &value) {
-    sp++;
+    sp = peakSp = sp + 1;
     stack[sp] = value.value;
     if(value.type == STACK_TYPE_OBJECT)
         stackType[sp / 8] |= (1 << (sp % 8));
@@ -246,17 +248,17 @@ void Execution::stackPush(const StackValue &value) {
 }
 
 void Execution::stackPushInt32(int32_t value) {
-    sp++;
+    sp = peakSp = sp + 1;
     stack[sp] = value;
     stackType[sp / 8] &= ~(1 << (sp % 8));
 }
 
 void Execution::stackPushInt64(int64_t value) {
     if((sp + 2) < stackLength) {
-        sp++;
+        sp = peakSp = sp + 1;
         stack[sp] = ((uint32_t *)&value)[0];
         stackType[sp / 8] &= ~(1 << (sp % 8));
-        sp++;
+        sp = peakSp = sp + 1;
         stack[sp] = ((uint32_t *)&value)[1];
         stackType[sp / 8] &= ~(1 << (sp % 8));
     }
@@ -265,24 +267,24 @@ void Execution::stackPushInt64(int64_t value) {
 }
 
 void Execution::stackPushFloat(float value) {
-    sp++;
+    sp = peakSp = sp + 1;
     stack[sp] = *(uint32_t *)&value;
     stackType[sp / 8] &= ~(1 << (sp % 8));
 }
 
 void Execution::stackPushDouble(double value) {
     if((sp + 2) < stackLength) {
-        sp++;
+        sp = peakSp = sp + 1;
         stack[sp] = ((uint32_t *)&value)[0];
         stackType[sp / 8] &= ~(1 << (sp % 8));
-        sp++;
+        sp = peakSp = sp + 1;
         stack[sp] = ((uint32_t *)&value)[1];
         stackType[sp / 8] &= ~(1 << (sp % 8));
     }
 }
 
 void Execution::stackPushObject(MjvmObject *obj) {
-    sp++;
+    sp = peakSp = sp + 1;
     stack[sp] = (int32_t)obj;
     stackType[sp / 8] |= (1 << (sp % 8));
 }
@@ -315,14 +317,6 @@ MjvmObject *Execution::stackPopObject(void) {
     return (MjvmObject *)stack[sp--];
 }
 
-void Execution::stackSaveContext(void) {
-    stackPushInt32((int32_t)method);
-    stackPushInt32(pc);
-    stackPushInt32(lr);
-    stackPushInt32(startSp);
-    startSp = sp;
-}
-
 void Execution::stackRestoreContext(void) {
     sp = startSp;
     startSp = stackPopInt32();
@@ -341,8 +335,11 @@ void Execution::initNewContext(const MethodInfo &methodInfo, uint16_t argc) {
     code = attributeCode.code;
     pc = 0;
     locals = &stack[sp + 1];
-    for(uint32_t i = argc; i < attributeCode.maxLocals; i++)
-        stack[sp + i + 1] = 0;
+    for(uint32_t i = argc; i < attributeCode.maxLocals; i++) {
+        uint32_t index = sp + i + 1;
+        stack[index] = 0;
+        stackType[index / 8] &= ~(1 << (index % 8));
+    }
     sp += attributeCode.maxLocals;
 }
 
@@ -362,16 +359,31 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
     throw "can't find the method";
 }
 
+void Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
+    peakSp = sp + 4;
+    for(uint32_t i = 0; i < argc; i++)
+        setStackValue(sp - i + 4, getStackValue(sp - i));
+    sp -= argc;
+
+    /* Save current context */
+    stack[++sp] = (int32_t)method;
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = pc;
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = lr;
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = startSp;
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    startSp = sp;
+
+    initNewContext(methodInfo, argc);
+}
+
 void Execution::invokeStatic(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     const MethodInfo &methodInfo = findMethod(constMethod);
-    if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
-        for(uint32_t i = 0; i < argc; i++)
-            stack[sp - i + 4] = stack[sp - i];
-        sp -= argc;
-        stackSaveContext();
-        initNewContext(methodInfo, argc);
-    }
+    if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC)
+        invoke(methodInfo, argc);
     else
         throw "invoke static to non-static method";
 }
@@ -379,13 +391,8 @@ void Execution::invokeStatic(const ConstMethod &constMethod) {
 void Execution::invokeSpecial(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc + 1;
     const MethodInfo &methodInfo = findMethod(constMethod);
-    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
-        for(uint32_t i = 0; i < argc; i++)
-            stack[sp - i + 4] = stack[sp - i];
-        sp -= argc;
-        stackSaveContext();
-        initNewContext(methodInfo, argc);
-    }
+    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
+        invoke(methodInfo, argc);
     else
         throw "invoke special to static method";
 }
@@ -400,11 +407,7 @@ void Execution::invokeVirtual(const ConstMethod &constMethod) {
     const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)virtualConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         argc++;
-        for(uint32_t i = 0; i < argc; i++)
-            stack[sp - i + 4] = stack[sp - i];
-        sp -= argc;
-        stackSaveContext();
-        initNewContext(methodInfo, argc);
+        invoke(methodInfo, argc);
     }
     else
         throw "invoke virtual to static method";
@@ -419,11 +422,7 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
     const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)interfaceConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         argc++;
-        for(uint32_t i = 0; i < argc; i++)
-            stack[sp - i + 4] = stack[sp - i];
-        sp -= argc;
-        stackSaveContext();
-        initNewContext(methodInfo, argc);
+        invoke(methodInfo, argc);
     }
     else
         throw "invoke interface to static method";
@@ -984,9 +983,9 @@ int64_t Execution::run(const char *mainClass) {
     op_dup_x1: {
         StackValue value2 = getStackValue(sp - 1);
         StackValue value1 = getStackValue(sp - 0);
-        setStackValue(sp - 1, value1);
-        setStackValue(sp - 0, value2);
         stackPush(value1);
+        setStackValue(sp - 1, value2);
+        setStackValue(sp - 2, value1);
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -994,10 +993,10 @@ int64_t Execution::run(const char *mainClass) {
         StackValue value3 = getStackValue(sp - 2);
         StackValue value2 = getStackValue(sp - 1);
         StackValue value1 = getStackValue(sp - 0);
-        setStackValue(sp - 2, value1);
-        setStackValue(sp - 1, value3);
-        setStackValue(sp - 0, value2);
         stackPush(value1);
+        setStackValue(sp - 1, value2);
+        setStackValue(sp - 2, value3);
+        setStackValue(sp - 3, value1);
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1013,11 +1012,11 @@ int64_t Execution::run(const char *mainClass) {
         StackValue value3 = getStackValue(sp - 2);
         StackValue value2 = getStackValue(sp - 1);
         StackValue value1 = getStackValue(sp - 0);
-        setStackValue(sp - 2, value2);
-        setStackValue(sp - 1, value1);
-        setStackValue(sp - 0, value3);
         stackPush(value2);
         stackPush(value1);
+        setStackValue(sp - 2, value3);
+        setStackValue(sp - 3, value1);
+        setStackValue(sp - 4, value2);
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1026,12 +1025,12 @@ int64_t Execution::run(const char *mainClass) {
         StackValue value3 = getStackValue(sp - 2);
         StackValue value2 = getStackValue(sp - 1);
         StackValue value1 = getStackValue(sp - 0);
-        setStackValue(sp - 2, value2);
-        setStackValue(sp - 2, value1);
-        setStackValue(sp - 1, value4);
-        setStackValue(sp - 0, value3);
         stackPush(value2);
         stackPush(value1);
+        setStackValue(sp - 2, value3);
+        setStackValue(sp - 3, value4);
+        setStackValue(sp - 4, value1);
+        setStackValue(sp - 5, value2);
         pc++;
         goto *opcodes[code[pc]];
     }
