@@ -158,7 +158,7 @@ AttributeInfo &ClassLoader::readAttributeCode(ClassFile &file) {
             uint16_t endPc = file.readUInt16();
             uint16_t handlerPc = file.readUInt16();
             uint16_t catchType = file.readUInt16();
-            new (&attribute[i])ExceptionTable(startPc, endPc, handlerPc, catchType);
+            new (&exceptionTable[i])ExceptionTable(startPc, endPc, handlerPc, catchType);
         }
     }
     uint16_t attrbutesCount = file.readUInt16();
