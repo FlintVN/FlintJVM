@@ -12,7 +12,11 @@ private:
     uint32_t prot : 1;
 public:
     const ConstUtf8 &type;
-    const uint8_t dimensions;
+    const uint32_t dimensions : 8;
+public:
+    uint32_t monitorCount : 24;
+    uint32_t ownId;
+private:
     uint8_t data[];
 
     uint8_t parseTypeSize(void) const;

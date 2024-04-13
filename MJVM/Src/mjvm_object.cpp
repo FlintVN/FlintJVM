@@ -1,8 +1,9 @@
 
 #include "mjvm_object.h"
 
-MjvmObject::MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) : size(size), type(type), dimensions(dimensions) {
-    prot = 0;
+MjvmObject::MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) :
+size(size), prot(0), type(type), dimensions(dimensions), monitorCount(0), ownId(0) {
+
 }
 
 uint8_t MjvmObject::parseTypeSize(void) const {

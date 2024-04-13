@@ -1861,12 +1861,35 @@ int64_t Execution::run(const char *mainClass) {
         pc += 3;
         goto *opcodes[code[pc]];
     }
-    op_monitorenter:
-        // TODO
+    op_monitorenter: {
+        MjvmObject *obj = stackPopObject();
+        if(obj == 0) {
+            // TODO
+            goto exception_handler;
+        }
+        Mjvm::lock();
+        if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
+            obj->ownId = (int32_t)this;
+            if(obj->monitorCount < 0xFFFFFF)
+                obj->monitorCount++;
+            else {
+                // TODO
+                Mjvm::unlock();
+                goto exception_handler;
+            }
+            pc++;
+        }
+        Mjvm::unlock();
         goto *opcodes[code[pc]];
-    op_monitorexit:
-        // TODO
+    }
+    op_monitorexit: {
+        MjvmObject *obj = stackPopObject();
+        Mjvm::lock();
+        obj->monitorCount--;
+        Mjvm::unlock();
+        pc++;
         goto *opcodes[code[pc]];
+    }
     op_wide:
         // TODO
         goto *opcodes[code[pc]];
