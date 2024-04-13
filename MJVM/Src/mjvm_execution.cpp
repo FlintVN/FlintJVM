@@ -14,6 +14,7 @@ static const uint8_t primitiveTypeSize[8] = {
     sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
     sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
 };
+
 static const ConstUtf8 *primTypeConstUtf8List[] = {
     (ConstUtf8 *)"\x01\x00""Z",
     (ConstUtf8 *)"\x01\x00""C",
@@ -32,7 +33,7 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     peakSp = sp;
     stack = (int32_t *)Mjvm::malloc(DEFAULT_STACK_SIZE);
     stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
-    staticClassDataHead = 0;
+    staticClassDataList = 0;
     objectList = 0;
     objectCountToGc = 0;
 }
@@ -44,24 +45,24 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     peakSp = sp;
     stack = (int32_t *)Mjvm::malloc(size);
     stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
-    staticClassDataHead = 0;
+    staticClassDataList = 0;
     objectList = 0;
     objectCountToGc = 0;
 }
 
-void Execution::addToObjectList(MjvmObjectNode *objNode) {
+void Execution::addToList(MjvmObjectNode **list, MjvmObjectNode *objNode) {
     objNode->prev = 0;
-    objNode->next = objectList;
-    if(objectList)
-        objectList->prev = objNode;
-    objectList = objNode;
+    objNode->next = *list;
+    if(*list)
+        (*list)->prev = objNode;
+    *list = objNode;
 }
 
-void Execution::removeFromObjectList(MjvmObjectNode *objNode) {
+void Execution::removeFromList(MjvmObjectNode **list, MjvmObjectNode *objNode) {
     if(objNode->prev)
         objNode->prev->next = objNode->next;
     else
-        objectList = objNode->next;
+        *list = objNode->next;
     if(objNode->next)
         objNode->next->prev = objNode->prev;
 }
@@ -70,7 +71,7 @@ MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t d
     if(objectCountToGc++ >= NUM_OBJECT_TO_GC)
         garbageCollection();
     MjvmObjectNode *newNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + size);
-    addToObjectList(newNode);
+    addToList(&objectList, newNode);
     MjvmObject *ret = newNode->getMjvmObject();
     new (ret)MjvmObject(size, type, dimensions);
     return ret;
@@ -141,7 +142,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
 
 void Execution::garbageCollection(void) {
     objectCountToGc = 0;
-    for(ClassDataNode *node = staticClassDataHead; node != 0; node = node->next) {
+    for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         FieldsData *fieldsData = node->filedsData;
         if(fieldsData->fieldsObjCount) {
             for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
@@ -162,7 +163,7 @@ void Execution::garbageCollection(void) {
         MjvmObjectNode *next = node->next;
         MjvmObject *obj = node->getMjvmObject();
         if(!obj->isProtected()) {
-            removeFromObjectList(node);
+            removeFromList(&objectList, node);
             if(obj->dimensions == 0) {
                 FieldsData *fields = (FieldsData *)obj->data;
                 fields->~FieldsData();
@@ -178,33 +179,33 @@ const ClassLoader &Execution::load(const char *className) {
 }
 
 const ClassLoader &Execution::load(const char *className, uint16_t length) {
-    for(ClassDataNode *node = staticClassDataHead; node != 0; node = node->next) {
+    for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         const ConstUtf8 &name = node->classLoader.getThisClass();
         if(name.length == length && strncmp(name.getText(), className, length))
             return node->classLoader;
     }
     ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
     new (newNode)ClassDataNode(Mjvm::load(className, length), 0);
-    newNode->next = staticClassDataHead;
-    staticClassDataHead = newNode;
+    newNode->next = staticClassDataList;
+    staticClassDataList = newNode;
     return newNode->classLoader;
 }
 
 const ClassLoader &Execution::load(const ConstUtf8 &className) {
-    for(ClassDataNode *node = staticClassDataHead; node != 0; node = node->next) {
+    for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         const ConstUtf8 &name = node->classLoader.getThisClass();
         if(node->classLoader.getThisClass() == className)
             return node->classLoader;
     }
     ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
     new (newNode)ClassDataNode(Mjvm::load(className), 0);
-    newNode->next = staticClassDataHead;
-    staticClassDataHead = newNode;
+    newNode->next = staticClassDataList;
+    staticClassDataList = newNode;
     return newNode->classLoader;
 }
 
 const FieldsData &Execution::getStaticFields(const ConstUtf8 &className) const {
-    for(ClassDataNode *node = staticClassDataHead; node != 0; node = node->next) {
+    for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         if(className == node->classLoader.getThisClass())
             return *node->filedsData;
     }
@@ -212,7 +213,7 @@ const FieldsData &Execution::getStaticFields(const ConstUtf8 &className) const {
 }
 
 const FieldsData &Execution::getStaticFields(const ClassLoader &classLoader) const {
-    for(ClassDataNode *node = staticClassDataHead; node != 0; node = node->next) {
+    for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         if(&classLoader == &node->classLoader)
             return *node->filedsData;
     }
@@ -224,8 +225,8 @@ void Execution::initStaticField(const ClassLoader &classLoader) {
     FieldsData *fieldsData = (FieldsData *)Mjvm::malloc(sizeof(FieldsData));
     new (fieldsData)FieldsData(*this, classLoader, true);
     new (newNode)ClassDataNode(classLoader, fieldsData);
-    newNode->next = staticClassDataHead;
-    staticClassDataHead = newNode;
+    newNode->next = staticClassDataList;
+    staticClassDataList = newNode;
 }
 
 Execution::StackType Execution::getStackType(uint32_t index) {
@@ -1964,8 +1965,8 @@ int64_t Execution::run(const char *mainClass) {
 Execution::~Execution(void) {
     Mjvm::free(stack);
     Mjvm::free(stackType);
-    if(staticClassDataHead) {
-        for(ClassDataNode *node = staticClassDataHead; node != 0;) {
+    if(staticClassDataList) {
+        for(ClassDataNode *node = staticClassDataList; node != 0;) {
             ClassDataNode *next = node->next;
             Mjvm::destroy(node->classLoader);
             node->~ClassDataNode();

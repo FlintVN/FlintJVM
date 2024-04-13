@@ -26,7 +26,7 @@ private:
     int32_t *stack;
     int32_t *locals;
     uint8_t *stackType;
-    ClassDataNode *staticClassDataHead;
+    ClassDataNode *staticClassDataList;
     MjvmObjectNode *objectList;
     uint32_t objectCountToGc;
 
@@ -45,8 +45,8 @@ private:
     Execution(const Execution &) = delete;
     void operator=(const Execution &) = delete;
 
-    void addToObjectList(MjvmObjectNode *objNode);
-    void removeFromObjectList(MjvmObjectNode *objNode);
+    void addToList(MjvmObjectNode **list, MjvmObjectNode *objNode);
+    void removeFromList(MjvmObjectNode **list, MjvmObjectNode *objNode);
     MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
     void freeAllObject(void);
     void garbageCollectionProtectObject(MjvmObject *obj);

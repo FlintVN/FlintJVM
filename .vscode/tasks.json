@@ -2,7 +2,7 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "cppbuild",
+			"type": "shell",
 			"label": "C/C++: g++.exe build active file",
 			"command": "C:/MinGW/bin/g++.exe",
 			"args": [
@@ -17,7 +17,7 @@
 				"-IDrivers/Inc",
 				"-IUser/Inc",
 				"-o",
-				"${workspaceFolder}/Build/Bin/WinMJVM.exe"
+				"Build/Bin/WinMJVM.exe"
 			],
 			"presentation": {
                 "echo": true,

@@ -29,12 +29,15 @@ private:
         ExecutionNode(uint32_t stackSize);
     };
 
-    static ClassLoaderNode *classLoaderHead;
-    static ExecutionNode *executionHead;
+    static ClassLoaderNode *classLoaderList;
+    static ExecutionNode *executionList;
 
     Mjvm(void) = delete;
     Mjvm(const Mjvm &) = delete;
     void operator=(const Mjvm &) = delete;
+
+    static ClassLoaderNode *newLoaderNode(const char *fileName, uint16_t length);
+    static ClassLoaderNode *findClassLoaderNode(const char *fileName, uint16_t length);
 public:
     static void *malloc(uint32_t size);
     static void free(void *p);
