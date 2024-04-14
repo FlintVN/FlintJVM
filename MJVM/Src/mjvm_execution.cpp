@@ -102,7 +102,7 @@ MjvmObjectNode *Execution::newStringNode(const char *str[], uint16_t count) {
     for(uint16_t i = 0; i < count; i++) {
         const char *buff = str[i];
         while(*buff) {
-            byteArray->data[index] += *buff;
+            byteArray->data[index] = *buff;
             buff++;
             index++;
         }
