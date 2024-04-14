@@ -1772,7 +1772,7 @@ int64_t Execution::run(const char *mainClass) {
             }
         }
         getfield_null_excp: {
-            const char *msg[] = {"Cannot read field ", constField.nameAndType.name.getText(), " from null object"};
+            const char *msg[] = {"Cannot read field '", constField.nameAndType.name.getText(), "' from null object"};
             Mjvm::lock();
             MjvmObject *strObj = newString(msg, LENGTH(msg));
             MjvmObject *excpObj = newNullPointerException(strObj);
@@ -1836,7 +1836,7 @@ int64_t Execution::run(const char *mainClass) {
             }
         }
         putfield_null_excp: {
-            const char *msg[] = {"Cannot assign field ", constField.nameAndType.name.getText(), " for null object"};
+            const char *msg[] = {"Cannot assign field '", constField.nameAndType.name.getText(), "' for null object"};
             Mjvm::lock();
             MjvmObject *strObj = newString(msg, LENGTH(msg));
             MjvmObject *excpObj = newNullPointerException(strObj);
@@ -1948,7 +1948,7 @@ int64_t Execution::run(const char *mainClass) {
             }
         }
         if(startSp < 0)
-            throw (MjvmString *)obj;
+            throw (MjvmThrowable *)obj;
         stackRestoreContext();
         sp = startSp + method->getAttributeCode().maxLocals;
         stackPushObject(obj);
@@ -1958,7 +1958,7 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = (MjvmObject *)stack[sp];
         const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
         if(obj != 0 && !isInstanceof(obj, type)) {
-            const char *msg[] = {"Class ", obj->type.getText(), " cannot be cast to class ", type.getText()};
+            const char *msg[] = {"Class '", obj->type.getText(), "' cannot be cast to class '", type.getText(), "'"};
             Mjvm::lock();
             MjvmObject *strObj = newString(msg, LENGTH(msg));
             MjvmObject *excpObj = newNullPointerException(strObj);
