@@ -49,9 +49,13 @@ private:
     void addToList(MjvmObjectNode **list, MjvmObjectNode *objNode);
     void removeFromList(MjvmObjectNode **list, MjvmObjectNode *objNode);
     MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
-    MjvmObjectNode *newStringNode(const ConstUtf8 &str);
+    MjvmObject *newString(const char *str);
+    MjvmObject *newString(const char *str, uint16_t length);
+    MjvmObject *newString(const char *str[], uint16_t count);
     MjvmObjectNode *newStringNode(const char *str, uint16_t length);
+    MjvmObjectNode *newStringNode(const char *str[], uint16_t count);
     MjvmObject *getConstString(const ConstUtf8 &str);
+    MjvmObject *newNullPointerException(MjvmObject *strObj);
     void freeAllObject(void);
     void garbageCollectionProtectObject(MjvmObject *obj);
 

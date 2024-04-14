@@ -27,11 +27,17 @@ static const ConstUtf8 *primTypeConstUtf8List[] = {
 };
 
 static const uint32_t stringValueFieldName[] = {
-    (uint32_t)"\x05\x00""value",            /* field name */
-    (uint32_t)"\x02\x00""[B"                /* field type */
+    (uint32_t)"\x05\x00""value",                /* field name */
+    (uint32_t)"\x02\x00""[B"                    /* field type */
+};
+
+static const uint32_t detailMessageFieldName[] = {
+    (uint32_t)"\x05\x00""detailMessage",        /* field name */
+    (uint32_t)"\x10\x00""java/lang/String"      /* field type */
 };
 
 static const ConstUtf8 &stringClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/String";
+static const ConstUtf8 &nullPtrExcpClassName = *(const ConstUtf8 *)"\x1E\x00""java/lang/NullPointerException";
 
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     lr = -1;
@@ -107,8 +113,55 @@ MjvmObjectNode *Execution::newStringNode(const char *str, uint16_t length) {
     return strObjNode;
 }
 
-MjvmObjectNode *Execution::newStringNode(const ConstUtf8 &str) {
-    return newStringNode(str.getText(), str.length);
+MjvmObjectNode *Execution::newStringNode(const char *str[], uint16_t count) {
+    uint16_t index = 0;
+    uint16_t length = 0;
+    for(uint16_t i = 0; i < count; i++)
+        length += strlen(str[i]);
+
+    /* create new byte array to store string */
+    MjvmObject *byteArray = (MjvmObject *)Mjvm::malloc(sizeof(MjvmObject) + length);
+    new (byteArray)MjvmObject(length, *primTypeConstUtf8List[4], 1);
+    for(uint16_t i = 0; i < count; i++) {
+        const char *buff = str[i];
+        while(*buff) {
+            byteArray->data[index] += *buff;
+            buff++;
+            index++;
+        }
+    }
+
+    /* create new string object */
+    MjvmObjectNode *strObjNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + sizeof(FieldsData));
+    MjvmObject *strObj = strObjNode->getMjvmObject();
+    new (strObj)MjvmObject(sizeof(FieldsData), stringClassName, 0);
+
+    /* init field data */
+    FieldsData *fields = (FieldsData *)strObj->data;
+    new (fields)FieldsData(*this, load(stringClassName), false);
+
+    /* set value for value field */
+    fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
+
+    return strObjNode;
+}
+
+MjvmObject *Execution::newString(const char *str) {
+    MjvmObjectNode *strObjNode = newStringNode(str, strlen(str));
+    addToList(&objectList, strObjNode);
+    return strObjNode->getMjvmObject();
+}
+
+MjvmObject *Execution::newString(const char *str, uint16_t length) {
+    MjvmObjectNode *strObjNode = newStringNode(str, length);
+    addToList(&objectList, strObjNode);
+    return strObjNode->getMjvmObject();
+}
+
+MjvmObject *Execution::newString(const char *str[], uint16_t count) {
+    MjvmObjectNode *strObjNode = newStringNode(str, count);
+    addToList(&objectList, strObjNode);
+    return strObjNode->getMjvmObject();
 }
 
 MjvmObject *Execution::getConstString(const ConstUtf8 &str) {
@@ -119,9 +172,23 @@ MjvmObject *Execution::getConstString(const ConstUtf8 &str) {
         if(length == str.length && strncmp(str.getText(), (char *)value->data, length) == 0)
             return strObj;
     }
-    MjvmObjectNode *newNode = newStringNode(str);
+    MjvmObjectNode *newNode = newStringNode(str.getText(), str.length);
     addToList(&constStringList, newNode);
     return newNode->getMjvmObject();
+}
+
+MjvmObject *Execution::newNullPointerException(MjvmObject *strObj) {
+    /* create new NullPointerException object */
+    MjvmObject *obj = newObject(sizeof(FieldsData), nullPtrExcpClassName);
+
+    /* init field data */
+    FieldsData *fields = (FieldsData *)obj->data;
+    new (fields)FieldsData(*this, load(nullPtrExcpClassName), false);
+
+    /* set detailMessage value */
+    fields->getFieldObject(*(ConstNameAndType *)detailMessageFieldName).object = strObj;
+
+    return obj;
 }
 
 static uint8_t convertToAType(char type) {
@@ -788,9 +855,8 @@ int64_t Execution::run(const char *mainClass) {
     op_faload: {
         uint32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / 4)) {
             // TODO
         }
@@ -802,9 +868,8 @@ int64_t Execution::run(const char *mainClass) {
     op_daload: {
         uint32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / 4)) {
             // TODO
         }
@@ -815,9 +880,8 @@ int64_t Execution::run(const char *mainClass) {
     op_aaload: {
         uint32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / 4)) {
             // TODO
         }
@@ -828,9 +892,8 @@ int64_t Execution::run(const char *mainClass) {
     op_baload: {
         uint32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / 4)) {
             // TODO
         }
@@ -842,9 +905,8 @@ int64_t Execution::run(const char *mainClass) {
     op_saload: {
         uint32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / 4)) {
             // TODO
         }
@@ -986,9 +1048,8 @@ int64_t Execution::run(const char *mainClass) {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / 4))) {
             // TODO
         }
@@ -1001,9 +1062,8 @@ int64_t Execution::run(const char *mainClass) {
         int64_t value = stackPopInt64();
         int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / 8))) {
             // TODO
         }
@@ -1015,9 +1075,8 @@ int64_t Execution::run(const char *mainClass) {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / 4))) {
             // TODO
         }
@@ -1030,9 +1089,8 @@ int64_t Execution::run(const char *mainClass) {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
-        if(obj == 0) {
-            // TODO
-        }
+        if(obj == 0)
+            goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / 4))) {
             // TODO
         }
@@ -1694,9 +1752,8 @@ int64_t Execution::run(const char *mainClass) {
             case 'Z':
             case 'B': {
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto getfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 stackPushInt32(fields.getFieldData8(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
@@ -1704,9 +1761,8 @@ int64_t Execution::run(const char *mainClass) {
             case 'C':
             case 'S': {
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto getfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 stackPushInt32(fields.getFieldData16(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
@@ -1714,9 +1770,8 @@ int64_t Execution::run(const char *mainClass) {
             case 'J':
             case 'D': {
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto getfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 stackPushInt64(fields.getFieldData64(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
@@ -1724,22 +1779,29 @@ int64_t Execution::run(const char *mainClass) {
             case 'L':
             case '[': {
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto getfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 stackPushObject(fields.getFieldObject(constField.nameAndType).object);
                 goto *opcodes[code[pc]];
             }
             default: {
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto getfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 stackPushInt32(fields.getFieldData32(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
             }
+        }
+        getfield_null_excp: {
+            const char *msg[] = {"Cannot read field ", constField.nameAndType.name.getText(), " from null object"};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
     }
     op_putfield: {
@@ -1750,9 +1812,8 @@ int64_t Execution::run(const char *mainClass) {
             case 'B': {
                 int32_t value = stackPopInt32();
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto putfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldData8(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
@@ -1761,9 +1822,8 @@ int64_t Execution::run(const char *mainClass) {
             case 'S': {
                 int32_t value = stackPopInt32();
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto putfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldData16(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
@@ -1772,9 +1832,8 @@ int64_t Execution::run(const char *mainClass) {
             case 'D': {
                 int64_t value = stackPopInt64();
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto putfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldData64(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
@@ -1783,9 +1842,8 @@ int64_t Execution::run(const char *mainClass) {
             case '[': {
                 MjvmObject *value = stackPopObject();
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto putfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldObject(constField.nameAndType).object = value;
                 goto *opcodes[code[pc]];
@@ -1793,13 +1851,21 @@ int64_t Execution::run(const char *mainClass) {
             default: {
                 int32_t value = stackPopInt32();
                 MjvmObject *obj = stackPopObject();
-                if(obj == 0) {
-                    // TODO
-                }
+                if(obj == 0)
+                    goto putfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldData32(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
             }
+        }
+        putfield_null_excp: {
+            const char *msg[] = {"Cannot assign field ", constField.nameAndType.name.getText(), " for null object"};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
     }
     op_invokevirtual: {
@@ -1871,7 +1937,12 @@ int64_t Execution::run(const char *mainClass) {
     op_arraylength: {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
-            // TODO
+            Mjvm::lock();
+            MjvmObject *strObj = newString("Cannot read the array length from null object");
+            MjvmObject *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         stackPushInt32(obj->size / obj->parseTypeSize());
         pc++;
@@ -1909,8 +1980,13 @@ int64_t Execution::run(const char *mainClass) {
     op_checkcast: {
         MjvmObject *obj = (MjvmObject *)stack[sp];
         const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
-        if(obj == 0 || !isInstanceof(obj, type)) {
-            // TODO
+        if(obj != 0 && !isInstanceof(obj, type)) {
+            const char *msg[] = {"Class ", obj->type.getText(), " cannot be cast to class ", type.getText()};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
             goto exception_handler;
         }
         pc += 3;
@@ -1926,7 +2002,11 @@ int64_t Execution::run(const char *mainClass) {
     op_monitorenter: {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
-            // TODO
+            Mjvm::lock();
+            MjvmObject *strObj = newString("Cannot enter synchronized block by null object");
+            MjvmObject *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
             goto exception_handler;
         }
         Mjvm::lock();
@@ -1995,6 +2075,22 @@ int64_t Execution::run(const char *mainClass) {
         lr = pc;
         invokeStatic(*(const ConstMethod *)ctorConstMethod);
         goto *opcodes[code[pc]];
+    }
+    load_null_array_excp: {
+        Mjvm::lock();
+        MjvmObject *strObj = newString("Cannot load from null array object");
+        MjvmObject *excpObj = newNullPointerException(strObj);
+        stackPushObject(excpObj);
+        Mjvm::unlock();
+        goto exception_handler;
+    }
+    store_null_array_excp: {
+        Mjvm::lock();
+        MjvmObject *strObj = newString("Cannot store to null array object");
+        MjvmObject *excpObj = newNullPointerException(strObj);
+        stackPushObject(excpObj);
+        Mjvm::unlock();
+        goto exception_handler;
     }
 }
 
