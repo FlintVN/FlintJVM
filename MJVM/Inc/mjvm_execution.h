@@ -28,6 +28,7 @@ private:
     uint8_t *stackType;
     ClassDataNode *staticClassDataList;
     MjvmObjectNode *objectList;
+    MjvmObjectNode *constStringList;
     uint32_t objectCountToGc;
 
     typedef enum : uint8_t {
@@ -48,6 +49,9 @@ private:
     void addToList(MjvmObjectNode **list, MjvmObjectNode *objNode);
     void removeFromList(MjvmObjectNode **list, MjvmObjectNode *objNode);
     MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
+    MjvmObjectNode *newStringNode(const ConstUtf8 &str);
+    MjvmObjectNode *newStringNode(const char *str, uint16_t length);
+    MjvmObject *getConstString(const ConstUtf8 &str);
     void freeAllObject(void);
     void garbageCollectionProtectObject(MjvmObject *obj);
 

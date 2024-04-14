@@ -26,6 +26,13 @@ static const ConstUtf8 *primTypeConstUtf8List[] = {
     (ConstUtf8 *)"\x01\x00""J",
 };
 
+static const uint32_t stringValueFieldName[] = {
+    (uint32_t)"\x05\x00""value",            /* field name */
+    (uint32_t)"\x02\x00""[B"                /* field type */
+};
+
+static const ConstUtf8 &stringClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/String";
+
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     lr = -1;
     sp = -1;
@@ -35,6 +42,7 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
     staticClassDataList = 0;
     objectList = 0;
+    constStringList = 0;
     objectCountToGc = 0;
 }
 
@@ -47,6 +55,7 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
     staticClassDataList = 0;
     objectList = 0;
+    constStringList = 0;
     objectCountToGc = 0;
 }
 
@@ -71,10 +80,48 @@ MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t d
     if(objectCountToGc++ >= NUM_OBJECT_TO_GC)
         garbageCollection();
     MjvmObjectNode *newNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + size);
-    addToList(&objectList, newNode);
     MjvmObject *ret = newNode->getMjvmObject();
     new (ret)MjvmObject(size, type, dimensions);
+    addToList(&objectList, newNode);
     return ret;
+}
+
+MjvmObjectNode *Execution::newStringNode(const char *str, uint16_t length) {
+    /* create new byte array to store string */
+    MjvmObject *byteArray = (MjvmObject *)Mjvm::malloc(sizeof(MjvmObject) + length);
+    new (byteArray)MjvmObject(length, *primTypeConstUtf8List[4], 1);
+    memcpy(byteArray->data, str, length);
+
+    /* create new string object */
+    MjvmObjectNode *strObjNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + sizeof(FieldsData));
+    MjvmObject *strObj = strObjNode->getMjvmObject();
+    new (strObj)MjvmObject(sizeof(FieldsData), stringClassName, 0);
+
+    /* init field data */
+    FieldsData *fields = (FieldsData *)strObj->data;
+    new (fields)FieldsData(*this, load(stringClassName), false);
+
+    /* set value for value field */
+    fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
+
+    return strObjNode;
+}
+
+MjvmObjectNode *Execution::newStringNode(const ConstUtf8 &str) {
+    return newStringNode(str.getText(), str.length);
+}
+
+MjvmObject *Execution::getConstString(const ConstUtf8 &str) {
+    for(MjvmObjectNode *node = constStringList; node != 0; node = node->next) {
+        MjvmObject *strObj = node->getMjvmObject();
+        MjvmObject *value = ((FieldsData *)strObj->data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
+        uint32_t length = value->size / sizeof(int8_t);
+        if(length == str.length && strncmp(str.getText(), (char *)value->data, length) == 0)
+            return strObj;
+    }
+    MjvmObjectNode *newNode = newStringNode(str);
+    addToList(&constStringList, newNode);
+    return newNode->getMjvmObject();
 }
 
 static uint8_t convertToAType(char type) {
@@ -106,6 +153,16 @@ static uint8_t isPrimType(const ConstUtf8 &type) {
 }
 
 void Execution::freeAllObject(void) {
+    for(MjvmObjectNode *node = constStringList; node != 0;) {
+        MjvmObjectNode *next = node->next;
+        MjvmObject *obj = node->getMjvmObject();
+        if(obj->dimensions == 0) {
+            FieldsData *fields = (FieldsData *)obj->data;
+            fields->~FieldsData();
+        }
+        Mjvm::free(node);
+        node = next;
+    }
     for(MjvmObjectNode *node = objectList; node != 0;) {
         MjvmObjectNode *next = node->next;
         MjvmObject *obj = node->getMjvmObject();
@@ -181,7 +238,7 @@ const ClassLoader &Execution::load(const char *className) {
 const ClassLoader &Execution::load(const char *className, uint16_t length) {
     for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         const ConstUtf8 &name = node->classLoader.getThisClass();
-        if(name.length == length && strncmp(name.getText(), className, length))
+        if(name.length == length && strncmp(name.getText(), className, length) == 0)
             return node->classLoader;
     }
     ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
@@ -596,8 +653,10 @@ int64_t Execution::run(const char *mainClass) {
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
             case CONST_STRING:
-                stackPushInt32((int32_t)&method->classLoader.getConstString(constPool));
-                goto create_new_string;
+                Mjvm::lock();
+                stackPushObject(getConstString(method->classLoader.getConstString(constPool)));
+                Mjvm::unlock();
+                goto *opcodes[code[pc]];
             case CONST_CLASS:
                 // TODO
                 goto *opcodes[code[pc]];
@@ -623,8 +682,10 @@ int64_t Execution::run(const char *mainClass) {
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
             case CONST_STRING:
-                stackPushInt32((int32_t)&method->classLoader.getConstString(constPool));
-                goto create_new_string;
+                Mjvm::lock();
+                stackPushObject(getConstString(method->classLoader.getConstString(constPool)));
+                Mjvm::unlock();
+                goto *opcodes[code[pc]];
             case CONST_CLASS:
                 // TODO
                 goto *opcodes[code[pc]];
@@ -1774,9 +1835,9 @@ int64_t Execution::run(const char *mainClass) {
         const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
         Mjvm::lock();
         MjvmObject *obj = newObject(sizeof(FieldsData), constClass);
+        new ((FieldsData *)obj->data)FieldsData(*this, load(constClass), false);
         stackPushObject(obj);
         Mjvm::unlock();
-        new ((FieldsData *)obj->data)FieldsData(*this, load(constClass), false);
         pc += 3;
         goto *opcodes[code[pc]];
     }
@@ -1933,31 +1994,6 @@ int64_t Execution::run(const char *mainClass) {
         initStaticField(classToInit);
         lr = pc;
         invokeStatic(*(const ConstMethod *)ctorConstMethod);
-        goto *opcodes[code[pc]];
-    }
-    create_new_string: {
-        static const uint32_t nameAndType[] = {
-            (uint32_t)"\x06\x00""<init>",               /* method name */
-            (uint32_t)"\x05\x00""([B)V"                 /* method type */
-        };
-        static const uint32_t ctorConstMethod[] = {
-            (uint32_t)"\x10\x00""java/lang/String",     /* class name */
-            (uint32_t)nameAndType                       /* name and type */
-        };
-        const ConstUtf8 &text = *(const ConstUtf8 *)stackPopInt32();
-        /* create new string object and call string contructor */
-        Mjvm::lock();
-        MjvmObject *strObj = newObject(sizeof(FieldsData), ((const ConstMethod *)ctorConstMethod)->className);
-        new ((FieldsData *)strObj->data)FieldsData(*this, load(((const ConstMethod *)ctorConstMethod)->className), false);
-        stackPushObject(strObj);
-        stackPushObject(strObj);                        /* dup */
-        /* create new byte array to store text */
-        MjvmObject *byteArray = newObject(text.length, *primTypeConstUtf8List[4], 1);
-        stackPushObject(byteArray);
-        Mjvm::unlock();
-        memcpy(byteArray->data, text.getText(), text.length);
-        lr = pc;
-        invokeSpecial(*(const ConstMethod *)ctorConstMethod);
         goto *opcodes[code[pc]];
     }
 }
