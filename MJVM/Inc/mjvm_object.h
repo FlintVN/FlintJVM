@@ -16,9 +16,9 @@ public:
 public:
     uint32_t monitorCount : 24;
     uint32_t ownId;
-private:
+protected:
     uint8_t data[];
-
+private:
     uint8_t parseTypeSize(void) const;
 
     void setProtected(void);
@@ -29,6 +29,25 @@ private:
     void operator=(const MjvmObject &) = delete;
 
     friend class Execution;
+};
+
+class MjvmString : public MjvmObject {
+public:
+    const char *getText(void) const;
+    uint32_t getLength(void) const;
+protected:
+    MjvmString(void) = delete;
+    MjvmString(const MjvmString &) = delete;
+    void operator=(const MjvmString &) = delete;
+};
+
+class MjvmThrowable : public MjvmObject {
+public:
+    MjvmString &getDetailMessage(void) const;
+protected:
+    MjvmThrowable(void) = delete;
+    MjvmThrowable(const MjvmThrowable &) = delete;
+    void operator=(const MjvmThrowable &) = delete;
 };
 
 class MjvmObjectNode {

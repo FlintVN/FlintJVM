@@ -3,6 +3,7 @@
 #include "mjvm.h"
 #include "mjvm_opcodes.h"
 #include "mjvm_execution.h"
+#include "mjvm_const_name.h"
 
 #define FLOAT_NAN                   0x7FC00000
 #define DOUBLE_NAN                  0x7FF8000000000000
@@ -14,30 +15,6 @@ static const uint8_t primitiveTypeSize[8] = {
     sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
     sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
 };
-
-static const ConstUtf8 *primTypeConstUtf8List[] = {
-    (ConstUtf8 *)"\x01\x00""Z",
-    (ConstUtf8 *)"\x01\x00""C",
-    (ConstUtf8 *)"\x01\x00""F",
-    (ConstUtf8 *)"\x01\x00""D",
-    (ConstUtf8 *)"\x01\x00""B",
-    (ConstUtf8 *)"\x01\x00""S",
-    (ConstUtf8 *)"\x01\x00""I",
-    (ConstUtf8 *)"\x01\x00""J",
-};
-
-static const uint32_t stringValueFieldName[] = {
-    (uint32_t)"\x05\x00""value",                /* field name */
-    (uint32_t)"\x02\x00""[B"                    /* field type */
-};
-
-static const uint32_t detailMessageFieldName[] = {
-    (uint32_t)"\x05\x00""detailMessage",        /* field name */
-    (uint32_t)"\x10\x00""java/lang/String"      /* field type */
-};
-
-static const ConstUtf8 &stringClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/String";
-static const ConstUtf8 &nullPtrExcpClassName = *(const ConstUtf8 *)"\x1E\x00""java/lang/NullPointerException";
 
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     lr = -1;
@@ -186,7 +163,7 @@ MjvmObject *Execution::newNullPointerException(MjvmObject *strObj) {
     new (fields)FieldsData(*this, load(nullPtrExcpClassName), false);
 
     /* set detailMessage value */
-    fields->getFieldObject(*(ConstNameAndType *)detailMessageFieldName).object = strObj;
+    fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
 
     return obj;
 }
@@ -1971,7 +1948,7 @@ int64_t Execution::run(const char *mainClass) {
             }
         }
         if(startSp < 0)
-            throw "Exception is not handled";
+            throw (MjvmString *)obj;
         stackRestoreContext();
         sp = startSp + method->getAttributeCode().maxLocals;
         stackPushObject(obj);
