@@ -2060,7 +2060,12 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = (MjvmObject *)stack[sp];
         if(obj == 0) {
             stackPopObject();
-            // TODO
+            Mjvm::lock();
+            MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot throw exception by null object"));
+            MjvmObject *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         goto exception_handler;
     }
