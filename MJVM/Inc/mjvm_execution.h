@@ -59,6 +59,7 @@ private:
     MjvmObject *getConstString(const ConstUtf8 &str);
     MjvmObject *newArithmeticException(MjvmObject *strObj);
     MjvmObject *newNullPointerException(MjvmObject *strObj);
+    MjvmObject *newNegativeArraySizeException(MjvmObject *strObj);
     MjvmObject *newArrayIndexOutOfBoundsException(MjvmObject *strObj);
     void freeAllObject(void);
     void garbageCollectionProtectObject(MjvmObject *obj);

@@ -158,11 +158,11 @@ MjvmObject *Execution::getConstString(const ConstUtf8 &str) {
 
 MjvmObject *Execution::newArithmeticException(MjvmObject *strObj) {
     /* create new ArithmeticException object */
-    MjvmObject *obj = newObject(sizeof(FieldsData), arithmeticException);
+    MjvmObject *obj = newObject(sizeof(FieldsData), arithmeticExceptionClassName);
 
     /* init field data */
     FieldsData *fields = (FieldsData *)obj->data;
-    new (fields)FieldsData(*this, load(arithmeticException), false);
+    new (fields)FieldsData(*this, load(arithmeticExceptionClassName), false);
 
     /* set detailMessage value */
     fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
@@ -177,6 +177,20 @@ MjvmObject *Execution::newNullPointerException(MjvmObject *strObj) {
     /* init field data */
     FieldsData *fields = (FieldsData *)obj->data;
     new (fields)FieldsData(*this, load(nullPtrExcpClassName), false);
+
+    /* set detailMessage value */
+    fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
+
+    return obj;
+}
+
+MjvmObject *Execution::newNegativeArraySizeException(MjvmObject *strObj) {
+    /* create new NegativeArraySizeException object */
+    MjvmObject *obj = newObject(sizeof(FieldsData), negativeArraySizeExceptionClassName);
+
+    /* init field data */
+    FieldsData *fields = (FieldsData *)obj->data;
+    new (fields)FieldsData(*this, load(negativeArraySizeExceptionClassName), false);
 
     /* set detailMessage value */
     fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
@@ -2002,9 +2016,8 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_newarray: {
         int32_t count = stackPopInt32();
-        if(count <= 0) {
-            // TODO
-        }
+        if(count < 0)
+            goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
         uint8_t typeSize = primitiveTypeSize[atype - 4];
         Mjvm::lock();
@@ -2017,6 +2030,8 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_anewarray: {
         int32_t count = stackPopInt32();
+        if(count < 0)
+            goto negative_array_size_excp;
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
         Mjvm::lock();
@@ -2141,8 +2156,12 @@ int64_t Execution::run(const char *mainClass) {
         }
         else
             typeName = &load(&typeNameText[dimensions + 1], length - 2).getThisClass();
-        sp -= dimensions - 1;
         Mjvm::lock();
+        sp -= dimensions - 1;
+        for(int32_t i = 0; i < dimensions; i++) {
+            if(stack[sp + i] < 0)
+                goto negative_array_size_excp;
+        }
         MjvmObject *array = newMultiArray(*typeName, dimensions, &stack[sp]);
         stackPushObject(array);
         Mjvm::unlock();
@@ -2173,6 +2192,14 @@ int64_t Execution::run(const char *mainClass) {
         Mjvm::lock();
         MjvmObject *strObj = newString(STR_AND_LENGTH("Divided by zero"));
         MjvmObject *excpObj = newArithmeticException(strObj);
+        stackPushObject(excpObj);
+        Mjvm::unlock();
+        goto exception_handler;
+    }
+    negative_array_size_excp: {
+        Mjvm::lock();
+        MjvmObject *strObj = newString(STR_AND_LENGTH("Size of the array is a negative number"));
+        MjvmObject *excpObj = newNegativeArraySizeException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
         goto exception_handler;
