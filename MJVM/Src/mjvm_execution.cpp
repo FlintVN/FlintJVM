@@ -11,6 +11,8 @@
 #define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
 #define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
 
+#define STR_AND_LENGTH(str)         str, (sizeof(str) - 1)
+
 static const uint8_t primitiveTypeSize[8] = {
     sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
     sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
@@ -154,6 +156,20 @@ MjvmObject *Execution::getConstString(const ConstUtf8 &str) {
     return newNode->getMjvmObject();
 }
 
+MjvmObject *Execution::newArithmeticException(MjvmObject *strObj) {
+    /* create new ArithmeticException object */
+    MjvmObject *obj = newObject(sizeof(FieldsData), arithmeticException);
+
+    /* init field data */
+    FieldsData *fields = (FieldsData *)obj->data;
+    new (fields)FieldsData(*this, load(arithmeticException), false);
+
+    /* set detailMessage value */
+    fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
+
+    return obj;
+}
+
 MjvmObject *Execution::newNullPointerException(MjvmObject *strObj) {
     /* create new NullPointerException object */
     MjvmObject *obj = newObject(sizeof(FieldsData), nullPtrExcpClassName);
@@ -169,12 +185,12 @@ MjvmObject *Execution::newNullPointerException(MjvmObject *strObj) {
 }
 
 MjvmObject *Execution::newArrayIndexOutOfBoundsException(MjvmObject *strObj) {
-    /* create new NullPointerException object */
-    MjvmObject *obj = newObject(sizeof(FieldsData), nullPtrExcpClassName);
+    /* create new ArrayIndexOutOfBoundsException object */
+    MjvmObject *obj = newObject(sizeof(FieldsData), arrayIndexOutOfBoundsExceptionClassName);
 
     /* init field data */
     FieldsData *fields = (FieldsData *)obj->data;
-    new (fields)FieldsData(*this, load(nullPtrExcpClassName), false);
+    new (fields)FieldsData(*this, load(arrayIndexOutOfBoundsExceptionClassName), false);
 
     /* set detailMessage value */
     fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
@@ -1332,9 +1348,8 @@ int64_t Execution::run(const char *mainClass) {
     op_idiv: {
         int32_t value2 = stackPopInt32();
         int32_t value1 = stackPopInt32();
-        if(value2 == 0) {
-            // TODO
-        }
+        if(value2 == 0)
+            goto divided_by_zero_excp;
         stackPushInt32(value1 / value2);
         pc++;
         goto *opcodes[code[pc]];
@@ -1342,9 +1357,8 @@ int64_t Execution::run(const char *mainClass) {
     op_ldiv: {
         int64_t value2 = stackPopInt64();
         int64_t value1 = stackPopInt64();
-        if(value2 == 0) {
-            // TODO
-        }
+        if(value2 == 0)
+            goto divided_by_zero_excp;
         stackPushInt64(value1 / value2);
         pc++;
         goto *opcodes[code[pc]];
@@ -1366,9 +1380,8 @@ int64_t Execution::run(const char *mainClass) {
     op_irem: {
         int32_t value2 = stackPopInt32();
         int32_t value1 = stackPopInt32();
-        if(value2 == 0) {
-            // TODO
-        }
+        if(value2 == 0)
+            goto divided_by_zero_excp;
         stackPushInt32(value1 % value2);
         pc++;
         goto *opcodes[code[pc]];
@@ -1376,9 +1389,8 @@ int64_t Execution::run(const char *mainClass) {
     op_lrem: {
         int64_t value2 = stackPopInt64();
         int64_t value1 = stackPopInt64();
-        if(value2 == 0) {
-            // TODO
-        }
+        if(value2 == 0)
+            goto divided_by_zero_excp;
         stackPushInt64(value1 % value2);
         pc++;
         goto *opcodes[code[pc]];
@@ -2019,7 +2031,7 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
             Mjvm::lock();
-            MjvmObject *strObj = newString("Cannot read the array length from null object");
+            MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot read the array length from null object"));
             MjvmObject *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
@@ -2084,7 +2096,7 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
             Mjvm::lock();
-            MjvmObject *strObj = newString("Cannot enter synchronized block by null object");
+            MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot enter synchronized block by null object"));
             MjvmObject *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
@@ -2157,9 +2169,17 @@ int64_t Execution::run(const char *mainClass) {
         invokeStatic(*(const ConstMethod *)ctorConstMethod);
         goto *opcodes[code[pc]];
     }
+    divided_by_zero_excp: {
+        Mjvm::lock();
+        MjvmObject *strObj = newString(STR_AND_LENGTH("Divided by zero"));
+        MjvmObject *excpObj = newArithmeticException(strObj);
+        stackPushObject(excpObj);
+        Mjvm::unlock();
+        goto exception_handler;
+    }
     load_null_array_excp: {
         Mjvm::lock();
-        MjvmObject *strObj = newString("Cannot load from null array object");
+        MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot load from null array object"));
         MjvmObject *excpObj = newNullPointerException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
@@ -2167,7 +2187,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     store_null_array_excp: {
         Mjvm::lock();
-        MjvmObject *strObj = newString("Cannot store to null array object");
+        MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot store to null array object"));
         MjvmObject *excpObj = newNullPointerException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();

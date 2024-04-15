@@ -57,6 +57,7 @@ private:
     MjvmObjectNode *newStringNode(const char *str, uint16_t length);
     MjvmObjectNode *newStringNode(const char *str[], uint16_t count);
     MjvmObject *getConstString(const ConstUtf8 &str);
+    MjvmObject *newArithmeticException(MjvmObject *strObj);
     MjvmObject *newNullPointerException(MjvmObject *strObj);
     MjvmObject *newArrayIndexOutOfBoundsException(MjvmObject *strObj);
     void freeAllObject(void);

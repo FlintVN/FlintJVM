@@ -23,5 +23,6 @@ const uint32_t exceptionDetailMessageFieldName[] = {
 };
 
 const ConstUtf8 &stringClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/String";
+const ConstUtf8 &arithmeticException = *(const ConstUtf8 *)"\x1D\x00""java/lang/ArithmeticException";
 const ConstUtf8 &nullPtrExcpClassName = *(const ConstUtf8 *)"\x1E\x00""java/lang/NullPointerException";
-const ConstUtf8 &arrayIndexOutOfBoundsExceptionClassName = *(const ConstUtf8 *)"\x1E\x00""java/lang/ArrayIndexOutOfBoundsException";
+const ConstUtf8 &arrayIndexOutOfBoundsExceptionClassName = *(const ConstUtf8 *)"\x28\x00""java/lang/ArrayIndexOutOfBoundsException";
