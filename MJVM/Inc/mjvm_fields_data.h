@@ -116,6 +116,8 @@ private:
 
 class ClassDataNode : public ClassData {
 private:
+    uint32_t ownId;
+    uint32_t monitorCount;
     ClassDataNode *next;
 
     ClassDataNode(const ClassLoader &classLoader, FieldsData *filedsData);

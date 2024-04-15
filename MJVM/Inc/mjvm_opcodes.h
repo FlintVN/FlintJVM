@@ -32,7 +32,7 @@ typedef enum : uint8_t {
     OP_FLOAD = 0x17,
     OP_DLOAD = 0x18,
     OP_ALOAD = 0x19,
-    
+
     OP_ILOAD_0 = 0x1A,
     OP_ILOAD_1 = 0x1B,
     OP_ILOAD_2 = 0x1C,

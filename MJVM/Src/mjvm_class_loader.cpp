@@ -454,7 +454,7 @@ const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &fieldName) co
         else if(fieldName.name == fields[i].name && fieldName.descriptor == fields[i].descriptor)
             return fields[i];
     }
-    return *(const FieldInfo *)0;;
+    return *(const FieldInfo *)0;
 }
 
 const uint16_t ClassLoader::getMethodsCount(void) const {

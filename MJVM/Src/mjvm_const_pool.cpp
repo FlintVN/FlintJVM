@@ -25,7 +25,7 @@ bool ConstUtf8::operator!=(const ConstUtf8 &another) const {
 ConstNameAndType::ConstNameAndType(const ConstUtf8 &name, const ConstUtf8 &descriptor) :
 name(name),
 descriptor(descriptor) {
-    
+
 }
 
 ConstField::ConstField(const ConstUtf8 &className, const ConstNameAndType &nameAndType) :

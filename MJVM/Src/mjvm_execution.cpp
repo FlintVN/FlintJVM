@@ -18,6 +18,34 @@ static const uint8_t primitiveTypeSize[8] = {
     sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
 };
 
+static uint8_t convertToAType(char type) {
+    switch(type) {
+        case 'Z':
+            return 4;
+        case 'C':
+            return 5;
+        case 'F':
+            return 6;
+        case 'D':
+            return 7;
+        case 'B':
+            return 8;
+        case 'S':
+            return 8;
+        case 'I':
+            return 10;
+        case 'J':
+            return 11;
+    }
+    return 0;
+}
+
+static uint8_t isPrimType(const ConstUtf8 &type) {
+    if(type.length == 1)
+        convertToAType(type.getText()[0]);
+    return 0;
+}
+
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     lr = -1;
     sp = -1;
@@ -69,6 +97,22 @@ MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t d
     new (ret)MjvmObject(size, type, dimensions);
     addToList(&objectList, newNode);
     return ret;
+}
+
+MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
+    if(dimensions > 1) {
+        MjvmObject *array = newObject(counts[0] * sizeof(MjvmObject *), typeName, dimensions);
+        for(uint32_t i = 0; i < counts[0]; i++)
+            ((MjvmObject **)(array->data))[i] = newMultiArray(typeName, dimensions - 1, &counts[1]);
+        return array;
+    }
+    else {
+        uint8_t atype = isPrimType(typeName);
+        uint8_t typeSize = atype ? primitiveTypeSize[atype - 4] : sizeof(MjvmObject *);
+        MjvmObject *array = newObject(typeSize * counts[0], typeName, 1);
+        memset(array->data, 0, array->size);
+        return array;
+    }
 }
 
 MjvmObjectNode *Execution::newStringNode(const char *str, uint16_t length) {
@@ -125,119 +169,65 @@ MjvmObjectNode *Execution::newStringNode(const char *str[], uint16_t count) {
     return strObjNode;
 }
 
-MjvmObject *Execution::newString(const char *str) {
+MjvmString *Execution::newString(const char *str) {
     MjvmObjectNode *strObjNode = newStringNode(str, strlen(str));
     addToList(&objectList, strObjNode);
-    return strObjNode->getMjvmObject();
+    return (MjvmString *)strObjNode->getMjvmObject();
 }
 
-MjvmObject *Execution::newString(const char *str, uint16_t length) {
+MjvmString *Execution::newString(const char *str, uint16_t length) {
     MjvmObjectNode *strObjNode = newStringNode(str, length);
     addToList(&objectList, strObjNode);
-    return strObjNode->getMjvmObject();
+    return (MjvmString *)strObjNode->getMjvmObject();
 }
 
-MjvmObject *Execution::newString(const char *str[], uint16_t count) {
+MjvmString *Execution::newString(const char *str[], uint16_t count) {
     MjvmObjectNode *strObjNode = newStringNode(str, count);
     addToList(&objectList, strObjNode);
-    return strObjNode->getMjvmObject();
+    return (MjvmString *)strObjNode->getMjvmObject();
 }
 
-MjvmObject *Execution::getConstString(const ConstUtf8 &str) {
+MjvmString *Execution::getConstString(const ConstUtf8 &str) {
     for(MjvmObjectNode *node = constStringList; node != 0; node = node->next) {
         MjvmObject *strObj = node->getMjvmObject();
         MjvmObject *value = ((FieldsData *)strObj->data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
         uint32_t length = value->size / sizeof(int8_t);
         if(length == str.length && strncmp(str.getText(), (char *)value->data, length) == 0)
-            return strObj;
+            return (MjvmString *)strObj;
     }
     MjvmObjectNode *newNode = newStringNode(str.getText(), str.length);
     addToList(&constStringList, newNode);
-    return newNode->getMjvmObject();
+    return (MjvmString *)newNode->getMjvmObject();
 }
 
-MjvmObject *Execution::newArithmeticException(MjvmObject *strObj) {
-    /* create new ArithmeticException object */
-    MjvmObject *obj = newObject(sizeof(FieldsData), arithmeticExceptionClassName);
+MjvmThrowable *Execution::newThrowable(MjvmString *strObj, const ConstUtf8 &excpType) {
+    /* create new exception object */
+    MjvmObject *obj = newObject(sizeof(FieldsData), excpType);
 
     /* init field data */
     FieldsData *fields = (FieldsData *)obj->data;
-    new (fields)FieldsData(*this, load(arithmeticExceptionClassName), false);
+    new (fields)FieldsData(*this, load(excpType), false);
 
     /* set detailMessage value */
     fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
 
-    return obj;
+    return (MjvmThrowable *)obj;
 }
 
-MjvmObject *Execution::newNullPointerException(MjvmObject *strObj) {
-    /* create new NullPointerException object */
-    MjvmObject *obj = newObject(sizeof(FieldsData), nullPtrExcpClassName);
-
-    /* init field data */
-    FieldsData *fields = (FieldsData *)obj->data;
-    new (fields)FieldsData(*this, load(nullPtrExcpClassName), false);
-
-    /* set detailMessage value */
-    fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
-
-    return obj;
+MjvmThrowable *Execution::newArithmeticException(MjvmString *strObj) {
+    return newThrowable(strObj, arithmeticExceptionClassName);
 }
 
-MjvmObject *Execution::newNegativeArraySizeException(MjvmObject *strObj) {
-    /* create new NegativeArraySizeException object */
-    MjvmObject *obj = newObject(sizeof(FieldsData), negativeArraySizeExceptionClassName);
-
-    /* init field data */
-    FieldsData *fields = (FieldsData *)obj->data;
-    new (fields)FieldsData(*this, load(negativeArraySizeExceptionClassName), false);
-
-    /* set detailMessage value */
-    fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
-
-    return obj;
+MjvmThrowable *Execution::newNullPointerException(MjvmString *strObj) {
+    return newThrowable(strObj, nullPtrExcpClassName);
 }
 
-MjvmObject *Execution::newArrayIndexOutOfBoundsException(MjvmObject *strObj) {
-    /* create new ArrayIndexOutOfBoundsException object */
-    MjvmObject *obj = newObject(sizeof(FieldsData), arrayIndexOutOfBoundsExceptionClassName);
-
-    /* init field data */
-    FieldsData *fields = (FieldsData *)obj->data;
-    new (fields)FieldsData(*this, load(arrayIndexOutOfBoundsExceptionClassName), false);
-
-    /* set detailMessage value */
-    fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
-
-    return obj;
+MjvmThrowable *Execution::newNegativeArraySizeException(MjvmString *strObj) {
+    return newThrowable(strObj, negativeArraySizeExceptionClassName);
 }
 
-static uint8_t convertToAType(char type) {
-    switch(type) {
-        case 'Z':
-            return 4;
-        case 'C':
-            return 5;
-        case 'F':
-            return 6;
-        case 'D':
-            return 7;
-        case 'B':
-            return 8;
-        case 'S':
-            return 8;
-        case 'I':
-            return 10;
-        case 'J':
-            return 11;
-    }
-    return 0;
-}
-
-static uint8_t isPrimType(const ConstUtf8 &type) {
-    if(type.length == 1)
-        convertToAType(type.getText()[0]);
-    return 0;
+MjvmThrowable *Execution::newArrayIndexOutOfBoundsException(MjvmString *strObj) {
+    return newThrowable(strObj, arrayIndexOutOfBoundsExceptionClassName);
 }
 
 void Execution::freeAllObject(void) {
@@ -319,34 +309,41 @@ void Execution::garbageCollection(void) {
     }
 }
 
-const ClassLoader &Execution::load(const char *className) {
-    return load(className, strlen(className));
-}
-
-const ClassLoader &Execution::load(const char *className, uint16_t length) {
+ClassDataNode &Execution::loadClassDataNode(const char *className, uint16_t length) {
     for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         const ConstUtf8 &name = node->classLoader.getThisClass();
         if(name.length == length && strncmp(name.getText(), className, length) == 0)
-            return node->classLoader;
+            return *node;
     }
     ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
     new (newNode)ClassDataNode(Mjvm::load(className, length), 0);
     newNode->next = staticClassDataList;
     staticClassDataList = newNode;
-    return newNode->classLoader;
+    return *newNode;
+}
+
+ClassDataNode &Execution::loadClassDataNode(const ClassLoader &loader) {
+    for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
+        if(&loader == &node->classLoader)
+            return *node;
+    }
+    ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
+    new (newNode)ClassDataNode(loader, 0);
+    newNode->next = staticClassDataList;
+    staticClassDataList = newNode;
+    return *newNode;
+}
+
+const ClassLoader &Execution::load(const char *className) {
+    return loadClassDataNode(className, strlen(className)).classLoader;
+}
+
+const ClassLoader &Execution::load(const char *className, uint16_t length) {
+    return loadClassDataNode(className, strlen(className)).classLoader;
 }
 
 const ClassLoader &Execution::load(const ConstUtf8 &className) {
-    for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
-        const ConstUtf8 &name = node->classLoader.getThisClass();
-        if(node->classLoader.getThisClass() == className)
-            return node->classLoader;
-    }
-    ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
-    new (newNode)ClassDataNode(Mjvm::load(className), 0);
-    newNode->next = staticClassDataList;
-    staticClassDataList = newNode;
-    return newNode->classLoader;
+    return loadClassDataNode(className.getText(), className.length).classLoader;
 }
 
 const FieldsData &Execution::getStaticFields(const ConstUtf8 &className) const {
@@ -474,6 +471,18 @@ MjvmObject *Execution::stackPopObject(void) {
 }
 
 void Execution::stackRestoreContext(void) {
+    if((method->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
+        Mjvm::lock();
+        if((method->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+            MjvmObject *obj = (MjvmObject *)locals[0];
+            obj->monitorCount--;
+        }
+        else {
+            ClassDataNode &dataNode = loadClassDataNode(method->classLoader);
+            dataNode.monitorCount--;
+        }
+        Mjvm::unlock();
+    }
     sp = startSp;
     startSp = stackPopInt32();
     lr = stackPopInt32();
@@ -515,6 +524,23 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
     throw "can't find the method";
 }
 
+const MethodInfo &Execution::findMethod(const ConstMethod &constMethod, ClassDataNode **classData) {
+    ClassDataNode *dataNode = &loadClassDataNode(constMethod.className.getText(), constMethod.className.length);
+    while(dataNode) {
+        const MethodInfo *methodInfo = (const MethodInfo *)&dataNode->classLoader.getMethodInfo(constMethod.nameAndType);
+        if(methodInfo) {
+            *classData = dataNode;
+            return *methodInfo;
+        }
+        else {
+            const ConstUtf8 &supperClassName = dataNode->classLoader.getSupperClass();
+            dataNode = &loadClassDataNode(supperClassName.getText(), supperClassName.length);
+        }
+    }
+    throw "can't find the method";
+}
+
+
 void Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
     peakSp = sp + 4;
     for(uint32_t i = 0; i < argc; i++)
@@ -537,9 +563,26 @@ void Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
 
 void Execution::invokeStatic(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
-    const MethodInfo &methodInfo = findMethod(constMethod);
-    if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC)
+    ClassDataNode *dataNode;
+    const MethodInfo &methodInfo = findMethod(constMethod, &dataNode);
+    if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
+        if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
+            Mjvm::lock();
+            if(dataNode->monitorCount == 0 || dataNode->ownId == (int32_t)this) {
+                dataNode->ownId = (int32_t)this;
+                if(dataNode->monitorCount < 0xFFFFFF)
+                    dataNode->monitorCount++;
+                else
+                    throw "monitorCount limit has been reached";
+                Mjvm::unlock();
+            }
+            else {
+                Mjvm::unlock();
+                return;
+            }
+        }
         invoke(methodInfo, argc);
+    }
     else
         throw "invoke static to non-static method";
 }
@@ -547,8 +590,25 @@ void Execution::invokeStatic(const ConstMethod &constMethod) {
 void Execution::invokeSpecial(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc + 1;
     const MethodInfo &methodInfo = findMethod(constMethod);
-    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC)
+    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+        if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
+            MjvmObject *obj = (MjvmObject *)stack[sp - argc - 1];
+            Mjvm::lock();
+            if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
+                obj->ownId = (int32_t)this;
+                if(obj->monitorCount < 0xFFFFFF)
+                    obj->monitorCount++;
+                else
+                    throw "monitorCount limit has been reached";
+                Mjvm::unlock();
+            }
+            else {
+                Mjvm::unlock();
+                return;
+            }
+        }
         invoke(methodInfo, argc);
+    }
     else
         throw "invoke special to static method";
 }
@@ -562,6 +622,21 @@ void Execution::invokeVirtual(const ConstMethod &constMethod) {
     };
     const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)virtualConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+        if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
+            Mjvm::lock();
+            if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
+                obj->ownId = (int32_t)this;
+                if(obj->monitorCount < 0xFFFFFF)
+                    obj->monitorCount++;
+                else
+                    throw "monitorCount limit has been reached";
+                Mjvm::unlock();
+            }
+            else {
+                Mjvm::unlock();
+                return;
+            }
+        }
         argc++;
         invoke(methodInfo, argc);
     }
@@ -577,6 +652,21 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
     };
     const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)interfaceConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+        if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
+            Mjvm::lock();
+            if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
+                obj->ownId = (int32_t)this;
+                if(obj->monitorCount < 0xFFFFFF)
+                    obj->monitorCount++;
+                else
+                    throw "monitorCount limit has been reached";
+                Mjvm::unlock();
+            }
+            else {
+                Mjvm::unlock();
+                return;
+            }
+        }
         argc++;
         invoke(methodInfo, argc);
     }
@@ -609,22 +699,6 @@ bool Execution::isInstanceof(MjvmObject *obj, const ConstUtf8 &type) {
                     return false;
             }
         }
-    }
-}
-
-MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
-    if(dimensions > 1) {
-        MjvmObject *array = newObject(counts[0] * sizeof(MjvmObject *), typeName, dimensions);
-        for(uint32_t i = 0; i < counts[0]; i++)
-            ((MjvmObject **)(array->data))[i] = newMultiArray(typeName, dimensions - 1, &counts[1]);
-        return array;
-    }
-    else {
-        uint8_t atype = isPrimType(typeName);
-        uint8_t typeSize = atype ? primitiveTypeSize[atype - 4] : sizeof(MjvmObject *);
-        MjvmObject *array = newObject(typeSize * counts[0], typeName, 1);
-        memset(array->data, 0, array->size);
-        return array;
     }
 }
 
@@ -885,8 +959,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -908,8 +982,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -930,8 +1004,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -952,8 +1026,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -975,8 +1049,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -1128,8 +1202,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -1152,8 +1226,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -1175,8 +1249,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -1199,8 +1273,8 @@ int64_t Execution::run(const char *mainClass) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -1904,8 +1978,8 @@ int64_t Execution::run(const char *mainClass) {
         getfield_null_excp: {
             const char *msg[] = {"Cannot read field '", constField.nameAndType.name.getText(), "' from null object"};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newNullPointerException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -1968,8 +2042,8 @@ int64_t Execution::run(const char *mainClass) {
         putfield_null_excp: {
             const char *msg[] = {"Cannot assign field '", constField.nameAndType.name.getText(), "' for null object"};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newNullPointerException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -2046,8 +2120,8 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
             Mjvm::lock();
-            MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot read the array length from null object"));
-            MjvmObject *excpObj = newNullPointerException(strObj);
+            MjvmString *strObj = newString(STR_AND_LENGTH("Cannot read the array length from null object"));
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -2061,8 +2135,8 @@ int64_t Execution::run(const char *mainClass) {
         if(obj == 0) {
             stackPopObject();
             Mjvm::lock();
-            MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot throw exception by null object"));
-            MjvmObject *excpObj = newNullPointerException(strObj);
+            MjvmString *strObj = newString(STR_AND_LENGTH("Cannot throw exception by null object"));
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -2096,8 +2170,8 @@ int64_t Execution::run(const char *mainClass) {
         if(obj != 0 && !isInstanceof(obj, type)) {
             const char *msg[] = {"Class '", obj->type.getText(), "' cannot be cast to class '", type.getText(), "'"};
             Mjvm::lock();
-            MjvmObject *strObj = newString(msg, LENGTH(msg));
-            MjvmObject *excpObj = newNullPointerException(strObj);
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -2116,8 +2190,8 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
             Mjvm::lock();
-            MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot enter synchronized block by null object"));
-            MjvmObject *excpObj = newNullPointerException(strObj);
+            MjvmString *strObj = newString(STR_AND_LENGTH("Cannot enter synchronized block by null object"));
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
             goto exception_handler;
@@ -2128,9 +2202,8 @@ int64_t Execution::run(const char *mainClass) {
             if(obj->monitorCount < 0xFFFFFF)
                 obj->monitorCount++;
             else {
-                // TODO
                 Mjvm::unlock();
-                goto exception_handler;
+                throw "monitorCount limit has been reached";
             }
             pc++;
         }
@@ -2195,32 +2268,32 @@ int64_t Execution::run(const char *mainClass) {
     }
     divided_by_zero_excp: {
         Mjvm::lock();
-        MjvmObject *strObj = newString(STR_AND_LENGTH("Divided by zero"));
-        MjvmObject *excpObj = newArithmeticException(strObj);
+        MjvmString *strObj = newString(STR_AND_LENGTH("Divided by zero"));
+        MjvmThrowable *excpObj = newArithmeticException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
         goto exception_handler;
     }
     negative_array_size_excp: {
         Mjvm::lock();
-        MjvmObject *strObj = newString(STR_AND_LENGTH("Size of the array is a negative number"));
-        MjvmObject *excpObj = newNegativeArraySizeException(strObj);
+        MjvmString *strObj = newString(STR_AND_LENGTH("Size of the array is a negative number"));
+        MjvmThrowable *excpObj = newNegativeArraySizeException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
         goto exception_handler;
     }
     load_null_array_excp: {
         Mjvm::lock();
-        MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot load from null array object"));
-        MjvmObject *excpObj = newNullPointerException(strObj);
+        MjvmString *strObj = newString(STR_AND_LENGTH("Cannot load from null array object"));
+        MjvmThrowable *excpObj = newNullPointerException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
         goto exception_handler;
     }
     store_null_array_excp: {
         Mjvm::lock();
-        MjvmObject *strObj = newString(STR_AND_LENGTH("Cannot store to null array object"));
-        MjvmObject *excpObj = newNullPointerException(strObj);
+        MjvmString *strObj = newString(STR_AND_LENGTH("Cannot store to null array object"));
+        MjvmThrowable *excpObj = newNullPointerException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
         goto exception_handler;

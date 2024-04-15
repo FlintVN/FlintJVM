@@ -48,19 +48,29 @@ private:
     Execution(const Execution &) = delete;
     void operator=(const Execution &) = delete;
 
+    ClassDataNode &loadClassDataNode(const char *className, uint16_t length);
+    ClassDataNode &loadClassDataNode(const ClassLoader &loader);
+
     void addToList(MjvmObjectNode **list, MjvmObjectNode *objNode);
     void removeFromList(MjvmObjectNode **list, MjvmObjectNode *objNode);
+
     MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
-    MjvmObject *newString(const char *str);
-    MjvmObject *newString(const char *str, uint16_t length);
-    MjvmObject *newString(const char *str[], uint16_t count);
+
+    MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
+
+    MjvmString *newString(const char *str);
+    MjvmString *newString(const char *str, uint16_t length);
+    MjvmString *newString(const char *str[], uint16_t count);
     MjvmObjectNode *newStringNode(const char *str, uint16_t length);
     MjvmObjectNode *newStringNode(const char *str[], uint16_t count);
-    MjvmObject *getConstString(const ConstUtf8 &str);
-    MjvmObject *newArithmeticException(MjvmObject *strObj);
-    MjvmObject *newNullPointerException(MjvmObject *strObj);
-    MjvmObject *newNegativeArraySizeException(MjvmObject *strObj);
-    MjvmObject *newArrayIndexOutOfBoundsException(MjvmObject *strObj);
+    MjvmString *getConstString(const ConstUtf8 &str);
+
+    MjvmThrowable *newThrowable(MjvmString *strObj, const ConstUtf8 &excpType);
+    MjvmThrowable *newArithmeticException(MjvmString *strObj);
+    MjvmThrowable *newNullPointerException(MjvmString *strObj);
+    MjvmThrowable *newNegativeArraySizeException(MjvmString *strObj);
+    MjvmThrowable *newArrayIndexOutOfBoundsException(MjvmString *strObj);
+
     void freeAllObject(void);
     void garbageCollectionProtectObject(MjvmObject *obj);
 
@@ -78,7 +88,7 @@ private:
     void stackPushFloat(float value);
     void stackPushDouble(double value);
     void stackPushObject(MjvmObject *obj);
-    
+
     int32_t stackPopInt32(void);
     int64_t stackPopInt64(void);
     float stackPopFloat(void);
@@ -90,13 +100,12 @@ private:
     void initNewContext(const MethodInfo &methodInfo, uint16_t argc = 0);
 
     const MethodInfo &findMethod(const ConstMethod &constMethod);
+    const MethodInfo &findMethod(const ConstMethod &constMethod, ClassDataNode **classData);
     void invoke(const MethodInfo &methodInfo, uint8_t argc);
     void invokeStatic(const ConstMethod &constMethod);
     void invokeSpecial(const ConstMethod &constMethod);
     void invokeVirtual(const ConstMethod &constMethod);
     void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc);
-
-    MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
     bool isInstanceof(MjvmObject *obj, const ConstUtf8 &type);
 
