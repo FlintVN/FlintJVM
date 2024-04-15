@@ -168,6 +168,20 @@ MjvmObject *Execution::newNullPointerException(MjvmObject *strObj) {
     return obj;
 }
 
+MjvmObject *Execution::newArrayIndexOutOfBoundsException(MjvmObject *strObj) {
+    /* create new NullPointerException object */
+    MjvmObject *obj = newObject(sizeof(FieldsData), nullPtrExcpClassName);
+
+    /* init field data */
+    FieldsData *fields = (FieldsData *)obj->data;
+    new (fields)FieldsData(*this, load(nullPtrExcpClassName), false);
+
+    /* set detailMessage value */
+    fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
+
+    return obj;
+}
+
 static uint8_t convertToAType(char type) {
     switch(type) {
         case 'Z':
@@ -830,12 +844,22 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     op_iaload:
     op_faload: {
-        uint32_t index = stackPopInt32();
+        int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
-        else if(index < 0 || index >= (obj->size / 4)) {
-            // TODO
+        else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         stackPushInt32(((int32_t *)obj->data)[index]);
         pc++;
@@ -843,36 +867,66 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_laload:
     op_daload: {
-        uint32_t index = stackPopInt32();
+        int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
-        else if(index < 0 || index >= (obj->size / 4)) {
-            // TODO
+        else if(index < 0 || index >= (obj->size / sizeof(int64_t))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         stackPushInt64(((int64_t *)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_aaload: {
-        uint32_t index = stackPopInt32();
+        int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
-        else if(index < 0 || index >= (obj->size / 4)) {
-            // TODO
+        else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         stackPushObject(((MjvmObject **)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_baload: {
-        uint32_t index = stackPopInt32();
+        int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
-        else if(index < 0 || index >= (obj->size / 4)) {
-            // TODO
+        else if(index < 0 || index >= (obj->size / sizeof(int8_t))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         stackPushInt32(((int8_t *)obj->data)[index]);
         pc++;
@@ -880,12 +934,22 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_caload:
     op_saload: {
-        uint32_t index = stackPopInt32();
+        int32_t index = stackPopInt32();
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
-        else if(index < 0 || index >= (obj->size / 4)) {
-            // TODO
+        else if(index < 0 || index >= (obj->size / sizeof(int16_t))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         stackPushInt32(((int16_t *)obj->data)[index]);
         pc++;
@@ -1027,8 +1091,18 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto store_null_array_excp;
-        else if((index < 0) || (index >= (obj->size / 4))) {
-            // TODO
+        else if((index < 0) || (index >= (obj->size / sizeof(int32_t)))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         ((int32_t *)obj->data)[index] = value;
         pc++;
@@ -1041,8 +1115,18 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto store_null_array_excp;
-        else if((index < 0) || (index >= (obj->size / 8))) {
-            // TODO
+        else if((index < 0) || (index >= (obj->size / sizeof(int64_t)))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         ((int64_t *)obj->data)[index] = value;
         pc++;
@@ -1054,8 +1138,18 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto store_null_array_excp;
-        else if((index < 0) || (index >= (obj->size / 4))) {
-            // TODO
+        else if((index < 0) || (index >= (obj->size / sizeof(int8_t)))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         ((int8_t *)obj->data)[index] = value;
         pc++;
@@ -1068,8 +1162,18 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0)
             goto store_null_array_excp;
-        else if((index < 0) || (index >= (obj->size / 4))) {
-            // TODO
+        else if((index < 0) || (index >= (obj->size / sizeof(int16_t)))) {
+            char indexStrBuff[11];
+            char lengthStrBuff[11];
+            sprintf(indexStrBuff, "%d", index);
+            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
+            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
+            Mjvm::lock();
+            MjvmObject *strObj = newString(msg, LENGTH(msg));
+            MjvmObject *excpObj = newArrayIndexOutOfBoundsException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            goto exception_handler;
         }
         ((int16_t *)obj->data)[index] = value;
         pc++;

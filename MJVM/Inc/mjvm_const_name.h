@@ -9,5 +9,6 @@ extern const uint32_t stringValueFieldName[];
 extern const uint32_t exceptionDetailMessageFieldName[];
 extern const ConstUtf8 &stringClassName;
 extern const ConstUtf8 &nullPtrExcpClassName;
+extern const ConstUtf8 &arrayIndexOutOfBoundsExceptionClassName;
 
 #endif /* __MJVM_CONST_NAME_H */
