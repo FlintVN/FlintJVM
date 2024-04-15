@@ -3,6 +3,8 @@
 #define __MJVM_EXECUTION_H
 
 #include "mjvm_common.h"
+#include "mjvm_string.h"
+#include "mjvm_throwable.h"
 #include "mjvm_class_loader.h"
 #include "mjvm_fields_data.h"
 

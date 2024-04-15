@@ -31,25 +31,6 @@ private:
     friend class Execution;
 };
 
-class MjvmString : public MjvmObject {
-public:
-    const char *getText(void) const;
-    uint32_t getLength(void) const;
-protected:
-    MjvmString(void) = delete;
-    MjvmString(const MjvmString &) = delete;
-    void operator=(const MjvmString &) = delete;
-};
-
-class MjvmThrowable : public MjvmObject {
-public:
-    MjvmString &getDetailMessage(void) const;
-protected:
-    MjvmThrowable(void) = delete;
-    MjvmThrowable(const MjvmThrowable &) = delete;
-    void operator=(const MjvmThrowable &) = delete;
-};
-
 class MjvmObjectNode {
 public:
     MjvmObjectNode *prev;

@@ -32,20 +32,6 @@ bool MjvmObject::isProtected(void) const {
     return prot;
 }
 
-const char *MjvmString::getText(void) const {
-    MjvmObject *byteArray = ((FieldsData *)data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
-    return (const char *)((MjvmString *)byteArray)->data;
-}
-
-uint32_t MjvmString::getLength(void) const {
-    MjvmString *byteArray = (MjvmString *)((FieldsData *)data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
-    return byteArray->size / sizeof(int8_t);
-}
-
-MjvmString &MjvmThrowable::getDetailMessage(void) const {
-    return *(MjvmString *)((FieldsData *)data)->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object;
-}
-
 MjvmObject *MjvmObjectNode::getMjvmObject(void) const {
     return (MjvmObject *)data;
 }
