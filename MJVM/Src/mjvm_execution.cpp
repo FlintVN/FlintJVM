@@ -693,7 +693,7 @@ int64_t Execution::run(const char *mainClass) {
         pc++;
         goto *opcodes[code[pc]];
     op_bipush:
-        stackPushInt32(code[pc + 1]);
+        stackPushInt32((int8_t)code[pc + 1]);
         pc += 2;
         goto *opcodes[code[pc]];
     op_sipush:
