@@ -279,7 +279,7 @@ void Execution::garbageCollection(void) {
     objectCountToGc = 0;
     for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         FieldsData *fieldsData = node->filedsData;
-        if(fieldsData->fieldsObjCount) {
+        if(fieldsData && fieldsData->fieldsObjCount) {
             for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
                 MjvmObject *obj = fieldsData->fieldsObject[i].object;
                 if(obj && !obj->isProtected())
@@ -510,10 +510,7 @@ void Execution::initNewContext(const MethodInfo &methodInfo, uint16_t argc) {
 
 const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
     const ClassLoader *loader;
-    if(constMethod.className == method->classLoader.getThisClass())
-        loader = (const ClassLoader *)&method->classLoader;
-    else
-        loader = &load(constMethod.className);
+    loader = &load(constMethod.className);
     while(loader) {
         const MethodInfo *methodInfo = (const MethodInfo *)&loader->getMethodInfo(constMethod.nameAndType);
         if(methodInfo)
