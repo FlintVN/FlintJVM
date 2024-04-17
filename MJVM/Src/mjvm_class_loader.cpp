@@ -53,11 +53,14 @@ void ClassLoader::readFile(ClassFile &file) {
                 ((uint16_t *)&poolTable[i].value)[1] = file.readUInt16();
                 break;
             case CONST_LONG:
-            case CONST_DOUBLE:
-                *(uint32_t *)&poolTable[i].value = (uint32_t)Mjvm::malloc(sizeof(int64_t));
-                *(uint64_t *)poolTable[i].value = file.readUInt64();
+            case CONST_DOUBLE: {
+                uint64_t value = file.readUInt64();
+                *(uint32_t *)&poolTable[i + 0].value = (uint32_t)value;
+                *(uint32_t *)&poolTable[i + 1].value = (uint32_t)(value >> 32);
+                *(ConstPoolTag *)&poolTable[i + 1].tag = CONST_UNKOWN;
                 i++;
                 break;
+            }
             case CONST_CLASS:
             case CONST_STRING:
             case CONST_METHOD_TYPE:
@@ -262,27 +265,25 @@ const float ClassLoader::getConstFloat(const ConstPool &constPool) const {
 const int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_LONG)
-        return *(int64_t *)poolTable[poolIndex].value;
+        return ((uint64_t)poolTable[poolIndex + 1].value << 32) | poolTable[poolIndex].value;
     throw "index for const long is invalid";
 }
 
 const int64_t ClassLoader::getConstLong(const ConstPool &constPool) const {
-    if(constPool.tag == CONST_LONG)
-        return *(int64_t *)constPool.value;
-    throw "const pool tag is not long tag";
+    return getConstLong((uint16_t)(&constPool - poolTable) + 1);
 }
 
 const double ClassLoader::getConstDouble(uint16_t poolIndex) const {
     poolIndex--;
-    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_DOUBLE)
-        return *(double *)poolTable[poolIndex].value;
+    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_DOUBLE) {
+        uint64_t ret = ((uint64_t)poolTable[poolIndex + 1].value << 32) | poolTable[poolIndex].value;
+        return *(double *)&ret;
+    }
     throw "index for const double is invalid";
 }
 
 const double ClassLoader::getConstDouble(const ConstPool &constPool) const {
-    if(constPool.tag == CONST_DOUBLE)
-        return *(double *)constPool.value;
-    throw "const pool tag is not double tag";
+    return getConstDouble((uint16_t)(&constPool - poolTable) + 1);
 }
 
 const ConstUtf8 &ClassLoader::getConstUtf8(uint16_t poolIndex) const {
@@ -521,7 +522,6 @@ ClassLoader::~ClassLoader(void) {
                 break;
             case CONST_LONG:
             case CONST_DOUBLE:
-                Mjvm::free((void *)poolTable[i].value);
                 i++;
                 break;
             case CONST_METHOD_HANDLE:

@@ -19,6 +19,7 @@ typedef enum : uint8_t {
     CONST_METHOD_HANDLE = 15,
     CONST_METHOD_TYPE = 16,
     CONST_INVOKE_DYNAMIC = 18,
+    CONST_UNKOWN = 0xFF,
 } ConstPoolTag;
 
 typedef enum : uint8_t {
