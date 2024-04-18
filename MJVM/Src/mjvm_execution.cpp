@@ -56,7 +56,7 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     staticClassDataList = 0;
     objectList = 0;
     constStringList = 0;
-    objectCountToGc = 0;
+    objectSizeToGc = 0;
 }
 
 Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
@@ -69,7 +69,7 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     staticClassDataList = 0;
     objectList = 0;
     constStringList = 0;
-    objectCountToGc = 0;
+    objectSizeToGc = 0;
 }
 
 void Execution::addToList(MjvmObjectNode **list, MjvmObjectNode *objNode) {
@@ -90,7 +90,8 @@ void Execution::removeFromList(MjvmObjectNode **list, MjvmObjectNode *objNode) {
 }
 
 MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) {
-    if(objectCountToGc++ >= NUM_OBJECT_TO_GC)
+    objectSizeToGc += size;
+    if(objectSizeToGc >= OBJECT_SIZE_TO_GC)
         garbageCollection();
     MjvmObjectNode *newNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + size);
     MjvmObject *ret = newNode->getMjvmObject();
@@ -276,7 +277,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
 }
 
 void Execution::garbageCollection(void) {
-    objectCountToGc = 0;
+    objectSizeToGc = 0;
     for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         FieldsData *fieldsData = node->filedsData;
         if(fieldsData && fieldsData->fieldsObjCount) {
