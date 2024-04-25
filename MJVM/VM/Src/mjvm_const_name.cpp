@@ -17,6 +17,11 @@ const uint32_t stringValueFieldName[] = {
     (uint32_t)"\x02\x00""[B"                    /* field type */
 };
 
+const uint32_t stringCoderFieldName[] = {
+    (uint32_t)"\x05\x00""coder",                /* field name */
+    (uint32_t)"\x01\x00""B"                     /* field type */
+};
+
 const uint32_t exceptionDetailMessageFieldName[] = {
     (uint32_t)"\x0D\x00""detailMessage",        /* field name */
     (uint32_t)"\x12\x00""Ljava/lang/String;"    /* field type */

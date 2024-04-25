@@ -58,12 +58,11 @@ private:
 
     MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
-    MjvmString *newString(const char *str);
-    MjvmString *newString(const char *str, uint16_t length);
-    MjvmString *newString(const char *str[], uint16_t count);
-    MjvmObjectNode *newStringNode(const char *str, uint16_t length);
-    MjvmObjectNode *newStringNode(const char *str[], uint16_t count);
-    MjvmString *getConstString(const ConstUtf8 &str);
+    MjvmString *newString(const char *utf8, uint16_t size);
+    MjvmString *newString(const char *latin1Str[], uint16_t count);
+    MjvmObjectNode *newStringNode(const char *utf8, uint16_t size);
+    MjvmObjectNode *newStringNode(const char *latin1Str[], uint16_t count);
+    MjvmString *getConstString(const ConstUtf8 &utf8);
 
     MjvmThrowable *newThrowable(MjvmString *strObj, const ConstUtf8 &excpType);
     MjvmThrowable *newArithmeticException(MjvmString *strObj);

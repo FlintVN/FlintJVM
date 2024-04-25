@@ -11,7 +11,7 @@
 #define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
 #define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
 
-#define STR_AND_LENGTH(str)         str, (sizeof(str) - 1)
+#define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 
 static const uint8_t primitiveTypeSize[8] = {
     sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
@@ -116,11 +116,27 @@ MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensio
     }
 }
 
-MjvmObjectNode *Execution::newStringNode(const char *str, uint16_t length) {
+MjvmObjectNode *Execution::newStringNode(const char *utf8, uint16_t size) {
+    uint32_t strLen = MjvmString::utf8StrLen(utf8);
+
     /* create new byte array to store string */
-    MjvmObject *byteArray = (MjvmObject *)Mjvm::malloc(sizeof(MjvmObject) + length);
-    new (byteArray)MjvmObject(length, *primTypeConstUtf8List[4], 1);
-    memcpy(byteArray->data, str, length);
+    uint32_t arrayLen = (strLen == size) ? strLen : (strLen << 1);
+    MjvmObject *byteArray = (MjvmObject *)Mjvm::malloc(sizeof(MjvmObject) + arrayLen);
+    new (byteArray)MjvmObject(arrayLen, *primTypeConstUtf8List[4], 1);
+    if(strLen == size)
+        memcpy(byteArray->data, utf8, arrayLen);
+    else {
+        uint32_t index = 0;
+        while(*utf8) {
+            uint32_t c = MjvmString::utf8Decode(utf8);
+            if(c <= 0xFFFFFF)
+                ((uint16_t *)byteArray->data)[index] = c;
+            else
+                throw "Characters are not supported";
+            utf8 += MjvmString::getUtf8ByteCount(*utf8);
+            index++;
+        }
+    }
 
     /* create new string object */
     MjvmObjectNode *strObjNode = (MjvmObjectNode *)Mjvm::malloc(sizeof(MjvmObjectNode) + sizeof(MjvmObject) + sizeof(FieldsData));
@@ -134,20 +150,23 @@ MjvmObjectNode *Execution::newStringNode(const char *str, uint16_t length) {
     /* set value for value field */
     fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
 
+    /* set value for coder field */
+    fields->getFieldData8(*(ConstNameAndType *)stringCoderFieldName).value = (strLen == size) ? 0 : 1;
+
     return strObjNode;
 }
 
-MjvmObjectNode *Execution::newStringNode(const char *str[], uint16_t count) {
+MjvmObjectNode *Execution::newStringNode(const char *latin1Str[], uint16_t count) {
     uint16_t index = 0;
     uint16_t length = 0;
     for(uint16_t i = 0; i < count; i++)
-        length += strlen(str[i]);
+        length += strlen(latin1Str[i]);
 
     /* create new byte array to store string */
     MjvmObject *byteArray = (MjvmObject *)Mjvm::malloc(sizeof(MjvmObject) + length);
     new (byteArray)MjvmObject(length, *primTypeConstUtf8List[4], 1);
     for(uint16_t i = 0; i < count; i++) {
-        const char *buff = str[i];
+        const char *buff = latin1Str[i];
         while(*buff) {
             byteArray->data[index] = *buff;
             buff++;
@@ -170,33 +189,25 @@ MjvmObjectNode *Execution::newStringNode(const char *str[], uint16_t count) {
     return strObjNode;
 }
 
-MjvmString *Execution::newString(const char *str) {
-    MjvmObjectNode *strObjNode = newStringNode(str, strlen(str));
+MjvmString *Execution::newString(const char *utf8, uint16_t size) {
+    MjvmObjectNode *strObjNode = newStringNode(utf8, size);
     addToList(&objectList, strObjNode);
     return (MjvmString *)strObjNode->getMjvmObject();
 }
 
-MjvmString *Execution::newString(const char *str, uint16_t length) {
-    MjvmObjectNode *strObjNode = newStringNode(str, length);
+MjvmString *Execution::newString(const char *latin1Str[], uint16_t count) {
+    MjvmObjectNode *strObjNode = newStringNode(latin1Str, count);
     addToList(&objectList, strObjNode);
     return (MjvmString *)strObjNode->getMjvmObject();
 }
 
-MjvmString *Execution::newString(const char *str[], uint16_t count) {
-    MjvmObjectNode *strObjNode = newStringNode(str, count);
-    addToList(&objectList, strObjNode);
-    return (MjvmString *)strObjNode->getMjvmObject();
-}
-
-MjvmString *Execution::getConstString(const ConstUtf8 &str) {
+MjvmString *Execution::getConstString(const ConstUtf8 &utf8) {
     for(MjvmObjectNode *node = constStringList; node != 0; node = node->next) {
-        MjvmObject *strObj = node->getMjvmObject();
-        MjvmObject *value = ((FieldsData *)strObj->data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
-        uint32_t length = value->size / sizeof(int8_t);
-        if(length == str.length && strncmp(str.text, (char *)value->data, length) == 0)
+        MjvmString *strObj = (MjvmString *)node->getMjvmObject();
+        if(strObj->equals(utf8))
             return (MjvmString *)strObj;
     }
-    MjvmObjectNode *newNode = newStringNode(str.text, str.length);
+    MjvmObjectNode *newNode = newStringNode(utf8.text, utf8.length);
     addToList(&constStringList, newNode);
     return (MjvmString *)newNode->getMjvmObject();
 }
@@ -2141,7 +2152,7 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
             Mjvm::lock();
-            MjvmString *strObj = newString(STR_AND_LENGTH("Cannot read the array length from null object"));
+            MjvmString *strObj = newString(STR_AND_SIZE("Cannot read the array length from null object"));
             MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
@@ -2156,7 +2167,7 @@ int64_t Execution::run(const char *mainClass) {
         if(obj == 0) {
             stackPopObject();
             Mjvm::lock();
-            MjvmString *strObj = newString(STR_AND_LENGTH("Cannot throw exception by null object"));
+            MjvmString *strObj = newString(STR_AND_SIZE("Cannot throw exception by null object"));
             MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
@@ -2211,7 +2222,7 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         if(obj == 0) {
             Mjvm::lock();
-            MjvmString *strObj = newString(STR_AND_LENGTH("Cannot enter synchronized block by null object"));
+            MjvmString *strObj = newString(STR_AND_SIZE("Cannot enter synchronized block by null object"));
             MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
             Mjvm::unlock();
@@ -2289,7 +2300,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     divided_by_zero_excp: {
         Mjvm::lock();
-        MjvmString *strObj = newString(STR_AND_LENGTH("Divided by zero"));
+        MjvmString *strObj = newString(STR_AND_SIZE("Divided by zero"));
         MjvmThrowable *excpObj = newArithmeticException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
@@ -2297,7 +2308,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     negative_array_size_excp: {
         Mjvm::lock();
-        MjvmString *strObj = newString(STR_AND_LENGTH("Size of the array is a negative number"));
+        MjvmString *strObj = newString(STR_AND_SIZE("Size of the array is a negative number"));
         MjvmThrowable *excpObj = newNegativeArraySizeException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
@@ -2305,7 +2316,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     load_null_array_excp: {
         Mjvm::lock();
-        MjvmString *strObj = newString(STR_AND_LENGTH("Cannot load from null array object"));
+        MjvmString *strObj = newString(STR_AND_SIZE("Cannot load from null array object"));
         MjvmThrowable *excpObj = newNullPointerException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
@@ -2313,7 +2324,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     store_null_array_excp: {
         Mjvm::lock();
-        MjvmString *strObj = newString(STR_AND_LENGTH("Cannot store to null array object"));
+        MjvmString *strObj = newString(STR_AND_SIZE("Cannot store to null array object"));
         MjvmThrowable *excpObj = newNullPointerException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();

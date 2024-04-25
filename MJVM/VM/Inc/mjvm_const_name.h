@@ -6,7 +6,9 @@
 
 extern const ConstUtf8 *primTypeConstUtf8List[];
 extern const uint32_t stringValueFieldName[];
+extern const uint32_t stringCoderFieldName[];
 extern const uint32_t exceptionDetailMessageFieldName[];
+
 extern const ConstUtf8 &mathClass;
 extern const ConstUtf8 &stringClassName;
 extern const ConstUtf8 &nullPtrExcpClassName;
