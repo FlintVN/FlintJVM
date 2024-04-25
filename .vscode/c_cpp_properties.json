@@ -5,7 +5,7 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/User/Inc/**",
-                "${workspaceFolder}/MJVM/Inc/**",
+                "${workspaceFolder}/MJVM/VM/Inc/**",
                 "${workspaceFolder}/Drivers/Inc/**"
             ],
             "defines": [
