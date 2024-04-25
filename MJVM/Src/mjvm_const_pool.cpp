@@ -2,14 +2,6 @@
 #include <string.h>
 #include "mjvm_const_pool.h"
 
-ConstUtf8::ConstUtf8(uint16_t length) : length(length) {
-
-}
-
-const char *ConstUtf8::getText(void) const {
-    return (const char *)text;
-}
-
 bool ConstUtf8::operator==(const ConstUtf8 &another) const {
     if(length == another.length && strncmp(text, another.text, length) == 0)
         return true;
@@ -41,7 +33,7 @@ nameAndType(nameAndType) {
 }
 
 ParamInfo parseParamInfo(const ConstUtf8 &descriptor) {
-    const char *text = descriptor.getText();
+    const char *text = descriptor.text;
     ParamInfo retVal = {0, 0};
     if(*text != '(')
         throw "the descriptor is not a description of the method";

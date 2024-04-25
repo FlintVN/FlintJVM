@@ -7,35 +7,35 @@
 AttributeType AttributeInfo::parseAttributeType(const ConstUtf8 &name) {
     switch(name.length) {
         case 4:
-            if(strncmp(name.getText(), "Code", name.length) == 0)
+            if(strncmp(name.text, "Code", name.length) == 0)
                 return ATTRIBUTE_CODE;
             break;
         case 10:
-            if(strncmp(name.getText(), "SourceFile", name.length) == 0)
+            if(strncmp(name.text, "SourceFile", name.length) == 0)
                 return ATTRIBUTE_SOURCE_FILE;
             break;
         case 11:
-            if(strncmp(name.getText(), "NestMembers", name.length) == 0)
+            if(strncmp(name.text, "NestMembers", name.length) == 0)
                 return ATTRIBUTE_NEST_MEMBERS;
             break;
         case 12:
-            if(strncmp(name.getText(), "InnerClasses", name.length) == 0)
+            if(strncmp(name.text, "InnerClasses", name.length) == 0)
                 return ATTRIBUTE_INNER_CLASSES;
             break;
         case 13:
-            if(strncmp(name.getText(), "StackMapTable", name.length) == 0)
+            if(strncmp(name.text, "StackMapTable", name.length) == 0)
                 return ATTRIBUTE_STACK_MAP_TABLE;
             break;
         case 15:
-            if(strncmp(name.getText(), "LineNumberTable", name.length) == 0)
+            if(strncmp(name.text, "LineNumberTable", name.length) == 0)
                 return ATTRIBUTE_LINE_NUMBER_TABLE;
             break;
         case 16:
-            if(strncmp(name.getText(), "BootstrapMethods", name.length) == 0)
+            if(strncmp(name.text, "BootstrapMethods", name.length) == 0)
                 return ATTRIBUTE_BOOTSTRAP_METHODS;
             break;
         case 18:
-            if(strncmp(name.getText(), "LocalVariableTable", name.length) == 0)
+            if(strncmp(name.text, "LocalVariableTable", name.length) == 0)
                 return ATTRIBUTE_LOCAL_VARIABLE_TABLE;
             break;
         default:

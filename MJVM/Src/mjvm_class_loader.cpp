@@ -16,7 +16,7 @@ ClassLoader::ClassLoader(const char *fileName, uint16_t length) {
 }
 
 ClassLoader::ClassLoader(const ConstUtf8 &fileName) {
-    ClassFile file(fileName.getText());
+    ClassFile file(fileName.text);
     readFile(file);
     file.close();
 }
@@ -33,7 +33,7 @@ void ClassLoader::readFile(ClassFile &file) {
             case CONST_UTF8: {
                 uint16_t length = file.readUInt16();
                 *(uint32_t *)&poolTable[i].value = (uint32_t)Mjvm::malloc(sizeof(ConstUtf8) + length + 1);
-                new ((ConstUtf8 *)poolTable[i].value)ConstUtf8(length);
+                *(uint16_t *)&((ConstUtf8 *)poolTable[i].value)->length = length;
                 char *textBuff = (char *)((ConstUtf8 *)poolTable[i].value)->text;
                 file.read(textBuff, length);
                 textBuff[length] = 0;

@@ -17,17 +17,13 @@ private:
 class ConstUtf8 {
 public:
     const uint16_t length;
+    const char text[];
 private:
-    char text[];
-
-    ConstUtf8(uint16_t length);
     ConstUtf8(const ConstUtf8 &) = delete;
     void operator=(const ConstUtf8 &) = delete;
 
     friend class ClassLoader;
 public:
-    const char *getText(void) const;
-
     bool operator==(const ConstUtf8 &another) const;
     bool operator!=(const ConstUtf8 &another) const;
 };

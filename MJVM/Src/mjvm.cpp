@@ -79,7 +79,7 @@ Mjvm::ClassLoaderNode *Mjvm::findClassLoaderNode(const char *fileName, uint16_t 
     lock();
     for(ClassLoaderNode *node = classLoaderList; node != 0; node = node->next) {
         const ConstUtf8 &name = node->getThisClass();
-        if(length == name.length && strncmp(fileName, name.getText(), length) == 0) {
+        if(length == name.length && strncmp(fileName, name.text, length) == 0) {
             unlock();
             return node;
         }
@@ -105,7 +105,7 @@ const ClassLoader &Mjvm::load(const char *fileName, uint16_t length) {
 }
 
 const ClassLoader &Mjvm::load(const ConstUtf8 &fileName) {
-    return load(fileName.getText(), fileName.length);
+    return load(fileName.text, fileName.length);
 }
 
 void Mjvm::destroy(const ClassLoader &classLoader) {

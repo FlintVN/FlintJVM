@@ -42,7 +42,7 @@ static uint8_t convertToAType(char type) {
 
 static uint8_t isPrimType(const ConstUtf8 &type) {
     if(type.length == 1)
-        convertToAType(type.getText()[0]);
+        convertToAType(type.text[0]);
     return 0;
 }
 
@@ -193,10 +193,10 @@ MjvmString *Execution::getConstString(const ConstUtf8 &str) {
         MjvmObject *strObj = node->getMjvmObject();
         MjvmObject *value = ((FieldsData *)strObj->data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
         uint32_t length = value->size / sizeof(int8_t);
-        if(length == str.length && strncmp(str.getText(), (char *)value->data, length) == 0)
+        if(length == str.length && strncmp(str.text, (char *)value->data, length) == 0)
             return (MjvmString *)strObj;
     }
-    MjvmObjectNode *newNode = newStringNode(str.getText(), str.length);
+    MjvmObjectNode *newNode = newStringNode(str.text, str.length);
     addToList(&constStringList, newNode);
     return (MjvmString *)newNode->getMjvmObject();
 }
@@ -313,7 +313,7 @@ void Execution::garbageCollection(void) {
 ClassDataNode &Execution::loadClassDataNode(const char *className, uint16_t length) {
     for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         const ConstUtf8 &name = node->classLoader.getThisClass();
-        if(name.length == length && strncmp(name.getText(), className, length) == 0)
+        if(name.length == length && strncmp(name.text, className, length) == 0)
             return *node;
     }
     ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
@@ -344,7 +344,7 @@ const ClassLoader &Execution::load(const char *className, uint16_t length) {
 }
 
 const ClassLoader &Execution::load(const ConstUtf8 &className) {
-    return loadClassDataNode(className.getText(), className.length).classLoader;
+    return loadClassDataNode(className.text, className.length).classLoader;
 }
 
 const FieldsData &Execution::getStaticFields(const ConstUtf8 &className) const {
@@ -523,7 +523,7 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
 }
 
 const MethodInfo &Execution::findMethod(const ConstMethod &constMethod, ClassDataNode **classData) {
-    ClassDataNode *dataNode = &loadClassDataNode(constMethod.className.getText(), constMethod.className.length);
+    ClassDataNode *dataNode = &loadClassDataNode(constMethod.className.text, constMethod.className.length);
     while(dataNode) {
         const MethodInfo *methodInfo = (const MethodInfo *)&dataNode->classLoader.getMethodInfo(constMethod.nameAndType);
         if(methodInfo) {
@@ -532,7 +532,7 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod, ClassDat
         }
         else {
             const ConstUtf8 &supperClassName = dataNode->classLoader.getSupperClass();
-            dataNode = &loadClassDataNode(supperClassName.getText(), supperClassName.length);
+            dataNode = &loadClassDataNode(supperClassName.text, supperClassName.length);
         }
     }
     throw "can't find the method";
@@ -673,10 +673,10 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
 }
 
 bool Execution::isInstanceof(MjvmObject *obj, const ConstUtf8 &type) {
-    const char *text = type.getText();
+    const char *text = type.text;
     while(*text == '[')
         text++;
-    uint32_t dimensions = text - type.getText();
+    uint32_t dimensions = text - type.text;
     uint32_t length = type.length - dimensions;
     if(*text == 'L') {
         text++;
@@ -689,7 +689,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const ConstUtf8 &type) {
     else {
         const ConstUtf8 *objType = &obj->type;
         while(1) {
-            if(length == objType->length && strncmp(objType->getText(), text, length) == 0)
+            if(length == objType->length && strncmp(objType->text, text, length) == 0)
                 return true;
             else {
                 objType = &load(*objType).getSupperClass();
@@ -1857,7 +1857,7 @@ int64_t Execution::run(const char *mainClass) {
             stackPushInt32((int32_t)&load(constField.className));
             goto init_static_field;
         }
-        switch(constField.nameAndType.descriptor.getText()[0]) {
+        switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
             case 'B': {
                 stackPushInt32(fields.getFieldData8(constField.nameAndType).value);
@@ -1897,7 +1897,7 @@ int64_t Execution::run(const char *mainClass) {
             goto init_static_field;
         }
         pc += 3;
-        switch(constField.nameAndType.descriptor.getText()[0]) {
+        switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
             case 'B': {
                 fields.getFieldData8(constField.nameAndType).value = stackPopInt32();
@@ -1927,7 +1927,7 @@ int64_t Execution::run(const char *mainClass) {
     op_getfield: {
         const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         pc += 3;
-        switch(constField.nameAndType.descriptor.getText()[0]) {
+        switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
             case 'B': {
                 MjvmObject *obj = stackPopObject();
@@ -1974,7 +1974,7 @@ int64_t Execution::run(const char *mainClass) {
             }
         }
         getfield_null_excp: {
-            const char *msg[] = {"Cannot read field '", constField.nameAndType.name.getText(), "' from null object"};
+            const char *msg[] = {"Cannot read field '", constField.nameAndType.name.text, "' from null object"};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
             MjvmThrowable *excpObj = newNullPointerException(strObj);
@@ -1986,7 +1986,7 @@ int64_t Execution::run(const char *mainClass) {
     op_putfield: {
         const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         pc += 3;
-        switch(constField.nameAndType.descriptor.getText()[0]) {
+        switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
             case 'B': {
                 int32_t value = stackPopInt32();
@@ -2038,7 +2038,7 @@ int64_t Execution::run(const char *mainClass) {
             }
         }
         putfield_null_excp: {
-            const char *msg[] = {"Cannot assign field '", constField.nameAndType.name.getText(), "' for null object"};
+            const char *msg[] = {"Cannot assign field '", constField.nameAndType.name.text, "' for null object"};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
             MjvmThrowable *excpObj = newNullPointerException(strObj);
@@ -2166,7 +2166,7 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = (MjvmObject *)stack[sp];
         const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
         if(obj != 0 && !isInstanceof(obj, type)) {
-            const char *msg[] = {"Class '", obj->type.getText(), "' cannot be cast to class '", type.getText(), "'"};
+            const char *msg[] = {"Class '", obj->type.text, "' cannot be cast to class '", type.text, "'"};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
             MjvmThrowable *excpObj = newNullPointerException(strObj);
@@ -2222,7 +2222,7 @@ int64_t Execution::run(const char *mainClass) {
     op_multianewarray: {
         const ConstUtf8 *typeName = &method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
         const uint8_t dimensions = code[pc + 3];
-        const char *typeNameText = typeName->getText();
+        const char *typeNameText = typeName->text;
         uint32_t length = typeName->length - dimensions;
         if(typeNameText[dimensions] != 'L') {
             uint8_t atype = convertToAType(typeNameText[dimensions]);

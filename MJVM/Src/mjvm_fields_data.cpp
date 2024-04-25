@@ -43,7 +43,7 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
         const FieldInfo &fieldInfo = classLoader.getFieldInfo(index);
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
             const ConstUtf8 &descriptor = fieldInfo.descriptor;
-            switch(fieldInfo.descriptor.getText()[0]) {
+            switch(fieldInfo.descriptor.text[0]) {
                 case 'Z':
                 case 'B':   /* Byte */
                     (*(uint32_t *)&fields8Count)++;
@@ -77,7 +77,7 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
         const FieldInfo &fieldInfo = classLoader.getFieldInfo(index);
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
             const ConstUtf8 &descriptor = fieldInfo.descriptor;
-            switch(fieldInfo.descriptor.getText()[0]) {
+            switch(fieldInfo.descriptor.text[0]) {
                 case 'Z':
                 case 'B':   /* Byte */
                     new (&fieldsData8[field8Index++])FieldData8(fieldInfo);
@@ -117,7 +117,7 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
             const FieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
                 const ConstUtf8 &descriptor = fieldInfo.descriptor;
-                switch(fieldInfo.descriptor.getText()[0]) {
+                switch(fieldInfo.descriptor.text[0]) {
                     case 'Z':
                     case 'B':   /* Byte */
                         (*(uint32_t *)&fields8Count)++;
@@ -157,7 +157,7 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
             const FieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
                 const ConstUtf8 &descriptor = fieldInfo.descriptor;
-                switch(fieldInfo.descriptor.getText()[0]) {
+                switch(fieldInfo.descriptor.text[0]) {
                     case 'Z':
                     case 'B':   /* Byte */
                         new (&fieldsData8[field8Index++])FieldData8(fieldInfo);

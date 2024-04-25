@@ -9,7 +9,7 @@ size(size), prot(0), type(type), dimensions(dimensions), monitorCount(0), ownId(
 }
 
 uint8_t MjvmObject::parseTypeSize(void) const {
-    switch(this->type.getText()[0]) {
+    switch(this->type.text[0]) {
         case 'Z':
         case 'B':
             return 1;
