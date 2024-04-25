@@ -13,39 +13,6 @@
 
 #define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 
-static const uint8_t primitiveTypeSize[8] = {
-    sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
-    sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
-};
-
-static uint8_t convertToAType(char type) {
-    switch(type) {
-        case 'Z':
-            return 4;
-        case 'C':
-            return 5;
-        case 'F':
-            return 6;
-        case 'D':
-            return 7;
-        case 'B':
-            return 8;
-        case 'S':
-            return 8;
-        case 'I':
-            return 10;
-        case 'J':
-            return 11;
-    }
-    return 0;
-}
-
-static uint8_t isPrimType(const ConstUtf8 &type) {
-    if(type.length == 1)
-        convertToAType(type.text[0]);
-    return 0;
-}
-
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     lr = -1;
     sp = -1;
@@ -108,8 +75,8 @@ MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensio
         return array;
     }
     else {
-        uint8_t atype = isPrimType(typeName);
-        uint8_t typeSize = atype ? primitiveTypeSize[atype - 4] : sizeof(MjvmObject *);
+        uint8_t atype = MjvmObject::isPrimType(typeName);
+        uint8_t typeSize = atype ? MjvmObject::getPrimitiveTypeSize(atype) : sizeof(MjvmObject *);
         MjvmObject *array = newObject(typeSize * counts[0], typeName, 1);
         memset(array->data, 0, array->size);
         return array;
@@ -267,7 +234,7 @@ void Execution::freeAllObject(void) {
 }
 
 void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
-    bool isPrim = isPrimType(obj->type);
+    bool isPrim = MjvmObject::isPrimType(obj->type);
     if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
         uint32_t count = obj->size / 4;
         for(uint32_t i = 0; i < count; i++) {
@@ -2125,7 +2092,7 @@ int64_t Execution::run(const char *mainClass) {
         if(count < 0)
             goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
-        uint8_t typeSize = primitiveTypeSize[atype - 4];
+        uint8_t typeSize = MjvmObject::getPrimitiveTypeSize(atype);
         Mjvm::lock();
         MjvmObject *obj = newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1);
         stackPushObject(obj);
@@ -2259,7 +2226,7 @@ int64_t Execution::run(const char *mainClass) {
         const char *typeNameText = typeName->text;
         uint32_t length = typeName->length - dimensions;
         if(typeNameText[dimensions] != 'L') {
-            uint8_t atype = convertToAType(typeNameText[dimensions]);
+            uint8_t atype = MjvmObject::convertToAType(typeNameText[dimensions]);
             if(atype == 0)
                 throw "invalid primative type";
             typeName = primTypeConstUtf8List[atype - 4];

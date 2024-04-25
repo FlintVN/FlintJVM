@@ -16,8 +16,11 @@ public:
 public:
     uint32_t monitorCount : 24;
     uint32_t ownId;
-protected:
     uint8_t data[];
+
+    static uint8_t getPrimitiveTypeSize(uint8_t atype);
+    static uint8_t convertToAType(char type);
+    static uint8_t isPrimType(const ConstUtf8 &type);
 private:
     uint8_t parseTypeSize(void) const;
 
