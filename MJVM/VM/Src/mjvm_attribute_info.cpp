@@ -64,6 +64,14 @@ AttributeRaw::~AttributeRaw(void) {
 
 }
 
+AttributeNative::AttributeNative(NativeMethodPtr nativeMethod) : AttributeInfo(ATTRIBUTE_NATIVE), nativeMethod(nativeMethod) {
+
+}
+
+AttributeNative::~AttributeNative(void) {
+
+}
+
 ExceptionTable::ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
 startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 

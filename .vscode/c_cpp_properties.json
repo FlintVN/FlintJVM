@@ -6,6 +6,7 @@
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/User/Inc/**",
                 "${workspaceFolder}/MJVM/VM/Inc/**",
+                "${workspaceFolder}/MJVM/Native/Inc/**",
                 "${workspaceFolder}/Drivers/Inc/**"
             ],
             "defines": [

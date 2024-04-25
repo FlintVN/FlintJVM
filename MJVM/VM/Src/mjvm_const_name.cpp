@@ -22,6 +22,7 @@ const uint32_t exceptionDetailMessageFieldName[] = {
     (uint32_t)"\x12\x00""Ljava/lang/String;"    /* field type */
 };
 
+const ConstUtf8 &mathClass = *(const ConstUtf8 *)"\x0E\x00""java/lang/Math";
 const ConstUtf8 &stringClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/String";
 const ConstUtf8 &nullPtrExcpClassName = *(const ConstUtf8 *)"\x1E\x00""java/lang/NullPointerException";
 const ConstUtf8 &arithmeticExceptionClassName = *(const ConstUtf8 *)"\x1D\x00""java/lang/ArithmeticException";

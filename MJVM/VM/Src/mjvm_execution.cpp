@@ -540,23 +540,46 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod, ClassDat
 
 
 void Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
-    peakSp = sp + 4;
-    for(uint32_t i = 0; i < argc; i++)
-        setStackValue(sp - i + 4, getStackValue(sp - i));
-    sp -= argc;
+    if((methodInfo.accessFlag & METHOD_NATIVE) != METHOD_NATIVE) {
+        peakSp = sp + 4;
+        for(uint32_t i = 0; i < argc; i++)
+            setStackValue(sp - i + 4, getStackValue(sp - i));
+        sp -= argc;
 
-    /* Save current context */
-    stack[++sp] = (int32_t)method;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    stack[++sp] = pc;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    stack[++sp] = lr;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    stack[++sp] = startSp;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    startSp = sp;
+        /* Save current context */
+        stack[++sp] = (int32_t)method;
+        stackType[sp / 8] &= ~(1 << (sp % 8));
+        stack[++sp] = pc;
+        stackType[sp / 8] &= ~(1 << (sp % 8));
+        stack[++sp] = lr;
+        stackType[sp / 8] &= ~(1 << (sp % 8));
+        stack[++sp] = startSp;
+        stackType[sp / 8] &= ~(1 << (sp % 8));
+        startSp = sp;
 
-    initNewContext(methodInfo, argc);
+        initNewContext(methodInfo, argc);
+    }
+    else {
+        const AttributeNative &attrNative = methodInfo.getAttributeNative();
+        uint64_t ret = attrNative.nativeMethod(&stack[sp - (argc - 1)], argc);
+        switch(methodInfo.parseParamInfo().retType) {
+            case 'V':
+                break;
+            case 'J':
+            case 'D':
+                stackPushInt64(ret);
+            case 'L': 
+            case '[': {
+                MjvmObject *obj = (MjvmObject *)ret;
+                stackPushObject(obj);
+                break;
+            }
+            default:
+                stackPushInt32((int32_t)ret);
+                break;
+        }
+        pc = lr;
+    }
 }
 
 void Execution::invokeStatic(const ConstMethod &constMethod) {

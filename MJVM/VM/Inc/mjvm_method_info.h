@@ -29,6 +29,7 @@ public:
     const AttributeInfo &getAttribute(uint16_t index) const;
     const AttributeInfo &getAttribute(AttributeType type) const;
     const AttributeCode &getAttributeCode(void) const;
+    const AttributeNative &getAttributeNative(void) const;
 
     ParamInfo parseParamInfo(void) const;
 

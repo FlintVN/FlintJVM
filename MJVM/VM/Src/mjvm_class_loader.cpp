@@ -106,10 +106,19 @@ void ClassLoader::readFile(ClassFile &file) {
             uint16_t methodNameIndex = file.readUInt16();
             uint16_t methodDescriptorIndex = file.readUInt16();
             uint16_t methodAttributesCount = file.readUInt16();
+            uint16_t attrIdx = 0;
             new (&methods[i])MethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
+            if((flag & METHOD_NATIVE) == METHOD_NATIVE)
+                methodAttributesCount++;
             AttributeInfo **methodAttributes = (AttributeInfo **)Mjvm::malloc(methodAttributesCount * sizeof(AttributeInfo *));
             methods[i].setAttributes(methodAttributes, methodAttributesCount);
-            for(uint16_t attrIdx = 0; attrIdx < methodAttributesCount; attrIdx++)
+            if((flag & METHOD_NATIVE) == METHOD_NATIVE) {
+                AttributeNative *attrNative = (AttributeNative *)Mjvm::malloc(sizeof(AttributeNative));
+                new (attrNative)AttributeNative(0);
+                methodAttributes[attrIdx] = attrNative;
+                attrIdx++;
+            }
+            for(; attrIdx < methodAttributesCount; attrIdx++)
                 methodAttributes[attrIdx] = &readAttribute(file);
         }
     }

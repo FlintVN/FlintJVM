@@ -26,6 +26,7 @@ typedef enum : uint8_t {
     ATTRIBUTE_ANNOTATION_DEFAULT,
     ATTRIBUTE_BOOTSTRAP_METHODS,
     ATTRIBUTE_NEST_MEMBERS,
+    ATTRIBUTE_NATIVE,
     ATTRIBUTE_UNKNOW = 0xFF
 } AttributeType;
 
@@ -53,11 +54,26 @@ private:
     AttributeRaw(const AttributeRaw &) = delete;
     void operator=(const AttributeRaw &) = delete;
 
+    ~AttributeRaw(void);
+
     friend class ClassLoader;
 public:
     const uint8_t *getRaw(void) const;
+};
 
-    ~AttributeRaw(void);
+typedef int64_t (* const NativeMethodPtr)(int32_t args[], int32_t argc);
+
+class AttributeNative : public AttributeInfo {
+public:
+    NativeMethodPtr nativeMethod;
+private:
+    AttributeNative(NativeMethodPtr nativeMethod);
+    AttributeNative(const AttributeNative &) = delete;
+    void operator=(const AttributeNative &) = delete;
+
+    friend class ClassLoader;
+
+    ~AttributeNative(void);
 };
 
 class ExceptionTable {
