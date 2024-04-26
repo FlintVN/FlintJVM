@@ -28,6 +28,7 @@ const uint32_t exceptionDetailMessageFieldName[] = {
 };
 
 const ConstUtf8 &mathClass = *(const ConstUtf8 *)"\x0E\x00""java/lang/Math";
+const ConstUtf8 &objectClass = *(const ConstUtf8 *)"\x10\x00""java/lang/Object";
 const ConstUtf8 &systemClass = *(const ConstUtf8 *)"\x10\x00""java/lang/System";
 const ConstUtf8 &printStreamClass = *(const ConstUtf8 *)"\x13\x00""java/io/PrintStream";
 const ConstUtf8 &stringClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/String";

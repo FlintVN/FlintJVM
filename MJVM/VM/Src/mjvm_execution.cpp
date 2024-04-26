@@ -615,8 +615,9 @@ void Execution::invokeSpecial(const ConstMethod &constMethod) {
 void Execution::invokeVirtual(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
+    const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClass : obj->type;
     uint32_t virtualConstMethod[] = {
-        (uint32_t)&obj->type,                           /* class name */
+        (uint32_t)&type,                                /* class name */
         (uint32_t)&constMethod.nameAndType              /* name and type */
     };
     const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)virtualConstMethod);
@@ -645,8 +646,9 @@ void Execution::invokeVirtual(const ConstMethod &constMethod) {
 
 void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
+    const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClass : obj->type;
     uint32_t interfaceConstMethod[] = {
-        (uint32_t)&obj->type,                           /* class name */
+        (uint32_t)&type,                                /* class name */
         (uint32_t)&interfaceMethod.nameAndType          /* name and type */
     };
     const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)interfaceConstMethod);
@@ -683,7 +685,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const ConstUtf8 &type) {
         text++;
         length -= 2;
     }
-    if(length == 16 && obj->dimensions >= dimensions && strncmp(text, "java/lang/Object", length) == 0)
+    if(length == 16 && obj->dimensions >= dimensions && strncmp(text, objectClass.text, length) == 0)
         return true;
     else if(dimensions != obj->dimensions)
         return false;
