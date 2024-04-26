@@ -20,31 +20,28 @@ int64_t nativeArraycopy(int32_t args[], int32_t argc) {
     int32_t destPos = args[3];
     int32_t length = args[4];
     if(src->type == dest->type) {
-        uint8_t elementSize = MjvmObject::isPrimType(src->type);
-        elementSize = (elementSize == 0) ? sizeof(MjvmObject *) : MjvmObject::getPrimitiveTypeSize(elementSize);
+        uint8_t atype = MjvmObject::isPrimType(src->type);
+        uint8_t elementSize = atype ? MjvmObject::getPrimitiveTypeSize(atype) : sizeof(MjvmObject *);
         if((length < 0) || ((length + srcPos) > src->size / elementSize) || ((length + destPos) > dest->size / elementSize))
             throw "Index out of range in System.arraycopy";
         void *srcVal = src->data;
         void *dstVal = dest->data;
         switch(elementSize) {
-            case 4:  // boolean
-            case 8:  // byte
+            case 1:
                 for(uint32_t i = 0; i < length; i++)
                     ((uint8_t *)dstVal)[i] = ((uint8_t *)srcVal)[i];
                 break;
-            case 5:  // char
-            case 9:  // short
+            case 2:
                 for(uint32_t i = 0; i < length; i++)
                     ((uint16_t *)dstVal)[i] = ((uint16_t *)srcVal)[i];
                 break;
-            case 7:  // double
-            case 11: // long
-                for(uint32_t i = 0; i < length; i++)
-                    ((uint64_t *)dstVal)[i] = ((uint64_t *)srcVal)[i];
-                break;
-            default: // object
+            case 4:
                 for(uint32_t i = 0; i < length; i++)
                     ((uint32_t *)dstVal)[i] = ((uint32_t *)srcVal)[i];
+                break;
+            case 8:
+                for(uint32_t i = 0; i < length; i++)
+                    ((uint64_t *)dstVal)[i] = ((uint64_t *)srcVal)[i];
                 break;
         }
     }
