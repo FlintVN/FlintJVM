@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include "mjvm_string.h"
 #include "mjvm_const_name.h"
-#include "mjvm_print_stream_class.h"
+#include "mjvm_native_print_stream_class.h"
 
 static int64_t nativeWrite(int32_t args[], int32_t argc) {
     MjvmString *str = (MjvmString *)args[0];

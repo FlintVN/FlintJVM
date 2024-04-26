@@ -1,7 +1,7 @@
 
 #include <math.h>
 #include "mjvm_const_name.h"
-#include "mjvm_math_class.h"
+#include "mjvm_native_math_class.h"
 
 static int64_t nativeSin(int32_t args[], int32_t argc) {
     double ret = sin(*(double *)args);

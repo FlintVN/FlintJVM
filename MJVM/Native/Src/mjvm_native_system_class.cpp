@@ -1,7 +1,7 @@
 
 #include "mjvm_object.h"
 #include "mjvm_const_name.h"
-#include "mjvm_system_class.h"
+#include "mjvm_native_system_class.h"
 
 int64_t nativeCurrentTimeMillis(int32_t args[], int32_t argc) {
     // TODO
