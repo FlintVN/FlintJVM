@@ -15,7 +15,9 @@ extern const ConstUtf8 &systemClass;
 extern const ConstUtf8 &printStreamClass;
 extern const ConstUtf8 &stringClassName;
 extern const ConstUtf8 &nullPtrExcpClassName;
+extern const ConstUtf8 &arrayStoreExceptionClassName;
 extern const ConstUtf8 &arithmeticExceptionClassName;
+extern const ConstUtf8 &cloneNotSupportedExceptionClassName;
 extern const ConstUtf8 &negativeArraySizeExceptionClassName;
 extern const ConstUtf8 &arrayIndexOutOfBoundsExceptionClassName;
 

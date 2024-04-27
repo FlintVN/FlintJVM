@@ -15,6 +15,8 @@
 
 #define OBJECT_SIZE_TO_GC       MEAG_BYTE(1)
 
+#define STR_AND_SIZE(str)       str, (sizeof(str) - 1)
+
 class Execution {
 private:
     const uint32_t stackLength;
@@ -66,8 +68,10 @@ private:
     MjvmString *getConstString(const ConstUtf8 &utf8);
 public:
     MjvmThrowable *newThrowable(MjvmString *strObj, const ConstUtf8 &excpType);
+    MjvmThrowable *newArrayStoreException(MjvmString *strObj);
     MjvmThrowable *newArithmeticException(MjvmString *strObj);
     MjvmThrowable *newNullPointerException(MjvmString *strObj);
+    MjvmThrowable *newCloneNotSupportedException(MjvmString *strObj);
     MjvmThrowable *newNegativeArraySizeException(MjvmString *strObj);
     MjvmThrowable *newArrayIndexOutOfBoundsException(MjvmString *strObj);
 private:
@@ -102,11 +106,11 @@ private:
 
     const MethodInfo &findMethod(const ConstMethod &constMethod);
     const MethodInfo &findMethod(const ConstMethod &constMethod, ClassDataNode **classData);
-    void invoke(const MethodInfo &methodInfo, uint8_t argc);
-    void invokeStatic(const ConstMethod &constMethod);
-    void invokeSpecial(const ConstMethod &constMethod);
-    void invokeVirtual(const ConstMethod &constMethod);
-    void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc);
+    bool invoke(const MethodInfo &methodInfo, uint8_t argc);
+    bool invokeStatic(const ConstMethod &constMethod);
+    bool invokeSpecial(const ConstMethod &constMethod);
+    bool invokeVirtual(const ConstMethod &constMethod);
+    bool invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc);
 public:
     bool isInstanceof(MjvmObject *obj, const ConstUtf8 &type);
 

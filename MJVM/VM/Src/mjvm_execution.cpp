@@ -11,8 +11,6 @@
 #define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
 #define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
 
-#define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
-
 Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     lr = -1;
     sp = -1;
@@ -193,12 +191,20 @@ MjvmThrowable *Execution::newThrowable(MjvmString *strObj, const ConstUtf8 &excp
     return (MjvmThrowable *)obj;
 }
 
+MjvmThrowable *Execution::newArrayStoreException(MjvmString *strObj) {
+    return newThrowable(strObj, arrayStoreExceptionClassName);
+}
+
 MjvmThrowable *Execution::newArithmeticException(MjvmString *strObj) {
     return newThrowable(strObj, arithmeticExceptionClassName);
 }
 
 MjvmThrowable *Execution::newNullPointerException(MjvmString *strObj) {
     return newThrowable(strObj, nullPtrExcpClassName);
+}
+
+MjvmThrowable *Execution::newCloneNotSupportedException(MjvmString *strObj) {
+    return newThrowable(strObj, cloneNotSupportedExceptionClassName);
 }
 
 MjvmThrowable *Execution::newNegativeArraySizeException(MjvmString *strObj) {
@@ -519,7 +525,7 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod, ClassDat
 }
 
 
-void Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
+bool Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
     if((methodInfo.accessFlag & METHOD_NATIVE) != METHOD_NATIVE) {
         peakSp = sp + 4;
         for(uint32_t i = 0; i < argc; i++)
@@ -538,15 +544,20 @@ void Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
         startSp = sp;
 
         initNewContext(methodInfo, argc);
+
+        return true;
     }
     else {
         const AttributeNative &attrNative = methodInfo.getAttributeNative();
-        uint64_t ret = attrNative.nativeMethod(*this);
-        pc = lr;
+        if(attrNative.nativeMethod(*this)) {
+            pc = lr;
+            return true;
+        }
+        return false;
     }
 }
 
-void Execution::invokeStatic(const ConstMethod &constMethod) {
+bool Execution::invokeStatic(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     ClassDataNode *dataNode;
     const MethodInfo &methodInfo = findMethod(constMethod, &dataNode);
@@ -555,24 +566,27 @@ void Execution::invokeStatic(const ConstMethod &constMethod) {
             Mjvm::lock();
             if(dataNode->monitorCount == 0 || dataNode->ownId == (int32_t)this) {
                 dataNode->ownId = (int32_t)this;
-                if(dataNode->monitorCount < 0xFFFFFF)
+                if(dataNode->monitorCount < 0xFFFFFF) {
                     dataNode->monitorCount++;
-                else
+                    Mjvm::unlock();
+                }
+                else {
+                    Mjvm::unlock();
                     throw "monitorCount limit has been reached";
-                Mjvm::unlock();
+                }
             }
             else {
                 Mjvm::unlock();
-                return;
+                return true;
             }
         }
-        invoke(methodInfo, argc);
+        return invoke(methodInfo, argc);
     }
     else
         throw "invoke static to non-static method";
 }
 
-void Execution::invokeSpecial(const ConstMethod &constMethod) {
+bool Execution::invokeSpecial(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc + 1;
     const MethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
@@ -581,24 +595,27 @@ void Execution::invokeSpecial(const ConstMethod &constMethod) {
             Mjvm::lock();
             if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
                 obj->ownId = (int32_t)this;
-                if(obj->monitorCount < 0xFFFFFF)
+                if(obj->monitorCount < 0xFFFFFF) {
                     obj->monitorCount++;
-                else
+                    Mjvm::unlock();
+                }
+                else {
+                    Mjvm::unlock();
                     throw "monitorCount limit has been reached";
-                Mjvm::unlock();
+                }
             }
             else {
                 Mjvm::unlock();
-                return;
+                return true;
             }
         }
-        invoke(methodInfo, argc);
+        return invoke(methodInfo, argc);
     }
     else
         throw "invoke special to static method";
 }
 
-void Execution::invokeVirtual(const ConstMethod &constMethod) {
+bool Execution::invokeVirtual(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
     const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClass : obj->type;
@@ -612,25 +629,28 @@ void Execution::invokeVirtual(const ConstMethod &constMethod) {
             Mjvm::lock();
             if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
                 obj->ownId = (int32_t)this;
-                if(obj->monitorCount < 0xFFFFFF)
+                if(obj->monitorCount < 0xFFFFFF) {
                     obj->monitorCount++;
-                else
+                    Mjvm::unlock();
+                }
+                else {
+                    Mjvm::unlock();
                     throw "monitorCount limit has been reached";
-                Mjvm::unlock();
+                }
             }
             else {
                 Mjvm::unlock();
-                return;
+                return true;
             }
         }
         argc++;
-        invoke(methodInfo, argc);
+        return invoke(methodInfo, argc);
     }
     else
         throw "invoke virtual to static method";
 }
 
-void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
+bool Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
     const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClass : obj->type;
     uint32_t interfaceConstMethod[] = {
@@ -643,19 +663,22 @@ void Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
             Mjvm::lock();
             if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
                 obj->ownId = (int32_t)this;
-                if(obj->monitorCount < 0xFFFFFF)
+                if(obj->monitorCount < 0xFFFFFF) {
                     obj->monitorCount++;
-                else
+                    Mjvm::unlock();
+                }
+                else {
+                    Mjvm::unlock();
                     throw "monitorCount limit has been reached";
-                Mjvm::unlock();
+                }
             }
             else {
                 Mjvm::unlock();
-                return;
+                return true;
             }
         }
         argc++;
-        invoke(methodInfo, argc);
+        return invoke(methodInfo, argc);
     }
     else
         throw "invoke interface to static method";
@@ -2039,26 +2062,30 @@ int64_t Execution::run(const char *mainClass) {
     op_invokevirtual: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
-        invokeVirtual(constMethod);
+        if(!invokeVirtual(constMethod))
+            goto exception_handler;
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
-        invokeSpecial(constMethod);
+        if(!invokeSpecial(constMethod))
+            goto exception_handler;
         goto *opcodes[code[pc]];
     }
     op_invokestatic: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
-        invokeStatic(constMethod);
+        if(!invokeStatic(constMethod))
+            goto exception_handler;
         goto *opcodes[code[pc]];
     }
     op_invokeinterface: {
         const ConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t count = code[pc + 3];
         lr = pc + 5;
-        invokeInterface(interfaceMethod, count);
+        if(!invokeInterface(interfaceMethod, count))
+            goto exception_handler;
         goto *opcodes[code[pc]];
     }
     op_invokedynamic:

@@ -30,14 +30,19 @@ static bool nativeClone(Execution &execution) {
         return true;
     }
     else {
-        throw "CloneNotSupportedException";
+        Mjvm::lock();
+        MjvmString *strObj = execution.newString(STR_AND_SIZE("Clone method is not supported"));
+        MjvmThrowable *excpObj = execution.newCloneNotSupportedException(strObj);
+        execution.stackPushObject(excpObj);
+        Mjvm::unlock();
         return false;
     }
 }
 
 static const NativeMethod methods[] = {
-    NATIVE_METHOD("\x08\x00""getClass", "\x09\x00""()LClass;", nativeGetClass),
-    NATIVE_METHOD("\x08\x00""hashCode", "\x03\x00""()I",       nativeHashCode),
+    NATIVE_METHOD("\x08\x00""getClass", "\x09\x00""()LClass;",            nativeGetClass),
+    NATIVE_METHOD("\x08\x00""hashCode", "\x03\x00""()I",                  nativeHashCode),
+    NATIVE_METHOD("\x05\x00""clone",    "\x14\x00""()Ljava/lang/Object;", nativeClone),
 };
 
 const NativeClass OBJECT_CLASS = NATIVE_CLASS(objectClass, methods);

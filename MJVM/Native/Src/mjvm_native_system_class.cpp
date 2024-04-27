@@ -1,4 +1,5 @@
 
+#include "mjvm.h"
 #include "mjvm_object.h"
 #include "mjvm_const_name.h"
 #include "mjvm_native_system_class.h"
@@ -29,24 +30,28 @@ static bool nativeArraycopy(Execution &execution) {
         switch(elementSize) {
             case 1:
                 for(uint32_t i = 0; i < length; i++)
-                    ((uint8_t *)dstVal)[i] = ((uint8_t *)srcVal)[i];
+                    ((uint8_t *)dstVal)[i + destPos] = ((uint8_t *)srcVal)[i + srcPos];
                 break;
             case 2:
                 for(uint32_t i = 0; i < length; i++)
-                    ((uint16_t *)dstVal)[i] = ((uint16_t *)srcVal)[i];
+                    ((uint16_t *)dstVal)[i + destPos] = ((uint16_t *)srcVal)[i + srcPos];
                 break;
             case 4:
                 for(uint32_t i = 0; i < length; i++)
-                    ((uint32_t *)dstVal)[i] = ((uint32_t *)srcVal)[i];
+                    ((uint32_t *)dstVal)[i + destPos] = ((uint32_t *)srcVal)[i + srcPos];
                 break;
             case 8:
                 for(uint32_t i = 0; i < length; i++)
-                    ((uint64_t *)dstVal)[i] = ((uint64_t *)srcVal)[i];
+                    ((uint64_t *)dstVal)[i + destPos] = ((uint64_t *)srcVal)[i + srcPos];
                 break;
         }
     }
     else {
-        throw "ArrayStoreException";
+        Mjvm::lock();
+        MjvmString *strObj = execution.newString(STR_AND_SIZE("Type mismatch, can not copy object array object"));
+        MjvmThrowable *excpObj = execution.newArrayStoreException(strObj);
+        execution.stackPushObject(excpObj);
+        Mjvm::unlock();
         return false;
     }
     return true;
