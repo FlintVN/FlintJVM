@@ -4,8 +4,8 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_print_stream_class.h"
 
-static int64_t nativeWrite(int32_t args[], int32_t argc) {
-    MjvmString *str = (MjvmString *)args[0];
+static bool nativeWrite(Execution &execution) {
+    MjvmString *str = (MjvmString *)execution.stackPopObject();
     const char *value = str->getText();
     uint32_t length = str->getLength();
     if(str->getCoder() == 0) {
@@ -16,13 +16,14 @@ static int64_t nativeWrite(int32_t args[], int32_t argc) {
         for(uint32_t i = 0; i < length; i++)
             putchar(((uint16_t *)value)[i]);
     }
-    return 0;
+    return true;
 }
 
-static int64_t nativeWriteln(int32_t args[], int32_t argc) {
-    nativeWrite(args, argc);
+static bool nativeWriteln(Execution &execution) {
+    if(!nativeWrite(execution))
+        return false;
     putchar('\n');
-    return 0;
+    return true;
 }
 
 static const NativeMethod methods[] = {

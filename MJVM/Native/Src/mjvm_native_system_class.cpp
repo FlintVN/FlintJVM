@@ -3,22 +3,22 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_system_class.h"
 
-int64_t nativeCurrentTimeMillis(int32_t args[], int32_t argc) {
+static bool nativeCurrentTimeMillis(Execution &execution) {
     // TODO
     return 0;
 }
 
-int64_t nativeNanoTime(int32_t args[], int32_t argc) {
+static bool nativeNanoTime(Execution &execution) {
     // TODO
     return 0;
 }
 
-int64_t nativeArraycopy(int32_t args[], int32_t argc) {
-    MjvmObject *src = (MjvmObject *)args[0];
-    int32_t srcPos = args[1];
-    MjvmObject *dest = (MjvmObject *)args[2];
-    int32_t destPos = args[3];
-    int32_t length = args[4];
+static bool nativeArraycopy(Execution &execution) {
+    int32_t length = execution.stackPopInt32();
+    int32_t destPos = execution.stackPopInt32();
+    MjvmObject *dest = execution.stackPopObject();
+    int32_t srcPos = execution.stackPopInt32();
+    MjvmObject *src = execution.stackPopObject();
     if(src->type == dest->type) {
         uint8_t atype = MjvmObject::isPrimType(src->type);
         uint8_t elementSize = atype ? MjvmObject::getPrimitiveTypeSize(atype) : sizeof(MjvmObject *);
@@ -45,9 +45,11 @@ int64_t nativeArraycopy(int32_t args[], int32_t argc) {
                 break;
         }
     }
-    else
-        throw "Type mismatch";
-    return 0;
+    else {
+        throw "ArrayStoreException";
+        return false;
+    }
+    return true;
 }
 
 static const NativeMethod methods[] = {

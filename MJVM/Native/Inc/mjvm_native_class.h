@@ -3,6 +3,7 @@
 #define __MJVM_NATIVE_CLASS_H
 
 #include "mjvm_common.h"
+#include "mjvm_execution.h"
 #include "mjvm_const_pool.h"
 #include "mjvm_attribute_info.h"
 

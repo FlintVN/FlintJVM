@@ -3,79 +3,83 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_math_class.h"
 
-static int64_t nativeSin(int32_t args[], int32_t argc) {
-    double ret = sin(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeSin(Execution &execution) {
+    execution.stackPushDouble(sin(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeCos(int32_t args[], int32_t argc) {
-    double ret = cos(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeCos(Execution &execution) {
+    execution.stackPushDouble(cos(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeTan(int32_t args[], int32_t argc) {
-    double ret = tan(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeTan(Execution &execution) {
+    execution.stackPushDouble(tan(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeAsin(int32_t args[], int32_t argc) {
-    double ret = asin(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeAsin(Execution &execution) {
+    execution.stackPushDouble(asin(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeAcos(int32_t args[], int32_t argc) {
-    double ret = acos(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeAcos(Execution &execution) {
+    execution.stackPushDouble(acos(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeAtan(int32_t args[], int32_t argc) {
-    double ret = atan(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeAtan(Execution &execution) {
+    execution.stackPushDouble(atan(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeLog(int32_t args[], int32_t argc) {
-    double ret = log(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeLog(Execution &execution) {
+    execution.stackPushDouble(log(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeLog10(int32_t args[], int32_t argc) {
-    double ret = log10(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeLog10(Execution &execution) {
+    execution.stackPushDouble(log10(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeSqrt(int32_t args[], int32_t argc) {
-    double ret = sqrt(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeSqrt(Execution &execution) {
+    execution.stackPushDouble(sqrt(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeCbrt(int32_t args[], int32_t argc) {
-    double ret = cbrt(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeCbrt(Execution &execution) {
+    execution.stackPushDouble(cbrt(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeAtan2(int32_t args[], int32_t argc) {
-    double ret = atan2(((double *)args)[0], ((double *)args)[1]);
-    return *(int64_t *)&ret;
+static bool nativeAtan2(Execution &execution) {
+    double x = execution.stackPopDouble();
+    double y = execution.stackPopDouble();
+    execution.stackPushDouble(atan2(y, x));
+    return true;
 }
 
-static int64_t nativePow(int32_t args[], int32_t argc) {
-    double ret = pow(((double *)args)[0], ((double *)args)[1]);
-    return *(int64_t *)&ret;
+static bool nativePow(Execution &execution) {
+    double b = execution.stackPopDouble();
+    double a = execution.stackPopDouble();
+    execution.stackPushDouble(pow(a, b));
+    return true;
 }
 
-static int64_t nativeSinh(int32_t args[], int32_t argc) {
-    double ret = sinh(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeSinh(Execution &execution) {
+    execution.stackPushDouble(sinh(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeCosh(int32_t args[], int32_t argc) {
-    double ret = cosh(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeCosh(Execution &execution) {
+    execution.stackPushDouble(cosh(execution.stackPopDouble()));
+    return true;
 }
 
-static int64_t nativeTanh(int32_t args[], int32_t argc) {
-    double ret = tanh(*(double *)args);
-    return *(int64_t *)&ret;
+static bool nativeTanh(Execution &execution) {
+    execution.stackPushDouble(tanh(execution.stackPopDouble()));
+    return true;
 }
 
 static const NativeMethod methods[] = {

@@ -53,23 +53,24 @@ private:
 
     void addToList(MjvmObjectNode **list, MjvmObjectNode *objNode);
     void removeFromList(MjvmObjectNode **list, MjvmObjectNode *objNode);
-
+public:
     MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
 
     MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
     MjvmString *newString(const char *utf8, uint16_t size);
     MjvmString *newString(const char *latin1Str[], uint16_t count);
+private:
     MjvmObjectNode *newStringNode(const char *utf8, uint16_t size);
     MjvmObjectNode *newStringNode(const char *latin1Str[], uint16_t count);
     MjvmString *getConstString(const ConstUtf8 &utf8);
-
+public:
     MjvmThrowable *newThrowable(MjvmString *strObj, const ConstUtf8 &excpType);
     MjvmThrowable *newArithmeticException(MjvmString *strObj);
     MjvmThrowable *newNullPointerException(MjvmString *strObj);
     MjvmThrowable *newNegativeArraySizeException(MjvmString *strObj);
     MjvmThrowable *newArrayIndexOutOfBoundsException(MjvmString *strObj);
-
+private:
     void freeAllObject(void);
     void garbageCollectionProtectObject(MjvmObject *obj);
 
@@ -82,6 +83,7 @@ private:
     void setStackValue(uint32_t index, const StackValue &value);
 
     void stackPush(const StackValue &value);
+public:
     void stackPushInt32(int32_t value);
     void stackPushInt64(int64_t value);
     void stackPushFloat(float value);
@@ -93,7 +95,7 @@ private:
     float stackPopFloat(void);
     double stackPopDouble(void);
     MjvmObject *stackPopObject(void);
-
+private:
     void stackRestoreContext(void);
 
     void initNewContext(const MethodInfo &methodInfo, uint16_t argc = 0);
@@ -105,11 +107,11 @@ private:
     void invokeSpecial(const ConstMethod &constMethod);
     void invokeVirtual(const ConstMethod &constMethod);
     void invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc);
-
+public:
     bool isInstanceof(MjvmObject *obj, const ConstUtf8 &type);
 
     void garbageCollection(void);
-
+private:
     ~Execution(void);
 
     friend class Mjvm;

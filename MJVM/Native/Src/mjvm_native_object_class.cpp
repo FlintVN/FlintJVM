@@ -1,16 +1,38 @@
 
+#include <string.h>
+#include "mjvm.h"
 #include "mjvm_object.h"
 #include "mjvm_const_name.h"
-#include "mjvm_native_system_class.h"
+#include "mjvm_native_object_class.h"
 
-static int64_t nativeGetClass(int32_t args[], int32_t argc) {
+static bool nativeGetClass(Execution &execution) {
     // TODO
-    return 0;
+    return true;
 }
 
-static int64_t nativeHashCode(int32_t args[], int32_t argc) {
-    MjvmObject *obj = (MjvmObject *)args[0];
-    return (int64_t)obj;
+static bool nativeHashCode(Execution &execution) {
+    MjvmObject *obj = execution.stackPopObject();
+    execution.stackPushInt32((int32_t)obj);
+    return true;
+}
+
+static bool nativeClone(Execution &execution) {
+    MjvmObject *obj = execution.stackPopObject();
+    if(obj->dimensions > 0) {
+        uint8_t atype = MjvmObject::isPrimType(obj->type);
+        uint8_t elementSize = atype ? MjvmObject::getPrimitiveTypeSize(atype) : sizeof(MjvmObject *);
+        uint32_t length = obj->size / elementSize;
+        Mjvm::lock();
+        MjvmObject *cloneObj = execution.newObject(obj->size, obj->type, obj->dimensions);
+        memcpy(cloneObj->data, obj->data, obj->size);
+        execution.stackPushObject(cloneObj);
+        Mjvm::unlock();
+        return true;
+    }
+    else {
+        throw "CloneNotSupportedException";
+        return false;
+    }
 }
 
 static const NativeMethod methods[] = {

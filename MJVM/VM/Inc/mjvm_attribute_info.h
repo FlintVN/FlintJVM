@@ -61,7 +61,9 @@ public:
     const uint8_t *getRaw(void) const;
 };
 
-typedef int64_t (* const NativeMethodPtr)(int32_t args[], int32_t argc);
+class Execution;
+
+typedef bool (* const NativeMethodPtr)(Execution &execution);
 
 class AttributeNative : public AttributeInfo {
 public:

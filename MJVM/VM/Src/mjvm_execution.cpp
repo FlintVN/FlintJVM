@@ -255,6 +255,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
 }
 
 void Execution::garbageCollection(void) {
+    Mjvm::lock();
     objectSizeToGc = 0;
     for(ClassDataNode *node = staticClassDataList; node != 0; node = node->next) {
         FieldsData *fieldsData = node->filedsData;
@@ -286,6 +287,7 @@ void Execution::garbageCollection(void) {
         }
         node = next;
     }
+    Mjvm::unlock();
 }
 
 ClassDataNode &Execution::loadClassDataNode(const char *className, uint16_t length) {
@@ -539,23 +541,7 @@ void Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
     }
     else {
         const AttributeNative &attrNative = methodInfo.getAttributeNative();
-        uint64_t ret = attrNative.nativeMethod(&stack[sp - (argc - 1)], argc);
-        switch(methodInfo.parseParamInfo().retType) {
-            case 'V':
-                break;
-            case 'J':
-            case 'D':
-                stackPushInt64(ret);
-            case 'L': 
-            case '[': {
-                MjvmObject *obj = (MjvmObject *)ret;
-                stackPushObject(obj);
-                break;
-            }
-            default:
-                stackPushInt32((int32_t)ret);
-                break;
-        }
+        uint64_t ret = attrNative.nativeMethod(*this);
         pc = lr;
     }
 }
