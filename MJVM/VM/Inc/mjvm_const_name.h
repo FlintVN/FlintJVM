@@ -10,6 +10,8 @@ extern const uint32_t stringCoderFieldName[];
 extern const uint32_t exceptionDetailMessageFieldName[];
 
 extern const ConstUtf8 &mathClass;
+extern const ConstUtf8 &floatClass;
+extern const ConstUtf8 &doubleClass;
 extern const ConstUtf8 &objectClass;
 extern const ConstUtf8 &systemClass;
 extern const ConstUtf8 &printStreamClass;

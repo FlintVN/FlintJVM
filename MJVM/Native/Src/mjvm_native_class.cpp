@@ -1,11 +1,15 @@
 
 #include "mjvm_native_math_class.h"
+#include "mjvm_native_float_class.h"
+#include "mjvm_native_double_class.h"
 #include "mjvm_native_object_class.h"
 #include "mjvm_native_system_class.h"
 #include "mjvm_native_print_stream_class.h"
 
 const NativeClass *NATIVE_CLASS_LIST[] = {
     &MATH_CLASS,
+    &FLOAT_CLASS,
+    &DOUBLE_CLASS,
     &OBJECT_CLASS,
     &SYSTEM_CLASS,
     &PRINT_STREAM_CLASS,
