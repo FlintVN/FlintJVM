@@ -37,6 +37,7 @@ const ConstUtf8 &stringClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/Stri
 const ConstUtf8 &nullPtrExcpClassName = *(const ConstUtf8 *)"\x1E\x00""java/lang/NullPointerException";
 const ConstUtf8 &arrayStoreExceptionClassName = *(const ConstUtf8 *)"\x1D\x00""java/lang/ArrayStoreException";
 const ConstUtf8 &arithmeticExceptionClassName = *(const ConstUtf8 *)"\x1D\x00""java/lang/ArithmeticException";
+const ConstUtf8 &classNotFoundExceptionClassName = *(const ConstUtf8 *)"\x20\x00""java/lang/ClassNotFoundException";
 const ConstUtf8 &cloneNotSupportedExceptionClassName = *(const ConstUtf8 *)"\x24\x00""java/lang/CloneNotSupportedException";
 const ConstUtf8 &negativeArraySizeExceptionClassName = *(const ConstUtf8 *)"\x24\x00""java/lang/NegativeArraySizeException";
 const ConstUtf8 &arrayIndexOutOfBoundsExceptionClassName = *(const ConstUtf8 *)"\x28\x00""java/lang/ArrayIndexOutOfBoundsException";

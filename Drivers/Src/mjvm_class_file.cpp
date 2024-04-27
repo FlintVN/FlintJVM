@@ -2,6 +2,7 @@
 #include <string.h>
 #include "mjvm_common.h"
 #include "mjvm_class_file.h"
+#include "mjvm_file_not_found_exception.h"
 
 ClassFile::ClassFile(const char *fileName) {
     char buff[256];
@@ -9,7 +10,7 @@ ClassFile::ClassFile(const char *fileName) {
     strcat(buff, ".class");
     fptr = fopen(buff, "rb");
     if(fptr == 0)
-        throw "open file error";
+        throw (FileNotFound *)fileName;
 }
 
 ClassFile::ClassFile(const char *fileName, uint16_t length) {
@@ -18,7 +19,7 @@ ClassFile::ClassFile(const char *fileName, uint16_t length) {
     strcpy(&buff[length], ".class");
     fptr = fopen(buff, "rb");
     if(fptr == 0)
-        throw "open file error";
+        throw (FileNotFound *)fileName;
 }
 
 void ClassFile::read(void *buff, uint32_t size) {

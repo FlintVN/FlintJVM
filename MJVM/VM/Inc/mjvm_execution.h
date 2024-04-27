@@ -71,6 +71,7 @@ public:
     MjvmThrowable *newArrayStoreException(MjvmString *strObj);
     MjvmThrowable *newArithmeticException(MjvmString *strObj);
     MjvmThrowable *newNullPointerException(MjvmString *strObj);
+    MjvmThrowable *newClassNotFoundException(MjvmString *strObj);
     MjvmThrowable *newCloneNotSupportedException(MjvmString *strObj);
     MjvmThrowable *newNegativeArraySizeException(MjvmString *strObj);
     MjvmThrowable *newArrayIndexOutOfBoundsException(MjvmString *strObj);

@@ -4,6 +4,7 @@
 #include "mjvm_opcodes.h"
 #include "mjvm_execution.h"
 #include "mjvm_const_name.h"
+#include "mjvm_file_not_found_exception.h"
 
 #define FLOAT_NAN                   0x7FC00000
 #define DOUBLE_NAN                  0x7FF8000000000000
@@ -201,6 +202,10 @@ MjvmThrowable *Execution::newArithmeticException(MjvmString *strObj) {
 
 MjvmThrowable *Execution::newNullPointerException(MjvmString *strObj) {
     return newThrowable(strObj, nullPtrExcpClassName);
+}
+
+MjvmThrowable *Execution::newClassNotFoundException(MjvmString *strObj) {
+    return newThrowable(strObj, classNotFoundExceptionClassName);
 }
 
 MjvmThrowable *Execution::newCloneNotSupportedException(MjvmString *strObj) {
@@ -742,6 +747,8 @@ int64_t Execution::run(const char *mainClass) {
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
     };
 
+    FileNotFound *fileNotFound = 0;
+
     method = &load(mainClass).getMainMethodInfo();
 
     initNewContext(*method);
@@ -970,8 +977,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -993,8 +1007,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -1015,8 +1036,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -1037,8 +1065,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -1060,8 +1095,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -1213,8 +1255,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -1237,8 +1286,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -1260,8 +1316,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -1284,8 +1347,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -1866,7 +1936,13 @@ int64_t Execution::run(const char *mainClass) {
         const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         const FieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
-            stackPushInt32((int32_t)&load(constField.className));
+            try {
+                stackPushInt32((int32_t)&load(constField.className));
+            }
+            catch(FileNotFound *file) {
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             goto init_static_field;
         }
         switch(constField.nameAndType.descriptor.text[0]) {
@@ -1905,7 +1981,13 @@ int64_t Execution::run(const char *mainClass) {
         const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         const FieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
-            stackPushInt32((int32_t)&load(constField.className));
+            try {
+                stackPushInt32((int32_t)&load(constField.className));
+            }
+            catch(FileNotFound *file) {
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             goto init_static_field;
         }
         pc += 3;
@@ -1989,8 +2071,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Cannot read field '", constField.nameAndType.name.text, "' from null object"};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newNullPointerException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newNullPointerException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -2053,8 +2142,15 @@ int64_t Execution::run(const char *mainClass) {
             const char *msg[] = {"Cannot assign field '", constField.nameAndType.name.text, "' for null object"};
             Mjvm::lock();
             MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newNullPointerException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newNullPointerException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -2062,30 +2158,54 @@ int64_t Execution::run(const char *mainClass) {
     op_invokevirtual: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
-        if(!invokeVirtual(constMethod))
-            goto exception_handler;
+        try {
+            if(!invokeVirtual(constMethod))
+                goto exception_handler;
+        }
+        catch(FileNotFound *file) {
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
-        if(!invokeSpecial(constMethod))
-            goto exception_handler;
+        try {
+            if(!invokeSpecial(constMethod))
+                goto exception_handler;
+        }
+        catch(FileNotFound *file) {
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         goto *opcodes[code[pc]];
     }
     op_invokestatic: {
         const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
-        if(!invokeStatic(constMethod))
-            goto exception_handler;
+        try {
+            if(!invokeStatic(constMethod))
+                goto exception_handler;
+        }
+        catch(FileNotFound *file) {
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         goto *opcodes[code[pc]];
     }
     op_invokeinterface: {
         const ConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t count = code[pc + 3];
         lr = pc + 5;
-        if(!invokeInterface(interfaceMethod, count))
-            goto exception_handler;
+        try {
+            if(!invokeInterface(interfaceMethod, count))
+                goto exception_handler;
+        }
+        catch(FileNotFound *file) {
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         goto *opcodes[code[pc]];
     }
     op_invokedynamic:
@@ -2096,8 +2216,15 @@ int64_t Execution::run(const char *mainClass) {
         const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
         Mjvm::lock();
         MjvmObject *obj = newObject(sizeof(FieldsData), constClass);
-        new ((FieldsData *)obj->data)FieldsData(*this, load(constClass), false);
-        stackPushObject(obj);
+        try {
+            new ((FieldsData *)obj->data)FieldsData(*this, load(constClass), false);
+            stackPushObject(obj);
+        }
+        catch(FileNotFound *file) {
+            Mjvm::unlock();
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         Mjvm::unlock();
         pc += 3;
         goto *opcodes[code[pc]];
@@ -2125,8 +2252,8 @@ int64_t Execution::run(const char *mainClass) {
         Mjvm::lock();
         MjvmObject *obj = newObject(4 * count, constClass, 1);
         stackPushObject(obj);
-        Mjvm::unlock();
         memset(obj->data, 0, obj->size);
+        Mjvm::unlock();
         pc += 3;
         goto *opcodes[code[pc]];
     }
@@ -2135,8 +2262,15 @@ int64_t Execution::run(const char *mainClass) {
         if(obj == 0) {
             Mjvm::lock();
             MjvmString *strObj = newString(STR_AND_SIZE("Cannot read the array length from null object"));
-            MjvmThrowable *excpObj = newNullPointerException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newNullPointerException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -2150,8 +2284,15 @@ int64_t Execution::run(const char *mainClass) {
             stackPopObject();
             Mjvm::lock();
             MjvmString *strObj = newString(STR_AND_SIZE("Cannot throw exception by null object"));
-            MjvmThrowable *excpObj = newNullPointerException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newNullPointerException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -2181,14 +2322,31 @@ int64_t Execution::run(const char *mainClass) {
     op_checkcast: {
         MjvmObject *obj = (MjvmObject *)stack[sp];
         const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
-        if(obj != 0 && !isInstanceof(obj, type)) {
-            const char *msg[] = {"Class '", obj->type.text, "' cannot be cast to class '", type.text, "'"};
-            Mjvm::lock();
-            MjvmString *strObj = newString(msg, LENGTH(msg));
-            MjvmThrowable *excpObj = newNullPointerException(strObj);
-            stackPushObject(excpObj);
-            Mjvm::unlock();
-            goto exception_handler;
+        if(obj != 0) {
+            bool isInsOf;
+            try {
+                isInsOf = isInstanceof(obj, type);
+            }
+            catch(FileNotFound *file) {
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
+            if(!isInsOf) {
+                const char *msg[] = {"Class '", obj->type.text, "' cannot be cast to class '", type.text, "'"};
+                Mjvm::lock();
+                MjvmString *strObj = newString(msg, LENGTH(msg));
+                try {
+                    MjvmThrowable *excpObj = newNullPointerException(strObj);
+                    stackPushObject(excpObj);
+                }
+                catch(FileNotFound *file) {
+                    Mjvm::unlock();
+                    fileNotFound = file;
+                    goto file_not_found_excp;
+                }
+                Mjvm::unlock();
+                goto exception_handler;
+            }
         }
         pc += 3;
         goto *opcodes[code[pc]];
@@ -2196,7 +2354,13 @@ int64_t Execution::run(const char *mainClass) {
     op_instanceof: {
         MjvmObject *obj = stackPopObject();
         const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
-        stackPushInt32(isInstanceof(obj, type));
+        try {
+            stackPushInt32(isInstanceof(obj, type));
+        }
+        catch(FileNotFound *file) {
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         pc += 3;
         goto *opcodes[code[pc]];
     }
@@ -2205,8 +2369,15 @@ int64_t Execution::run(const char *mainClass) {
         if(obj == 0) {
             Mjvm::lock();
             MjvmString *strObj = newString(STR_AND_SIZE("Cannot enter synchronized block by null object"));
-            MjvmThrowable *excpObj = newNullPointerException(strObj);
-            stackPushObject(excpObj);
+            try {
+                MjvmThrowable *excpObj = newNullPointerException(strObj);
+                stackPushObject(excpObj);
+            }
+            catch(FileNotFound *file) {
+                Mjvm::unlock();
+                fileNotFound = file;
+                goto file_not_found_excp;
+            }
             Mjvm::unlock();
             goto exception_handler;
         }
@@ -2240,22 +2411,29 @@ int64_t Execution::run(const char *mainClass) {
         const uint8_t dimensions = code[pc + 3];
         const char *typeNameText = typeName->text;
         uint32_t length = typeName->length - dimensions;
-        if(typeNameText[dimensions] != 'L') {
-            uint8_t atype = MjvmObject::convertToAType(typeNameText[dimensions]);
-            if(atype == 0)
-                throw "invalid primative type";
-            typeName = primTypeConstUtf8List[atype - 4];
-        }
-        else
-            typeName = &load(&typeNameText[dimensions + 1], length - 2).getThisClass();
         Mjvm::lock();
-        sp -= dimensions - 1;
-        for(int32_t i = 0; i < dimensions; i++) {
-            if(stack[sp + i] < 0)
-                goto negative_array_size_excp;
+        try {
+            if(typeNameText[dimensions] != 'L') {
+                uint8_t atype = MjvmObject::convertToAType(typeNameText[dimensions]);
+                if(atype == 0)
+                    throw "invalid primative type";
+                typeName = primTypeConstUtf8List[atype - 4];
+            }
+            else
+                typeName = &load(&typeNameText[dimensions + 1], length - 2).getThisClass();
+            sp -= dimensions - 1;
+            for(int32_t i = 0; i < dimensions; i++) {
+                if(stack[sp + i] < 0)
+                    goto negative_array_size_excp;
+            }
+            MjvmObject *array = newMultiArray(*typeName, dimensions, &stack[sp]);
+            stackPushObject(array);
         }
-        MjvmObject *array = newMultiArray(*typeName, dimensions, &stack[sp]);
-        stackPushObject(array);
+        catch(FileNotFound *file) {
+            Mjvm::unlock();
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         Mjvm::unlock();
         pc += 4;
         goto *opcodes[code[pc]];
@@ -2283,31 +2461,68 @@ int64_t Execution::run(const char *mainClass) {
     divided_by_zero_excp: {
         Mjvm::lock();
         MjvmString *strObj = newString(STR_AND_SIZE("Divided by zero"));
-        MjvmThrowable *excpObj = newArithmeticException(strObj);
-        stackPushObject(excpObj);
+        try {
+            MjvmThrowable *excpObj = newArithmeticException(strObj);
+            stackPushObject(excpObj);
+        }
+        catch(FileNotFound *file) {
+            Mjvm::unlock();
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         Mjvm::unlock();
         goto exception_handler;
     }
     negative_array_size_excp: {
         Mjvm::lock();
         MjvmString *strObj = newString(STR_AND_SIZE("Size of the array is a negative number"));
-        MjvmThrowable *excpObj = newNegativeArraySizeException(strObj);
-        stackPushObject(excpObj);
+        try {
+            MjvmThrowable *excpObj = newNegativeArraySizeException(strObj);
+            stackPushObject(excpObj);
+        }
+        catch(FileNotFound *file) {
+            Mjvm::unlock();
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         Mjvm::unlock();
         goto exception_handler;
     }
     load_null_array_excp: {
         Mjvm::lock();
         MjvmString *strObj = newString(STR_AND_SIZE("Cannot load from null array object"));
-        MjvmThrowable *excpObj = newNullPointerException(strObj);
-        stackPushObject(excpObj);
+        try {
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+        }
+        catch(FileNotFound *file) {
+            Mjvm::unlock();
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
         Mjvm::unlock();
         goto exception_handler;
     }
     store_null_array_excp: {
         Mjvm::lock();
         MjvmString *strObj = newString(STR_AND_SIZE("Cannot store to null array object"));
-        MjvmThrowable *excpObj = newNullPointerException(strObj);
+        try {
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+        }
+        catch(FileNotFound *file) {
+            Mjvm::unlock();
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
+        Mjvm::unlock();
+        goto exception_handler;
+    }
+    file_not_found_excp: {
+        const char *msg[] = {"Could not find or load class ", fileNotFound->getFileName(), ".class"};
+        Mjvm::lock();
+        MjvmString *strObj = newString(msg, LENGTH(msg));
+        MjvmThrowable *excpObj = newClassNotFoundException(strObj);
         stackPushObject(excpObj);
         Mjvm::unlock();
         goto exception_handler;
