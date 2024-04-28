@@ -21,7 +21,7 @@ public class PrintStream {
     }
 
     public final void print(char[] c) {
-        // TO DO
+    	write(String.valueOf(c));
     }
 
     public final void print(int i) {
@@ -65,7 +65,7 @@ public class PrintStream {
     }
 
     public final void println(char[] c) {
-        // TO DO
+    	writeln(String.valueOf(c));
     }
 
     public final void println(int i) {

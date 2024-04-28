@@ -136,8 +136,6 @@ public final class Float extends Number implements Comparable<Float> {
         int bin16ExpBits = 0x7c00 & bin16arg;
         int bin16SignifBits = 0x03FF & bin16arg;
 
-        final int SIGNIF_SHIFT = (FLOAT_SIGNIFICAND_WIDTH - 11);
-
         float sign = (bin16SignBit != 0) ? -1.0f : 1.0f;
 
         int bin16Exp = (bin16ExpBits >> 10) - 15;
@@ -147,14 +145,14 @@ public final class Float extends Number implements Comparable<Float> {
         	if(bin16SignifBits == 0)
         		return sign * Float.POSITIVE_INFINITY;
         	else
-        		Float.intBitsToFloat((bin16SignBit << 16) | 0x7f80_0000 | (bin16SignifBits << SIGNIF_SHIFT));
+        		Float.intBitsToFloat((bin16SignBit << 16) | 0x7f80_0000 | (bin16SignifBits << (FLOAT_SIGNIFICAND_WIDTH - 11)));
         }
 
-        assert -15 < bin16Exp  && bin16Exp < 16;
+        // assert -15 < bin16Exp  && bin16Exp < 16;
 
         int floatExpBits = (bin16Exp + FLOAT_EXP_BIAS) << (FLOAT_SIGNIFICAND_WIDTH - 1);
 
-        return Float.intBitsToFloat((bin16SignBit << 16) | floatExpBits | (bin16SignifBits << SIGNIF_SHIFT));
+        return Float.intBitsToFloat((bin16SignBit << 16) | floatExpBits | (bin16SignifBits << (FLOAT_SIGNIFICAND_WIDTH - 11)));
     }
 
     public static short floatToFloat16(float f) {
@@ -173,7 +171,7 @@ public final class Float extends Number implements Comparable<Float> {
             return sign_bit;
 
         int exp = Math.getExponent(f);
-        assert -25 <= exp && exp <= 15;
+        // assert -25 <= exp && exp <= 15;
 
         int expdelta = 0;
         int msb = 0x0000_0000;
@@ -193,7 +191,7 @@ public final class Float extends Number implements Comparable<Float> {
         if (round != 0 && ((lsb | sticky) != 0 ))
             signif_bits++;
 
-        assert (0xf800 & signif_bits) == 0x0;
+        // assert (0xf800 & signif_bits) == 0x0;
 
         return (short)(sign_bit | ( ((exp + 15) << 10) + signif_bits ) );
     }

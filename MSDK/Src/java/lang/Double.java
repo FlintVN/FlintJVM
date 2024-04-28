@@ -2,6 +2,8 @@ package java.lang;
 
 import jdk.internal.math.DoubleToDecimal;
 
+import static java.lang.Math.DOUBLE_SIGNIF_BIT_MASK;
+
 public final class Double extends Number implements Comparable<Double> {
     public static final double POSITIVE_INFINITY = 1.0 / 0.0;
     public static final double NEGATIVE_INFINITY = -1.0 / 0.0;
@@ -41,11 +43,11 @@ public final class Double extends Number implements Comparable<Double> {
             else {
                 boolean subnormal = (d < Double.MIN_NORMAL);
 
-                long signifBits = (Double.doubleToLongBits(d) & DoubleConsts.SIGNIF_BIT_MASK) | 0x1000000000000000L;
+                long signifBits = (Double.doubleToLongBits(d) & DOUBLE_SIGNIF_BIT_MASK) | 0x1000000000000000L;
 
                 answer.append(subnormal ? "0." : "1.");
 
-                String signif = Long.toHexString(signifBits).substring(3,16);
+                String signif = Long.toHexString(signifBits).substring(3, 16);
                 answer.append(signif.equals("0000000000000") ? "0" : signif.replaceFirst("0{1,12}$", ""));
 
                 answer.append('p');

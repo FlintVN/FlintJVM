@@ -2,9 +2,6 @@ package java.lang;
 
 import java.util;
 
-import jdk.internal.math.DoubleConsts;
-import jdk.internal.math.FloatConsts;
-
 public final class Math {
 	public static final double E = 2.718281828459045;
     public static final double PI = 3.141592653589793;
@@ -63,7 +60,7 @@ public final class Math {
     public static native double cbrt(double a);
 
     public static double IEEEremainder(double f1, double f2) {
-        return f1 - (f2 * Math.rint(f1 / f2))
+        return f1 - (f2 * Math.rint(f1 / f2));
     }
 
     public static double ceil(double a) {
@@ -81,7 +78,7 @@ public final class Math {
             return ((a == 0.0) ? a : ((a < 0.0) ?  negativeBoundary : positiveBoundary));
         else if (exponent >= 52)
             return a;
-        assert exponent >= 0 && exponent <= 51;
+        // assert exponent >= 0 && exponent <= 51;
 
         long doppel = Double.doubleToRawLongBits(a);
         long mask = DOUBLE_SIGNIF_BIT_MASK >> exponent;
@@ -380,6 +377,7 @@ public final class Math {
         else if (start < direction) {
             final int transducer = Float.floatToRawIntBits(start + 0.0f);
             return Float.intBitsToFloat(transducer + ((transducer >= 0) ? 1 : -1));
+        }
         else if (start == direction)
             return (float)direction;
         else

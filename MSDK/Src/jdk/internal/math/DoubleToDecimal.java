@@ -251,6 +251,6 @@ final public class DoubleToDecimal {
     }
 
     private String charsToString() {
-        return new String(bytes, 0, 0, index + 1);
+        return new String(bytes, 0, index + 1);
     }
 }

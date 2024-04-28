@@ -32,7 +32,7 @@ public final class Long extends Number implements Comparable<Long> {
         if (negative)
             buf[--charPos] = '-';
 
-        return StringLatin1.newString(buf, charPos, (33 - charPos));
+        return String.newString(buf, charPos, (33 - charPos), (byte)0);
     }
 
 
@@ -135,7 +135,7 @@ public final class Long extends Number implements Comparable<Long> {
         if(negative)
             buffer[--index] = '-';
 
-        return StringLatin1.newString(buffer, index, buffer.length - index);
+        return String.newString(buffer, index, buffer.length - index, (byte)0);
     }
 
     public static String toUnsignedString(long i) {
