@@ -161,6 +161,40 @@ public final class String implements Comparable<String>, CharSequence {
     	return value.length == 0;
     }
     
+    public boolean startsWith(String prefix, int toffset) {
+        if (toffset < 0 || toffset > length() - prefix.length())
+            return false;
+        byte ta[] = value;
+        byte pa[] = prefix.value;
+        int po = 0;
+        int pc = pa.length;
+        byte coder = this.coder;
+        if (coder == prefix.coder) {
+            int to = (coder == 0) ? toffset : toffset << 1;
+            while (po < pc) {
+                if (ta[to++] != pa[po++])
+                    return false;
+            }
+        }
+        else {
+            if (coder == 0)
+                return false;
+            while (po < pc) {
+                if (StringUTF16.charAt(ta, toffset++) != (pa[po++] & 0xff))
+                    return false;
+            }
+        }
+        return true;
+    }
+    
+    public boolean startsWith(String prefix) {
+        return startsWith(prefix, 0);
+    }
+    
+    public boolean endsWith(String suffix) {
+        return startsWith(suffix, length() - suffix.length());
+    }
+    
     public int indexOf(int ch) {
     	return (coder == 0) ? StringLatin1.indexOf(value, ch) : StringUTF16.indexOf(value, ch);
     }
