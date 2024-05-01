@@ -195,6 +195,10 @@ public final class String implements Comparable<String>, CharSequence {
         return startsWith(suffix, length() - suffix.length());
     }
     
+    public boolean contains(CharSequence s) {
+        return indexOf(s.toString()) >= 0;
+    }
+    
     public int indexOf(int ch) {
     	return (coder == 0) ? StringLatin1.indexOf(value, ch) : StringUTF16.indexOf(value, ch);
     }
