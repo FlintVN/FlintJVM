@@ -146,6 +146,14 @@ public final class String implements Comparable<String>, CharSequence {
         this(builder.toString());
     }
     
+    byte coder() {
+        return coder;
+    }
+
+    byte[] value() {
+        return value;
+    }
+    
     public int length() {
     	return value.length >>> coder;
     }
@@ -243,7 +251,24 @@ public final class String implements Comparable<String>, CharSequence {
         if (beginIndex == 0 && endIndex == length)
             return this;
         int subLen = endIndex - beginIndex;
-        return coder == 0 ? newString(value, beginIndex, subLen, (byte)0) : newString(value, beginIndex, subLen, (byte)1);
+        if(coder == 0)
+        	return newString(value, beginIndex, subLen, (byte)0);
+        boolean isLatin1 = true;
+        byte[] val = value;
+        for(int i = beginIndex; i < endIndex; i++) {
+        	int index = i << 1;
+        	if(val[index + 1] != 0) {
+        		isLatin1 = false;
+        		break;
+        	}
+        }
+        if(isLatin1) {
+        	byte[] buff = new byte[subLen];
+        	for(int i = beginIndex; i < endIndex; i++)
+        		buff[i] = val[i << 1];
+        	return String.newString(buff, (byte)0);
+        }
+        return newString(value, beginIndex, subLen, (byte)1);
     }
 
     public CharSequence subSequence(int beginIndex, int endIndex) {
