@@ -107,19 +107,6 @@ public final class Integer extends Number implements Comparable<Integer> {
     	return parseInt(s, 0, s.length(), radix);
     }
 
-    static int charToDigit(char c, int radix) {
-    	if('A' <= c && c <= 'Z')
-    		c += 32;
-    	int ret = -1;
-    	if('0' <= c && c <= '9')
-    		ret = c - '0';
-    	else if('a' <= c && c <= 'z')
-    		ret = c - 'a' + 10;
-    	if(ret >= radix)
-    		return -1;
-    	return ret;
-    }
-
     public static int parseInt(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
     	if (s == null)
             throw new NumberFormatException("Cannot parse null string");
@@ -148,7 +135,7 @@ public final class Integer extends Number implements Comparable<Integer> {
             int multmin = limit / radix;
             int result = 0;
             while (i < endIndex) {
-                int digit = charToDigit(s.charAt(i), radix);
+                int digit = Character.digit(s.charAt(i), radix);
                 if (digit < 0 || result < multmin)
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
                 result *= radix;

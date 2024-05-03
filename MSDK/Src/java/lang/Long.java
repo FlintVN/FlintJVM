@@ -174,7 +174,7 @@ public final class Long extends Number implements Comparable<Long> {
             long multmin = limit / radix;
             long result = 0;
             while (i < endIndex) {
-                int digit = Integer.charToDigit(s.charAt(i), radix);
+                int digit = Character.digit(s.charAt(i), radix);
                 if (digit < 0 || result < multmin)
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
                 result *= radix;
@@ -207,7 +207,7 @@ public final class Long extends Number implements Comparable<Long> {
                     return parseLong(s, radix);
 
                 long first = parseLong(s, 0, len - 1, radix);
-                int second = Integer.charToDigit(s.charAt(len - 1), radix);
+                int second = Character.digit(s.charAt(len - 1), radix);
                 if (second < 0)
                     throw new NumberFormatException("Bad digit at end of " + s);
                 long result = first * radix + second;
@@ -234,7 +234,7 @@ public final class Long extends Number implements Comparable<Long> {
                     return parseLong(s, start, start + len, radix);
 
                 long first = parseLong(s, start, start + len - 1, radix);
-                int second = Integer.charToDigit(s.charAt(start + len - 1), radix);
+                int second = Character.digit(s.charAt(start + len - 1), radix);
                 if (second < 0)
                     throw new NumberFormatException("Bad digit at end of " + s.subSequence(start, start + len));
                 long result = first * radix + second;
