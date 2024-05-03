@@ -212,6 +212,68 @@ final class StringUTF16 {
 		return ret;
 	}
 
+	public static String toLower(byte[] value) {
+		int i;
+		int length = value.length >>> 1;
+		byte[] ret = null;
+		for(i = 0; i < length; i++) {
+			char c = charAt(value, i);
+			char lower = Character.toLower(c);
+			if(lower != c) {
+				ret = new byte[length];
+				int index = i << 1;
+				System.arraycopy(value, 0, ret, 0, index);
+				ret[index] = (byte)lower;
+				ret[index + 1] = (byte)(lower >>> 8);
+				i++;
+				break;
+			}
+		}
+		for(; i < length; i++) {
+			int index = i << 1;
+			char lower = Character.toLower(charAt(value, i));
+			ret[index] = (byte)lower;
+			ret[index + 1] = (byte)(lower >>> 8);
+		}
+		return (ret == null) ? null : String.newString(ret,  (byte)0);
+	}
+	
+	public static String toUpper(byte[] value) {
+		int i;
+		int length = value.length >>> 1;
+		byte[] ret = null;
+		for(i = 0; i < length; i++) {
+			char c = charAt(value, i);
+			char upper = Character.toUpper(c);
+			if(upper != c) {
+				ret = new byte[length];
+				int index = i << 1;
+				System.arraycopy(value, 0, ret, 0, index);
+				ret[index] = (byte)upper;
+				ret[index + 1] = (byte)(upper >>> 8);
+				i++;
+				break;
+			}
+		}
+		for(; i < length; i++) {
+			int index = i << 1;
+			char upper = Character.toUpper(charAt(value, i));
+			ret[index] = (byte)upper;
+			ret[index + 1] = (byte)(upper >>> 8);
+		}
+		return (ret == null) ? null : String.newString(ret,  (byte)0);
+	}
+	
+	public static String trim(byte[] value) {
+		int len = value.length;
+        int st = 0;
+        while ((st < len) && (value[st] <= ' '))
+            st++;
+        while ((st < len) && (value[len - 1] <= ' '))
+            len--;
+        return ((st > 0) || (len < value.length)) ? String.newString(value, st, len - st, (byte)0) : null;
+	}
+
 	public static char[] toChars(byte[] value) {
 		int len = value.length >> 1;
 		char[] ret = new char[len];

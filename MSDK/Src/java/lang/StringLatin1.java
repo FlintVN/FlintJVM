@@ -148,6 +148,58 @@ final class StringLatin1 {
 		return ret;
 	}
 	
+	public static String toLower(byte[] value) {
+		int i;
+		int length = value.length;
+		byte[] ret = null;
+		for(i = 0; i < length; i++) {
+			byte c = value[i];
+			if(('A' <= c) && (c <= 'Z')) {
+				ret = new byte[length];
+				System.arraycopy(value, 0, ret, 0, i);
+				ret[i] = (byte)(c + 32);
+				i++;
+				break;
+			}
+		}
+		for(; i < length; i++) {
+			byte c = value[i];
+			ret[i] = (('A' <= c) && (c <= 'Z')) ? (byte)(c + 32) : c;
+		}
+		return (ret == null) ? null : String.newString(ret,  (byte)0);
+	}
+	
+	public static String toUpper(byte[] value) {
+		int i;
+		int length = value.length;
+		byte[] ret = null;
+		for(i = 0; i < length; i++) {
+			byte c = value[i];
+			if(('a' <= c) && (c <= 'z')) {
+				ret = new byte[length];
+				System.arraycopy(value, 0, ret, 0, i);
+				ret[i] = (byte)(c - 32);
+				i++;
+				break;
+			}
+		}
+		for(; i < length; i++) {
+			byte c = value[i];
+			ret[i] = (('a' <= c) && (c <= 'z')) ? (byte)(c - 32) : c;
+		}
+		return (ret == null) ? null : String.newString(ret,  (byte)0);
+	}
+	
+	public static String trim(byte[] value) {
+		int len = value.length;
+        int st = 0;
+        while ((st < len) && (value[st] <= ' '))
+            st++;
+        while ((st < len) && (value[len - 1] <= ' '))
+            len--;
+        return ((st > 0) || (len < value.length)) ? String.newString(value, st, len - st, (byte)0) : null;
+	}
+	
 	public static char[] toChars(byte[] value) {
 		int len = value.length;
 		char[] ret = new char[len];

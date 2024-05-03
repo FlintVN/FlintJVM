@@ -286,6 +286,27 @@ public final class String implements Comparable<String>, CharSequence {
     	return ret;
     }
     
+    public String toLower() {
+    	String ret = (coder == 0) ? StringLatin1.toLower(value) : StringUTF16.toLower(value);
+    	if(ret == null)
+    		return this;
+    	return ret;
+    }
+    
+    public String toUpper() {
+    	String ret = (coder == 0) ? StringLatin1.toUpper(value) : StringUTF16.toUpper(value);
+    	if(ret == null)
+    		return this;
+    	return ret;
+    }
+    
+    public String trim() {
+    	String ret = (coder == 0) ? StringLatin1.trim(value) : StringUTF16.trim(value);
+    	if(ret == null)
+    		return this;
+    	return ret;
+    }
+    
     public String translateEscapes() {
         if (isEmpty())
             return "";
