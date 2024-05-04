@@ -21,6 +21,10 @@ public final class StringBuffer extends AbstractStringBuilder implements Compara
     	super.setCharAt(index, ch);
     }
     
+    public synchronized AbstractStringBuilder clear() {
+    	return super.clear();
+    }
+    
     public synchronized AbstractStringBuilder append(Object obj) {
     	return super.append(String.valueOf(obj));
     }
