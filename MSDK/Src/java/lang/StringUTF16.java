@@ -3,7 +3,7 @@ package java.lang;
 final class StringUTF16 {
 	public static char charAt(byte[] value, int index) {
 		index <<= 1;
-		return (char)(((char)value[index + 1] << 8) | value[index]);
+		return (char)((value[index + 1] << 8) | (value[index] & 0xFF));
 	}
 	
 	public static int indexOf(byte[] value, int ch) {
@@ -220,7 +220,7 @@ final class StringUTF16 {
 			char c = charAt(value, i);
 			char lower = Character.toLower(c);
 			if(lower != c) {
-				ret = new byte[length];
+				ret = new byte[value.length];
 				int index = i << 1;
 				System.arraycopy(value, 0, ret, 0, index);
 				ret[index] = (byte)lower;
@@ -246,7 +246,7 @@ final class StringUTF16 {
 			char c = charAt(value, i);
 			char upper = Character.toUpper(c);
 			if(upper != c) {
-				ret = new byte[length];
+				ret = new byte[value.length];
 				int index = i << 1;
 				System.arraycopy(value, 0, ret, 0, index);
 				ret[index] = (byte)upper;
@@ -265,13 +265,13 @@ final class StringUTF16 {
 	}
 	
 	public static String trim(byte[] value) {
-		int len = value.length;
+		int len = value.length >>> 1;
         int st = 0;
-        while ((st < len) && (value[st] <= ' '))
+        while ((st < len) && (charAt(value, st) <= ' '))
             st++;
-        while ((st < len) && (value[len - 1] <= ' '))
+        while ((st < len) && (charAt(value, len - 1) <= ' '))
             len--;
-        return ((st > 0) || (len < value.length)) ? String.newString(value, st, len - st, (byte)0) : null;
+        return ((st > 0) || (len < value.length)) ? String.newString(value, (st << 1), (len - st) << 1, (byte)1) : null;
 	}
 
 	public static char[] toChars(byte[] value) {

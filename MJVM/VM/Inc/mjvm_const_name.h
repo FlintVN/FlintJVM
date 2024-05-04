@@ -14,6 +14,7 @@ extern const ConstUtf8 &floatClass;
 extern const ConstUtf8 &doubleClass;
 extern const ConstUtf8 &objectClass;
 extern const ConstUtf8 &systemClass;
+extern const ConstUtf8 &characterClass;
 extern const ConstUtf8 &printStreamClass;
 extern const ConstUtf8 &stringClassName;
 extern const ConstUtf8 &nullPtrExcpClassName;
