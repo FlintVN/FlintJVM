@@ -677,7 +677,7 @@ bool Execution::invokeVirtual(const ConstMethod &constMethod) {
 }
 
 bool Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
-    MjvmObject *obj = (MjvmObject *)stack[sp - argc];
+    MjvmObject *obj = (MjvmObject *)stack[sp - argc + 1];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
         Mjvm::lock();
@@ -718,7 +718,6 @@ bool Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
                 return true;
             }
         }
-        argc++;
         return invoke(methodInfo, argc);
     }
     else
