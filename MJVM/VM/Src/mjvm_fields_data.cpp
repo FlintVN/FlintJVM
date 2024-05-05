@@ -258,8 +258,10 @@ ClassData::ClassData(const ClassLoader &classLoader, FieldsData *filedsData) : c
 }
 
 ClassData::~ClassData() {
-    if(filedsData)
+    if(filedsData) {
+        filedsData->~FieldsData();
         Mjvm::free(filedsData);
+    }
 }
 
 ClassDataNode::ClassDataNode(const ClassLoader &classLoader, FieldsData *filedsData) : ClassData(classLoader, filedsData) {

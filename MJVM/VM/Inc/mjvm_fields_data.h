@@ -97,6 +97,7 @@ private:
     ~FieldsData(void);
 
     friend class Execution;
+    friend class ClassData;
 };
 
 class ClassData {
