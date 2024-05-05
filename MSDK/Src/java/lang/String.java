@@ -4,18 +4,27 @@ public final class String implements Comparable<String>, CharSequence {
 	private final byte[] value;
 	private final byte coder;
 
-	private static boolean isLatin1(byte[] value, int offset, int count) {
+	private static boolean isLatin1(byte[] utf8Value, int offset, int count) {
 		count += offset;
-		for(; offset < count; offset++)
-			if(value[offset] < 0)
-				return false;
+		while(offset < count) {
+			byte b = utf8Value[offset];
+			if(b < 0) {
+				int byteCount = getUtf8ByteCount(b);
+	            int code = utf8Decode(utf8Value, offset, byteCount);
+				if(code > 255)
+					return false;
+				offset += byteCount;
+			}
+			else
+				offset++;
+		}
 		return true;
 	}
 	
-	private static boolean isLatin1(char[] value, int offset, int count) {
+	private static boolean isLatin1(char[] utf8Value, int offset, int count) {
 		count += offset;
 		for(; offset < count; offset++)
-			if(value[offset] > 127)
+			if(utf8Value[offset] > 255)
 				return false;
 		return true;
 	}
@@ -33,6 +42,17 @@ public final class String implements Comparable<String>, CharSequence {
 			return 5;
 		else
 			return 6;
+	}
+	
+	private static int utf8Decode(byte[] utf8Value, int offset, int byteCount) {
+		byte b = utf8Value[offset];
+		int code = b & (0xFF >> (byteCount + 1));
+        while(--byteCount > 0) {
+        	offset++;
+            code <<= 6;
+            code |= utf8Value[offset] & 0x3F;
+        }
+        return code;
 	}
 	
 	private static int getUtf8StrLength(byte[] utf8, int offset, int count) {
@@ -68,23 +88,16 @@ public final class String implements Comparable<String>, CharSequence {
     }
     
     public String(char[] value, int offset, int count) {
-    	if(isLatin1(value, offset, count)) {
-            byte[] buff = new byte[count];
-            for(int i = 0; i < count; i++)
-                buff[i] = (byte)value[i];
-            this.value = buff;
-            this.coder = 0;
+    	boolean isLatin1 = isLatin1(value, offset, count);
+    	byte[] buff = isLatin1 ? new byte[count] : new byte[count << 1];
+    	if(isLatin1) {
+    		for(int i = 0; i < count;)
+                buff[i] = (byte)value[i + offset];
     	}
-    	else {
-            byte[] buff = new byte[count << 1];
-	    	for(int i = 0; i < count; i++) {
-                char c = value[i + offset];
-                buff[i] = (byte)c;
-                buff[i] = (byte)(c >>> 8);
-            }
-            this.value = buff;
-            this.coder = 1;
-    	}
+    	else for(int i = 0; i < count; i++)
+    		StringUTF16.putCharAt(buff, i, value[i + offset]);
+    	this.value = buff;
+        this.coder = isLatin1 ? (byte)0 : (byte)1;
     }
     
     String(byte[] value, int offset, int count, byte coder) {
@@ -102,40 +115,27 @@ public final class String implements Comparable<String>, CharSequence {
     }
 
     public String(byte[] utf8Value, int offset, int count) {
-    	if(isLatin1(utf8Value, offset, count)) {
-    		this.value = new byte[count];
-    		System.arraycopy(utf8Value, offset, this.value, 0, count);
-            this.coder = 0;
+    	boolean isLatin1 = isLatin1(utf8Value, offset, count);
+    	int length = getUtf8StrLength(utf8Value, offset, count);
+    	byte[] buff = isLatin1 ? new byte[length] : new byte[length << 1];
+    	if(isLatin1) {
+    		for(int i = 0; i < length; i++) {
+    			byte b = utf8Value[offset];
+    			int byteCount = getUtf8ByteCount(b);
+    			int code = utf8Decode(utf8Value, offset, byteCount);
+    			buff[i] = (byte)code;
+    			offset += byteCount;
+    		}
     	}
-    	else {
-    		int len = getUtf8StrLength(utf8Value, offset, count);
-            byte[] buff = new byte[len << 1];
-            int utf8Index = 0;
-            for(int i = 0; i < len; i++) {
-            	int index = i << 1;
-            	byte b = utf8Value[utf8Index];
-            	if(b < 0) {
-		            int byteCount = getUtf8ByteCount(b);
-		            int code = b & (0xFF >> (byteCount + 1));
-		            while(--byteCount > 0) {
-		            	utf8Index++;
-		                code <<= 6;
-		                code |= utf8Value[utf8Index] & 0x3F;
-		            }
-		            if(code < 65536) {
-			            buff[index] = (byte)code;
-			            buff[index + 1] = (byte)(code >>> 8);
-		            }
-		            else
-		            	throw new Error("Characters are not supported");
-            	}
-            	else
-            		buff[index] = b;
-            	utf8Index++;
-            }
-            this.value = buff;
-            this.coder = 1;
-    	}
+    	else for(int i = 0; i < length; i++) {
+			byte b = utf8Value[offset];
+			int byteCount = getUtf8ByteCount(b);
+			int code = utf8Decode(utf8Value, offset, byteCount);
+			StringUTF16.putCharAt(buff, i, (char)code);
+			offset += byteCount;
+		}
+    	this.value = buff;
+        this.coder = isLatin1 ? (byte)0 : (byte)1;
     }
     
     public String(StringBuffer buffer) {
@@ -160,7 +160,7 @@ public final class String implements Comparable<String>, CharSequence {
 
     public char charAt(int index) {
     	if (coder == 0)
-            return StringLatin1.charAt(value, index);
+            return (char)value[index];
         else
             return StringUTF16.charAt(value, index);
     }
@@ -247,17 +247,16 @@ public final class String implements Comparable<String>, CharSequence {
     }
     
     public String substring(int beginIndex, int endIndex) {
-        int length = length();
+    	byte[] val = value;
+        int length = val.length >>> coder;
         if (beginIndex == 0 && endIndex == length)
             return this;
         int subLen = endIndex - beginIndex;
         if(coder == 0)
-        	return newString(value, beginIndex, subLen, (byte)0);
+        	return newString(val, beginIndex, subLen, (byte)0);
         boolean isLatin1 = true;
-        byte[] val = value;
         for(int i = beginIndex; i < endIndex; i++) {
-        	int index = i << 1;
-        	if(val[index + 1] != 0) {
+        	if(StringUTF16.charAt(val, i) > 255) {
         		isLatin1 = false;
         		break;
         	}
@@ -268,7 +267,7 @@ public final class String implements Comparable<String>, CharSequence {
         		buff[i] = val[i << 1];
         	return String.newString(buff, (byte)0);
         }
-        return newString(value, beginIndex, subLen, (byte)1);
+        return newString(val, beginIndex << 1, subLen << 1, (byte)1);
     }
 
     public CharSequence subSequence(int beginIndex, int endIndex) {
@@ -401,7 +400,7 @@ public final class String implements Comparable<String>, CharSequence {
     }
 
     public static String valueOf(char c) {
-    	if(c < 128) {
+    	if(c < 256) {
     		byte[] buff = new byte[1];
     		buff[0] = (byte)c;
     		return newString(buff, (byte)0);

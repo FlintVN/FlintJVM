@@ -83,25 +83,30 @@ MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensio
 }
 
 MjvmObjectNode *Execution::newStringNode(const char *utf8, uint16_t size) {
+    uint32_t index = 0;
+    bool isLatin1 = MjvmString::isLatin1(utf8);
     uint32_t strLen = MjvmString::utf8StrLen(utf8);
 
     /* create new byte array to store string */
-    uint32_t arrayLen = (strLen == size) ? strLen : (strLen << 1);
+    uint32_t arrayLen = isLatin1 ? strLen : (strLen << 1);
     MjvmObject *byteArray = (MjvmObject *)Mjvm::malloc(sizeof(MjvmObject) + arrayLen);
     new (byteArray)MjvmObject(arrayLen, *primTypeConstUtf8List[4], 1);
-    if(strLen == size)
-        memcpy(byteArray->data, utf8, arrayLen);
-    else {
-        uint32_t index = 0;
+    if(isLatin1) {
         while(*utf8) {
             uint32_t c = MjvmString::utf8Decode(utf8);
-            if(c <= 0xFFFFFF)
-                ((uint16_t *)byteArray->data)[index] = c;
-            else
-                throw "Characters are not supported";
+            byteArray->data[index] = c;
             utf8 += MjvmString::getUtf8ByteCount(*utf8);
             index++;
         }
+    }
+    else while(*utf8) {
+        uint32_t c = MjvmString::utf8Decode(utf8);
+        if(c <= 0xFFFFFF)
+            ((uint16_t *)byteArray->data)[index] = c;
+        else
+            throw "Characters are not supported";
+        utf8 += MjvmString::getUtf8ByteCount(*utf8);
+        index++;
     }
 
     /* create new string object */
@@ -117,7 +122,7 @@ MjvmObjectNode *Execution::newStringNode(const char *utf8, uint16_t size) {
     fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
 
     /* set value for coder field */
-    fields->getFieldData8(*(ConstNameAndType *)stringCoderFieldName).value = (strLen == size) ? 0 : 1;
+    fields->getFieldData8(*(ConstNameAndType *)stringCoderFieldName).value = isLatin1 ? 0 : 1;
 
     return strObjNode;
 }
@@ -134,8 +139,9 @@ MjvmObjectNode *Execution::newStringNode(const char *latin1Str[], uint16_t count
     for(uint16_t i = 0; i < count; i++) {
         const char *buff = latin1Str[i];
         while(*buff) {
-            byteArray->data[index] = *buff;
-            buff++;
+            uint32_t c = MjvmString::utf8Decode(buff);
+            byteArray->data[index] = c;
+            buff += MjvmString::getUtf8ByteCount(*buff);
             index++;
         }
     }

@@ -49,7 +49,7 @@ public class PrintStream {
     }
 
     public final void println(String str) {
-        writeln(str);
+        writeln(String.valueOf(str));
     }
 
     public final void println(boolean b) {

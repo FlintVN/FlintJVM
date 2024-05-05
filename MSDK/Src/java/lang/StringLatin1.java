@@ -2,14 +2,21 @@ package java.lang;
 
 final class StringLatin1 {
 	public static char charAt(byte[] value, int index) {
-		return (char)value[index];
+		return (char)(value[index] & 0xFF);
 	}
 	
+	public static void putCharAt(byte[] value, int index, char c) {
+		if(c > 255)
+			throw new Error("Character is not latin1");
+		value[index] = (byte)c;
+	}
+
 	public static int indexOf(byte[] value, int ch) {
-		if(ch > 127)
+		if(ch > 255)
 			return -1;
+		byte c = (byte)ch;
 		for(int i = 0; i < value.length; i++) {
-            if(ch == value[i])
+            if(c == value[i])
                 return i;
         }
         return -1;
@@ -37,10 +44,11 @@ final class StringLatin1 {
 	}
 	
 	public static int lastIndexOf(byte[] value, int ch) {
-		if(ch > 127)
+		if(ch > 255)
 			return -1;
+		byte c = (byte)ch;
 		for(int i = value.length - 1; i >= 0; i--) {
-            if(ch == value[i])
+            if(c == value[i])
                 return i;
         }
         return -1;
@@ -69,13 +77,15 @@ final class StringLatin1 {
 	}
 	
 	public static String replace(byte[] value, char oldChar, char newChar) {
+		if(oldChar > 255)
+			return null;
 		int i = 0;
 		int len = value.length;
-		if(newChar < 128) {
+		byte oldCh = (byte)oldChar;
+		if(newChar < 256) {
 			byte[] ret = null;
 			for(; i < len; i++) {
-				byte c = value[i];
-				if(c == oldChar) {
+				if(value[i] == oldCh) {
 					ret = new byte[len];
 					System.arraycopy(value, 0, ret, 0, i);
 					ret[i] = (byte)newChar;
@@ -84,15 +94,14 @@ final class StringLatin1 {
 			}
 			for(; i < len; i++) {
 				byte c = value[i];
-				ret[i] = (c == oldChar) ? (byte)newChar : c;
+				ret[i] = (c == oldCh) ? (byte)newChar : c;
 			}
 			return (ret == null) ? null : String.newString(ret, (byte)0);
 		}
 		else {
 			byte[] ret = null;
 			for(; i < len; i++) {
-				byte c = value[i];
-				if(c == oldChar) {
+				if(value[i] == oldCh) {
 					ret = new byte[len << 1];
 					for(int j = 0; j < i; j++)
 						ret[j << 1] = value[j];
@@ -105,7 +114,7 @@ final class StringLatin1 {
 			for(; i < len; i++) {
 				byte c = value[i];
 				int index = i << 1;
-				if(c == oldChar) {
+				if(c == oldCh) {
 					ret[index] = (byte)newChar;
 					ret[index + 1] = (byte)(newChar >>> 8);
 				}
@@ -125,12 +134,13 @@ final class StringLatin1 {
 	}
 	
 	public static String[] split(byte[] value, char ch) {
-		if(ch > 127)
+		if(ch > 255)
 			return null;
 		int len = value.length;
 		int arrayCount = 1;
+		byte c = (byte)ch;
 		for(int i = 0; i < len; i++) {
-			if(ch == value[i])
+			if(c == value[i])
 				arrayCount++;
 		}
 		if(arrayCount == 1)
@@ -139,12 +149,14 @@ final class StringLatin1 {
 		int index = 0;
 		int start = 0;
 		for(int i = 0; i < len; i++) {
-			if(ch == value[i]) {
+			if(c == value[i]) {
 				ret[index] = String.newString(value, start, i - start, (byte)0);
 				start = i + 1;
 				index++;
 			}
 		}
+		if(start < len)
+			ret[index] = String.newString(value, start, len - start, (byte)0);
 		return ret;
 	}
 	
@@ -153,8 +165,8 @@ final class StringLatin1 {
 		int length = value.length;
 		byte[] ret = null;
 		for(i = 0; i < length; i++) {
-			byte c = value[i];
-			if(('A' <= c) && (c <= 'Z')) {
+			int c = value[i] & 0xFF;
+			if((('A' <= c) && (c <= 'Z')) || (('À' <= c) && (c <= 'Ö')) || (c == 'Ø')) {
 				ret = new byte[length];
 				System.arraycopy(value, 0, ret, 0, i);
 				ret[i] = (byte)(c + 32);
@@ -163,8 +175,11 @@ final class StringLatin1 {
 			}
 		}
 		for(; i < length; i++) {
-			byte c = value[i];
-			ret[i] = (('A' <= c) && (c <= 'Z')) ? (byte)(c + 32) : c;
+			int c = value[i] & 0xFF;
+			if((('A' <= c) && (c <= 'Z')) || (('À' <= c) && (c <= 'Ö')) || (c == 'Ø'))
+				ret[i] = (byte)(c + 32);
+			else
+				ret[i] = (byte)c;
 		}
 		return (ret == null) ? null : String.newString(ret,  (byte)0);
 	}
@@ -174,8 +189,8 @@ final class StringLatin1 {
 		int length = value.length;
 		byte[] ret = null;
 		for(i = 0; i < length; i++) {
-			byte c = value[i];
-			if(('a' <= c) && (c <= 'z')) {
+			int c = value[i] & 0xFF;
+			if((('a' <= c) && (c <= 'z')) || (('à' <= c) && (c <= 'ö')) || (c == 'ø')) {
 				ret = new byte[length];
 				System.arraycopy(value, 0, ret, 0, i);
 				ret[i] = (byte)(c - 32);
@@ -184,8 +199,11 @@ final class StringLatin1 {
 			}
 		}
 		for(; i < length; i++) {
-			byte c = value[i];
-			ret[i] = (('a' <= c) && (c <= 'z')) ? (byte)(c - 32) : c;
+			int c = value[i] & 0xFF;
+			if((('a' <= c) && (c <= 'z')) || (('à' <= c) && (c <= 'ö')) || (c == 'ø'))
+				ret[i] = (byte)(c - 32);
+			else
+				ret[i] = (byte)c;
 		}
 		return (ret == null) ? null : String.newString(ret,  (byte)0);
 	}
@@ -193,9 +211,9 @@ final class StringLatin1 {
 	public static String trim(byte[] value) {
 		int len = value.length;
         int st = 0;
-        while ((st < len) && (value[st] <= ' '))
+        while ((st < len) && ((value[st] & 0xFF) <= ' '))
             st++;
-        while ((st < len) && (value[len - 1] <= ' '))
+        while ((st < len) && ((value[len - 1] & 0xFF) <= ' '))
             len--;
         return ((st > 0) || (len < value.length)) ? String.newString(value, st, len - st, (byte)0) : null;
 	}
@@ -204,7 +222,7 @@ final class StringLatin1 {
 		int len = value.length;
 		char[] ret = new char[len];
 		for(int i = 0; i < len; i++)
-			ret[i] = (char)value[i];
+			ret[i] = (char)(value[i] & 0xFF);
 		return ret;
 	}
 	
@@ -220,7 +238,7 @@ final class StringLatin1 {
     public static int compareToUTF16(byte[] value, byte[] other) {
         int lim = Math.min(value.length, other.length >> 1);
         for (int i = 0; i < lim; i++) {
-            char c1 = (char)value[i];
+            char c1 = (char)(value[i] & 0xFF);
             char c2 = StringUTF16.charAt(other, i);
             if (c1 != c2)
                 return c1 - c2;

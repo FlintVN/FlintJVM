@@ -6,6 +6,12 @@ final class StringUTF16 {
 		return (char)((value[index + 1] << 8) | (value[index] & 0xFF));
 	}
 	
+	public static void putCharAt(byte[] value, int index, char c) {
+		index <<= 1;
+		value[index] = (byte)c;
+		value[index + 1] = (byte)(c >>> 8);
+	}
+	
 	public static int indexOf(byte[] value, int ch) {
 		if(ch > 65535)
 			return -1;
@@ -165,7 +171,7 @@ final class StringUTF16 {
 		String[] ret = new String[len];
 		for(int i = 0; i < len; i++) {
 			char c = charAt(value, i);
-			if(c < 128)
+			if(c < 256)
 				ret[i] = String.newString(new byte[] {(byte)c}, 0, 1, (byte)0);
 			else {
 				byte b1 = (byte)c;
@@ -197,17 +203,28 @@ final class StringUTF16 {
 				if(!isLatin1)
 					ret[index] = String.newString(value, (start << 1), count << 1, (byte)1);
 				else {
-					byte[] buff = new byte[i - start];
+					byte[] buff = new byte[count];
 					for(int j = 0; j < count; j++)
-						buff[i] = value[(j + count) << 1];
+						buff[j] = value[(j + start) << 1];
 					ret[index] = String.newString(buff, (byte)0);
 				}
 				start = i + 1;
 				index++;
 				isLatin1 = true;
 			}
-			if(isLatin1 && ch > 127)
+			if(isLatin1 && ch > 255)
 				isLatin1 = false;
+		}
+		if(start < len) {
+			int count = len - start;
+			if(!isLatin1)
+				ret[index] = String.newString(value, (start << 1), count << 1, (byte)1);
+			else {
+				byte[] buff = new byte[count];
+				for(int j = 0; j < count; j++)
+					buff[j] = value[(j + start) << 1];
+				ret[index] = String.newString(buff, (byte)0);
+			}
 		}
 		return ret;
 	}
@@ -235,7 +252,7 @@ final class StringUTF16 {
 			ret[index] = (byte)lower;
 			ret[index + 1] = (byte)(lower >>> 8);
 		}
-		return (ret == null) ? null : String.newString(ret,  (byte)0);
+		return (ret == null) ? null : String.newString(ret,  (byte)1);
 	}
 	
 	public static String toUpper(byte[] value) {
@@ -261,7 +278,7 @@ final class StringUTF16 {
 			ret[index] = (byte)upper;
 			ret[index + 1] = (byte)(upper >>> 8);
 		}
-		return (ret == null) ? null : String.newString(ret,  (byte)0);
+		return (ret == null) ? null : String.newString(ret,  (byte)1);
 	}
 	
 	public static String trim(byte[] value) {

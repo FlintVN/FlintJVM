@@ -6,15 +6,23 @@
 
 static bool nativeWrite(Execution &execution) {
     MjvmString *str = (MjvmString *)execution.stackPopObject();
-    const char *value = str->getText();
-    uint32_t length = str->getLength();
-    if(str->getCoder() == 0) {
-        for(uint32_t i = 0; i < length; i++)
-            putchar(value[i]);
+    if(str == 0) {
+        putchar('n');
+        putchar('u');
+        putchar('l');
+        putchar('l');
     }
     else {
-        for(uint32_t i = 0; i < length; i++)
-            putchar(((uint16_t *)value)[i]);
+        const char *value = str->getText();
+        uint32_t length = str->getLength();
+        if(str->getCoder() == 0) {
+            for(uint32_t i = 0; i < length; i++)
+                putchar(value[i]);
+        }
+        else {
+            for(uint32_t i = 0; i < length; i++)
+                putchar(((uint16_t *)value)[i]);
+        }
     }
     return true;
 }
