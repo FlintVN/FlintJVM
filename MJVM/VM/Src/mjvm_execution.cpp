@@ -1151,7 +1151,7 @@ int64_t Execution::run(const char *mainClass) {
         uint32_t index = code[pc + 1];
         locals[index] = stackPopInt32();
         index = &locals[index] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc += 2;
         goto *opcodes[code[pc]];
     }
@@ -1160,9 +1160,9 @@ int64_t Execution::run(const char *mainClass) {
         uint32_t index = code[pc + 1];
         *(uint64_t *)&locals[index] = stackPopInt64();
         index = &locals[index] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         index++;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc += 2;
         goto *opcodes[code[pc]];
     }
@@ -1170,7 +1170,7 @@ int64_t Execution::run(const char *mainClass) {
         uint32_t index = code[pc + 1];
         locals[index] = stackPopInt32();
         index = &locals[index] - stack;
-        stackType[index / 8] |= (1 << index % 8);
+        stackType[index / 8] |= (1 << (index % 8));
         pc += 2;
         goto *opcodes[code[pc]];
     }
@@ -1178,7 +1178,7 @@ int64_t Execution::run(const char *mainClass) {
     op_fstore_0: {
         locals[0] = stackPopInt32();
         uint32_t index = &locals[0] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1186,7 +1186,7 @@ int64_t Execution::run(const char *mainClass) {
     op_fstore_1: {
         locals[1] = stackPopInt32();
         uint32_t index = &locals[1] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1194,7 +1194,7 @@ int64_t Execution::run(const char *mainClass) {
     op_fstore_2: {
         locals[2] = stackPopInt32();
         uint32_t index = &locals[2] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1202,7 +1202,7 @@ int64_t Execution::run(const char *mainClass) {
     op_fstore_3: {
         locals[3] = stackPopInt32();
         uint32_t index = &locals[3] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1210,9 +1210,9 @@ int64_t Execution::run(const char *mainClass) {
     op_dstore_0: {
         *(uint64_t *)&locals[0] = stackPopInt64();
         uint32_t index = &locals[3] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         index++;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1220,9 +1220,9 @@ int64_t Execution::run(const char *mainClass) {
     op_dstore_1: {
         *(uint64_t *)&locals[1] = stackPopInt64();
         uint32_t index = &locals[1] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         index++;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1230,9 +1230,9 @@ int64_t Execution::run(const char *mainClass) {
     op_dstore_2: {
         *(uint64_t *)&locals[2] = stackPopInt64();
         uint32_t index = &locals[2] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         index++;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1240,37 +1240,37 @@ int64_t Execution::run(const char *mainClass) {
     op_dstore_3: {
         *(uint64_t *)&locals[3] = stackPopInt64();
         uint32_t index = &locals[3] - stack;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         index++;
-        stackType[index / 8] &= ~(1 << index % 8);
+        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_0: {
         locals[0] = stackPopInt32();
         uint32_t index = &locals[0] - stack;
-        stackType[index / 8] |= (1 << index % 8);
+        stackType[index / 8] |= (1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_1: {
         locals[1] = stackPopInt32();
         uint32_t index = &locals[1] - stack;
-        stackType[index / 8] |= (1 << index % 8);
+        stackType[index / 8] |= (1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_2: {
         locals[2] = stackPopInt32();
         uint32_t index = &locals[2] - stack;
-        stackType[index / 8] |= (1 << index % 8);
+        stackType[index / 8] |= (1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_3: {
         locals[3] = stackPopInt32();
         uint32_t index = &locals[3] - stack;
-        stackType[index / 8] |= (1 << index % 8);
+        stackType[index / 8] |= (1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -2438,9 +2438,71 @@ int64_t Execution::run(const char *mainClass) {
         pc++;
         goto *opcodes[code[pc]];
     }
-    op_wide:
-        // TODO
-        goto *opcodes[code[pc]];
+    op_wide: {
+        switch((JvmOpCode)code[pc + 1]) {
+            case OP_IINC: {
+                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                locals[index] += ARRAY_TO_INT16(&code[pc + 4]);
+                pc += 6;
+                goto *opcodes[code[pc]];
+            }
+            case OP_ALOAD: {
+                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                stackPushObject((MjvmObject *)locals[index]);
+                pc += 4;
+                goto *opcodes[code[pc]];
+            }
+            case OP_FLOAD:
+            case OP_ILOAD: {
+                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                stackPushInt32(locals[index]);
+                pc += 4;
+                goto *opcodes[code[pc]];
+            }
+            case OP_LLOAD:
+            case OP_DLOAD: {
+                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                stackPushInt64(*(int64_t *)&locals[index]);
+                pc += 4;
+                goto *opcodes[code[pc]];
+            }
+            case OP_ASTORE: {
+                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                locals[index] = stackPopInt32();
+                index = &locals[index] - stack;
+                stackType[index / 8] |= (1 << (index % 8));
+                pc += 4;
+                goto *opcodes[code[pc]];
+            }
+            case OP_FSTORE:
+            case OP_ISTORE: {
+                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                locals[index] = stackPopInt32();
+                index = &locals[index] - stack;
+                stackType[index / 8] &= ~(1 << (index % 8));
+                pc += 4;
+                goto *opcodes[code[pc]];
+            }
+            case OP_LSTORE:
+            case OP_DSTORE: {
+                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                *(uint64_t *)&locals[index] = stackPopInt64();
+                index = &locals[index] - stack;
+                stackType[index / 8] &= ~(1 << (index % 8));
+                index++;
+                stackType[index / 8] &= ~(1 << (index % 8));
+                pc += 4;
+                goto *opcodes[code[pc]];
+            }
+            case OP_RET: {
+                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                pc = locals[index];
+                goto *opcodes[code[pc]];
+            }
+            default:
+                goto op_unknow;
+        }
+    }
     op_multianewarray: {
         const ConstUtf8 *typeName = &method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
         const uint8_t dimensions = code[pc + 3];
