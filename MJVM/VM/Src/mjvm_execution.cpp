@@ -629,6 +629,21 @@ bool Execution::invokeSpecial(const ConstMethod &constMethod) {
 bool Execution::invokeVirtual(const ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
+    if(obj == 0) {
+        const char *msg[] = {"Cannot invoke ", constMethod.className.text, ".", constMethod.nameAndType.name.text, " by null object"};
+        Mjvm::lock();
+        try {
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
+            Mjvm::unlock();
+            stackPushObject(excpObj);
+            return false;
+        }
+        catch(FileNotFound *file) {
+            Mjvm::unlock();
+            throw file;
+        }
+    }
     const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClass : obj->type;
     uint32_t virtualConstMethod[] = {
         (uint32_t)&type,                                /* class name */
@@ -663,6 +678,21 @@ bool Execution::invokeVirtual(const ConstMethod &constMethod) {
 
 bool Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
+    if(obj == 0) {
+        const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
+        Mjvm::lock();
+        try {
+            MjvmString *strObj = newString(msg, LENGTH(msg));
+            MjvmThrowable *excpObj = newNullPointerException(strObj);
+            stackPushObject(excpObj);
+            Mjvm::unlock();
+            return false;
+        }
+        catch(FileNotFound *file) {
+            Mjvm::unlock();
+            throw file;
+        }
+    }
     const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClass : obj->type;
     uint32_t interfaceConstMethod[] = {
         (uint32_t)&type,                                /* class name */
