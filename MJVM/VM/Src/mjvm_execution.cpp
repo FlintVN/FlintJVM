@@ -510,8 +510,10 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
         const MethodInfo *methodInfo = (const MethodInfo *)&loader->getMethodInfo(constMethod.nameAndType);
         if(methodInfo)
             return *methodInfo;
-        else
-            loader = (const ClassLoader *)&load(loader->getSupperClass());
+        else {
+            const ConstUtf8 *superClass = &loader->getSuperClass();
+            loader = superClass ? &load(loader->getSuperClass()) : (const ClassLoader *)0;
+        }
     }
     throw "can't find the method";
 }
@@ -525,8 +527,8 @@ const MethodInfo &Execution::findMethod(const ConstMethod &constMethod, ClassDat
             return *methodInfo;
         }
         else {
-            const ConstUtf8 &supperClassName = dataNode->classLoader.getSupperClass();
-            dataNode = &loadClassDataNode(supperClassName.text, supperClassName.length);
+            const ConstUtf8 &superClassName = dataNode->classLoader.getSuperClass();
+            dataNode = &loadClassDataNode(superClassName.text, superClassName.length);
         }
     }
     throw "can't find the method";
@@ -741,7 +743,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const ConstUtf8 &type) {
             if(length == objType->length && strncmp(objType->text, text, length) == 0)
                 return true;
             else {
-                objType = &load(*objType).getSupperClass();
+                objType = &load(*objType).getSuperClass();
                 if(objType == 0)
                     return false;
             }

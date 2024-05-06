@@ -431,7 +431,7 @@ const ConstUtf8 &ClassLoader::getThisClass(void) const {
     return getConstClass(thisClass);
 }
 
-const ConstUtf8 &ClassLoader::getSupperClass(void) const {
+const ConstUtf8 &ClassLoader::getSuperClass(void) const {
     if(superClass == 0)
         return *(ConstUtf8 *)0;
     return getConstClass(superClass);

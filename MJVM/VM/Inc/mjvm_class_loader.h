@@ -79,7 +79,7 @@ public:
     const ClassAccessFlag getAccessFlag(void) const;
 
     const ConstUtf8 &getThisClass(void) const;
-    const ConstUtf8 &getSupperClass(void) const;
+    const ConstUtf8 &getSuperClass(void) const;
 
     const uint16_t getInterfacesCount(void) const;
     const ConstUtf8 &getInterface(uint8_t interfaceIndex) const;

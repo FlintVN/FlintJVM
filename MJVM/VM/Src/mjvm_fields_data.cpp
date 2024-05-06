@@ -140,8 +140,8 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
                 }
             }
         }
-        const ConstUtf8 &supperClass = loader->getSupperClass();
-        loader = ((int32_t)&supperClass) ? &execution.load(supperClass) : 0;
+        const ConstUtf8 &superClass = loader->getSuperClass();
+        loader = ((int32_t)&superClass) ? &execution.load(superClass) : 0;
     }
 
     fieldsData8 = (fields8Count) ? (FieldData8 *)Mjvm::malloc(fields8Count * sizeof(FieldData8)) : 0;
@@ -180,8 +180,8 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
                 }
             }
         }
-        const ConstUtf8 &supperClass = loader->getSupperClass();
-        loader = ((int32_t)&supperClass) ? &execution.load(supperClass) : 0;
+        const ConstUtf8 &superClass = loader->getSuperClass();
+        loader = ((int32_t)&superClass) ? &execution.load(superClass) : 0;
     }
 }
 
