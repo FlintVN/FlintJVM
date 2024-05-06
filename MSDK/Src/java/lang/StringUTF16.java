@@ -317,4 +317,12 @@ final class StringUTF16 {
 	public static int  compareToLatin1(byte[] value, byte[] other) {
 		return -StringLatin1.compareToUTF16(other, value);
 	}
+	
+	public static boolean equalsIgnoreCase(byte[] value, byte[] other) {
+    	int len = value.length >>> 1;
+    	for(int i = 0; i < len; i++)
+    		if(Character.toLower(charAt(value, i)) != Character.toLower(charAt(other, i)))
+    			return false;
+    	return true;
+    }
 }

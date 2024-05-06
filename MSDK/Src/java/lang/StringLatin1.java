@@ -160,6 +160,13 @@ final class StringLatin1 {
 		return ret;
 	}
 	
+	private static byte toLower(byte ch) {
+		int c = ch & 0xFF;
+		if((('A' <= c) && (c <= 'Z')) || (('À' <= c) && (c <= 'Ö')) || (c == 'Ø'))
+			return (byte)(c + 32);
+		return ch;
+	}
+	
 	public static String toLower(byte[] value) {
 		int i;
 		int length = value.length;
@@ -253,6 +260,14 @@ final class StringLatin1 {
     		if(value[i] != other[i])
     			return false;
     	}
+    	return true;
+    }
+    
+    public static boolean equalsIgnoreCase(byte[] value, byte[] other) {
+    	int len = value.length;
+    	for(int i = 0; i < len; i++)
+    		if(toLower(value[i]) != toLower(other[i]))
+    			return false;
     	return true;
     }
 }

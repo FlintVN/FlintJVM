@@ -441,6 +441,18 @@ public final class String implements Comparable<String>, CharSequence {
         return false;
     }
     
+    public boolean equalsIgnoreCase(String anotherString) {
+    	if (this == anotherString)
+            return true;
+    	byte coder = this.coder;
+    	if(coder == anotherString.coder) {
+    		if(coder == 0)
+	    		return StringLatin1.equalsIgnoreCase(value, anotherString.value);
+	    	return StringUTF16.equalsIgnoreCase(value, anotherString.value);
+    	}
+    	return false;
+    }
+    
     public int compareTo(String anotherString) {
         byte[] v1 = value;
         byte[] v2 = anotherString.value;
