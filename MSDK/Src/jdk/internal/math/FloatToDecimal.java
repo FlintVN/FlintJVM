@@ -127,7 +127,7 @@ final public class FloatToDecimal {
     private static int rop(long g, long cp) {
         long x1 = multiplyHigh(g, cp);
         long vbp = x1 >>> 31;
-        return (int) (vbp | (x1 & 0xFFFFFFFF) + 0xFFFFFFFF >>> 32);
+        return (int) (vbp | (x1 & 0xFFFFFFFFL) + 0xFFFFFFFFL >>> 32);
     }
 
     private int toChars(int f, int e) {

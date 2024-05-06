@@ -576,7 +576,7 @@ bool Execution::invokeStatic(const ConstMethod &constMethod) {
             Mjvm::lock();
             if(dataNode->monitorCount == 0 || dataNode->ownId == (int32_t)this) {
                 dataNode->ownId = (int32_t)this;
-                if(dataNode->monitorCount < 0xFFFFFF) {
+                if(dataNode->monitorCount < 0x7FFFFFFF) {
                     dataNode->monitorCount++;
                     Mjvm::unlock();
                 }

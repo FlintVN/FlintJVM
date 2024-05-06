@@ -17,8 +17,8 @@ static bool nativeLongBitsToDouble(Execution &execution) {
 }
 
 static const NativeMethod methods[] = {
-    NATIVE_METHOD("\x13\x00""doubleToRawLongBits", "\x04\x00""(D)L", nativeDoubleToRawLongBits),
-    NATIVE_METHOD("\x10\x00""longBitsToDouble",    "\x04\x00""(L)D", nativeLongBitsToDouble),
+    NATIVE_METHOD("\x13\x00""doubleToRawLongBits", "\x04\x00""(D)J", nativeDoubleToRawLongBits),
+    NATIVE_METHOD("\x10\x00""longBitsToDouble",    "\x04\x00""(J)D", nativeLongBitsToDouble),
 };
 
 const NativeClass DOUBLE_CLASS = NATIVE_CLASS(doubleClass, methods);
