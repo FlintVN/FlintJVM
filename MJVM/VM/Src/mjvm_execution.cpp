@@ -360,13 +360,10 @@ const FieldsData &Execution::getStaticFields(const ClassLoader &classLoader) con
     return *(const FieldsData *)0;
 }
 
-void Execution::initStaticField(const ClassLoader &classLoader) {
-    ClassDataNode *newNode = (ClassDataNode *)Mjvm::malloc(sizeof(ClassDataNode));
+void Execution::initStaticField(ClassDataNode &dataNode) {
     FieldsData *fieldsData = (FieldsData *)Mjvm::malloc(sizeof(FieldsData));
-    new (fieldsData)FieldsData(*this, classLoader, true);
-    new (newNode)ClassDataNode(classLoader, fieldsData);
-    newNode->next = staticClassDataList;
-    staticClassDataList = newNode;
+    new (fieldsData)FieldsData(*this, dataNode.classLoader, true);
+    dataNode.filedsData = fieldsData;
 }
 
 Execution::StackType Execution::getStackType(uint32_t index) {
@@ -1925,6 +1922,13 @@ int64_t Execution::run(const char *mainClass) {
     op_ireturn:
     op_freturn: {
         int32_t retVal = stackPopInt32();
+        if((method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
+            ClassDataNode &dataNode = loadClassDataNode(method->classLoader);
+            if(dataNode.isInitializing) {
+                dataNode.isInitializing = 0;
+                Mjvm::unlock();
+            }
+        }
         if(startSp < 0) {
             sp = peakSp = startSp;
             return retVal;
@@ -1937,6 +1941,13 @@ int64_t Execution::run(const char *mainClass) {
     op_lreturn:
     op_dreturn: {
         int64_t retVal = stackPopInt64();
+        if((method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
+            ClassDataNode &dataNode = loadClassDataNode(method->classLoader);
+            if(dataNode.isInitializing) {
+                dataNode.isInitializing = 0;
+                Mjvm::unlock();
+            }
+        }
         if(startSp < 0) {
             sp = peakSp = startSp;
             return retVal;
@@ -1948,6 +1959,13 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_areturn: {
         int32_t retVal = (int32_t)stackPopObject();
+        if((method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
+            ClassDataNode &dataNode = loadClassDataNode(method->classLoader);
+            if(dataNode.isInitializing) {
+                dataNode.isInitializing = 0;
+                Mjvm::unlock();
+            }
+        }
         if(startSp < 0) {
             sp = peakSp = startSp;
             return retVal;
@@ -1958,6 +1976,13 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     }
     op_return: {
+        if((method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
+            ClassDataNode &dataNode = loadClassDataNode(method->classLoader);
+            if(dataNode.isInitializing) {
+                dataNode.isInitializing = 0;
+                Mjvm::unlock();
+            }
+        }
         if(startSp < 0) {
             sp = peakSp = startSp;
             return 0;
@@ -1972,7 +1997,7 @@ int64_t Execution::run(const char *mainClass) {
         const FieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
             try {
-                stackPushInt32((int32_t)&load(constField.className));
+                stackPushInt32((int32_t)&loadClassDataNode(constField.className.text, constField.className.length));
             }
             catch(FileNotFound *file) {
                 fileNotFound = file;
@@ -2017,7 +2042,7 @@ int64_t Execution::run(const char *mainClass) {
         const FieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
             try {
-                stackPushInt32((int32_t)&load(constField.className));
+                stackPushInt32((int32_t)&loadClassDataNode(constField.className.text, constField.className.length));
             }
             catch(FileNotFound *file) {
                 fileNotFound = file;
@@ -2541,16 +2566,22 @@ int64_t Execution::run(const char *mainClass) {
     op_unknow:
         throw "unknow opcode";
     init_static_field: {
-        const ClassLoader &classToInit = *(const ClassLoader *)stackPopInt32();
         static const uint32_t nameAndType[] = {
-            (uint32_t)"\x08\x00<clinit>",               /* method name */
-            (uint32_t)"\x03\x00()V"                     /* method type */
+            (uint32_t)"\x08\x00<clinit>",                           /* method name */
+            (uint32_t)"\x03\x00()V"                                 /* method type */
         };
+        ClassDataNode &dataNodeToInit = *(ClassDataNode *)stackPopInt32();
+        Mjvm::lock();
+        if(dataNodeToInit.filedsData) {
+            Mjvm::unlock();
+            goto *opcodes[code[pc]];
+        }
+        dataNodeToInit.isInitializing = 1;
         uint32_t ctorConstMethod[] = {
-            (uint32_t)&classToInit.getThisClass(),      /* class name */
-            (uint32_t)nameAndType                       /* method type */
+            (uint32_t)&dataNodeToInit.classLoader.getThisClass(),   /* class name */
+            (uint32_t)nameAndType                                   /* method type */
         };
-        initStaticField(classToInit);
+        initStaticField(dataNodeToInit);
         lr = pc;
         invokeStatic(*(const ConstMethod *)ctorConstMethod);
         goto *opcodes[code[pc]];

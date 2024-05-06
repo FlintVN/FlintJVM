@@ -267,5 +267,6 @@ ClassData::~ClassData() {
 ClassDataNode::ClassDataNode(const ClassLoader &classLoader, FieldsData *filedsData) : ClassData(classLoader, filedsData) {
     ownId = 0;
     monitorCount = 0;
+    isInitializing = 0;
     next = 0;
 }

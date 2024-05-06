@@ -79,7 +79,7 @@ private:
     void freeAllObject(void);
     void garbageCollectionProtectObject(MjvmObject *obj);
 
-    void initStaticField(const ClassLoader &classLoader);
+    void initStaticField(ClassDataNode &dataNode);
     const FieldsData &getStaticFields(const ConstUtf8 &className) const;
     const FieldsData &getStaticFields(const ClassLoader &classLoader) const;
 
