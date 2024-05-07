@@ -289,8 +289,11 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
 	
 	public String substring(int start, int end) {
 		byte[] val = value;
-        if (coder == 0)
+        if (coder == 0) {
+        	if((start == 0) && (end == value.length))
+        		val = value.clone();
             return String.newString(val, start, end - start, (byte)0);
+        }
         boolean isLatin1 = true;
         for(int i = start; i < end; i++) {
         	int index = i << 1;
@@ -305,6 +308,8 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         		buff[i] = val[i << 1];
         	return String.newString(buff, (byte)0);
         }
+        if((start == 0) && (end == value.length))
+    		val = value.clone();
         return String.newString(value, start << 1, (end - start) << 1, (byte)1);
     }
 	

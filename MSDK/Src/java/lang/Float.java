@@ -26,9 +26,12 @@ public final class Float extends Number implements Comparable<Float> {
     }
 
     public static String toHexString(float f) {
-        if (Math.abs(f) < Float.MIN_NORMAL &&  f != 0.0f ) {
+        if (Math.abs(f) < Float.MIN_NORMAL &&  f != 0.0f) {
             String s = Double.toHexString(Math.scalb((double)f, Double.MIN_EXPONENT - Float.MIN_EXPONENT));
-            return s.replaceFirst("p-1022$", "p-126");
+            int index = s.lastIndexOf("p-1022");
+        	StringBuilder sb = new StringBuilder(s.substring(0, index));
+        	sb.append("p-126");
+        	return sb.toString();
         }
         else
             return Double.toHexString(f);
