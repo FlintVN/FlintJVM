@@ -11,25 +11,25 @@ final class StringLatin1 {
 		value[index] = (byte)c;
 	}
 
-	public static int indexOf(byte[] value, int ch) {
+	public static int indexOf(byte[] value, int ch, int fromIndex) {
 		if(ch > 255)
 			return -1;
 		byte c = (byte)ch;
-		for(int i = 0; i < value.length; i++) {
+		for(int i = fromIndex; i < value.length; i++) {
             if(c == value[i])
                 return i;
         }
         return -1;
 	}
 	
-	public static int indexOf(byte[] value, byte[] str) {
+	public static int indexOf(byte[] value, byte[] str, int fromIndex) {
 		if (str.length == 0)
             return 0;
         if (value.length == 0)
             return -1;
 		byte first = str[0];
         int max = value.length - str.length;
-        for (int i = 0; i <= max; i++) {
+        for (int i = fromIndex; i <= max; i++) {
             if (value[i] != first)
                 while (++i <= max && value[i] != first);
             if (i <= max) {
@@ -43,24 +43,24 @@ final class StringLatin1 {
         return -1;
 	}
 	
-	public static int lastIndexOf(byte[] value, int ch) {
+	public static int lastIndexOf(byte[] value, int ch, int fromIndex) {
 		if(ch > 255)
 			return -1;
 		byte c = (byte)ch;
-		for(int i = value.length - 1; i >= 0; i--) {
+		for(int i = fromIndex; i >= 0; i--) {
             if(c == value[i])
                 return i;
         }
         return -1;
 	}
 	
-	public static int lastIndexOf(byte[] value, byte[] str) {
+	public static int lastIndexOf(byte[] value, byte[] str, int fromIndex) {
         if (str.length == 0)
             return value.length - 1;
-        if(value.length < str.length)
+        if (value.length < str.length)
             return -1;
 
-        for(int i = value.length - str.length; i >= 0; i--) {
+        for(int i = fromIndex - (str.length - 1); i >= 0; i--) {
             if(value[i] == str[0]) {
             	boolean found = true;
                 for(int j = 1; j < str.length; j++) {

@@ -161,8 +161,7 @@ public final class String implements Comparable<String>, CharSequence {
     public char charAt(int index) {
     	if (coder == 0)
             return (char)value[index];
-        else
-            return StringUTF16.charAt(value, index);
+        return StringUTF16.charAt(value, index);
     }
 
     public boolean isEmpty() {
@@ -208,29 +207,50 @@ public final class String implements Comparable<String>, CharSequence {
     }
     
     public int indexOf(int ch) {
-    	return (coder == 0) ? StringLatin1.indexOf(value, ch) : StringUTF16.indexOf(value, ch);
+    	return indexOf(ch, 0);
+    }
+    
+    public int indexOf(int ch, int fromIndex) {
+    	return (coder == 0) ? StringLatin1.indexOf(value, ch, fromIndex) : StringUTF16.indexOf(value, ch, fromIndex);
     }
     
     public int indexOf(String str) {
-        byte coder = this.coder;
+        return indexOf(str, 0);
+    }
+    
+    public int indexOf(String str, int fromIndex) {
+    	byte coder = this.coder;
         if (coder == str.coder)
-            return (coder == 0) ? StringLatin1.indexOf(value, str.value) : StringUTF16.indexOf(value, str.value);
+            return (coder == 0) ? StringLatin1.indexOf(value, str.value, fromIndex) : StringUTF16.indexOf(value, str.value, fromIndex);
         if (coder == 0)
             return -1;
-        return StringUTF16.indexOfLatin1(value, str.value);
+        return StringUTF16.indexOfLatin1(value, str.value, fromIndex);
     }
     
     public int lastIndexOf(int ch) {
-    	return (coder == 0) ? StringLatin1.lastIndexOf(value, ch) : StringUTF16.lastIndexOf(value, ch);
+    	return lastIndexOf(ch, length() - 1);
+    }
+    
+    public int lastIndexOf(int ch, int fromIndex) {
+    	if (coder == 0)
+    		return StringLatin1.lastIndexOf(value, ch, fromIndex);
+    	return StringUTF16.lastIndexOf(value, ch, fromIndex);
     }
     
     public int lastIndexOf(String str) {
+    	return lastIndexOf(str, length() - 1);
+    }
+    
+    public int lastIndexOf(String str, int fromIndex) {
     	byte coder = this.coder;
-    	if (coder == str.coder)
-            return (coder == 0) ? StringLatin1.lastIndexOf(value, str.value) : StringUTF16.lastIndexOf(value, str.value);
+    	if (coder == str.coder) {
+            if (coder == 0)
+            	return StringLatin1.lastIndexOf(value, str.value, fromIndex);
+            return StringUTF16.lastIndexOf(value, str.value, fromIndex);
+    	}
         if (coder == 0)
             return -1;
-        return StringUTF16.lastIndexOfLatin1(value, str.value);
+        return StringUTF16.lastIndexOfLatin1(value, str.value, fromIndex);
     }
     
     public String replace(char oldChar, char newChar) {
@@ -240,6 +260,32 @@ public final class String implements Comparable<String>, CharSequence {
                 return ret;
         }
         return this;
+    }
+    
+    public String replace(CharSequence target, CharSequence replacement) {
+    	String targetStr = target.toString();
+    	int index = indexOf(targetStr);
+    	if(index >= 0) {
+    		int targetLength = target.length();
+    		StringBuilder sb = new StringBuilder();
+    		if(index != 0)
+    			sb = new StringBuilder(substring(0, index));
+    		sb.append(replacement);
+    		
+    		int startIndex = index + targetLength;
+    		index = indexOf(targetStr, index + targetLength);
+    		while(index >= 0) {
+    			if(index != startIndex)
+    				sb.append(substring(startIndex, index));
+    			sb.append(replacement);
+    			startIndex = index + targetLength;
+    			index = indexOf(targetStr, startIndex);
+    		}
+    		if(index >= 0)
+				sb.append(substring(startIndex, index));
+    		return sb.toString();
+    	}
+    	return this;
     }
     
     public String substring(int beginIndex) {

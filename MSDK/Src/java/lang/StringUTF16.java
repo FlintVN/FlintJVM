@@ -12,17 +12,17 @@ final class StringUTF16 {
 		value[index + 1] = (byte)(c >>> 8);
 	}
 	
-	public static int indexOf(byte[] value, int ch) {
+	public static int indexOf(byte[] value, int ch, int fromIndex) {
 		if(ch > 65535)
 			return -1;
-		for(int i = 0; i < value.length; i++) {
+		for(int i = fromIndex; i < value.length; i++) {
             if(ch == charAt(value, i))
                 return i;
         }
         return -1;
 	}
 	
-	public static int indexOf(byte[] value, byte[] str) {
+	public static int indexOf(byte[] value, byte[] str, int fromIndex) {
         if (str.length == 0)
             return 0;
         if (value.length == 0)
@@ -31,7 +31,7 @@ final class StringUTF16 {
 		int strCount = str.length >>> 1;
         char first = charAt(str, 0);
         int max = (valueCount - strCount);
-        for (int i = 0; i <= max; i++) {
+        for (int i = fromIndex; i <= max; i++) {
             if (charAt(value, i) != first)
                 while (++i <= max && charAt(value, i) != first);
             if (i <= max) {
@@ -45,18 +45,7 @@ final class StringUTF16 {
         return -1;
     }
 	
-	public static int lastIndexOf(byte[] value, int ch) {
-		if(ch > 65535)
-			return -1;
-		int valueCount = value.length >>> 1;
-		for(int i = valueCount - 1; i >= 0; i--) {
-            if(ch == charAt(value, i))
-                return i;
-        }
-        return -1;
-	}
-	
-	public static int indexOfLatin1(byte[] value, byte[] str) {
+	public static int indexOfLatin1(byte[] value, byte[] str, int fromIndex) {
 		if (str.length == 0)
             return 0;
         if (value.length == 0)
@@ -65,7 +54,7 @@ final class StringUTF16 {
         int strCount = str.length;
         char first = (char)str[0];
         int max = (valueCount - strCount);
-        for (int i = 0; i <= max; i++) {
+        for (int i = fromIndex; i <= max; i++) {
             if (charAt(value, i) != first)
                 while (++i <= max && charAt(value, i) != first);
             if (i <= max) {
@@ -79,14 +68,23 @@ final class StringUTF16 {
         return -1;
     }
 	
-	public static int lastIndexOf(byte[] value, byte[] str) {
+	public static int lastIndexOf(byte[] value, int ch, int fromIndex) {
+		if(ch > 65535)
+			return -1;
+		for(int i = fromIndex; i >= 0; i--) {
+            if(ch == charAt(value, i))
+                return i;
+        }
+        return -1;
+	}
+	
+	public static int lastIndexOf(byte[] value, byte[] str, int fromIndex) {
 		if (str.length == 0)
             return value.length - 1;
         if(value.length < str.length)
             return -1;
-        int valueCount = value.length >>> 1;
         int strCount = str.length >>> 1;
-        for(int i = valueCount - strCount; i >= 0; i--) {
+        for(int i = fromIndex - (strCount - 1); i >= 0; i--) {
             if(charAt(value, i) == charAt(str, 0)) {
             	boolean found = true;
                 for(int j = 1; j < strCount; j++) {
@@ -102,14 +100,13 @@ final class StringUTF16 {
         return -1;
 	}
 	
-	public static int lastIndexOfLatin1(byte[] value, byte[] str) {
+	public static int lastIndexOfLatin1(byte[] value, byte[] str, int fromIndex) {
 		if (str.length == 0)
             return value.length - 1;
         if(value.length < str.length)
             return -1;
-        int valueCount = value.length >>> 1;
         int strCount = str.length >>> 1;
-        for(int i = valueCount - strCount; i >= 0; i--) {
+        for(int i = fromIndex - (strCount - 1); i >= 0; i--) {
             if(charAt(value, i) == str[0]) {
             	boolean found = true;
                 for(int j = 1; j < strCount; j++) {
