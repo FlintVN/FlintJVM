@@ -10,7 +10,7 @@ public class Random {
 	}
 
 	public static void nextBytes(byte[] bytes) {
-        for (int i = 0, len = bytes.length; i < len;) {
+        for(int i = 0, len = bytes.length; i < len;) {
         	int rnd = nextInt();
         	int n = Math.min(len - i, Integer.SIZE / Byte.SIZE);
         	while(n-- > 0) {

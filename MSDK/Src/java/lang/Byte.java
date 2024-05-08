@@ -19,7 +19,7 @@ public final class Byte extends Number implements Comparable<Byte> {
 
     public static byte parseByte(String s, int radix) throws NumberFormatException {
         int i = Integer.parseInt(s, radix);
-        if (i < MIN_VALUE || i > MAX_VALUE)
+        if(i < MIN_VALUE || i > MAX_VALUE)
             throw new NumberFormatException("Value out of range. Value:\"" + s + "\" Radix:" + radix);
         return (byte)i;
     }
@@ -39,7 +39,7 @@ public final class Byte extends Number implements Comparable<Byte> {
 
     public static Byte decode(String nm) throws NumberFormatException {
         int i = Integer.decode(nm);
-        if (i < MIN_VALUE || i > MAX_VALUE)
+        if(i < MIN_VALUE || i > MAX_VALUE)
             throw new NumberFormatException("Value " + i + " out of range from input " + nm);
         return valueOf((byte)i);
     }
@@ -89,7 +89,7 @@ public final class Byte extends Number implements Comparable<Byte> {
     }
 
     public boolean equals(Object obj) {
-        if (obj instanceof Byte) {
+        if(obj instanceof Byte) {
             return value == ((Byte)obj).byteValue();
         }
         return false;

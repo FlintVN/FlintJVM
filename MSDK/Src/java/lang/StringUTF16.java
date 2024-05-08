@@ -23,22 +23,22 @@ final class StringUTF16 {
 	}
 	
 	public static int indexOf(byte[] value, byte[] str, int fromIndex) {
-        if (str.length == 0)
+        if(str.length == 0)
             return 0;
-        if (value.length == 0)
+        if(value.length == 0)
             return -1;
         int valueCount = value.length >>> 1;
 		int strCount = str.length >>> 1;
         char first = charAt(str, 0);
         int max = (valueCount - strCount);
-        for (int i = fromIndex; i <= max; i++) {
-            if (charAt(value, i) != first)
-                while (++i <= max && charAt(value, i) != first);
-            if (i <= max) {
+        for(int i = fromIndex; i <= max; i++) {
+            if(charAt(value, i) != first)
+                while(++i <= max && charAt(value, i) != first);
+            if(i <= max) {
                 int j = i + 1;
                 int end = j + strCount - 1;
-                for (int k = 1; j < end && charAt(value, j) == charAt(str, k); j++, k++);
-                if (j == end)
+                for(int k = 1; j < end && charAt(value, j) == charAt(str, k); j++, k++);
+                if(j == end)
                     return i;
             }
         }
@@ -46,22 +46,22 @@ final class StringUTF16 {
     }
 	
 	public static int indexOfLatin1(byte[] value, byte[] str, int fromIndex) {
-		if (str.length == 0)
+		if(str.length == 0)
             return 0;
-        if (value.length == 0)
+        if(value.length == 0)
             return -1;
         int valueCount = value.length >>> 1;
         int strCount = str.length;
         char first = (char)str[0];
         int max = (valueCount - strCount);
-        for (int i = fromIndex; i <= max; i++) {
-            if (charAt(value, i) != first)
-                while (++i <= max && charAt(value, i) != first);
-            if (i <= max) {
+        for(int i = fromIndex; i <= max; i++) {
+            if(charAt(value, i) != first)
+                while(++i <= max && charAt(value, i) != first);
+            if(i <= max) {
                 int j = i + 1;
                 int end = j + strCount - 1;
-                for (int k = 1; j < end && charAt(value, j) == (char)str[k]; j++, k++);
-                if (j == end)
+                for(int k = 1; j < end && charAt(value, j) == (char)str[k]; j++, k++);
+                if(j == end)
                     return i;
             }
         }
@@ -79,7 +79,7 @@ final class StringUTF16 {
 	}
 	
 	public static int lastIndexOf(byte[] value, byte[] str, int fromIndex) {
-		if (str.length == 0)
+		if(str.length == 0)
             return value.length - 1;
         if(value.length < str.length)
             return -1;
@@ -101,7 +101,7 @@ final class StringUTF16 {
 	}
 	
 	public static int lastIndexOfLatin1(byte[] value, byte[] str, int fromIndex) {
-		if (str.length == 0)
+		if(str.length == 0)
             return value.length - 1;
         if(value.length < str.length)
             return -1;
@@ -281,9 +281,9 @@ final class StringUTF16 {
 	public static String trim(byte[] value) {
 		int len = value.length >>> 1;
         int st = 0;
-        while ((st < len) && (charAt(value, st) <= ' '))
+        while((st < len) && (charAt(value, st) <= ' '))
             st++;
-        while ((st < len) && (charAt(value, len - 1) <= ' '))
+        while((st < len) && (charAt(value, len - 1) <= ' '))
             len--;
         return ((st > 0) || (len < value.length)) ? String.newString(value, (st << 1), (len - st) << 1, (byte)1) : null;
 	}
@@ -302,10 +302,10 @@ final class StringUTF16 {
 		int len1 = value.length >>> 1;
         int len2 = other.length >>> 1;
 		int lim = Math.min(len1, len2);
-        for (int i = 0; i < lim; i++) {
+        for(int i = 0; i < lim; i++) {
         	char c1 = charAt(value, i);
         	char c2 = charAt(value, i);
-            if (c1 != c2)
+            if(c1 != c2)
                 return c1 - c2;
         }
         return len1 - len2;

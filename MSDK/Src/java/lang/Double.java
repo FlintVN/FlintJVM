@@ -26,12 +26,12 @@ public final class Double extends Number implements Comparable<Double> {
     }
 
     public static String toHexString(double d) {
-        if (!isFinite(d))
+        if(!isFinite(d))
             return Double.toString(d);
         else {
             StringBuilder answer = new StringBuilder(24);
 
-            if (Math.copySign(1.0, d) == -1.0)
+            if(Math.copySign(1.0, d) == -1.0)
                 answer.append("-");
 
             answer.append("0x");
@@ -148,7 +148,7 @@ public final class Double extends Number implements Comparable<Double> {
     }
 
     public static long doubleToLongBits(double value) {
-        if (!isNaN(value))
+        if(!isNaN(value))
             return doubleToRawLongBits(value);
         return 0x7ff8000000000000L;
     }
@@ -162,9 +162,9 @@ public final class Double extends Number implements Comparable<Double> {
     }
 
     public static int compare(double d1, double d2) {
-        if (d1 < d2)
+        if(d1 < d2)
             return -1;
-        if (d1 > d2)
+        if(d1 > d2)
             return 1;
 
         long thisBits    = Double.doubleToLongBits(d1);

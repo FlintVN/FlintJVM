@@ -23,20 +23,20 @@ final class StringLatin1 {
 	}
 	
 	public static int indexOf(byte[] value, byte[] str, int fromIndex) {
-		if (str.length == 0)
+		if(str.length == 0)
             return 0;
-        if (value.length == 0)
+        if(value.length == 0)
             return -1;
 		byte first = str[0];
         int max = value.length - str.length;
-        for (int i = fromIndex; i <= max; i++) {
-            if (value[i] != first)
-                while (++i <= max && value[i] != first);
-            if (i <= max) {
+        for(int i = fromIndex; i <= max; i++) {
+            if(value[i] != first)
+                while(++i <= max && value[i] != first);
+            if(i <= max) {
                 int j = i + 1;
                 int end = j + str.length - 1;
-                for (int k = 1; j < end && value[j] == str[k]; j++, k++);
-                if (j == end)
+                for(int k = 1; j < end && value[j] == str[k]; j++, k++);
+                if(j == end)
                     return i;
             }
         }
@@ -55,9 +55,9 @@ final class StringLatin1 {
 	}
 	
 	public static int lastIndexOf(byte[] value, byte[] str, int fromIndex) {
-        if (str.length == 0)
+        if(str.length == 0)
             return value.length - 1;
-        if (value.length < str.length)
+        if(value.length < str.length)
             return -1;
 
         for(int i = fromIndex - (str.length - 1); i >= 0; i--) {
@@ -218,9 +218,9 @@ final class StringLatin1 {
 	public static String trim(byte[] value) {
 		int len = value.length;
         int st = 0;
-        while ((st < len) && ((value[st] & 0xFF) <= ' '))
+        while((st < len) && ((value[st] & 0xFF) <= ' '))
             st++;
-        while ((st < len) && ((value[len - 1] & 0xFF) <= ' '))
+        while((st < len) && ((value[len - 1] & 0xFF) <= ' '))
             len--;
         return ((st > 0) || (len < value.length)) ? String.newString(value, st, len - st, (byte)0) : null;
 	}
@@ -235,8 +235,8 @@ final class StringLatin1 {
 	
 	public static int compareTo(byte[] value, byte[] other) {
 		int lim = Math.min(value.length, other.length);
-        for (int i = 0; i < lim; i++) {
-            if (value[i] != other[i])
+        for(int i = 0; i < lim; i++) {
+            if(value[i] != other[i])
                 return value[i] - other[i];
         }
         return value.length - other.length;
@@ -244,10 +244,10 @@ final class StringLatin1 {
     
     public static int compareToUTF16(byte[] value, byte[] other) {
         int lim = Math.min(value.length, other.length >> 1);
-        for (int i = 0; i < lim; i++) {
+        for(int i = 0; i < lim; i++) {
             char c1 = (char)(value[i] & 0xFF);
             char c2 = StringUTF16.charAt(other, i);
-            if (c1 != c2)
+            if(c1 != c2)
                 return c1 - c2;
         }
         return value.length - (other.length >> 1);

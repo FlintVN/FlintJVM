@@ -26,7 +26,7 @@ public final class Float extends Number implements Comparable<Float> {
     }
 
     public static String toHexString(float f) {
-        if (Math.abs(f) < Float.MIN_NORMAL &&  f != 0.0f) {
+        if(Math.abs(f) < Float.MIN_NORMAL &&  f != 0.0f) {
             String s = Double.toHexString(Math.scalb((double)f, Double.MIN_EXPONENT - Float.MIN_EXPONENT));
             int index = s.lastIndexOf("p-1022");
         	StringBuilder sb = new StringBuilder(s.substring(0, index));
@@ -124,7 +124,7 @@ public final class Float extends Number implements Comparable<Float> {
     }
 
     public static int floatToIntBits(float value) {
-        if (!isNaN(value))
+        if(!isNaN(value))
             return floatToRawIntBits(value);
         return 0x7fc00000;
     }
@@ -142,9 +142,9 @@ public final class Float extends Number implements Comparable<Float> {
         float sign = (bin16SignBit != 0) ? -1.0f : 1.0f;
 
         int bin16Exp = (bin16ExpBits >> 10) - 15;
-        if (bin16Exp == -15)
+        if(bin16Exp == -15)
             return sign * (0x1p-24f * bin16SignifBits);
-        else if (bin16Exp == 16) {
+        else if(bin16Exp == 16) {
         	if(bin16SignifBits == 0)
         		return sign * Float.POSITIVE_INFINITY;
         	else
@@ -162,15 +162,15 @@ public final class Float extends Number implements Comparable<Float> {
         int doppel = Float.floatToRawIntBits(f);
         short sign_bit = (short)((doppel & 0x8000_0000) >> 16);
 
-        if (Float.isNaN(f))
+        if(Float.isNaN(f))
             return (short)(sign_bit | 0x7c00 | (doppel & 0x007f_e000) >> 13 | (doppel & 0x0000_1ff0) >> 4 | (doppel & 0x0000_000f));
 
         float abs_f = Math.abs(f);
 
-        if (abs_f >= (0x1.ffcp15f + 0x0.002p15f))
+        if(abs_f >= (0x1.ffcp15f + 0x0.002p15f))
             return (short)(sign_bit | 0x7c00);
 
-        if (abs_f <= 0x1.0p-24f * 0.5f)
+        if(abs_f <= 0x1.0p-24f * 0.5f)
             return sign_bit;
 
         int exp = Math.getExponent(f);
@@ -178,7 +178,7 @@ public final class Float extends Number implements Comparable<Float> {
 
         int expdelta = 0;
         int msb = 0x0000_0000;
-        if (exp < -14) {
+        if(exp < -14) {
             expdelta = -14 - exp;
             exp = -15;
             msb = 0x0080_0000;
@@ -191,7 +191,7 @@ public final class Float extends Number implements Comparable<Float> {
         int round  = f_signif_bits & (1 << 12 + expdelta);
         int sticky = f_signif_bits & ((1 << 12 + expdelta) - 1);
 
-        if (round != 0 && ((lsb | sticky) != 0 ))
+        if(round != 0 && ((lsb | sticky) != 0 ))
             signif_bits++;
 
         // assert (0xf800 & signif_bits) == 0x0;
@@ -204,9 +204,9 @@ public final class Float extends Number implements Comparable<Float> {
     }
 
     public static int compare(float f1, float f2) {
-        if (f1 < f2)
+        if(f1 < f2)
             return -1;
-        if (f1 > f2)
+        if(f1 > f2)
             return 1;
 
         int thisBits    = Float.floatToIntBits(f1);

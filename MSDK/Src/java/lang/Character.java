@@ -56,7 +56,7 @@ public final class Character implements Comparable<Character> {
     }
 	
 	public boolean equals(Object obj) {
-        if (obj instanceof Character)
+        if(obj instanceof Character)
             return value == ((Character)obj).charValue();
         return false;
     }

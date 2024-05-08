@@ -159,7 +159,7 @@ public final class String implements Comparable<String>, CharSequence {
     }
 
     public char charAt(int index) {
-    	if (coder == 0)
+    	if(coder == 0)
             return (char)value[index];
         return StringUTF16.charAt(value, index);
     }
@@ -169,25 +169,25 @@ public final class String implements Comparable<String>, CharSequence {
     }
     
     public boolean startsWith(String prefix, int toffset) {
-        if (toffset < 0 || toffset > length() - prefix.length())
+        if(toffset < 0 || toffset > length() - prefix.length())
             return false;
         byte ta[] = value;
         byte pa[] = prefix.value;
         int po = 0;
         int pc = pa.length;
         byte coder = this.coder;
-        if (coder == prefix.coder) {
+        if(coder == prefix.coder) {
             int to = (coder == 0) ? toffset : toffset << 1;
-            while (po < pc) {
-                if (ta[to++] != pa[po++])
+            while(po < pc) {
+                if(ta[to++] != pa[po++])
                     return false;
             }
         }
         else {
-            if (coder == 0)
+            if(coder == 0)
                 return false;
-            while (po < pc) {
-                if (StringUTF16.charAt(ta, toffset++) != (pa[po++] & 0xff))
+            while(po < pc) {
+                if(StringUTF16.charAt(ta, toffset++) != (pa[po++] & 0xff))
                     return false;
             }
         }
@@ -220,9 +220,9 @@ public final class String implements Comparable<String>, CharSequence {
     
     public int indexOf(String str, int fromIndex) {
     	byte coder = this.coder;
-        if (coder == str.coder)
+        if(coder == str.coder)
             return (coder == 0) ? StringLatin1.indexOf(value, str.value, fromIndex) : StringUTF16.indexOf(value, str.value, fromIndex);
-        if (coder == 0)
+        if(coder == 0)
             return -1;
         return StringUTF16.indexOfLatin1(value, str.value, fromIndex);
     }
@@ -232,7 +232,7 @@ public final class String implements Comparable<String>, CharSequence {
     }
     
     public int lastIndexOf(int ch, int fromIndex) {
-    	if (coder == 0)
+    	if(coder == 0)
     		return StringLatin1.lastIndexOf(value, ch, fromIndex);
     	return StringUTF16.lastIndexOf(value, ch, fromIndex);
     }
@@ -243,20 +243,20 @@ public final class String implements Comparable<String>, CharSequence {
     
     public int lastIndexOf(String str, int fromIndex) {
     	byte coder = this.coder;
-    	if (coder == str.coder) {
-            if (coder == 0)
+    	if(coder == str.coder) {
+            if(coder == 0)
             	return StringLatin1.lastIndexOf(value, str.value, fromIndex);
             return StringUTF16.lastIndexOf(value, str.value, fromIndex);
     	}
-        if (coder == 0)
+        if(coder == 0)
             return -1;
         return StringUTF16.lastIndexOfLatin1(value, str.value, fromIndex);
     }
     
     public String replace(char oldChar, char newChar) {
-        if (oldChar != newChar) {
+        if(oldChar != newChar) {
             String ret = (coder == 0) ? StringLatin1.replace(value, oldChar, newChar) : StringUTF16.replace(value, oldChar, newChar);
-            if (ret != null)
+            if(ret != null)
                 return ret;
         }
         return this;
@@ -295,7 +295,7 @@ public final class String implements Comparable<String>, CharSequence {
     public String substring(int beginIndex, int endIndex) {
     	byte[] val = value;
         int length = val.length >>> coder;
-        if (beginIndex == 0 && endIndex == length)
+        if(beginIndex == 0 && endIndex == length)
             return this;
         int subLen = endIndex - beginIndex;
         if(coder == 0)
@@ -353,17 +353,17 @@ public final class String implements Comparable<String>, CharSequence {
     }
     
     public String translateEscapes() {
-        if (isEmpty())
+        if(isEmpty())
             return "";
         char[] chars = toCharArray();
         int length = chars.length;
         int from = 0;
         int to = 0;
-        while (from < length) {
+        while(from < length) {
             char ch = chars[from++];
-            if (ch == '\\') {
+            if(ch == '\\') {
                 ch = from < length ? chars[from++] : '\0';
-                switch (ch) {
+                switch(ch) {
 	                case 'b':
 	                    ch = '\b';
 	                    break;
@@ -390,9 +390,9 @@ public final class String implements Comparable<String>, CharSequence {
 	                case '4': case '5': case '6': case '7':
 	                    int limit = Integer.min(from + (ch <= '3' ? 2 : 1), length);
 	                    int code = ch - '0';
-	                    while (from < limit) {
+	                    while(from < limit) {
 	                        ch = chars[from];
-	                        if (ch < '0' || '7' < ch)
+	                        if(ch < '0' || '7' < ch)
 	                            break;
 	                        from++;
 	                        code = (code << 3) | (ch - '0');
@@ -402,7 +402,7 @@ public final class String implements Comparable<String>, CharSequence {
 	                case '\n':
 	                    continue;
 	                case '\r':
-	                    if (from < length && chars[from] == '\n')
+	                    if(from < length && chars[from] == '\n')
 	                        from++;
 	                    continue;
 	                default: {
@@ -480,7 +480,7 @@ public final class String implements Comparable<String>, CharSequence {
     }
     
     public boolean equals(Object anObject) {
-        if (this == anObject)
+        if(this == anObject)
             return true;
         if((anObject instanceof String aString) && (this.coder == aString.coder))
         	return StringLatin1.equals(value, aString.value);
@@ -488,7 +488,7 @@ public final class String implements Comparable<String>, CharSequence {
     }
     
     public boolean equalsIgnoreCase(String anotherString) {
-    	if (this == anotherString)
+    	if(this == anotherString)
             return true;
     	byte coder = this.coder;
     	if(coder == anotherString.coder) {
@@ -503,7 +503,7 @@ public final class String implements Comparable<String>, CharSequence {
         byte[] v1 = value;
         byte[] v2 = anotherString.value;
         byte coder = this.coder;
-        if (coder == anotherString.coder)
+        if(coder == anotherString.coder)
             return coder == 0 ? StringLatin1.compareTo(v1, v2) : StringUTF16.compareTo(v1, v2);
         return coder == 0 ? StringLatin1.compareToUTF16(v1, v2) : StringUTF16.compareToLatin1(v1, v2);
      }

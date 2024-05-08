@@ -48,7 +48,7 @@ public final class Boolean implements Comparable<Boolean> {
     }
 
     public boolean equals(Object obj) {
-        if (obj instanceof Boolean)
+        if(obj instanceof Boolean)
             return value == ((Boolean)obj).booleanValue();
         return false;
     }

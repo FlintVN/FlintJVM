@@ -74,20 +74,20 @@ public final class Math {
     private static double floorOrCeil(double a, double negativeBoundary, double positiveBoundary, double sign) {
         int exponent = Math.getExponent(a);
 
-        if (exponent < 0)
+        if(exponent < 0)
             return ((a == 0.0) ? a : ((a < 0.0) ?  negativeBoundary : positiveBoundary));
-        else if (exponent >= 52)
+        else if(exponent >= 52)
             return a;
         // assert exponent >= 0 && exponent <= 51;
 
         long doppel = Double.doubleToRawLongBits(a);
         long mask = DOUBLE_SIGNIF_BIT_MASK >> exponent;
 
-        if ( (mask & doppel) == 0L )
+        if( (mask & doppel) == 0L )
             return a;
         else {
             double result = Double.longBitsToDouble(doppel & (~mask));
-            if (sign*a > 0.0)
+            if(sign*a > 0.0)
                 result = result + sign;
             return result;
         }
@@ -98,7 +98,7 @@ public final class Math {
         double sign = Math.copySign(1.0, a);
         a = Math.abs(a);
 
-        if (a < twoToThe52)
+        if(a < twoToThe52)
             a = ((twoToThe52 + a ) - twoToThe52);
 
         return sign * a;
@@ -112,9 +112,9 @@ public final class Math {
         int intBits = Float.floatToRawIntBits(a);
         int biasedExp = (intBits & FLOAT_EXP_BIT_MASK) >> (FLOAT_SIGNIFICAND_WIDTH - 1);
         int shift = (FLOAT_SIGNIFICAND_WIDTH - 2 + FLOAT_EXP_BIAS) - biasedExp;
-        if ((shift & -32) == 0) {
+        if((shift & -32) == 0) {
             int r = ((intBits & FLOAT_SIGNIF_BIT_MASK) | (FLOAT_SIGNIF_BIT_MASK + 1));
-            if (intBits < 0)
+            if(intBits < 0)
                 r = -r;
             return ((r >> shift) + 1) >> 1;
         }
@@ -126,9 +126,9 @@ public final class Math {
         long longBits = Double.doubleToRawLongBits(a);
         long biasedExp = (longBits & DOUBLE_EXP_BIT_MASK) >> (DOUBLE_SIGNIFICAND_WIDTH - 1);
         long shift = (DOUBLE_SIGNIFICAND_WIDTH - 2 + DOUBLE_EXP_BIAS) - biasedExp;
-        if ((shift & -64) == 0) {
+        if((shift & -64) == 0) {
             long r = ((longBits & DOUBLE_SIGNIF_BIT_MASK) | (DOUBLE_SIGNIF_BIT_MASK + 1));
-            if (longBits < 0)
+            if(longBits < 0)
                 r = -r;
             return ((r >> shift) + 1) >> 1;
         }
@@ -161,14 +161,14 @@ public final class Math {
 
     public static long unsignedMultiplyHigh(long x, long y) {
         long result = Math.multiplyHigh(x, y);
-        result += (y & (x >> 63)); // equivalent to `if (x < 0) result += y;`
-        result += (x & (y >> 63)); // equivalent to `if (y < 0) result += x;`
+        result += (y & (x >> 63)); // equivalent to `if(x < 0) result += y;`
+        result += (x & (y >> 63)); // equivalent to `if(y < 0) result += x;`
         return result;
     }
 
     public static int floorDiv(int x, int y) {
         final int q = x / y;
-        if ((x ^ y) < 0 && (q * y != x))
+        if((x ^ y) < 0 && (q * y != x))
             return q - 1;
         return q;
     }
@@ -179,14 +179,14 @@ public final class Math {
 
     public static long floorDiv(long x, long y) {
         final long q = x / y;
-        if ((x ^ y) < 0 && (q * y != x))
+        if((x ^ y) < 0 && (q * y != x))
             return q - 1;
         return q;
     }
 
     public static int floorMod(int x, int y) {
         final int r = x % y;
-        if ((x ^ y) < 0 && r != 0)
+        if((x ^ y) < 0 && r != 0)
             return r + y;
         return r;
     }
@@ -197,14 +197,14 @@ public final class Math {
 
     public static long floorMod(long x, long y) {
         final long r = x % y;
-        if ((x ^ y) < 0 && r != 0)
+        if((x ^ y) < 0 && r != 0)
             return r + y;
         return r;
     }
 
     public static int ceilDiv(int x, int y) {
         final int q = x / y;
-        if ((x ^ y) >= 0 && (q * y != x))
+        if((x ^ y) >= 0 && (q * y != x))
             return q + 1;
         return q;
     }
@@ -215,14 +215,14 @@ public final class Math {
 
     public static long ceilDiv(long x, long y) {
         final long q = x / y;
-        if ((x ^ y) >= 0 && (q * y != x))
+        if((x ^ y) >= 0 && (q * y != x))
             return q + 1;
         return q;
     }
 
     public static int ceilMod(int x, int y) {
         final int r = x % y;
-        if ((x ^ y) >= 0 && r != 0)
+        if((x ^ y) >= 0 && r != 0)
             return r - y;
         return r;
     }
@@ -233,7 +233,7 @@ public final class Math {
 
     public static long ceilMod(long x, long y) {
         final long r = x % y;
-        if ((x ^ y) >= 0 && r != 0)
+        if((x ^ y) >= 0 && r != 0)
             return r - y;
         return r;
     }
@@ -263,17 +263,17 @@ public final class Math {
     }
 
     public static float max(float a, float b) {
-        if (a != a)
+        if(a != a)
             return a;
-        if ((a == 0.0f) && (b == 0.0f) && (Float.floatToRawIntBits(a) == Float.floatToRawIntBits(-0.0f)))
+        if((a == 0.0f) && (b == 0.0f) && (Float.floatToRawIntBits(a) == Float.floatToRawIntBits(-0.0f)))
             return b;
         return (a >= b) ? a : b;
     }
 
     public static double max(double a, double b) {
-        if (a != a)
+        if(a != a)
             return a;
-        if ((a == 0.0d) && (b == 0.0d) && (Double.doubleToRawLongBits(a) == Double.doubleToRawLongBits(-0.0d)))
+        if((a == 0.0d) && (b == 0.0d) && (Double.doubleToRawLongBits(a) == Double.doubleToRawLongBits(-0.0d)))
             return b;
         return (a >= b) ? a : b;
     }
@@ -287,17 +287,17 @@ public final class Math {
     }
 
     public static float min(float a, float b) {
-        if (a != a)
+        if(a != a)
             return a;
-        if ((a == 0.0f) && (b == 0.0f) && (Float.floatToRawIntBits(b) == Float.floatToRawIntBits(-0.0f)))
+        if((a == 0.0f) && (b == 0.0f) && (Float.floatToRawIntBits(b) == Float.floatToRawIntBits(-0.0f)))
             return b;
         return (a <= b) ? a : b;
     }
 
     public static double min(double a, double b) {
-        if (a != a)
+        if(a != a)
             return a;
-        if ((a == 0.0d) && (b == 0.0d) && (Double.doubleToRawLongBits(b) == Double.doubleToRawLongBits(-0.0d)))
+        if((a == 0.0d) && (b == 0.0d) && (Double.doubleToRawLongBits(b) == Double.doubleToRawLongBits(-0.0d)))
             return b;
         return (a <= b) ? a : b;
     }
@@ -347,45 +347,45 @@ public final class Math {
     }
     
     public static double nextAfter(double start, double direction) {
-        if (start > direction) {
-            if (start != 0.0d) {
+        if(start > direction) {
+            if(start != 0.0d) {
                 final long transducer = Double.doubleToRawLongBits(start);
                 return Double.longBitsToDouble(transducer + ((transducer > 0L) ? -1L : 1L));
             }
             else
                 return -Double.MIN_VALUE;
         }
-        else if (start < direction) {
+        else if(start < direction) {
             final long transducer = Double.doubleToRawLongBits(start + 0.0d);
             return Double.longBitsToDouble(transducer + ((transducer >= 0L) ? 1L : -1L));
         }
-        else if (start == direction)
+        else if(start == direction)
             return direction;
         else
             return start + direction;
     }
 
     public static float nextAfter(float start, double direction) {
-        if (start > direction) {
-            if (start != 0.0f) {
+        if(start > direction) {
+            if(start != 0.0f) {
                 final int transducer = Float.floatToRawIntBits(start);
                 return Float.intBitsToFloat(transducer + ((transducer > 0) ? -1 : 1));
             }
             else
                 return -Float.MIN_VALUE;
         }
-        else if (start < direction) {
+        else if(start < direction) {
             final int transducer = Float.floatToRawIntBits(start + 0.0f);
             return Float.intBitsToFloat(transducer + ((transducer >= 0) ? 1 : -1));
         }
-        else if (start == direction)
+        else if(start == direction)
             return (float)direction;
         else
             return start + (float)direction;
     }
 
     public static double nextUp(double d) {
-        if (d < Double.POSITIVE_INFINITY) {
+        if(d < Double.POSITIVE_INFINITY) {
             final long transducer = Double.doubleToRawLongBits(d + 0.0D);
             return Double.longBitsToDouble(transducer + ((transducer >= 0L) ? 1L : -1L));
         }
@@ -394,7 +394,7 @@ public final class Math {
     }
 
     public static float nextUp(float f) {
-        if (f < Float.POSITIVE_INFINITY) {
+        if(f < Float.POSITIVE_INFINITY) {
             final int transducer = Float.floatToRawIntBits(f + 0.0F);
             return Float.intBitsToFloat(transducer + ((transducer >= 0) ? 1 : -1));
         }
@@ -403,10 +403,10 @@ public final class Math {
     }
 
     public static double nextDown(double d) {
-        if (Double.isNaN(d) || d == Double.NEGATIVE_INFINITY)
+        if(Double.isNaN(d) || d == Double.NEGATIVE_INFINITY)
             return d;
         else {
-            if (d == 0.0)
+            if(d == 0.0)
                 return -Double.MIN_VALUE;
             else
                 return Double.longBitsToDouble(Double.doubleToRawLongBits(d) + ((d > 0.0d)?-1L:+1L));
@@ -414,10 +414,10 @@ public final class Math {
     }
 
     public static float nextDown(float f) {
-        if (Float.isNaN(f) || f == Float.NEGATIVE_INFINITY)
+        if(Float.isNaN(f) || f == Float.NEGATIVE_INFINITY)
             return f;
         else {
-            if (f == 0.0f)
+            if(f == 0.0f)
                 return -Float.MIN_VALUE;
             else
                 return Float.intBitsToFloat(Float.floatToRawIntBits(f) + ((f > 0.0f)?-1:+1));

@@ -10,26 +10,26 @@ public final class Long extends Number implements Comparable<Long> {
     private final long value;
 
     public static String toString(long i, int radix) {
-        if (radix < 2 || radix > 36)
+        if(radix < 2 || radix > 36)
             radix = 10;
 
-        if (radix == 10)
+        if(radix == 10)
             return toString(i);
 
         byte[] buf = new byte[65];
         boolean negative = (i < 0);
         int charPos = buf.length - 1;
 
-        if (!negative)
+        if(!negative)
             i = -i;
 
-        while (i <= -radix) {
+        while(i <= -radix) {
             buf[charPos--] = (byte)Integer.digitToChar((int)-(i % radix));
             i = i / radix;
         }
         buf[charPos] = (byte)Integer.digitToChar((int)-i);
 
-        if (negative)
+        if(negative)
             buf[--charPos] = '-';
 
         return String.newString(buf, charPos, (33 - charPos), (byte)0);
@@ -37,10 +37,10 @@ public final class Long extends Number implements Comparable<Long> {
 
 
     public static String toUnsignedString(long i, int radix) {
-        if (i >= 0)
+        if(i >= 0)
             return toString(i, radix);
         else {
-            return switch (radix) {
+            return switch(radix) {
                 case 2  -> toBinaryString(i);
                 case 4  -> toUnsignedString0(i, 2);
                 case 8  -> toOctalString(i);
@@ -57,7 +57,7 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     private static BigInteger toUnsignedBigInteger(long i) {
-        if (i >= 0L)
+        if(i >= 0L)
             return BigInteger.valueOf(i);
         else {
             int upper = (int) (i >>> 32);
@@ -97,7 +97,7 @@ public final class Long extends Number implements Comparable<Long> {
         do {
             buf[--charPos] = (byte)Integer.digitToChar(((int) val) & mask);
             val >>>= shift;
-        } while (charPos > offset);
+        } while(charPos > offset);
     }
 
     static String fastUUID(long lsb, long msb) {
@@ -147,38 +147,38 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     public static long parseLong(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
-    	if (s == null)
+    	if(s == null)
             throw new NumberFormatException("Cannot parse null string");
-        if (radix < 2)
+        if(radix < 2)
             throw new NumberFormatException("radix " + radix + " less than 2");
-        if (radix > 36)
+        if(radix > 36)
             throw new NumberFormatException("radix " + radix + " greater than 36");
 
         boolean negative = false;
         int i = beginIndex;
         long limit = -Long.MAX_VALUE;
 
-        if (i < endIndex) {
+        if(i < endIndex) {
             char firstChar = s.charAt(i);
-            if (firstChar < '0') {
-                if (firstChar == '-') {
+            if(firstChar < '0') {
+                if(firstChar == '-') {
                     negative = true;
                     limit = Long.MIN_VALUE;
                 }
-                else if (firstChar != '+')
+                else if(firstChar != '+')
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
                 i++;
             }
-            if (i >= endIndex)
+            if(i >= endIndex)
                 throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
             long multmin = limit / radix;
             long result = 0;
-            while (i < endIndex) {
+            while(i < endIndex) {
                 int digit = Character.digit(s.charAt(i), radix);
-                if (digit < 0 || result < multmin)
+                if(digit < 0 || result < multmin)
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
                 result *= radix;
-                if (result < limit + digit)
+                if(result < limit + digit)
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
                 i++;
                 result -= digit;
@@ -194,26 +194,26 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     public static long parseUnsignedLong(String s, int radix) throws NumberFormatException {
-        if (s == null)
+        if(s == null)
             throw new NumberFormatException("Cannot parse null string");
 
         int len = s.length();
-        if (len > 0) {
+        if(len > 0) {
             char firstChar = s.charAt(0);
-            if (firstChar == '-')
+            if(firstChar == '-')
                 throw new NumberFormatException("Illegal leading minus sign on unsigned string " + s);
             else {
-                if (len <= 12 || (radix == 10 && len <= 18) )
+                if(len <= 12 || (radix == 10 && len <= 18) )
                     return parseLong(s, radix);
 
                 long first = parseLong(s, 0, len - 1, radix);
                 int second = Character.digit(s.charAt(len - 1), radix);
-                if (second < 0)
+                if(second < 0)
                     throw new NumberFormatException("Bad digit at end of " + s);
                 long result = first * radix + second;
 
                 int guard = radix * (int) (first >>> 57);
-                if (guard >= 128 || (result >= 0 && guard >= 128 - 36))
+                if(guard >= 128 || (result >= 0 && guard >= 128 - 36))
                     throw new NumberFormatException("String value " + s + " exceeds range of unsigned long.");
                 return result;
             }
@@ -225,22 +225,22 @@ public final class Long extends Number implements Comparable<Long> {
     public static long parseUnsignedLong(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
         int start = beginIndex, len = endIndex - beginIndex;
 
-        if (len > 0) {
+        if(len > 0) {
             char firstChar = s.charAt(start);
-            if (firstChar == '-')
+            if(firstChar == '-')
                 throw new NumberFormatException("Illegal leading minus sign on unsigned string " + s.subSequence(start, start + len));
             else {
-                if (len <= 12 || (radix == 10 && len <= 18) )
+                if(len <= 12 || (radix == 10 && len <= 18) )
                     return parseLong(s, start, start + len, radix);
 
                 long first = parseLong(s, start, start + len - 1, radix);
                 int second = Character.digit(s.charAt(start + len - 1), radix);
-                if (second < 0)
+                if(second < 0)
                     throw new NumberFormatException("Bad digit at end of " + s.subSequence(start, start + len));
                 long result = first * radix + second;
 
                 int guard = radix * (int) (first >>> 57);
-                if (guard >= 128 || (result >= 0 && guard >= 128 - 36))
+                if(guard >= 128 || (result >= 0 && guard >= 128 - 36))
                     throw new NumberFormatException("String value " + s.subSequence(start, start + len) + " exceeds range of unsigned long.");
                 return result;
             }
@@ -271,37 +271,37 @@ public final class Long extends Number implements Comparable<Long> {
         boolean negative = false;
         long result;
 
-        if (nm.isEmpty())
+        if(nm.isEmpty())
             throw new NumberFormatException("Zero length string");
         char firstChar = nm.charAt(0);
-        if (firstChar == '-') {
+        if(firstChar == '-') {
             negative = true;
             index++;
         }
-        else if (firstChar == '+')
+        else if(firstChar == '+')
             index++;
 
-        if (nm.startsWith("0x", index) || nm.startsWith("0X", index)) {
+        if(nm.startsWith("0x", index) || nm.startsWith("0X", index)) {
             index += 2;
             radix = 16;
         }
-        else if (nm.startsWith("#", index)) {
+        else if(nm.startsWith("#", index)) {
             index ++;
             radix = 16;
         }
-        else if (nm.startsWith("0", index) && nm.length() > 1 + index) {
+        else if(nm.startsWith("0", index) && nm.length() > 1 + index) {
             index ++;
             radix = 8;
         }
 
-        if (nm.startsWith("-", index) || nm.startsWith("+", index))
+        if(nm.startsWith("-", index) || nm.startsWith("+", index))
             throw new NumberFormatException("Sign character in wrong position");
 
         try {
             result = parseLong(nm, index, nm.length(), radix);
             result = negative ? -result : result;
         }
-        catch (NumberFormatException e) {
+        catch(NumberFormatException e) {
             String constant = negative ? ("-" + nm.substring(index)) : nm.substring(index);
             result = parseLong(constant, radix);
         }
@@ -353,7 +353,7 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     public boolean equals(Object obj) {
-        if (obj instanceof Long)
+        if(obj instanceof Long)
             return value == ((Long)obj).longValue();
         return false;
     }
@@ -371,7 +371,7 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     public static long divideUnsigned(long dividend, long divisor) {
-        if (divisor >= 0) {
+        if(divisor >= 0) {
             final long q = (dividend >>> 1) / divisor << 1;
             final long r = dividend - q * divisor;
             return q + ((r | ~(r - divisor)) >>> (Long.SIZE - 1));
@@ -380,7 +380,7 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     public static long remainderUnsigned(long dividend, long divisor) {
-        if (divisor >= 0) {
+        if(divisor >= 0) {
             final long q = (dividend >>> 1) / divisor << 1;
             final long r = dividend - q * divisor;
             return r - ((~(r - divisor) >> (Long.SIZE - 1)) & divisor);
@@ -437,7 +437,7 @@ public final class Long extends Number implements Comparable<Long> {
         i = i & mask;
         long maskCount = ~mask << 1;
 
-        for (int j = 0; j < 6; j++) {
+        for(int j = 0; j < 6; j++) {
             long maskPrefix = parallelSuffix(maskCount);
             long maskMove = maskPrefix & mask;
             mask = (mask ^ maskMove) | (maskMove >>> (1 << j));

@@ -25,7 +25,7 @@ final public class DoubleToDecimal {
     }
 
     private String toDecimalString(double v) {
-        return switch (toDecimal(v)) {
+        return switch(toDecimal(v)) {
             case 0 -> charsToString();
             case 1 -> "0.0";
             case 2 -> "-0.0";
@@ -36,16 +36,16 @@ final public class DoubleToDecimal {
     }
 
     private Appendable appendDecimalTo(double v, Appendable app) throws IOException {
-        switch (toDecimal(v)) {
+        switch(toDecimal(v)) {
             case 0:
                 char[] chars = new char[index + 1];
-                for (int i = 0; i < chars.length; ++i)
+                for(int i = 0; i < chars.length; ++i)
                     chars[i] = (char) bytes[i];
-                if (app instanceof StringBuilder builder)
+                if(app instanceof StringBuilder builder)
                     return builder.append(chars);
-                if (app instanceof StringBuffer buffer)
+                if(app instanceof StringBuffer buffer)
                     return buffer.append(chars);
-                for (char c : chars)
+                for(char c : chars)
                     app.append(c);
                 return app;
             case 1: return app.append("0.0");
@@ -60,25 +60,25 @@ final public class DoubleToDecimal {
         long bits = doubleToRawLongBits(v);
         long t = bits & 0x0FFFFFFFFFFFFFL;
         int bq = (int) (bits >>> 53 - 1) & 0x07FF;
-        if (bq < 0x07FF) {
+        if(bq < 0x07FF) {
             index = -1;
-            if (bits < 0)
+            if(bits < 0)
                 append('-');
-            if (bq != 0) {
+            if(bq != 0) {
                 int mq = -(-1074) + 1 - bq;
                 long c = 0x10000000000000L | t;
-                if (0 < mq & mq < 53) {
+                if(0 < mq & mq < 53) {
                     long f = c >> mq;
-                    if (f << mq == c)
+                    if(f << mq == c)
                         return toChars(f, 0);
                 }
                 return toDecimal(-mq, c, 0);
             }
-            if (t != 0)
+            if(t != 0)
                 return t < 3 ? toDecimal((-1074), 10 * t, -1) : toDecimal((-1074), t, 0);
             return bits == 0 ? 1 : 2;
         }
-        if (t != 0)
+        if(t != 0)
             return 5;
         return bits > 0 ? 3 : 4;
     }
@@ -90,7 +90,7 @@ final public class DoubleToDecimal {
         long cbl;
         int k;
 
-        if (c != 0x10000000000000L | q == (-1074)) {
+        if(c != 0x10000000000000L | q == (-1074)) {
             cbl = cb - 2;
             k = flog10pow2(q);
         }
@@ -108,19 +108,19 @@ final public class DoubleToDecimal {
         long vbr = rop(g1, g0, cbr << h);
 
         long s = vb >> 2;
-        if (s >= 100) {
+        if(s >= 100) {
             long sp10 = 10 * multiplyHigh(s, 115_292_150_460_684_698L << 4);
             long tp10 = sp10 + 10;
             boolean upin = vbl + out <= sp10 << 2;
             boolean wpin = (tp10 << 2) + out <= vbr;
-            if (upin != wpin)
+            if(upin != wpin)
                 return toChars(upin ? sp10 : tp10, k);
         }
 
         long t = s + 1;
         boolean uin = vbl + out <= s << 2;
         boolean win = (t << 2) + out <= vbr;
-        if (uin != win)
+        if(uin != win)
             return toChars(uin ? s : t, k + dk);
         long cmp = vb - (s + t << 1);
         return toChars(cmp < 0 || cmp == 0 && (s & 0x1) == 0 ? s : t, k + dk);
@@ -137,7 +137,7 @@ final public class DoubleToDecimal {
 
     private int toChars(long f, int e) {
         int len = flog10pow2(64 - numberOfLeadingZeros(f));
-        if (f >= pow10(len))
+        if(f >= pow10(len))
             len += 1;
 
         f *= pow10(17 - len);
@@ -148,9 +148,9 @@ final public class DoubleToDecimal {
         int h = (int) (hm * 1_441_151_881L >>> 57);
         int m = (int) (hm - 100_000_000 * h);
 
-        if (0 < e && e <= 7)
+        if(0 < e && e <= 7)
             return toChars1(h, m, l, e);
-        if (-3 < e && e <= 0)
+        if(-3 < e && e <= 0)
             return toChars2(h, m, l, e);
         return toChars3(h, m, l, e);
     }
@@ -160,13 +160,13 @@ final public class DoubleToDecimal {
         int y = y(m);
         int t;
         int i = 1;
-        for (; i < e; ++i) {
+        for(; i < e; ++i) {
             t = 10 * y;
             appendDigit(t >>> 28);
             y = t & 0x0FFFFFFF;
         }
         append('.');
-        for (; i <= 8; ++i) {
+        for(; i <= 8; ++i) {
             t = 10 * y;
             appendDigit(t >>> 28);
             y = t & 0x0FFFFFFF;
@@ -178,7 +178,7 @@ final public class DoubleToDecimal {
     private int toChars2(int h, int m, int l, int e) {
         appendDigit(0);
         append('.');
-        for (; e < 0; ++e)
+        for(; e < 0; ++e)
             appendDigit(0);
         appendDigit(h);
         append8Digits(m);
@@ -196,14 +196,14 @@ final public class DoubleToDecimal {
     }
 
     private void lowDigits(int l) {
-        if (l != 0)
+        if(l != 0)
             append8Digits(l);
         removeTrailingZeroes();
     }
 
     private void append8Digits(int m) {
         int y = y(m);
-        for (int i = 0; i < 8; ++i) {
+        for(int i = 0; i < 8; ++i) {
             int t = 10 * y;
             appendDigit(t >>> 28);
             y = t & 0x0FFFFFFF;
@@ -211,9 +211,9 @@ final public class DoubleToDecimal {
     }
 
     private void removeTrailingZeroes() {
-        while (bytes[index] == '0')
+        while(bytes[index] == '0')
             --index;
-        if (bytes[index] == '.')
+        if(bytes[index] == '.')
             ++index;
     }
 
@@ -223,16 +223,16 @@ final public class DoubleToDecimal {
 
     private void exponent(int e) {
         append('E');
-        if (e < 0) {
+        if(e < 0) {
             append('-');
             e = -e;
         }
-        if (e < 10) {
+        if(e < 10) {
             appendDigit(e);
             return;
         }
         int d;
-        if (e >= 100) {
+        if(e >= 100) {
             d = e * 1_311 >>> 17;
             appendDigit(d);
             e -= 100 * d;

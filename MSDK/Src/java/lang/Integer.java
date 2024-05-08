@@ -18,26 +18,26 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static String toString(int i, int radix) {
-        if (radix < 2 || radix > 36)
+        if(radix < 2 || radix > 36)
             radix = 10;
 
-        if (radix == 10)
+        if(radix == 10)
             return toString(i);
 
         byte[] buf = new byte[33];
         boolean negative = (i < 0);
         int charPos = buf.length - 1;
 
-        if (!negative)
+        if(!negative)
             i = -i;
 
-        while (i <= -radix) {
+        while(i <= -radix) {
             buf[charPos--] = (byte)digitToChar(-(i % radix));
             i = i / radix;
         }
         buf[charPos] = (byte)digitToChar(-i);
 
-        if (negative)
+        if(negative)
             buf[--charPos] = '-';
 
         return String.newString(buf, charPos, (33 - charPos), (byte)0);
@@ -74,7 +74,7 @@ public final class Integer extends Number implements Comparable<Integer> {
         do {
             buf[--charPos] = (byte)digitToChar(val & mask);
             val >>>= shift;
-        } while (charPos > 0);
+        } while(charPos > 0);
     }
 
     public static String toString(int i) {
@@ -108,38 +108,38 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static int parseInt(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
-    	if (s == null)
+    	if(s == null)
             throw new NumberFormatException("Cannot parse null string");
-        if (radix < 2)
+        if(radix < 2)
             throw new NumberFormatException("radix " + radix + " less than 2");
-        if (radix > 36)
+        if(radix > 36)
             throw new NumberFormatException("radix " + radix + " greater than 36");
 
         boolean negative = false;
         int i = beginIndex;
         int limit = -Integer.MAX_VALUE;
 
-        if (i < endIndex) {
+        if(i < endIndex) {
             char firstChar = s.charAt(i);
-            if (firstChar < '0') {
-                if (firstChar == '-') {
+            if(firstChar < '0') {
+                if(firstChar == '-') {
                     negative = true;
                     limit = Integer.MIN_VALUE;
                 }
-                else if (firstChar != '+')
+                else if(firstChar != '+')
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
                 i++;
-                if (i == endIndex)
+                if(i == endIndex)
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
             }
             int multmin = limit / radix;
             int result = 0;
-            while (i < endIndex) {
+            while(i < endIndex) {
                 int digit = Character.digit(s.charAt(i), radix);
-                if (digit < 0 || result < multmin)
+                if(digit < 0 || result < multmin)
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
                 result *= radix;
-                if (result < limit + digit)
+                if(result < limit + digit)
                     throw NumberFormatException.forCharSequence(s, beginIndex, endIndex, i);
                 i++;
                 result -= digit;
@@ -155,19 +155,19 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static int parseUnsignedInt(String s, int radix) throws NumberFormatException {
-        if (s == null)
+        if(s == null)
             throw new NumberFormatException("Cannot parse null string");
 
         int len = s.length();
-        if (len > 0) {
+        if(len > 0) {
             char firstChar = s.charAt(0);
-            if (firstChar == '-')
+            if(firstChar == '-')
                 throw new NumberFormatException("Illegal leading minus sign on unsigned string " + s);
-            else if (len <= 5 || (radix == 10 && len <= 9))
+            else if(len <= 5 || (radix == 10 && len <= 9))
                 return parseInt(s, radix);
             else {
                 long ell = Long.parseLong(s, radix);
-                if ((ell & 0xffff_ffff_0000_0000L) == 0)
+                if((ell & 0xffff_ffff_0000_0000L) == 0)
                     return (int) ell;
                 else
                     throw new NumberFormatException("String value " + s + " exceeds range of unsigned int.");
@@ -180,15 +180,15 @@ public final class Integer extends Number implements Comparable<Integer> {
     public static int parseUnsignedInt(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
         int start = beginIndex, len = endIndex - beginIndex;
 
-        if (len > 0) {
+        if(len > 0) {
             char firstChar = s.charAt(start);
-            if (firstChar == '-')
+            if(firstChar == '-')
                 throw new NumberFormatException("Illegal leading minus sign on unsigned string " + s);
-            else if (len <= 5 || (radix == 10 && len <= 9))
+            else if(len <= 5 || (radix == 10 && len <= 9))
                 return parseInt(s, start, start + len, radix);
             else {
                 long ell = Long.parseLong(s, start, start + len, radix);
-                if ((ell & 0xffff_ffff_0000_0000L) == 0)
+                if((ell & 0xffff_ffff_0000_0000L) == 0)
                     return (int)ell;
                 else
                     throw new NumberFormatException("String value " + s + " exceeds range of unsigned int.");
@@ -259,7 +259,7 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public boolean equals(Object obj) {
-        if (obj instanceof Integer)
+        if(obj instanceof Integer)
             return value == ((Integer)obj).intValue();
         return false;
     }
@@ -270,37 +270,37 @@ public final class Integer extends Number implements Comparable<Integer> {
         boolean negative = false;
         int result;
 
-        if (nm.isEmpty())
+        if(nm.isEmpty())
             throw new NumberFormatException("Zero length string");
         char firstChar = nm.charAt(0);
-        if (firstChar == '-') {
+        if(firstChar == '-') {
             negative = true;
             index++;
         }
-        else if (firstChar == '+')
+        else if(firstChar == '+')
             index++;
 
-        if (nm.startsWith("0x", index) || nm.startsWith("0X", index)) {
+        if(nm.startsWith("0x", index) || nm.startsWith("0X", index)) {
             index += 2;
             radix = 16;
         }
-        else if (nm.startsWith("#", index)) {
+        else if(nm.startsWith("#", index)) {
             index ++;
             radix = 16;
         }
-        else if (nm.startsWith("0", index) && nm.length() > 1 + index) {
+        else if(nm.startsWith("0", index) && nm.length() > 1 + index) {
             index ++;
             radix = 8;
         }
 
-        if (nm.startsWith("-", index) || nm.startsWith("+", index))
+        if(nm.startsWith("-", index) || nm.startsWith("+", index))
             throw new NumberFormatException("Sign character in wrong position");
 
         try {
             result = parseInt(nm, index, nm.length(), radix);
             result = negative ? -result : result;
         }
-        catch (NumberFormatException e) {
+        catch(NumberFormatException e) {
             String constant = negative ? ("-" + nm.substring(index)) : nm.substring(index);
             result = parseInt(constant, radix);
         }
@@ -340,24 +340,24 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static int numberOfLeadingZeros(int i) {
-        if (i <= 0)
+        if(i <= 0)
             return i == 0 ? 32 : 0;
         int n = 31;
-        if (i >= 1 << 16) { n -= 16; i >>>= 16; }
-        if (i >= 1 <<  8) { n -=  8; i >>>=  8; }
-        if (i >= 1 <<  4) { n -=  4; i >>>=  4; }
-        if (i >= 1 <<  2) { n -=  2; i >>>=  2; }
+        if(i >= 1 << 16) { n -= 16; i >>>= 16; }
+        if(i >= 1 <<  8) { n -=  8; i >>>=  8; }
+        if(i >= 1 <<  4) { n -=  4; i >>>=  4; }
+        if(i >= 1 <<  2) { n -=  2; i >>>=  2; }
         return n - (i >>> 1);
     }
 
     public static int numberOfTrailingZeros(int i) {
         i = ~i & (i - 1);
-        if (i <= 0) return i & 32;
+        if(i <= 0) return i & 32;
         int n = 1;
-        if (i > 1 << 16) { n += 16; i >>>= 16; }
-        if (i > 1 <<  8) { n +=  8; i >>>=  8; }
-        if (i > 1 <<  4) { n +=  4; i >>>=  4; }
-        if (i > 1 <<  2) { n +=  2; i >>>=  2; }
+        if(i > 1 << 16) { n += 16; i >>>= 16; }
+        if(i > 1 <<  8) { n +=  8; i >>>=  8; }
+        if(i > 1 <<  4) { n +=  4; i >>>=  4; }
+        if(i > 1 <<  2) { n +=  2; i >>>=  2; }
         return n + (i >>> 1);
     }
 
@@ -390,7 +390,7 @@ public final class Integer extends Number implements Comparable<Integer> {
         i = i & mask;
         int maskCount = ~mask << 1;
 
-        for (int j = 0; j < 5; j++) {
+        for(int j = 0; j < 5; j++) {
             int maskPrefix = parallelSuffix(maskCount);
             int maskMove = maskPrefix & mask;
             mask = (mask ^ maskMove) | (maskMove >>> (1 << j));

@@ -9,7 +9,7 @@ public final class System {
     
     public static native long nanoTime();
     
-    public static native final void arraycopy(Object src,  int srcPos, Object dest, int destPos, int length);
+    public static native final void arraycopy(Object src, int srcPos, Object dest, int destPos, int length);
     
     public static void exit(int status) {
     	// TODO
