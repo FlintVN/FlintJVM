@@ -66,7 +66,7 @@ uint32_t MjvmString::getLength(void) const {
 }
 
 uint8_t MjvmString::getCoder(void) const {
-    return ((FieldsData *)data)->getFieldData8(*(ConstNameAndType *)stringCoderFieldName).value;
+    return ((FieldsData *)data)->getFieldData32(*(ConstNameAndType *)stringCoderFieldName).value;
 }
 
 bool MjvmString::equals(const ConstUtf8 &utf8) const {

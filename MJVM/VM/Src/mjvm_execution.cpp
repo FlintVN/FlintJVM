@@ -122,7 +122,7 @@ MjvmObjectNode *Execution::newStringNode(const char *utf8, uint16_t size) {
     fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
 
     /* set value for coder field */
-    fields->getFieldData8(*(ConstNameAndType *)stringCoderFieldName).value = isLatin1 ? 0 : 1;
+    fields->getFieldData32(*(ConstNameAndType *)stringCoderFieldName).value = isLatin1 ? 0 : 1;
 
     return strObjNode;
 }
@@ -2008,18 +2008,6 @@ int64_t Execution::run(const char *mainClass) {
             goto init_static_field;
         }
         switch(constField.nameAndType.descriptor.text[0]) {
-            case 'Z':
-            case 'B': {
-                stackPushInt32(fields.getFieldData8(constField.nameAndType).value);
-                pc += 3;
-                goto *opcodes[code[pc]];
-            }
-            case 'C':
-            case 'S': {
-                stackPushInt32(fields.getFieldData16(constField.nameAndType).value);
-                pc += 3;
-                goto *opcodes[code[pc]];
-            }
             case 'J':
             case 'D': {
                 stackPushInt64(fields.getFieldData64(constField.nameAndType).value);
@@ -2056,12 +2044,12 @@ int64_t Execution::run(const char *mainClass) {
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
             case 'B': {
-                fields.getFieldData8(constField.nameAndType).value = stackPopInt32();
+                fields.getFieldData32(constField.nameAndType).value = (int8_t)stackPopInt32();
                 goto *opcodes[code[pc]];
             }
             case 'C':
             case 'S': {
-                fields.getFieldData16(constField.nameAndType).value = stackPopInt32();
+                fields.getFieldData32(constField.nameAndType).value = (int16_t)stackPopInt32();
                 goto *opcodes[code[pc]];
             }
             case 'J':
@@ -2084,24 +2072,6 @@ int64_t Execution::run(const char *mainClass) {
         const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         pc += 3;
         switch(constField.nameAndType.descriptor.text[0]) {
-            case 'Z':
-            case 'B': {
-                MjvmObject *obj = stackPopObject();
-                if(obj == 0)
-                    goto getfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
-                stackPushInt32(fields.getFieldData8(constField.nameAndType).value);
-                goto *opcodes[code[pc]];
-            }
-            case 'C':
-            case 'S': {
-                MjvmObject *obj = stackPopObject();
-                if(obj == 0)
-                    goto getfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
-                stackPushInt32(fields.getFieldData16(constField.nameAndType).value);
-                goto *opcodes[code[pc]];
-            }
             case 'J':
             case 'D': {
                 MjvmObject *obj = stackPopObject();
@@ -2157,7 +2127,7 @@ int64_t Execution::run(const char *mainClass) {
                 if(obj == 0)
                     goto putfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
-                fields.getFieldData8(constField.nameAndType).value = value;
+                fields.getFieldData32(constField.nameAndType).value = (int8_t)value;
                 goto *opcodes[code[pc]];
             }
             case 'C':
@@ -2167,7 +2137,7 @@ int64_t Execution::run(const char *mainClass) {
                 if(obj == 0)
                     goto putfield_null_excp;
                 const FieldsData &fields = *(FieldsData *)obj->data;
-                fields.getFieldData16(constField.nameAndType).value = value;
+                fields.getFieldData32(constField.nameAndType).value = (int16_t)value;
                 goto *opcodes[code[pc]];
             }
             case 'J':

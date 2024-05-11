@@ -3,14 +3,6 @@
 #include "mjvm_fields_data.h"
 #include "mjvm_execution.h"
 
-FieldData8::FieldData8(const FieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
-
-}
-
-FieldData16::FieldData16(const FieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
-
-}
-
 FieldData32::FieldData32(const FieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
 
 }
@@ -24,7 +16,7 @@ FieldObject::FieldObject(const FieldInfo &fieldInfo) : fieldInfo(fieldInfo), obj
 }
 
 FieldsData::FieldsData(Execution &execution, const ClassLoader &classLoader, bool isStatic) :
-fields8Count(0), fields16Count(0), fields32Count(0), fields64Count(0), fieldsObjCount(0) {
+fields32Count(0), fields64Count(0), fieldsObjCount(0) {
     if(isStatic)
         loadStatic(classLoader);
     else
@@ -33,8 +25,6 @@ fields8Count(0), fields16Count(0), fields32Count(0), fields64Count(0), fieldsObj
 
 void FieldsData::loadStatic(const ClassLoader &classLoader) {
     uint16_t fieldsCount = classLoader.getFieldsCount();
-    uint16_t field8Index = 0;
-    uint16_t field16Index = 0;
     uint16_t field32Index = 0;
     uint16_t field64Index = 0;
     uint16_t fieldObjIndex = 0;
@@ -44,14 +34,6 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
             const ConstUtf8 &descriptor = fieldInfo.descriptor;
             switch(fieldInfo.descriptor.text[0]) {
-                case 'Z':
-                case 'B':   /* Byte */
-                    (*(uint32_t *)&fields8Count)++;
-                    break;
-                case 'C':   /* Char */
-                case 'S':   /* Short */
-                    (*(uint32_t *)&fields16Count)++;
-                    break;
                 case 'J':   /* Long */
                 case 'D':   /* Double */
                     (*(uint32_t *)&fields64Count)++;
@@ -67,8 +49,6 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
         }
     }
 
-    fieldsData8 = (fields8Count) ? (FieldData8 *)Mjvm::malloc(fields8Count * sizeof(FieldData8)) : 0;
-    fieldsData16 = (fields16Count) ? (FieldData16 *)Mjvm::malloc(fields16Count * sizeof(FieldData16)) : 0;
     fieldsData32 = (fields32Count) ? (FieldData32 *)Mjvm::malloc(fields32Count * sizeof(FieldData32)) : 0;
     fieldsData64 = (fields64Count) ? (FieldData64 *)Mjvm::malloc(fields64Count * sizeof(FieldData64)) : 0;
     fieldsObject = (fieldsObjCount) ? (FieldObject *)Mjvm::malloc(fieldsObjCount * sizeof(FieldObject)) : 0;
@@ -78,14 +58,6 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
             const ConstUtf8 &descriptor = fieldInfo.descriptor;
             switch(fieldInfo.descriptor.text[0]) {
-                case 'Z':
-                case 'B':   /* Byte */
-                    new (&fieldsData8[field8Index++])FieldData8(fieldInfo);
-                    break;
-                case 'C':   /* Char */
-                case 'S':   /* Short */
-                    new (&fieldsData16[field16Index++])FieldData16(fieldInfo);
-                    break;
                 case 'J':   /* Long */
                 case 'D':   /* Double */
                     new (&fieldsData64[field64Index++])FieldData64(fieldInfo);
@@ -103,8 +75,6 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
 }
 
 void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoader) {
-    uint16_t field8Index = 0;
-    uint16_t field16Index = 0;
     uint16_t field32Index = 0;
     uint16_t field64Index = 0;
     uint16_t fieldObjIndex = 0;
@@ -118,14 +88,6 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
                 const ConstUtf8 &descriptor = fieldInfo.descriptor;
                 switch(fieldInfo.descriptor.text[0]) {
-                    case 'Z':
-                    case 'B':   /* Byte */
-                        (*(uint32_t *)&fields8Count)++;
-                        break;
-                    case 'C':   /* Char */
-                    case 'S':   /* Short */
-                        (*(uint32_t *)&fields16Count)++;
-                        break;
                     case 'J':   /* Long */
                     case 'D':   /* Double */
                         (*(uint32_t *)&fields64Count)++;
@@ -144,8 +106,6 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
         loader = ((int32_t)&superClass) ? &execution.load(superClass) : 0;
     }
 
-    fieldsData8 = (fields8Count) ? (FieldData8 *)Mjvm::malloc(fields8Count * sizeof(FieldData8)) : 0;
-    fieldsData16 = (fields16Count) ? (FieldData16 *)Mjvm::malloc(fields16Count * sizeof(FieldData16)) : 0;
     fieldsData32 = (fields32Count) ? (FieldData32 *)Mjvm::malloc(fields32Count * sizeof(FieldData32)) : 0;
     fieldsData64 = (fields64Count) ? (FieldData64 *)Mjvm::malloc(fields64Count * sizeof(FieldData64)) : 0;
     fieldsObject = (fieldsObjCount) ? (FieldObject *)Mjvm::malloc(fieldsObjCount * sizeof(FieldObject)) : 0;
@@ -158,14 +118,6 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
                 const ConstUtf8 &descriptor = fieldInfo.descriptor;
                 switch(fieldInfo.descriptor.text[0]) {
-                    case 'Z':
-                    case 'B':   /* Byte */
-                        new (&fieldsData8[field8Index++])FieldData8(fieldInfo);
-                        break;
-                    case 'C':   /* Char */
-                    case 'S':   /* Short */
-                        new (&fieldsData16[field16Index++])FieldData16(fieldInfo);
-                        break;
                     case 'J':   /* Long */
                     case 'D':   /* Double */
                         new (&fieldsData64[field64Index++])FieldData64(fieldInfo);
@@ -183,28 +135,6 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
         const ConstUtf8 &superClass = loader->getSuperClass();
         loader = ((int32_t)&superClass) ? &execution.load(superClass) : 0;
     }
-}
-
-FieldData8 &FieldsData::getFieldData8(const ConstNameAndType &fieldName) const {
-    if(fields8Count) {
-        for(uint16_t i = 0; i < fields8Count; i++) {
-            const FieldInfo &fieldInfo = fieldsData8[i].fieldInfo;
-            if(fieldInfo.name == fieldName.name && fieldInfo.descriptor == fieldName.descriptor)
-                return fieldsData8[i];
-        }
-    }
-    return *(FieldData8 *)0;
-}
-
-FieldData16 &FieldsData::getFieldData16(const ConstNameAndType &fieldName) const {
-    if(fields16Count) {
-        for(uint16_t i = 0; i < fields16Count; i++) {
-            const FieldInfo &fieldInfo = fieldsData16[i].fieldInfo;
-            if(fieldInfo.name == fieldName.name && fieldInfo.descriptor == fieldName.descriptor)
-                return fieldsData16[i];
-        }
-    }
-    return *(FieldData16 *)0;
 }
 
 FieldData32 &FieldsData::getFieldData32(const ConstNameAndType &fieldName) const {
@@ -241,10 +171,6 @@ FieldObject &FieldsData::getFieldObject(const ConstNameAndType &fieldName) const
 }
 
 FieldsData::~FieldsData(void) {
-    if(fieldsData8)
-        Mjvm::free(fieldsData8);
-    if(fieldsData16)
-        Mjvm::free(fieldsData16);
     if(fieldsData32)
         Mjvm::free(fieldsData32);
     if(fieldsData64)
