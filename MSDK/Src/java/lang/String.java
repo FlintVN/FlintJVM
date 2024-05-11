@@ -253,6 +253,40 @@ public final class String implements Comparable<String>, CharSequence {
         return StringUTF16.lastIndexOfLatin1(value, str.value, fromIndex);
     }
     
+    public String concat(String str) {
+        if(str.isEmpty())
+            return this;
+        byte coder = this.coder;
+        int len1 = length();
+    	int len2 = str.length();
+    	byte[] value1 = this.value;
+    	byte[] value2 = str.value;
+        if((coder == 1) || (str.coder == 1)) {
+        	byte[] buff = new byte[(len1 + len2) << 1];
+        	if(coder == 0) {
+	        	for(int i = 0; i < len1; i++)
+	        		StringUTF16.putCharAt(buff, i, value1[i]);
+        	}
+        	else for(int i = 0; i < len2; i++)
+	        	StringUTF16.putCharAt(buff, i, StringUTF16.charAt(value1, i));
+        	if(str.coder == 0) {
+        		for(int i = 0; i < len2; i++)
+	        		StringUTF16.putCharAt(buff, i + len1, value2[i]);
+        	}
+        	else for(int i = 0; i < len2; i++)
+	        	StringUTF16.putCharAt(buff, i + len1, StringUTF16.charAt(value2, i));
+        	return new String(buff, 0, buff.length, (byte)1);
+        }
+        else {
+        	byte[] buff = new byte[len1 + len2];
+        	for(int i = 0; i < len1; i++)
+        		buff[i] = value1[i];
+        	for(int i = 0; i < len2; i++)
+        		buff[i + len1] = value2[i];
+        	return new String(buff, 0, buff.length, (byte)0);
+        }
+    }
+    
     public String replace(char oldChar, char newChar) {
         if(oldChar != newChar) {
             String ret = (coder == 0) ? StringLatin1.replace(value, oldChar, newChar) : StringUTF16.replace(value, oldChar, newChar);
@@ -473,6 +507,23 @@ public final class String implements Comparable<String>, CharSequence {
 
     public static String valueOf(double d) {
         return Double.toString(d);
+    }
+
+    public native String intern();
+    
+    public String repeat(int count) {
+    	if(count < 0)
+            throw new IllegalArgumentException("count is negative: " + count);
+    	if(count == 1)
+            return this;
+    	byte[] value = this.value;
+    	int len = value.length;
+        if(len == 0 || count == 0)
+            return "";
+        byte[] buff = new byte[len * count];
+    	for(int i = 0; i < count; i++)
+    		System.arraycopy(value, 0, buff, i * len, len);
+    	return new String(buff, 0, buff.length, this.coder);
     }
 
     public String toString() {

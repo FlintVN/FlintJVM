@@ -12,6 +12,12 @@ final class StringUTF16 {
 		value[index + 1] = (byte)(c >>> 8);
 	}
 	
+	public static void putCharAt(byte[] value, int index, byte c) {
+		index <<= 1;
+		value[index] = c;
+		value[index + 1] = 0;
+	}
+	
 	public static int indexOf(byte[] value, int ch, int fromIndex) {
 		if(ch > 65535)
 			return -1;
