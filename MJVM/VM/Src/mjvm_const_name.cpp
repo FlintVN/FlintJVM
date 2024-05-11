@@ -2,14 +2,14 @@
 #include "mjvm_const_name.h"
 
 const ConstUtf8 *primTypeConstUtf8List[] = {
-    (ConstUtf8 *)"\x01\x00""Z",
-    (ConstUtf8 *)"\x01\x00""C",
-    (ConstUtf8 *)"\x01\x00""F",
-    (ConstUtf8 *)"\x01\x00""D",
-    (ConstUtf8 *)"\x01\x00""B",
-    (ConstUtf8 *)"\x01\x00""S",
-    (ConstUtf8 *)"\x01\x00""I",
-    (ConstUtf8 *)"\x01\x00""J",
+    (ConstUtf8 *)"\x01\x00""Z",                 /* boolean */
+    (ConstUtf8 *)"\x01\x00""C",                 /* char */
+    (ConstUtf8 *)"\x01\x00""F",                 /* float */
+    (ConstUtf8 *)"\x01\x00""D",                 /* double */
+    (ConstUtf8 *)"\x01\x00""B",                 /* byte */
+    (ConstUtf8 *)"\x01\x00""S",                 /* short */
+    (ConstUtf8 *)"\x01\x00""I",                 /* integer */
+    (ConstUtf8 *)"\x01\x00""J",                 /* long */
 };
 
 const uint32_t stringValueFieldName[] = {
