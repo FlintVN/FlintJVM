@@ -21,60 +21,74 @@ public final class StringBuffer extends AbstractStringBuilder implements Compara
     	super.setCharAt(index, ch);
     }
     
-    public synchronized AbstractStringBuilder clear() {
-    	return super.clear();
+    public synchronized StringBuffer clear() {
+    	super.clear();
+    	return this;
     }
     
-    public synchronized AbstractStringBuilder append(Object obj) {
-    	return super.append(String.valueOf(obj));
+    public synchronized StringBuffer append(Object obj) {
+    	super.append(String.valueOf(obj));
+    	return this;
     }
     
-    public synchronized AbstractStringBuilder append(String str) {
-		return super.append(str, 0, str.length());
+    public synchronized StringBuffer append(String str) {
+		super.append(str, 0, str.length());
+		return this;
     }
     
-    public synchronized AbstractStringBuilder append(StringBuffer sb) {
-		return super.append(sb, 0, sb.length());
+    public synchronized StringBuffer append(StringBuffer sb) {
+		super.append(sb, 0, sb.length());
+		return this;
     }
     
-    public synchronized AbstractStringBuilder append(CharSequence s) {
-    	return super.append(s);
+    public synchronized StringBuffer append(CharSequence s) {
+    	super.append(s);
+    	return this;
     }
     
-    public synchronized AbstractStringBuilder append(CharSequence s, int start, int end) {
-    	return super.append(s, start, end);
+    public synchronized StringBuffer append(CharSequence s, int start, int end) {
+    	super.append(s, start, end);
+    	return this;
     }
     
-    public synchronized AbstractStringBuilder append(char[] str) {
-    	return super.append(str, 0, str.length);
+    public synchronized StringBuffer append(char[] str) {
+    	super.append(str, 0, str.length);
+    	return this;
     }
     
-    public synchronized AbstractStringBuilder append(char[] str, int offset, int len) {
-    	return super.append(str, offset, len);
+    public synchronized StringBuffer append(char[] str, int offset, int len) {
+    	super.append(str, offset, len);
+    	return this;
     }
     
-    public synchronized AbstractStringBuilder append(boolean b) {
-		return super.append(String.valueOf(b));
+    public synchronized StringBuffer append(boolean b) {
+		super.append(String.valueOf(b));
+		return this;
 	}
     
-    public synchronized AbstractStringBuilder append(char c) {
-    	return super.append(c);
+    public synchronized StringBuffer append(char c) {
+    	super.append(c);
+    	return this;
     }
     
-    public synchronized AbstractStringBuilder append(int i) {
-		return super.append(String.valueOf(i));
+    public synchronized StringBuffer append(int i) {
+		super.append(String.valueOf(i));
+		return this;
 	}
     
-    public synchronized AbstractStringBuilder append(long l) {
-		return super.append(String.valueOf(l));
+    public synchronized StringBuffer append(long l) {
+		super.append(String.valueOf(l));
+		return this;
 	}
     
-    public synchronized AbstractStringBuilder append(float f) {
-    	return super.append(f);
+    public synchronized StringBuffer append(float f) {
+    	super.append(f);
+    	return this;
     }
     
-    public synchronized AbstractStringBuilder append(double d) {
-    	return super.append(d);
+    public synchronized StringBuffer append(double d) {
+    	super.append(d);
+    	return this;
     }
     
     public synchronized void trimToSize() {
