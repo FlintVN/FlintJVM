@@ -503,13 +503,13 @@ const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
     return *(const MethodInfo *)0;
 }
 
-const MethodInfo &ClassLoader::getStaticContructor(void) const {
+const MethodInfo &ClassLoader::getStaticConstructor(void) const {
     for(int32_t i = methodsCount - 1; i >= 0; i--) {
         if(
             methods[i].accessFlag == METHOD_STATIC &&
             methods[i].name.length == (sizeof("<clinit>") - 1) &&
             methods[i].descriptor.length == (sizeof("()V") - 1) &&
-            strncmp(methods[i].name.text, "<clinit>", sizeof("main") - 1) == 0 &&
+            strncmp(methods[i].name.text, "<clinit>", sizeof("<clinit>") - 1) == 0 &&
             strncmp(methods[i].descriptor.text, "()V", sizeof("()V") - 1) == 0
         ) {
             return methods[i];

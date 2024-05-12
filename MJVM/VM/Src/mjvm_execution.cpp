@@ -787,6 +787,17 @@ int64_t Execution::run(const char *mainClass) {
 
     initNewContext(*method);
 
+    if((int32_t)&method->classLoader.getStaticConstructor() != 0) {
+        try {
+            stackPushInt32((int32_t)&loadClassDataNode(method->classLoader));
+        }
+        catch(FileNotFound *file) {
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
+        goto init_static_field;
+    }
+
     goto *opcodes[code[pc]];
     op_nop:
         goto *opcodes[code[pc]];
@@ -2249,17 +2260,23 @@ int64_t Execution::run(const char *mainClass) {
         Mjvm::lock();
         MjvmObject *obj = newObject(sizeof(FieldsData), constClass);
         try {
-            new ((FieldsData *)obj->data)FieldsData(*this, load(constClass), false);
+            ClassDataNode &dataNode = loadClassDataNode(constClass.text, constClass.length);
+            new ((FieldsData *)obj->data)FieldsData(*this, dataNode.classLoader, false);
             stackPushObject(obj);
+            Mjvm::unlock();
+            pc += 3;
+            const char *className = dataNode.classLoader.getThisClass().text;
+            if((dataNode.filedsData == 0) && ((int32_t)&dataNode.classLoader.getStaticConstructor() != 0)) {
+                stackPushInt32((int32_t)&dataNode);
+                goto init_static_field;
+            }
+            goto *opcodes[code[pc]];
         }
         catch(FileNotFound *file) {
             Mjvm::unlock();
             fileNotFound = file;
             goto file_not_found_excp;
         }
-        Mjvm::unlock();
-        pc += 3;
-        goto *opcodes[code[pc]];
     }
     op_newarray: {
         int32_t count = stackPopInt32();

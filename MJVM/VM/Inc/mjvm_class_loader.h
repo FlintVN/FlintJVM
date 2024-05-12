@@ -92,7 +92,7 @@ public:
     const MethodInfo &getMethodInfo(uint8_t methodIndex) const;
     const MethodInfo &getMethodInfo(const ConstNameAndType &methodName) const;
     const MethodInfo &getMainMethodInfo(void) const;
-    const MethodInfo &getStaticContructor(void) const;
+    const MethodInfo &getStaticConstructor(void) const;
 };
 
 #endif /* __MJVM_CLASS_LOADER_H */
