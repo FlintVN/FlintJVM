@@ -43,4 +43,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x07\x00""writeln", "\x15\x00""(Ljava/lang/String;)V", nativeWriteln),
 };
 
-const NativeClass PRINT_STREAM_CLASS = NATIVE_CLASS(printStreamClass, methods);
+const NativeClass PRINT_STREAM_CLASS = NATIVE_CLASS(printStreamClassName, methods);

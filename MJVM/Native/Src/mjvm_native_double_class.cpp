@@ -21,4 +21,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x10\x00""longBitsToDouble",    "\x04\x00""(J)D", nativeLongBitsToDouble),
 };
 
-const NativeClass DOUBLE_CLASS = NATIVE_CLASS(doubleClass, methods);
+const NativeClass DOUBLE_CLASS = NATIVE_CLASS(doubleClassName, methods);

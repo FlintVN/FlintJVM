@@ -100,4 +100,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x04\x00""tanh",          "\x04\x00""(D)D",  nativeTanh),
 };
 
-const NativeClass MATH_CLASS = NATIVE_CLASS(mathClass, methods);
+const NativeClass MATH_CLASS = NATIVE_CLASS(mathClassName, methods);

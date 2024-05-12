@@ -61,8 +61,9 @@ void ClassLoader::readFile(ClassFile &file) {
                 i++;
                 break;
             }
-            case CONST_CLASS:
             case CONST_STRING:
+                *(uint8_t *)&poolTable[i].tag |= 0x80;
+            case CONST_CLASS:
             case CONST_METHOD_TYPE:
                 *(uint32_t *)&poolTable[i].value = file.readUInt16();
                 break;
@@ -321,16 +322,30 @@ const ConstUtf8 &ClassLoader::getConstClass(const ConstPool &constPool) const {
     throw "const pool tag is not class tag";
 }
 
-const ConstUtf8 &ClassLoader::getConstString(uint16_t poolIndex) const {
+MjvmString &ClassLoader::getConstString(Execution &execution, uint16_t poolIndex) const {
     poolIndex--;
-    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_STRING)
-        return getConstUtf8(poolTable[poolIndex].value);
+    if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_STRING) {
+        if(poolTable[poolIndex].tag & 0x80) {
+            const ConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
+            MjvmString *strObj = execution.getConstString(utf8Str);
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)strObj;
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
+        }
+        return *(MjvmString *)poolTable[poolIndex].value;
+    }
     throw "index for const string is invalid";
 }
 
-const ConstUtf8 &ClassLoader::getConstString(const ConstPool &constPool) const {
-    if(constPool.tag == CONST_STRING)
-        return getConstUtf8(constPool.value);
+MjvmString &ClassLoader::getConstString(Execution &execution, const ConstPool &constPool) const {
+    if((constPool.tag & 0x7F) == CONST_STRING) {
+        if(constPool.tag & 0x80) {
+            const ConstUtf8 &utf8Str = getConstUtf8(constPool.value);
+            MjvmString *strObj = execution.getConstString(utf8Str);
+            *(uint32_t *)&constPool.value = (uint32_t)strObj;
+            *(ConstPoolTag *)&constPool.tag = CONST_STRING;
+        }
+        return *(MjvmString *)constPool.value;
+    }
     throw "const pool tag is not string tag";
 }
 

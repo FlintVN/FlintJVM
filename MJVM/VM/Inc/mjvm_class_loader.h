@@ -6,6 +6,9 @@
 #include "mjvm_const_pool.h"
 #include "mjvm_field_info.h"
 #include "mjvm_method_info.h"
+#include "mjvm_string.h"
+
+class Execution;
 
 class ClassLoader {
 private:
@@ -59,10 +62,13 @@ public:
 
     const ConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
     const ConstUtf8 &getConstUtf8(const ConstPool &constPool) const;
+
     const ConstUtf8 &getConstClass(uint16_t poolIndex) const;
     const ConstUtf8 &getConstClass(const ConstPool &constPool) const;
-    const ConstUtf8 &getConstString(uint16_t poolIndex) const;
-    const ConstUtf8 &getConstString(const ConstPool &constPool) const;
+
+    MjvmString &getConstString(Execution &execution, uint16_t poolIndex) const;
+    MjvmString &getConstString(Execution &execution, const ConstPool &constPool) const;
+
     const ConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
     const ConstUtf8 &getConstMethodType(const ConstPool &constPool) const;
 

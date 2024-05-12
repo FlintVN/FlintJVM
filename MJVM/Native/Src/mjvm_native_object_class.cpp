@@ -45,4 +45,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x05\x00""clone",    "\x14\x00""()Ljava/lang/Object;", nativeClone),
 };
 
-const NativeClass OBJECT_CLASS = NATIVE_CLASS(objectClass, methods);
+const NativeClass OBJECT_CLASS = NATIVE_CLASS(objectClassName, methods);

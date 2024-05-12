@@ -134,4 +134,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x07\x00""toUpper", "\x04\x00""(C)C", nativeToUpper),
 };
 
-const NativeClass CHARACTER_CLASS = NATIVE_CLASS(characterClass, methods);
+const NativeClass CHARACTER_CLASS = NATIVE_CLASS(characterClassName, methods);

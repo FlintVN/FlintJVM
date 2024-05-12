@@ -72,14 +72,18 @@ uint8_t MjvmString::getCoder(void) const {
 bool MjvmString::equals(const ConstUtf8 &utf8) const {
     uint32_t len2 = utf8StrLen(utf8.text);
     uint8_t coder1 = getCoder();
-    uint8_t coder2 = (len2 == utf8.length) ? 0 : 1;
+    uint8_t coder2 = isLatin1(utf8.text) ? 0 : 1;
     if((getLength() != len2) || (coder1 != coder2))
         return false;
     const char *value1 = getText();
     if(coder1 == 0) {
+        const char *value2 = utf8.text;
         for(uint32_t i = 0; i < len2; i++) {
-            if(value1[i] != utf8.text[i])
+            uint16_t c1 = value1[i];
+            uint16_t c2 = utf8Decode(value2);
+            if(c1 != c2)
                 return false;
+            value2 += getUtf8ByteCount(*value2);
         }
     }
     else {
@@ -91,6 +95,25 @@ bool MjvmString::equals(const ConstUtf8 &utf8) const {
                 return false;
             value2 += getUtf8ByteCount(*value2);
         }
+    }
+    return true;
+}
+
+bool MjvmString::equals(MjvmString &str) const {
+    if(this == &str)
+        return true;
+    uint32_t len1 = getLength();
+    uint32_t len2 = str.getLength();
+    uint8_t coder1 = getCoder();
+    uint8_t coder2 = str.getCoder();
+    if((len1 != len2) || (coder1 != coder2))
+        return false;
+    const char *value1 = getText();
+    const char *value2 = str.getText();
+    uint32_t len = len1 << coder1;
+    for(uint32_t i = 0; i < len; i++) {
+        if(value1[i] != value2[i])
+            return false;
     }
     return true;
 }

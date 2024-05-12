@@ -21,4 +21,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x0E\x00""intBitsToFloat",    "\x04\x00""(I)F", nativeIntBitsToFloat),
 };
 
-const NativeClass FLOAT_CLASS = NATIVE_CLASS(floatClass, methods);
+const NativeClass FLOAT_CLASS = NATIVE_CLASS(floatClassName, methods);

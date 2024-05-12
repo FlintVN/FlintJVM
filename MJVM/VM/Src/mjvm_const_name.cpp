@@ -27,14 +27,14 @@ const uint32_t exceptionDetailMessageFieldName[] = {
     (uint32_t)"\x12\x00""Ljava/lang/String;"    /* field type */
 };
 
-const ConstUtf8 &mathClass = *(const ConstUtf8 *)"\x0E\x00""java/lang/Math";
-const ConstUtf8 &floatClass = *(const ConstUtf8 *)"\x0F\x00""java/lang/Float";
-const ConstUtf8 &doubleClass = *(const ConstUtf8 *)"\x10\x00""java/lang/Double";
-const ConstUtf8 &objectClass = *(const ConstUtf8 *)"\x10\x00""java/lang/Object";
-const ConstUtf8 &systemClass = *(const ConstUtf8 *)"\x10\x00""java/lang/System";
-const ConstUtf8 &characterClass = *(const ConstUtf8 *)"\x13\x00""java/lang/Character";
-const ConstUtf8 &printStreamClass = *(const ConstUtf8 *)"\x13\x00""java/io/PrintStream";
+const ConstUtf8 &mathClassName = *(const ConstUtf8 *)"\x0E\x00""java/lang/Math";
+const ConstUtf8 &floatClassName = *(const ConstUtf8 *)"\x0F\x00""java/lang/Float";
+const ConstUtf8 &doubleClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/Double";
+const ConstUtf8 &objectClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/Object";
+const ConstUtf8 &systemClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/System";
 const ConstUtf8 &stringClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/String";
+const ConstUtf8 &characterClassName = *(const ConstUtf8 *)"\x13\x00""java/lang/Character";
+const ConstUtf8 &printStreamClassName = *(const ConstUtf8 *)"\x13\x00""java/io/PrintStream";
 const ConstUtf8 &nullPtrExcpClassName = *(const ConstUtf8 *)"\x1E\x00""java/lang/NullPointerException";
 const ConstUtf8 &arrayStoreExceptionClassName = *(const ConstUtf8 *)"\x1D\x00""java/lang/ArrayStoreException";
 const ConstUtf8 &arithmeticExceptionClassName = *(const ConstUtf8 *)"\x1D\x00""java/lang/ArithmeticException";

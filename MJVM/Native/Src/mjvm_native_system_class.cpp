@@ -63,4 +63,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x09\x00""arraycopy",         "\x2A\x00""(Ljava/lang/Object;ILjava/lang/Object;II)V", nativeArraycopy),
 };
 
-const NativeClass SYSTEM_CLASS = NATIVE_CLASS(systemClass, methods);
+const NativeClass SYSTEM_CLASS = NATIVE_CLASS(systemClassName, methods);

@@ -10,6 +10,7 @@ public:
     uint32_t getLength(void) const;
     uint8_t getCoder(void) const;
     bool equals(const ConstUtf8 &utf8) const;
+    bool equals(MjvmString &utf8) const;
 
     static bool isLatin1(const char *utf8);
     static uint8_t getUtf8ByteCount(char c);

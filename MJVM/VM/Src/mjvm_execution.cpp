@@ -158,6 +158,20 @@ MjvmString *Execution::getConstString(const ConstUtf8 &utf8) {
     return strObj;
 }
 
+MjvmString *Execution::getConstString(MjvmString &str) {
+    for(MjvmConstString *node = constStringList; node != 0; node = node->next) {
+        if(node->mjvmString.equals(str))
+            return &node->mjvmString;
+    }
+    MjvmConstString *newNode = (MjvmConstString *)Mjvm::malloc(sizeof(MjvmConstString));
+    new (newNode)MjvmConstString(str);
+
+    newNode->next = constStringList;
+    constStringList = newNode;
+    
+    return &str;
+}
+
 MjvmThrowable *Execution::newThrowable(MjvmString *strObj, const ConstUtf8 &excpType) {
     /* create new exception object */
     MjvmObject *obj = newObject(sizeof(FieldsData), excpType);
@@ -587,7 +601,7 @@ bool Execution::invokeVirtual(const ConstMethod &constMethod) {
             throw file;
         }
     }
-    const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClass : obj->type;
+    const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClassName : obj->type;
     uint32_t virtualConstMethod[] = {
         (uint32_t)&type,                                /* class name */
         (uint32_t)&constMethod.nameAndType              /* name and type */
@@ -636,7 +650,7 @@ bool Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
             throw file;
         }
     }
-    const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClass : obj->type;
+    const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClassName : obj->type;
     uint32_t interfaceConstMethod[] = {
         (uint32_t)&type,                                /* class name */
         (uint32_t)&interfaceMethod.nameAndType          /* name and type */
@@ -677,7 +691,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const ConstUtf8 &type) {
         text++;
         length -= 2;
     }
-    if(length == 16 && obj->dimensions >= dimensions && strncmp(text, objectClass.text, length) == 0)
+    if(length == 16 && obj->dimensions >= dimensions && strncmp(text, objectClassName.text, length) == 0)
         return true;
     else if(dimensions != obj->dimensions)
         return false;
@@ -813,7 +827,7 @@ int64_t Execution::run(const char *mainClass) {
     op_ldc: {
         const ConstPool &constPool = method->classLoader.getConstPool(code[pc + 1]);
         pc += 2;
-        switch(constPool.tag) {
+        switch(constPool.tag & 0x7F) {
             case CONST_INTEGER:
                 stackPushInt32(method->classLoader.getConstInteger(constPool));
                 goto *opcodes[code[pc]];
@@ -822,7 +836,7 @@ int64_t Execution::run(const char *mainClass) {
                 goto *opcodes[code[pc]];
             case CONST_STRING:
                 Mjvm::lock();
-                stackPushObject(getConstString(method->classLoader.getConstString(constPool)));
+                stackPushObject(&method->classLoader.getConstString(*this, constPool));
                 Mjvm::unlock();
                 goto *opcodes[code[pc]];
             case CONST_CLASS:
@@ -842,7 +856,7 @@ int64_t Execution::run(const char *mainClass) {
         uint16_t index = ARRAY_TO_INT16(&code[pc + 1]);
         const ConstPool &constPool = method->classLoader.getConstPool(index);
         pc += 3;
-        switch(constPool.tag) {
+        switch(constPool.tag & 0x7F) {
             case CONST_INTEGER:
                 stackPushInt32(method->classLoader.getConstInteger(constPool));
                 goto *opcodes[code[pc]];
@@ -851,7 +865,7 @@ int64_t Execution::run(const char *mainClass) {
                 goto *opcodes[code[pc]];
             case CONST_STRING:
                 Mjvm::lock();
-                stackPushObject(getConstString(method->classLoader.getConstString(constPool)));
+                stackPushObject(&method->classLoader.getConstString(*this, constPool));
                 Mjvm::unlock();
                 goto *opcodes[code[pc]];
             case CONST_CLASS:
