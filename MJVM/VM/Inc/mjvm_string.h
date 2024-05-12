@@ -21,4 +21,17 @@ protected:
     void operator=(const MjvmString &) = delete;
 };
 
+class MjvmConstString {
+private:
+    MjvmConstString *next;
+public:
+    MjvmString &mjvmString;
+private:
+    MjvmConstString(MjvmString &mjvmString);
+    MjvmConstString(const MjvmConstString &) = delete;
+    void operator=(const MjvmConstString &) = delete;
+
+    friend class Execution;
+};
+
 #endif /* __MJVM_STRING_H */

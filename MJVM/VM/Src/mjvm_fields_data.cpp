@@ -179,20 +179,33 @@ FieldsData::~FieldsData(void) {
         Mjvm::free(fieldsObject);
 }
 
-ClassData::ClassData(const ClassLoader &classLoader, FieldsData *filedsData) : classLoader(classLoader), filedsData(filedsData) {
-
-}
-
 ClassData::~ClassData() {
-    if(filedsData) {
-        filedsData->~FieldsData();
-        Mjvm::free(filedsData);
+    if(staticFiledsData) {
+        staticFiledsData->~FieldsData();
+        Mjvm::free(staticFiledsData);
     }
 }
 
-ClassDataNode::ClassDataNode(const ClassLoader &classLoader, FieldsData *filedsData) : ClassData(classLoader, filedsData) {
+ClassData::ClassData(const char *fileName) : ClassLoader(fileName) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;
+    staticFiledsData = 0;
+    next = 0;
+}
+
+ClassData::ClassData(const char *fileName, uint16_t length) : ClassLoader(fileName, length) {
+    ownId = 0;
+    monitorCount = 0;
+    isInitializing = 0;
+    staticFiledsData = 0;
+    next = 0;
+}
+
+ClassData::ClassData(const ConstUtf8 &fileName) : ClassLoader(fileName) {
+    ownId = 0;
+    monitorCount = 0;
+    isInitializing = 0;
+    staticFiledsData = 0;
     next = 0;
 }

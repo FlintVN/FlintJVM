@@ -6,6 +6,9 @@
 #include "mjvm_const_pool.h"
 
 class MjvmObject {
+private:
+    MjvmObject *next;
+    MjvmObject *prev;
 public:
     const uint32_t size : 31;
 private:
@@ -26,22 +29,12 @@ private:
 
     void setProtected(void);
     bool isProtected(void) const;
-private:
+protected:
     MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions);
     MjvmObject(const MjvmObject &) = delete;
     void operator=(const MjvmObject &) = delete;
 
     friend class Execution;
-};
-
-class MjvmObjectNode {
-public:
-    MjvmObjectNode *prev;
-    MjvmObjectNode *next;
-
-    MjvmObject *getMjvmObject(void) const;
-private:
-    uint8_t data[];
 };
 
 #endif /* __MJVM_OBJECT_H */

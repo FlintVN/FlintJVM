@@ -68,7 +68,3 @@ void MjvmObject::setProtected(void) {
 bool MjvmObject::isProtected(void) const {
     return prot;
 }
-
-MjvmObject *MjvmObjectNode::getMjvmObject(void) const {
-    return (MjvmObject *)data;
-}

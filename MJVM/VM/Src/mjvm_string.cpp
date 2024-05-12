@@ -94,3 +94,7 @@ bool MjvmString::equals(const ConstUtf8 &utf8) const {
     }
     return true;
 }
+
+MjvmConstString::MjvmConstString(MjvmString &mjvmString) : mjvmString(mjvmString) {
+    next = 0;
+}

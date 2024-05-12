@@ -70,31 +70,23 @@ private:
     friend class ClassData;
 };
 
-class ClassData {
+class ClassData : public ClassLoader {
+private:
+    ClassData *next;
 public:
-    const ClassLoader &classLoader;
-    FieldsData *filedsData;
-protected:
-    ClassData(const ClassLoader &classLoader, FieldsData *filedsData);
-
-    ~ClassData(void);
-private:
-    ClassData(const ClassData &) = delete;
-    void operator=(const ClassData &) = delete;
-
-    friend class Execution;
-};
-
-class ClassDataNode : public ClassData {
-private:
     uint32_t ownId;
     uint32_t monitorCount : 31;
     uint32_t isInitializing : 1;
-    ClassDataNode *next;
+    FieldsData *staticFiledsData;
 
-    ClassDataNode(const ClassLoader &classLoader, FieldsData *filedsData);
-    ClassDataNode(const ClassDataNode &) = delete;
-    void operator=(const ClassDataNode &) = delete;
+    ClassData(const char *fileName);
+    ClassData(const char *fileName, uint16_t length);
+    ClassData(const ConstUtf8 &fileName);
+    
+    ClassData(const ClassData &) = delete;
+    void operator=(const ClassData &) = delete;
+
+    ~ClassData(void);
 
     friend class Execution;
 };

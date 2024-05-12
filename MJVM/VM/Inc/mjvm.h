@@ -7,19 +7,6 @@
 
 class Mjvm {
 private:
-    class ClassLoaderNode : public ClassLoader {
-    public:
-        uint32_t referenceCount;
-        ClassLoaderNode *prev;
-        ClassLoaderNode *next;
-
-        ClassLoaderNode(const char *fileName);
-        ClassLoaderNode(const char *fileName, uint16_t length);
-        ClassLoaderNode(const ConstUtf8 &fileName);
-        ClassLoaderNode(const ClassLoaderNode &) = delete;
-        void operator=(const ClassLoaderNode &) = delete;
-    };
-
     class ExecutionNode : public Execution {
     public:
         ExecutionNode *prev;
@@ -29,15 +16,11 @@ private:
         ExecutionNode(uint32_t stackSize);
     };
 
-    static ClassLoaderNode *classLoaderList;
     static ExecutionNode *executionList;
 
     Mjvm(void) = delete;
     Mjvm(const Mjvm &) = delete;
     void operator=(const Mjvm &) = delete;
-
-    static ClassLoaderNode *newLoaderNode(const char *fileName, uint16_t length);
-    static ClassLoaderNode *findClassLoaderNode(const char *fileName, uint16_t length);
 public:
     static void *malloc(uint32_t size);
     static void free(void *p);

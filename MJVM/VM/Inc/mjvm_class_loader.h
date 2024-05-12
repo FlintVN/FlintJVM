@@ -26,9 +26,6 @@ private:
     MethodInfo *methods;
     AttributeInfo **attributes;
 
-    ClassLoader(const char *fileName);
-    ClassLoader(const char *fileName, uint16_t length);
-    ClassLoader(const ConstUtf8 &fileName);
     ClassLoader(const ClassLoader &) = delete;
     void operator=(const ClassLoader &) = delete;
 
@@ -38,10 +35,12 @@ private:
     AttributeInfo &readAttributeLineNumberTable(ClassFile &file);
     AttributeInfo &readAttributeLocalVariableTable(ClassFile &file);
     AttributeInfo &readAttributeBootstrapMethods(ClassFile &file);
+protected:
+    ClassLoader(const char *fileName);
+    ClassLoader(const char *fileName, uint16_t length);
+    ClassLoader(const ConstUtf8 &fileName);
 
     ~ClassLoader(void);
-
-    friend class Mjvm;
 public:
     const uint32_t getMagic(void) const;
     const uint16_t getMinorVersion(void) const;
