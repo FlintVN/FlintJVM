@@ -143,7 +143,7 @@ AttributeLineNumberTable::~AttributeLineNumberTable(void) {
 }
 
 LocalVariable::LocalVariable(uint16_t startPc, uint16_t length, const ConstUtf8 &name, const ConstUtf8 &descriptor, uint16_t index) :
-startPc(startPc), length(length), name(name), descriptor(descriptor), index(index) {
+startPc(startPc), length(length), index(index), name(name), descriptor(descriptor) {
 
 }
 
@@ -166,7 +166,7 @@ bootstrapMethodRef(bootstrapMethodRef), numBootstrapArguments(numBootstrapArgume
 
 }
 
-const uint16_t BootstrapMethod::getBootstrapArgument(uint16_t index) const {
+uint16_t BootstrapMethod::getBootstrapArgument(uint16_t index) const {
     if(index < numBootstrapArguments)
         return bootstrapArguments[index];
     throw "index for BootstrapArgument is invalid";

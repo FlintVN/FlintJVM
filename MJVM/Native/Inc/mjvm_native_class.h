@@ -7,8 +7,17 @@
 #include "mjvm_const_pool.h"
 #include "mjvm_attribute_info.h"
 
-#define NATIVE_CLASS(className, methods)                    {className, LENGTH(methods), methods}
-#define NATIVE_METHOD(name, descriptor, nativeMathod)       {*(ConstUtf8 *)name, *(ConstUtf8 *)descriptor, nativeMathod}
+#define NATIVE_CLASS(_className, _methods) {                \
+    .className = _className,                                \
+    .methodCount = LENGTH(_methods),                        \
+    .methods = _methods                                     \
+}
+
+#define NATIVE_METHOD(_name, _descriptor, _nativeMathod) {  \
+    .name = *(ConstUtf8 *)_name,                            \
+    .descriptor = *(ConstUtf8 *)_descriptor,                \
+    .nativeMathod = _nativeMathod                           \
+}
 
 class NativeMethod {
 public:
@@ -16,8 +25,6 @@ public:
     const ConstUtf8 &descriptor;
     NativeMethodPtr nativeMathod;
 private:
-    NativeMethod(void) = delete;
-    NativeMethod(const NativeMethod &) = delete;
     void operator=(const NativeMethod &) = delete;
 };
 
@@ -27,8 +34,6 @@ public:
     const uint16_t methodCount;
     const NativeMethod *methods;
 private:
-    NativeClass(void) = delete;
-    NativeClass(const NativeClass &) = delete;
     void operator=(const NativeClass &) = delete;
 };      
 

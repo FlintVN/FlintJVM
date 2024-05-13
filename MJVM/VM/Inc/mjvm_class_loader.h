@@ -45,20 +45,20 @@ protected:
 
     ~ClassLoader(void);
 public:
-    const uint32_t getMagic(void) const;
-    const uint16_t getMinorVersion(void) const;
-    const uint16_t getMajorversion(void) const;
+    uint32_t getMagic(void) const;
+    uint16_t getMinorVersion(void) const;
+    uint16_t getMajorversion(void) const;
 
     const ConstPool &getConstPool(uint16_t index) const;
 
-    const int32_t getConstInteger(uint16_t poolIndex) const;
-    const int32_t getConstInteger(const ConstPool &constPool) const;
-    const float getConstFloat(uint16_t poolIndex) const;
-    const float getConstFloat(const ConstPool &constPool) const;
-    const int64_t getConstLong(uint16_t poolIndex) const;
-    const int64_t getConstLong(const ConstPool &constPool) const;
-    const double getConstDouble(uint16_t poolIndex) const;
-    const double getConstDouble(const ConstPool &constPool) const;
+    int32_t getConstInteger(uint16_t poolIndex) const;
+    int32_t getConstInteger(const ConstPool &constPool) const;
+    float getConstFloat(uint16_t poolIndex) const;
+    float getConstFloat(const ConstPool &constPool) const;
+    int64_t getConstLong(uint16_t poolIndex) const;
+    int64_t getConstLong(const ConstPool &constPool) const;
+    double getConstDouble(uint16_t poolIndex) const;
+    double getConstDouble(const ConstPool &constPool) const;
 
     const ConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
     const ConstUtf8 &getConstUtf8(const ConstPool &constPool) const;
@@ -81,19 +81,19 @@ public:
     const ConstInterfaceMethod &getConstInterfaceMethod(uint16_t poolIndex) const;
     const ConstInterfaceMethod &getConstInterfaceMethod(const ConstPool &constPool) const;
 
-    const ClassAccessFlag getAccessFlag(void) const;
+    ClassAccessFlag getAccessFlag(void) const;
 
     const ConstUtf8 &getThisClass(void) const;
     const ConstUtf8 &getSuperClass(void) const;
 
-    const uint16_t getInterfacesCount(void) const;
+    uint16_t getInterfacesCount(void) const;
     const ConstUtf8 &getInterface(uint8_t interfaceIndex) const;
 
-    const uint16_t getFieldsCount(void) const;
+    uint16_t getFieldsCount(void) const;
     const FieldInfo &getFieldInfo(uint8_t fieldIndex) const;
     const FieldInfo &getFieldInfo(const ConstNameAndType &fieldName) const;
 
-    const uint16_t getMethodsCount(void) const;
+    uint16_t getMethodsCount(void) const;
     const MethodInfo &getMethodInfo(uint8_t methodIndex) const;
     const MethodInfo &getMethodInfo(const ConstNameAndType &methodName) const;
     const MethodInfo &getMainMethodInfo(void) const;

@@ -32,7 +32,6 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
     for(uint16_t index = 0; index < fieldsCount; index++) {
         const FieldInfo &fieldInfo = classLoader.getFieldInfo(index);
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            const ConstUtf8 &descriptor = fieldInfo.descriptor;
             switch(fieldInfo.descriptor.text[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
@@ -56,7 +55,6 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
     for(uint16_t index = 0; index < fieldsCount; index++) {
         const FieldInfo &fieldInfo = classLoader.getFieldInfo(index);
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            const ConstUtf8 &descriptor = fieldInfo.descriptor;
             switch(fieldInfo.descriptor.text[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
@@ -86,7 +84,6 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
         for(uint16_t index = 0; index < fieldsCount; index++) {
             const FieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                const ConstUtf8 &descriptor = fieldInfo.descriptor;
                 switch(fieldInfo.descriptor.text[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
@@ -116,7 +113,6 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
         for(uint16_t index = 0; index < fieldsCount; index++) {
             const FieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                const ConstUtf8 &descriptor = fieldInfo.descriptor;
                 switch(fieldInfo.descriptor.text[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */

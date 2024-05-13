@@ -975,7 +975,7 @@ int64_t Execution::run(const char *mainClass) {
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -1005,7 +1005,7 @@ int64_t Execution::run(const char *mainClass) {
         else if(index < 0 || index >= (obj->size / sizeof(int64_t))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -1034,7 +1034,7 @@ int64_t Execution::run(const char *mainClass) {
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -1063,7 +1063,7 @@ int64_t Execution::run(const char *mainClass) {
         else if(index < 0 || index >= (obj->size / sizeof(int8_t))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -1093,7 +1093,7 @@ int64_t Execution::run(const char *mainClass) {
         else if(index < 0 || index >= (obj->size / sizeof(int16_t))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -1253,7 +1253,7 @@ int64_t Execution::run(const char *mainClass) {
         else if((index < 0) || (index >= (obj->size / sizeof(int32_t)))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -1284,7 +1284,7 @@ int64_t Execution::run(const char *mainClass) {
         else if((index < 0) || (index >= (obj->size / sizeof(int64_t)))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -1314,7 +1314,7 @@ int64_t Execution::run(const char *mainClass) {
         else if((index < 0) || (index >= (obj->size / sizeof(int8_t)))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -1345,7 +1345,7 @@ int64_t Execution::run(const char *mainClass) {
         else if((index < 0) || (index >= (obj->size / sizeof(int16_t)))) {
             char indexStrBuff[11];
             char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", index);
+            sprintf(indexStrBuff, "%d", (int)index);
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             Mjvm::lock();
@@ -2223,7 +2223,6 @@ int64_t Execution::run(const char *mainClass) {
             stackPushObject(obj);
             Mjvm::unlock();
             pc += 3;
-            const char *className = classData.getThisClass().text;
             if((classData.staticFiledsData == 0) && ((int32_t)&classData.getStaticConstructor() != 0)) {
                 stackPushInt32((int32_t)&classData);
                 goto init_static_field;

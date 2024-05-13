@@ -227,15 +227,15 @@ AttributeInfo &ClassLoader::readAttributeBootstrapMethods(ClassFile &file) {
     return *attribute;
 }
 
-const uint32_t ClassLoader::getMagic(void) const {
+uint32_t ClassLoader::getMagic(void) const {
     return magic;
 }
 
-const uint16_t ClassLoader::getMinorVersion(void) const {
+uint16_t ClassLoader::getMinorVersion(void) const {
     return minorVersion;
 }
 
-const uint16_t ClassLoader::getMajorversion(void) const {
+uint16_t ClassLoader::getMajorversion(void) const {
     return majorVersion;
 }
 
@@ -246,44 +246,44 @@ const ConstPool &ClassLoader::getConstPool(uint16_t poolIndex) const {
     throw "index for const pool is invalid";
 }
 
-const int32_t ClassLoader::getConstInteger(uint16_t poolIndex) const {
+int32_t ClassLoader::getConstInteger(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_INTEGER)
         return (int32_t)poolTable[poolIndex].value;
     throw "index for const integer is invalid";
 }
 
-const int32_t ClassLoader::getConstInteger(const ConstPool &constPool) const {
+int32_t ClassLoader::getConstInteger(const ConstPool &constPool) const {
     if(constPool.tag == CONST_INTEGER)
         return (int32_t)constPool.value;
     throw "const pool tag is not integer tag";
 }
 
-const float ClassLoader::getConstFloat(uint16_t poolIndex) const {
+float ClassLoader::getConstFloat(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_FLOAT)
         return *(float *)&poolTable[poolIndex].value;
     throw "index for const float is invalid";
 }
 
-const float ClassLoader::getConstFloat(const ConstPool &constPool) const {
+float ClassLoader::getConstFloat(const ConstPool &constPool) const {
     if(constPool.tag == CONST_FLOAT)
         return *(float *)&constPool.value;
     throw "const pool tag is not float tag";
 }
 
-const int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
+int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_LONG)
         return ((uint64_t)poolTable[poolIndex + 1].value << 32) | poolTable[poolIndex].value;
     throw "index for const long is invalid";
 }
 
-const int64_t ClassLoader::getConstLong(const ConstPool &constPool) const {
+int64_t ClassLoader::getConstLong(const ConstPool &constPool) const {
     return getConstLong((uint16_t)(&constPool - poolTable) + 1);
 }
 
-const double ClassLoader::getConstDouble(uint16_t poolIndex) const {
+double ClassLoader::getConstDouble(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_DOUBLE) {
         uint64_t ret = ((uint64_t)poolTable[poolIndex + 1].value << 32) | poolTable[poolIndex].value;
@@ -292,7 +292,7 @@ const double ClassLoader::getConstDouble(uint16_t poolIndex) const {
     throw "index for const double is invalid";
 }
 
-const double ClassLoader::getConstDouble(const ConstPool &constPool) const {
+double ClassLoader::getConstDouble(const ConstPool &constPool) const {
     return getConstDouble((uint16_t)(&constPool - poolTable) + 1);
 }
 
@@ -438,7 +438,7 @@ const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(const ConstPool
     return getConstInterfaceMethod((uint16_t)(&constPool - poolTable) + 1);
 }
 
-const ClassAccessFlag ClassLoader::getAccessFlag(void) const {
+ClassAccessFlag ClassLoader::getAccessFlag(void) const {
     return (ClassAccessFlag)accessFlags;
 }
 
@@ -452,7 +452,7 @@ const ConstUtf8 &ClassLoader::getSuperClass(void) const {
     return getConstClass(superClass);
 }
 
-const uint16_t ClassLoader::getInterfacesCount(void) const {
+uint16_t ClassLoader::getInterfacesCount(void) const {
     return interfacesCount;
 }
 
@@ -462,7 +462,7 @@ const ConstUtf8 &ClassLoader::getInterface(uint8_t interfaceIndex) const {
     throw "index for const interface is invalid";
 }
 
-const uint16_t ClassLoader::getFieldsCount(void) const {
+uint16_t ClassLoader::getFieldsCount(void) const {
     return fieldsCount;
 }
 
@@ -482,7 +482,7 @@ const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &fieldName) co
     return *(const FieldInfo *)0;
 }
 
-const uint16_t ClassLoader::getMethodsCount(void) const {
+uint16_t ClassLoader::getMethodsCount(void) const {
     return methodsCount;
 }
 

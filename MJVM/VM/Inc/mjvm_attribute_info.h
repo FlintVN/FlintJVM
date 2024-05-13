@@ -63,7 +63,7 @@ public:
 
 class Execution;
 
-typedef bool (* const NativeMethodPtr)(Execution &execution);
+typedef bool (*NativeMethodPtr)(Execution &execution);
 
 class AttributeNative : public AttributeInfo {
 public:
@@ -186,7 +186,7 @@ public:
     const uint16_t bootstrapMethodRef;
     const uint16_t numBootstrapArguments;
 
-    const uint16_t getBootstrapArgument(uint16_t index) const;
+    uint16_t getBootstrapArgument(uint16_t index) const;
 private:
     uint16_t bootstrapArguments[];
 

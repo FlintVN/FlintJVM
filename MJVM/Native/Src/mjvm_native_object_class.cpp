@@ -19,9 +19,6 @@ static bool nativeHashCode(Execution &execution) {
 static bool nativeClone(Execution &execution) {
     MjvmObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
-        uint8_t atype = MjvmObject::isPrimType(obj->type);
-        uint8_t elementSize = atype ? MjvmObject::getPrimitiveTypeSize(atype) : sizeof(MjvmObject *);
-        uint32_t length = obj->size / elementSize;
         Mjvm::lock();
         MjvmObject *cloneObj = execution.newObject(obj->size, obj->type, obj->dimensions);
         memcpy(cloneObj->data, obj->data, obj->size);

@@ -40,7 +40,7 @@ uint32_t MjvmString::utf8StrLen(const char *utf8) {
 
 bool MjvmString::isLatin1(const char *utf8) {
     while(*utf8) {
-        if(*utf8 < 0) {
+        if((int8_t)*utf8 < 0) {
             uint8_t byteCount = getUtf8ByteCount(*utf8);
             if(utf8Decode(utf8) > 255)
                 return false;
