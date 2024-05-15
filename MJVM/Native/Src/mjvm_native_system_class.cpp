@@ -1,17 +1,18 @@
 
 #include "mjvm.h"
 #include "mjvm_object.h"
+#include "mjvm_system_api.h"
 #include "mjvm_const_name.h"
 #include "mjvm_native_system_class.h"
 
 static bool nativeCurrentTimeMillis(Execution &execution) {
-    // TODO
-    return 0;
+    execution.stackPushInt64(MjvmSystem_GetNanoTime() / 1000);
+    return true;
 }
 
 static bool nativeNanoTime(Execution &execution) {
-    // TODO
-    return 0;
+    execution.stackPushInt64(MjvmSystem_GetNanoTime());
+    return true;
 }
 
 static bool nativeArraycopy(Execution &execution) {

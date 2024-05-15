@@ -12,11 +12,9 @@
 				"-g",
 				"MJVM/VM/Src/*.cpp",
 				"MJVM/Native/Src/*.cpp",
-				"Drivers/Src/*.cpp",
 				"User/Src/*.cpp",
 				"-IMJVM/VM/Inc",
 				"-IMJVM/Native/Inc",
-				"-IDrivers/Inc",
 				"-IUser/Inc",
 				"-o",
 				"Build/Bin/WinMJVM.exe"

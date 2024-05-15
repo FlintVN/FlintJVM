@@ -1,47 +1,148 @@
 
+#include <iostream>
 #include <string.h>
 #include "mjvm.h"
+#include "mjvm_system_api.h"
 #include "mjvm_class_loader.h"
 
+static void *ClassLoader_Open(const char *fileName) {
+    char buff[256];
+    uint32_t i = 0;
+    while(fileName[i]) {
+        buff[i] = fileName[i];
+        i++;
+    }
+    buff[i++] = '.';
+    buff[i++] = 'c';
+    buff[i++] = 'l';
+    buff[i++] = 'a';
+    buff[i++] = 's';
+    buff[i++] = 's';
+    buff[i++] = 0;
+
+    void *file = MjvmSystem_FileOpen(buff, MJVM_FILE_READ);
+    if(file == 0)
+        throw "can not open file";
+    return file;
+}
+
+static void *ClassLoader_Open(const char *fileName, uint32_t length) {
+    char buff[256];
+    uint32_t i = 0;
+    while(i < length) {
+        buff[i] = fileName[i];
+        i++;
+    }
+    buff[i++] = '.';
+    buff[i++] = 'c';
+    buff[i++] = 'l';
+    buff[i++] = 'a';
+    buff[i++] = 's';
+    buff[i++] = 's';
+    buff[i++] = 0;
+
+    void *file = MjvmSystem_FileOpen(buff, MJVM_FILE_READ);
+    if(file == 0)
+        throw "can not open file";
+    return file;
+}
+
+static void ClassLoader_Read(void *file, void *buff, uint32_t size) {
+    uint32_t temp;
+    MjvmSys_FileResult ret = MjvmSystem_FileRead(file, buff, size, &temp);
+    if((ret != FILE_RESULT_OK) || (temp != size))
+        throw "read file error";
+}
+
+static uint8_t ClassLoader_ReadUInt8(void *file) {
+    uint8_t temp;
+    ClassLoader_Read(file, &temp, sizeof(temp));
+    return temp;
+}
+
+static uint16_t ClassLoader_ReadUInt16(void *file) {
+    uint16_t temp;
+    ClassLoader_Read(file, &temp, sizeof(temp));
+    return swap16(temp);
+}
+
+static uint32_t ClassLoader_ReadUInt32(void *file) {
+    uint32_t temp;
+    ClassLoader_Read(file, &temp, sizeof(temp));
+    return swap32(temp);
+}
+
+static uint64_t ClassLoader_ReadUInt64(void *file) {
+    uint64_t temp;
+    ClassLoader_Read(file, &temp, sizeof(temp));
+    return swap64(temp);
+}
+
 ClassLoader::ClassLoader(const char *fileName) {
-    ClassFile file(fileName);
-    readFile(file);
-    file.close();
+    poolCount = 0;
+    interfacesCount = 0;
+    fieldsCount = 0;
+    methodsCount = 0;
+    attributesCount = 0;
+
+    void *file = ClassLoader_Open(fileName);
+
+    try {
+        readFile(file);
+    }
+    catch(const char *excp) {
+        MjvmSystem_FileClose(file);
+        throw excp;
+    }
+
+    MjvmSystem_FileClose(file);
 }
 
 ClassLoader::ClassLoader(const char *fileName, uint16_t length) {
-    ClassFile file(fileName, length);
-    readFile(file);
-    file.close();
+    poolCount = 0;
+    interfacesCount = 0;
+    fieldsCount = 0;
+    methodsCount = 0;
+    attributesCount = 0;
+
+    void *file = ClassLoader_Open(fileName, length);
+
+    try {
+        readFile(file);
+    }
+    catch(const char *excp) {
+        MjvmSystem_FileClose(file);
+        throw excp;
+    }
+
+    MjvmSystem_FileClose(file);
 }
 
-ClassLoader::ClassLoader(const ConstUtf8 &fileName) {
-    ClassFile file(fileName.text);
-    readFile(file);
-    file.close();
+ClassLoader::ClassLoader(const ConstUtf8 &fileName) : ClassLoader(fileName.text, fileName.length) {
+
 }
 
-void ClassLoader::readFile(ClassFile &file) {
-    magic = file.readUInt32();
-    minorVersion = file.readUInt16();
-    majorVersion = file.readUInt16();
-    poolCount = file.readUInt16() - 1;
+void ClassLoader::readFile(void *file) {
+    magic = ClassLoader_ReadUInt32(file);
+    minorVersion = ClassLoader_ReadUInt16(file);
+    majorVersion = ClassLoader_ReadUInt16(file);
+    poolCount = ClassLoader_ReadUInt16(file) - 1;
     poolTable = (ConstPool *)Mjvm::malloc(poolCount * sizeof(ConstPool));
     for(uint32_t i = 0; i < poolCount; i++) {
-        *(ConstPoolTag *)&poolTable[i].tag = (ConstPoolTag)file.readUInt8();
+        *(ConstPoolTag *)&poolTable[i].tag = (ConstPoolTag)ClassLoader_ReadUInt8(file);
         switch(poolTable[i].tag) {
             case CONST_UTF8: {
-                uint16_t length = file.readUInt16();
+                uint16_t length = ClassLoader_ReadUInt16(file);
                 *(uint32_t *)&poolTable[i].value = (uint32_t)Mjvm::malloc(sizeof(ConstUtf8) + length + 1);
                 *(uint16_t *)&((ConstUtf8 *)poolTable[i].value)->length = length;
                 char *textBuff = (char *)((ConstUtf8 *)poolTable[i].value)->text;
-                file.read(textBuff, length);
+                ClassLoader_Read(file, textBuff, length);
                 textBuff[length] = 0;
                 break;
             }
             case CONST_INTEGER:
             case CONST_FLOAT:
-                *(uint32_t *)&poolTable[i].value = file.readUInt32();
+                *(uint32_t *)&poolTable[i].value = ClassLoader_ReadUInt32(file);
                 break;
             case CONST_FIELD:
             case CONST_METHOD:
@@ -49,12 +150,12 @@ void ClassLoader::readFile(ClassFile &file) {
             case CONST_NAME_AND_TYPE:
             case CONST_INVOKE_DYNAMIC:
                 *(uint8_t *)&poolTable[i].tag |= 0x80;
-                ((uint16_t *)&poolTable[i].value)[0] = file.readUInt16();
-                ((uint16_t *)&poolTable[i].value)[1] = file.readUInt16();
+                ((uint16_t *)&poolTable[i].value)[0] = ClassLoader_ReadUInt16(file);
+                ((uint16_t *)&poolTable[i].value)[1] = ClassLoader_ReadUInt16(file);
                 break;
             case CONST_LONG:
             case CONST_DOUBLE: {
-                uint64_t value = file.readUInt64();
+                uint64_t value = ClassLoader_ReadUInt64(file);
                 *(uint32_t *)&poolTable[i + 0].value = (uint32_t)value;
                 *(uint32_t *)&poolTable[i + 1].value = (uint32_t)(value >> 32);
                 *(ConstPoolTag *)&poolTable[i + 1].tag = CONST_UNKOWN;
@@ -65,33 +166,33 @@ void ClassLoader::readFile(ClassFile &file) {
                 *(uint8_t *)&poolTable[i].tag |= 0x80;
             case CONST_CLASS:
             case CONST_METHOD_TYPE:
-                *(uint32_t *)&poolTable[i].value = file.readUInt16();
+                *(uint32_t *)&poolTable[i].value = ClassLoader_ReadUInt16(file);
                 break;
             case CONST_METHOD_HANDLE:
                 *(uint8_t *)&poolTable[i].tag |= 0x80;
-                ((uint8_t *)&poolTable[i].value)[0] = file.readUInt8();
-                ((uint16_t *)&poolTable[i].value)[1] = file.readUInt16();
+                ((uint8_t *)&poolTable[i].value)[0] = ClassLoader_ReadUInt8(file);
+                ((uint16_t *)&poolTable[i].value)[1] = ClassLoader_ReadUInt16(file);
                 break;
             default:
                 throw "uknow pool type";
         }
     }
-    accessFlags = file.readUInt16();
-    thisClass = file.readUInt16();
-    superClass = file.readUInt16();
-    interfacesCount = file.readUInt16();
+    accessFlags = ClassLoader_ReadUInt16(file);
+    thisClass = ClassLoader_ReadUInt16(file);
+    superClass = ClassLoader_ReadUInt16(file);
+    interfacesCount = ClassLoader_ReadUInt16(file);
     if(interfacesCount) {
         interfaces = (uint16_t *)Mjvm::malloc(interfacesCount * sizeof(uint16_t));
-        file.read(interfaces, interfacesCount * sizeof(uint16_t));
+        ClassLoader_Read(file, interfaces, interfacesCount * sizeof(uint16_t));
     }
-    fieldsCount = file.readUInt16();
+    fieldsCount = ClassLoader_ReadUInt16(file);
     if(fieldsCount) {
         fields = (FieldInfo *)Mjvm::malloc(fieldsCount * sizeof(FieldInfo));
         for(uint16_t i = 0; i < fieldsCount; i++) {
-            FieldAccessFlag flag = (FieldAccessFlag)file.readUInt16();
-            uint16_t fieldsNameIndex = file.readUInt16();
-            uint16_t fieldsDescriptorIndex = file.readUInt16();
-            uint16_t fieldsAttributesCount = file.readUInt16();
+            FieldAccessFlag flag = (FieldAccessFlag)ClassLoader_ReadUInt16(file);
+            uint16_t fieldsNameIndex = ClassLoader_ReadUInt16(file);
+            uint16_t fieldsDescriptorIndex = ClassLoader_ReadUInt16(file);
+            uint16_t fieldsAttributesCount = ClassLoader_ReadUInt16(file);
             new (&fields[i])FieldInfo(*this, flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
             AttributeInfo **fieldAttributes = (AttributeInfo **)Mjvm::malloc(fieldsAttributesCount * sizeof(AttributeInfo *));
             fields[i].setAttributes(fieldAttributes, fieldsAttributesCount);
@@ -99,14 +200,14 @@ void ClassLoader::readFile(ClassFile &file) {
                 fieldAttributes[attrIdx] = &readAttribute(file);
         }
     }
-    methodsCount = file.readUInt16();
+    methodsCount = ClassLoader_ReadUInt16(file);
     if(methodsCount) {
         methods = (MethodInfo *)Mjvm::malloc(methodsCount * sizeof(MethodInfo));
         for(uint16_t i = 0; i < methodsCount; i++) {
-            MethodAccessFlag flag = (MethodAccessFlag)file.readUInt16();
-            uint16_t methodNameIndex = file.readUInt16();
-            uint16_t methodDescriptorIndex = file.readUInt16();
-            uint16_t methodAttributesCount = file.readUInt16();
+            MethodAccessFlag flag = (MethodAccessFlag)ClassLoader_ReadUInt16(file);
+            uint16_t methodNameIndex = ClassLoader_ReadUInt16(file);
+            uint16_t methodDescriptorIndex = ClassLoader_ReadUInt16(file);
+            uint16_t methodAttributesCount = ClassLoader_ReadUInt16(file);
             uint16_t attrIdx = 0;
             new (&methods[i])MethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
             if((flag & METHOD_NATIVE) == METHOD_NATIVE)
@@ -123,7 +224,7 @@ void ClassLoader::readFile(ClassFile &file) {
                 methodAttributes[attrIdx] = &readAttribute(file);
         }
     }
-    attributesCount = file.readUInt16();
+    attributesCount = ClassLoader_ReadUInt16(file);
     if(attributesCount) {
         attributes = (AttributeInfo **)Mjvm::malloc(attributesCount * sizeof(AttributeInfo *));
         for(uint16_t attrIdx = 0; attrIdx < attributesCount; attrIdx++)
@@ -131,9 +232,9 @@ void ClassLoader::readFile(ClassFile &file) {
     }
 }
 
-AttributeInfo &ClassLoader::readAttribute(ClassFile &file) {
-    uint16_t nameIndex = file.readUInt16();
-    uint32_t length = file.readUInt32();
+AttributeInfo &ClassLoader::readAttribute(void *file) {
+    uint16_t nameIndex = ClassLoader_ReadUInt16(file);
+    uint32_t length = ClassLoader_ReadUInt32(file);
     AttributeType type = AttributeInfo::parseAttributeType(getConstUtf8(nameIndex));
     switch(type) {
         case ATTRIBUTE_CODE:
@@ -149,32 +250,32 @@ AttributeInfo &ClassLoader::readAttribute(ClassFile &file) {
     }
     AttributeRaw *attribute = (AttributeRaw *)Mjvm::malloc(sizeof(AttributeRaw) + length);
     new (attribute)AttributeRaw(type, length);
-    file.read((uint8_t *)attribute->raw, length);
+    ClassLoader_Read(file, (uint8_t *)attribute->raw, length);
     return *attribute;
 }
 
-AttributeInfo &ClassLoader::readAttributeCode(ClassFile &file) {
+AttributeInfo &ClassLoader::readAttributeCode(void *file) {
     AttributeCode *attribute = (AttributeCode *)Mjvm::malloc(sizeof(AttributeCode));
-    uint16_t maxStack = file.readUInt16();
-    uint16_t maxLocals = file.readUInt16();
-    uint32_t codeLength = file.readUInt32();
+    uint16_t maxStack = ClassLoader_ReadUInt16(file);
+    uint16_t maxLocals = ClassLoader_ReadUInt16(file);
+    uint32_t codeLength = ClassLoader_ReadUInt32(file);
     uint8_t *code = (uint8_t *)Mjvm::malloc(codeLength);
     new (attribute)AttributeCode(maxStack, maxLocals);
-    file.read(code, codeLength);
+    ClassLoader_Read(file, code, codeLength);
     attribute->setCode(code, codeLength);
-    uint16_t exceptionTableLength = file.readUInt16();
+    uint16_t exceptionTableLength = ClassLoader_ReadUInt16(file);
     if(exceptionTableLength) {
         ExceptionTable *exceptionTable = (ExceptionTable *)Mjvm::malloc(exceptionTableLength * sizeof(ExceptionTable));
         attribute->setExceptionTable(exceptionTable, exceptionTableLength);
         for(uint16_t i = 0; i < exceptionTableLength; i++) {
-            uint16_t startPc = file.readUInt16();
-            uint16_t endPc = file.readUInt16();
-            uint16_t handlerPc = file.readUInt16();
-            uint16_t catchType = file.readUInt16();
+            uint16_t startPc = ClassLoader_ReadUInt16(file);
+            uint16_t endPc = ClassLoader_ReadUInt16(file);
+            uint16_t handlerPc = ClassLoader_ReadUInt16(file);
+            uint16_t catchType = ClassLoader_ReadUInt16(file);
             new (&exceptionTable[i])ExceptionTable(startPc, endPc, handlerPc, catchType);
         }
     }
-    uint16_t attrbutesCount = file.readUInt16();
+    uint16_t attrbutesCount = ClassLoader_ReadUInt16(file);
     if(attrbutesCount) {
         AttributeInfo **codeAttributes = (AttributeInfo **)Mjvm::malloc(attrbutesCount * sizeof(AttributeInfo *));
         attribute->setAttributes(codeAttributes, attrbutesCount);
@@ -184,44 +285,44 @@ AttributeInfo &ClassLoader::readAttributeCode(ClassFile &file) {
     return *attribute;
 }
 
-AttributeInfo &ClassLoader::readAttributeLineNumberTable(ClassFile &file) {
-    uint16_t lineNumberTableLength = file.readUInt16();
+AttributeInfo &ClassLoader::readAttributeLineNumberTable(void *file) {
+    uint16_t lineNumberTableLength = ClassLoader_ReadUInt16(file);
     AttributeLineNumberTable *attribute = (AttributeLineNumberTable *)Mjvm::malloc(sizeof(AttributeLineNumberTable) + lineNumberTableLength * sizeof(LineNumber));
     new (attribute)AttributeLineNumberTable(lineNumberTableLength);
     for(uint16_t i = 0; i < lineNumberTableLength; i++) {
-        uint16_t startPc = file.readUInt16();
-        uint16_t lineNumber = file.readUInt16();
+        uint16_t startPc = ClassLoader_ReadUInt16(file);
+        uint16_t lineNumber = ClassLoader_ReadUInt16(file);
         new ((LineNumber *)&attribute->getLineNumber(i))LineNumber(startPc, lineNumber);
     }
     return *attribute;
 }
 
-AttributeInfo &ClassLoader::readAttributeLocalVariableTable(ClassFile &file) {
-    uint16_t localVariableTableLength = file.readUInt16();
+AttributeInfo &ClassLoader::readAttributeLocalVariableTable(void *file) {
+    uint16_t localVariableTableLength = ClassLoader_ReadUInt16(file);
     AttributeLocalVariableTable *attribute = (AttributeLocalVariableTable *)Mjvm::malloc(sizeof(AttributeLocalVariableTable) + localVariableTableLength * sizeof(LocalVariable));
     new (attribute)AttributeLocalVariableTable(localVariableTableLength);
     for(uint16_t i = 0; i < localVariableTableLength; i++) {
-        uint16_t startPc = file.readUInt16();
-        uint16_t length = file.readUInt16();
-        uint16_t nameIndex = file.readUInt16();
-        uint16_t descriptorIndex = file.readUInt16();
-        uint16_t index = file.readUInt16();
+        uint16_t startPc = ClassLoader_ReadUInt16(file);
+        uint16_t length = ClassLoader_ReadUInt16(file);
+        uint16_t nameIndex = ClassLoader_ReadUInt16(file);
+        uint16_t descriptorIndex = ClassLoader_ReadUInt16(file);
+        uint16_t index = ClassLoader_ReadUInt16(file);
         new ((LocalVariable *)&attribute->getLocalVariable(i))LocalVariable(startPc, length, getConstUtf8(nameIndex), getConstUtf8(descriptorIndex), index);
     }
     return *attribute;
 }
 
-AttributeInfo &ClassLoader::readAttributeBootstrapMethods(ClassFile &file) {
-    uint16_t numBootstrapMethods = file.readUInt16();
+AttributeInfo &ClassLoader::readAttributeBootstrapMethods(void *file) {
+    uint16_t numBootstrapMethods = ClassLoader_ReadUInt16(file);
     AttributeBootstrapMethods *attribute = (AttributeBootstrapMethods *)Mjvm::malloc(sizeof(AttributeBootstrapMethods));
     new (attribute)AttributeBootstrapMethods(numBootstrapMethods);
     for(uint16_t i = 0; i < numBootstrapMethods; i++) {
-        uint16_t bootstrapMethodRef = file.readUInt16();
-        uint16_t numBootstrapArguments = file.readUInt16();
+        uint16_t bootstrapMethodRef = ClassLoader_ReadUInt16(file);
+        uint16_t numBootstrapArguments = ClassLoader_ReadUInt16(file);
         BootstrapMethod *bootstrapMethod = (BootstrapMethod *)Mjvm::malloc(sizeof(BootstrapMethod) + numBootstrapArguments * sizeof(uint16_t));
         new (bootstrapMethod)BootstrapMethod(bootstrapMethodRef, numBootstrapArguments);
         uint16_t *bootstrapArguments = (uint16_t *)(((uint8_t *)bootstrapMethod) + sizeof(BootstrapMethod));
-        file.read(bootstrapArguments, numBootstrapArguments * sizeof(uint16_t));
+        ClassLoader_Read(file, bootstrapArguments, numBootstrapArguments * sizeof(uint16_t));
         attribute->setBootstrapMethod(i, *bootstrapMethod);
     }
     return *attribute;
@@ -534,28 +635,30 @@ const MethodInfo &ClassLoader::getStaticConstructor(void) const {
 }
 
 ClassLoader::~ClassLoader(void) {
-    for(uint32_t i = 0; i < poolCount; i++) {
-        switch (poolTable[i].tag) {
-            case CONST_UTF8:
-            case CONST_FIELD:
-            case CONST_METHOD:
-            case CONST_INTERFACE_METHOD:
-            case CONST_NAME_AND_TYPE:
-            case CONST_INVOKE_DYNAMIC:
-                Mjvm::free((void *)poolTable[i].value);
-                break;
-            case CONST_LONG:
-            case CONST_DOUBLE:
-                i++;
-                break;
-            case CONST_METHOD_HANDLE:
-                Mjvm::free((void *)poolTable[i].value);
-                break;
-            default:
-                break;
+    if(poolCount) {
+        for(uint32_t i = 0; i < poolCount; i++) {
+            switch (poolTable[i].tag) {
+                case CONST_UTF8:
+                case CONST_FIELD:
+                case CONST_METHOD:
+                case CONST_INTERFACE_METHOD:
+                case CONST_NAME_AND_TYPE:
+                case CONST_INVOKE_DYNAMIC:
+                    Mjvm::free((void *)poolTable[i].value);
+                    break;
+                case CONST_LONG:
+                case CONST_DOUBLE:
+                    i++;
+                    break;
+                case CONST_METHOD_HANDLE:
+                    Mjvm::free((void *)poolTable[i].value);
+                    break;
+                default:
+                    break;
+            }
         }
+        Mjvm::free(poolTable);
     }
-    Mjvm::free(poolTable);
     if(interfacesCount)
         Mjvm::free(interfaces);
     if(fieldsCount) {

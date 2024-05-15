@@ -4,6 +4,9 @@
 
 #include <stdint.h>
 
+#define KILO_BYTE(value)        (value * 1024)
+#define MEGA_BYTE(value)        (value * KILO_BYTE(1024))
+
 #define LENGTH(array)           (sizeof(array) / sizeof(array[0]))
 
 uint16_t swap16(uint16_t value);

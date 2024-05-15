@@ -8,14 +8,30 @@
 #include "mjvm_class_loader.h"
 #include "mjvm_fields_data.h"
 
-#define KILO_BYTE(value)        (value * 1024)
-#define MEAG_BYTE(value)        (value * KILO_BYTE(1024))
+#if __has_include("mjvm_conf.h")
+#include "mjvm_conf.h"
+#endif
 
-#define DEFAULT_STACK_SIZE      (MEAG_BYTE(1))
+#ifndef DEFAULT_STACK_SIZE
+#define DEFAULT_STACK_SIZE      MEGA_BYTE(1)
+#warning "DEFAULT_STACK_SIZE is not defined. Default value will be used"
+#endif /* DEFAULT_STACK_SIZE */
 
-#define OBJECT_SIZE_TO_GC       MEAG_BYTE(1)
+#ifndef OBJECT_SIZE_TO_GC
+#define OBJECT_SIZE_TO_GC       MEGA_BYTE(1)
+#warning "OBJECT_SIZE_TO_GC is not defined. Default value will be used"
+#endif /* OBJECT_SIZE_TO_GC */
 
 #define STR_AND_SIZE(str)       str, (sizeof(str) - 1)
+
+class LoadFileError {
+public:
+    const char *getFileName(void) const;
+private:
+    LoadFileError(void) = delete;
+    LoadFileError(const LoadFileError &) = delete;
+    void operator=(const LoadFileError &) = delete;
+};
 
 class Execution {
 private:

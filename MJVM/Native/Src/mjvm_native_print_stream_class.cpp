@@ -1,31 +1,27 @@
 
-#include <stdio.h>
 #include "mjvm_string.h"
 #include "mjvm_const_name.h"
+#include "mjvm_system_api.h"
 #include "mjvm_native_print_stream_class.h"
-
-static void nativeWriteChar(uint16_t ch) {
-    std::wcout << (wchar_t)ch;
-}
 
 static bool nativeWrite(Execution &execution) {
     MjvmString *str = (MjvmString *)execution.stackPopObject();
     if(str == 0) {
-        nativeWriteChar('n');
-        nativeWriteChar('u');
-        nativeWriteChar('l');
-        nativeWriteChar('l');
+        MjvmSystem_WriteChar('n');
+        MjvmSystem_WriteChar('u');
+        MjvmSystem_WriteChar('l');
+        MjvmSystem_WriteChar('l');
     }
     else {
         const char *value = str->getText();
         uint32_t length = str->getLength();
         if(str->getCoder() == 0) {
             for(uint32_t i = 0; i < length; i++)
-                nativeWriteChar(value[i]);
+                MjvmSystem_WriteChar((uint8_t)value[i]);
         }
         else {
             for(uint32_t i = 0; i < length; i++)
-                nativeWriteChar(((uint16_t *)value)[i]);
+                MjvmSystem_WriteChar(((uint16_t *)value)[i]);
         }
     }
     return true;
@@ -34,7 +30,7 @@ static bool nativeWrite(Execution &execution) {
 static bool nativeWriteln(Execution &execution) {
     if(!nativeWrite(execution))
         return false;
-    nativeWriteChar('\n');
+    MjvmSystem_WriteChar('\n');
     return true;
 }
 

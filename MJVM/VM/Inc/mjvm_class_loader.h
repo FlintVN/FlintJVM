@@ -2,7 +2,6 @@
 #ifndef __MJVM_CLASS_LOADER_H
 #define __MJVM_CLASS_LOADER_H
 
-#include "mjvm_class_file.h"
 #include "mjvm_const_pool.h"
 #include "mjvm_field_info.h"
 #include "mjvm_method_info.h"
@@ -32,12 +31,12 @@ private:
     ClassLoader(const ClassLoader &) = delete;
     void operator=(const ClassLoader &) = delete;
 
-    void readFile(ClassFile &file);
-    AttributeInfo &readAttribute(ClassFile &file);
-    AttributeInfo &readAttributeCode(ClassFile &file);
-    AttributeInfo &readAttributeLineNumberTable(ClassFile &file);
-    AttributeInfo &readAttributeLocalVariableTable(ClassFile &file);
-    AttributeInfo &readAttributeBootstrapMethods(ClassFile &file);
+    void readFile(void *file);
+    AttributeInfo &readAttribute(void *file);
+    AttributeInfo &readAttributeCode(void *file);
+    AttributeInfo &readAttributeLineNumberTable(void *file);
+    AttributeInfo &readAttributeLocalVariableTable(void *file);
+    AttributeInfo &readAttributeBootstrapMethods(void *file);
 protected:
     ClassLoader(const char *fileName);
     ClassLoader(const char *fileName, uint16_t length);

@@ -1,4 +1,5 @@
 
+#include <iostream>
 #include "mjvm.h"
 #include "mjvm_fields_data.h"
 #include "mjvm_execution.h"
