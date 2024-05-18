@@ -194,10 +194,12 @@ void ClassLoader::readFile(void *file) {
             uint16_t fieldsDescriptorIndex = ClassLoader_ReadUInt16(file);
             uint16_t fieldsAttributesCount = ClassLoader_ReadUInt16(file);
             new (&fields[i])FieldInfo(*this, flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
-            AttributeInfo **fieldAttributes = (AttributeInfo **)Mjvm::malloc(fieldsAttributesCount * sizeof(AttributeInfo *));
-            fields[i].setAttributes(fieldAttributes, fieldsAttributesCount);
-            for(uint16_t attrIdx = 0; attrIdx < fieldsAttributesCount; attrIdx++)
-                fieldAttributes[attrIdx] = &readAttribute(file);
+            if(fieldsAttributesCount) {
+                AttributeInfo **fieldAttributes = (AttributeInfo **)Mjvm::malloc(fieldsAttributesCount * sizeof(AttributeInfo *));
+                fields[i].setAttributes(fieldAttributes, fieldsAttributesCount);
+                for(uint16_t attrIdx = 0; attrIdx < fieldsAttributesCount; attrIdx++)
+                    fieldAttributes[attrIdx] = &readAttribute(file);
+            }
         }
     }
     methodsCount = ClassLoader_ReadUInt16(file);
@@ -212,16 +214,18 @@ void ClassLoader::readFile(void *file) {
             new (&methods[i])MethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
             if((flag & METHOD_NATIVE) == METHOD_NATIVE)
                 methodAttributesCount++;
-            AttributeInfo **methodAttributes = (AttributeInfo **)Mjvm::malloc(methodAttributesCount * sizeof(AttributeInfo *));
-            methods[i].setAttributes(methodAttributes, methodAttributesCount);
-            if((flag & METHOD_NATIVE) == METHOD_NATIVE) {
-                AttributeNative *attrNative = (AttributeNative *)Mjvm::malloc(sizeof(AttributeNative));
-                new (attrNative)AttributeNative(0);
-                methodAttributes[attrIdx] = attrNative;
-                attrIdx++;
+            if(methodAttributesCount) {
+                AttributeInfo **methodAttributes = (AttributeInfo **)Mjvm::malloc(methodAttributesCount * sizeof(AttributeInfo *));
+                methods[i].setAttributes(methodAttributes, methodAttributesCount);
+                if((flag & METHOD_NATIVE) == METHOD_NATIVE) {
+                    AttributeNative *attrNative = (AttributeNative *)Mjvm::malloc(sizeof(AttributeNative));
+                    new (attrNative)AttributeNative(0);
+                    methodAttributes[attrIdx] = attrNative;
+                    attrIdx++;
+                }
+                for(; attrIdx < methodAttributesCount; attrIdx++)
+                    methodAttributes[attrIdx] = &readAttribute(file);
             }
-            for(; attrIdx < methodAttributesCount; attrIdx++)
-                methodAttributes[attrIdx] = &readAttribute(file);
         }
     }
     attributesCount = ClassLoader_ReadUInt16(file);

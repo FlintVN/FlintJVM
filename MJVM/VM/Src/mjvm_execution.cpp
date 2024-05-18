@@ -242,7 +242,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
         uint32_t count = obj->size / 4;
         for(uint32_t i = 0; i < count; i++) {
             MjvmObject *tmp = ((MjvmObject **)obj->data)[i];
-            if(tmp && !tmp->isProtected())
+            if(tmp && !(tmp->getProtected() & 0x01))
                 garbageCollectionProtectObject(tmp);
         }
     }
@@ -250,7 +250,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
         FieldsData &fieldData = *(FieldsData *)obj->data;
         for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
             MjvmObject *tmp = fieldData.fieldsObject[i].object;
-            if(tmp && !tmp->isProtected())
+            if(tmp && !(tmp->getProtected() & 0x01))
                 garbageCollectionProtectObject(tmp);
         }
     }
@@ -261,7 +261,7 @@ void Execution::garbageCollection(void) {
     Mjvm::lock();
     objectSizeToGc = 0;
     for(MjvmConstString *node = constStringList; node != 0; node = node->next) {
-        if(!node->mjvmString.isProtected())
+        if(!(node->mjvmString.getProtected() & 0x01))
             garbageCollectionProtectObject(&node->mjvmString);
     }
     for(ClassData *node = classDataList; node != 0; node = node->next) {
@@ -269,7 +269,7 @@ void Execution::garbageCollection(void) {
         if(fieldsData && fieldsData->fieldsObjCount) {
             for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
                 MjvmObject *obj = fieldsData->fieldsObject[i].object;
-                if(obj && !obj->isProtected())
+                if(obj && !(obj->getProtected() & 0x01))
                     garbageCollectionProtectObject(obj);
             }
         }
@@ -277,13 +277,14 @@ void Execution::garbageCollection(void) {
     for(int32_t i = 0; i <= peakSp; i++) {
         if(getStackType(i) == STACK_TYPE_OBJECT) {
             MjvmObject *obj = (MjvmObject *)stack[i];
-            if(obj && !obj->isProtected())
+            if(obj && !(obj->getProtected() & 0x01))
                 garbageCollectionProtectObject(obj);
         }
     }
     for(MjvmObject *node = objectList; node != 0;) {
         MjvmObject *next = node->next;
-        if(!node->isProtected()) {
+        uint8_t prot = node->getProtected();
+        if(prot == 0) {
             if(node->prev)
                 node->prev->next = node->next;
             else
@@ -297,6 +298,8 @@ void Execution::garbageCollection(void) {
             }
             Mjvm::free(node);
         }
+        else if(!(prot & 0x02))
+            node->clearProtected();
         node = next;
     }
     Mjvm::unlock();

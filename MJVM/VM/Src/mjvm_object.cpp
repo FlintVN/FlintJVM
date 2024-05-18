@@ -41,7 +41,7 @@ uint8_t MjvmObject::isPrimType(const ConstUtf8 &type) {
 }
 
 MjvmObject::MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) :
-size(size), prot(0), type(type), dimensions(dimensions), monitorCount(0), ownId(0) {
+size(size), prot(0x02), type(type), dimensions(dimensions), monitorCount(0), ownId(0) {
 
 }
 
@@ -65,6 +65,10 @@ void MjvmObject::setProtected(void) {
     prot = 1;
 }
 
-bool MjvmObject::isProtected(void) const {
+void MjvmObject::clearProtected(void) {
+    prot = 0;
+}
+
+uint8_t MjvmObject::getProtected(void) const {
     return prot;
 }

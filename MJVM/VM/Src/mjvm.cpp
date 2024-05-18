@@ -56,13 +56,14 @@ Execution &Mjvm::newExecution(void) {
 
 Execution &Mjvm::newExecution(uint32_t stackSize) {
     ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
+    new (newNode)ExecutionNode(stackSize);
     lock();
     newNode->next = executionList;
     if(executionList)
         executionList->prev = newNode;
     executionList = newNode;
     unlock();
-    return *new (newNode)ExecutionNode(stackSize);
+    return *newNode;
 }
 
 void Mjvm::destroy(const Execution &execution) {

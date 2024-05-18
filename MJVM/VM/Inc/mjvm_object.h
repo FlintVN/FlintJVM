@@ -10,9 +10,9 @@ private:
     MjvmObject *next;
     MjvmObject *prev;
 public:
-    const uint32_t size : 31;
+    const uint32_t size : 30;
 private:
-    uint32_t prot : 1;
+    uint32_t prot : 2;
 public:
     const ConstUtf8 &type;
     const uint32_t dimensions : 8;
@@ -28,7 +28,8 @@ private:
     uint8_t parseTypeSize(void) const;
 
     void setProtected(void);
-    bool isProtected(void) const;
+    void clearProtected(void);
+    uint8_t getProtected(void) const;
 protected:
     MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions);
     MjvmObject(const MjvmObject &) = delete;
