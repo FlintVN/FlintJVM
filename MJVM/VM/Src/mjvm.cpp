@@ -8,6 +8,14 @@ static uint32_t objectCount = 0;
 
 Mjvm::ExecutionNode *Mjvm::executionList = 0;
 
+const char *OutOfMemoryError::getMessage(void) const {
+    return (const char *)this;
+}
+
+const char *LoadFileError::getFileName(void) const {
+    return (const char *)this;
+}
+
 Mjvm::ExecutionNode::ExecutionNode(void) : Execution() {
     prev = 0;
     next = 0;
@@ -32,7 +40,7 @@ void *Mjvm::malloc(uint32_t size) {
         Mjvm::garbageCollection();
         ret = ::malloc(size);
         if(ret == 0)
-            throw "not enough memory to allocate";
+            throw (OutOfMemoryError *)"not enough memory to allocate";
     }
     objectCount++;
     return ret;
@@ -76,7 +84,7 @@ void Mjvm::destroy(const Execution &execution) {
     if(node->next)
         node->next->prev = node->prev;
     unlock();
-    node->~Execution();
+    node->~ExecutionNode();
     Mjvm::free(node);
 }
 

@@ -5,6 +5,24 @@
 #include <stdint.h>
 #include "mjvm_execution.h"
 
+class OutOfMemoryError {
+public:
+    const char *getMessage(void) const;
+private:
+    OutOfMemoryError(void) = delete;
+    OutOfMemoryError(const OutOfMemoryError &) = delete;
+    void operator=(const OutOfMemoryError &) = delete;
+};
+
+class LoadFileError {
+public:
+    const char *getFileName(void) const;
+private:
+    LoadFileError(void) = delete;
+    LoadFileError(const LoadFileError &) = delete;
+    void operator=(const LoadFileError &) = delete;
+};
+
 class Mjvm {
 private:
     class ExecutionNode : public Execution {

@@ -24,15 +24,6 @@
 
 #define STR_AND_SIZE(str)       str, (sizeof(str) - 1)
 
-class LoadFileError {
-public:
-    const char *getFileName(void) const;
-private:
-    LoadFileError(void) = delete;
-    LoadFileError(const LoadFileError &) = delete;
-    void operator=(const LoadFileError &) = delete;
-};
-
 class Execution {
 private:
     const uint32_t stackLength;
