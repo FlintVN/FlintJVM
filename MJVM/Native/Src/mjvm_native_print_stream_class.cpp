@@ -6,31 +6,17 @@
 
 static bool nativeWrite(Execution &execution) {
     MjvmString *str = (MjvmString *)execution.stackPopObject();
-    if(str == 0) {
-        MjvmSystem_WriteChar('n');
-        MjvmSystem_WriteChar('u');
-        MjvmSystem_WriteChar('l');
-        MjvmSystem_WriteChar('l');
-    }
-    else {
-        const char *value = str->getText();
-        uint32_t length = str->getLength();
-        if(str->getCoder() == 0) {
-            for(uint32_t i = 0; i < length; i++)
-                MjvmSystem_WriteChar((uint8_t)value[i]);
-        }
-        else {
-            for(uint32_t i = 0; i < length; i++)
-                MjvmSystem_WriteChar(((uint16_t *)value)[i]);
-        }
-    }
+    if(str == 0)
+        MjvmSystem_Write("null", 4, 0);
+    else
+        MjvmSystem_Write(str->getText(), str->getLength(), str->getCoder());
     return true;
 }
 
 static bool nativeWriteln(Execution &execution) {
     if(!nativeWrite(execution))
         return false;
-    MjvmSystem_WriteChar('\n');
+    MjvmSystem_Write("\n", 1, 0);
     return true;
 }
 

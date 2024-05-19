@@ -5,7 +5,7 @@
 #include <stdint.h>
 #include "mjvm_system_type.h"
 
-void MjvmSystem_WriteChar(uint16_t ch);
+void MjvmSystem_Write(const char *text, uint32_t length, uint8_t coder);
 
 int64_t MjvmSystem_GetNanoTime(void);
 
