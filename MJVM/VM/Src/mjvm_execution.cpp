@@ -82,7 +82,7 @@ MjvmString *Execution::newString(const char *utf8, uint16_t size) {
         while(*utf8) {
             uint32_t c = MjvmString::utf8Decode(utf8);
             byteArray->data[index] = c;
-            utf8 += MjvmString::getUtf8ByteCount(*utf8);
+            utf8 += MjvmString::getUtf8DecodeSize(*utf8);
             index++;
         }
     }
@@ -92,7 +92,7 @@ MjvmString *Execution::newString(const char *utf8, uint16_t size) {
             ((uint16_t *)byteArray->data)[index] = c;
         else
             throw "Characters are not supported";
-        utf8 += MjvmString::getUtf8ByteCount(*utf8);
+        utf8 += MjvmString::getUtf8DecodeSize(*utf8);
         index++;
     }
 
@@ -125,7 +125,7 @@ MjvmString *Execution::newString(const char *latin1Str[], uint16_t count) {
         while(*buff) {
             uint32_t c = MjvmString::utf8Decode(buff);
             byteArray->data[index] = c;
-            buff += MjvmString::getUtf8ByteCount(*buff);
+            buff += MjvmString::getUtf8DecodeSize(*buff);
             index++;
         }
     }

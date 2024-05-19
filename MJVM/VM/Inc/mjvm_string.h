@@ -13,8 +13,10 @@ public:
     bool equals(MjvmString &utf8) const;
 
     static bool isLatin1(const char *utf8);
-    static uint8_t getUtf8ByteCount(char c);
+    static uint8_t getUtf8DecodeSize(char c);
+    static uint8_t getUtf8EncodeSize(uint16_t c);
     static uint32_t utf8Decode(const char *c);
+    static uint8_t utf8Encode(uint16_t c, char *buff);
     static uint32_t utf8StrLen(const char *utf8);
 protected:
     MjvmString(void) = delete;
