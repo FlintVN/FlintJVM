@@ -23,17 +23,17 @@ private:
     void operator=(const LoadFileError &) = delete;
 };
 
+class ExecutionNode : public Execution {
+public:
+    ExecutionNode *prev;
+    ExecutionNode *next;
+
+    ExecutionNode(void);
+    ExecutionNode(uint32_t stackSize);
+};
+
 class Mjvm {
 private:
-    class ExecutionNode : public Execution {
-    public:
-        ExecutionNode *prev;
-        ExecutionNode *next;
-
-        ExecutionNode(void);
-        ExecutionNode(uint32_t stackSize);
-    };
-
     static ExecutionNode *executionList;
 
     Mjvm(void) = delete;

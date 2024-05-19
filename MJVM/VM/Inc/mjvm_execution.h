@@ -51,11 +51,13 @@ private:
         StackType type;
         int32_t value;
     } StackValue;
-
+protected:
     Execution(void);
     Execution(uint32_t stackSize);
     Execution(const Execution &) = delete;
     void operator=(const Execution &) = delete;
+
+    ~Execution(void);
 public:
     MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
 
@@ -76,6 +78,7 @@ public:
     MjvmThrowable *newArrayIndexOutOfBoundsException(MjvmString *strObj);
 private:
     void freeAllObject(void);
+    void clearProtectObjectNew(MjvmObject *obj);
     void garbageCollectionProtectObject(MjvmObject *obj);
 
     void initStaticField(ClassData &classData);
@@ -109,15 +112,13 @@ private:
     bool invokeSpecial(const ConstMethod &constMethod);
     bool invokeVirtual(const ConstMethod &constMethod);
     bool invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc);
+
+    friend class Mjvm;
 public:
     bool isInstanceof(MjvmObject *obj, const ConstUtf8 &type);
 
     void garbageCollection(void);
-private:
-    ~Execution(void);
 
-    friend class Mjvm;
-public:
     const ClassLoader &load(const char *className, uint16_t length);
     const ClassLoader &load(const char *className);
     const ClassLoader &load(const ConstUtf8 &className);

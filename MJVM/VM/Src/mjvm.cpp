@@ -1,13 +1,12 @@
 
 #include <new>
-#include <stdlib.h>
 #include <string.h>
 #include "mjvm.h"
 #include "mjvm_system_api.h"
 
 static uint32_t objectCount = 0;
 
-Mjvm::ExecutionNode *Mjvm::executionList = 0;
+ExecutionNode *Mjvm::executionList = 0;
 
 const char *OutOfMemoryError::getMessage(void) const {
     return (const char *)this;
@@ -17,12 +16,12 @@ const char *LoadFileError::getFileName(void) const {
     return (const char *)this;
 }
 
-Mjvm::ExecutionNode::ExecutionNode(void) : Execution() {
+ExecutionNode::ExecutionNode(void) : Execution() {
     prev = 0;
     next = 0;
 }
 
-Mjvm::ExecutionNode::ExecutionNode(uint32_t stackSize) : Execution(stackSize) {
+ExecutionNode::ExecutionNode(uint32_t stackSize) : Execution(stackSize) {
     prev = 0;
     next = 0;
 }

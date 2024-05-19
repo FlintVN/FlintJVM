@@ -232,13 +232,34 @@ void Execution::freeAllObject(void) {
     objectList = 0;
 }
 
+void Execution::clearProtectObjectNew(MjvmObject *obj) {
+    bool isPrim = MjvmObject::isPrimType(obj->type);
+    if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
+        uint32_t count = obj->size / 4;
+        for(uint32_t i = 0; i < count; i++) {
+            MjvmObject *tmp = ((MjvmObject **)obj->data)[i];
+            if(tmp && (tmp->getProtected() & 0x02))
+                clearProtectObjectNew(tmp);
+        }
+    }
+    else if(!isPrim) {
+        FieldsData &fieldData = *(FieldsData *)obj->data;
+        for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
+            MjvmObject *tmp = fieldData.fieldsObject[i].object;
+            if(tmp && (tmp->getProtected() & 0x02))
+                clearProtectObjectNew(tmp);
+        }
+    }
+    obj->clearProtected();
+}
+
 void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
     bool isPrim = MjvmObject::isPrimType(obj->type);
     if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
         uint32_t count = obj->size / 4;
         for(uint32_t i = 0; i < count; i++) {
             MjvmObject *tmp = ((MjvmObject **)obj->data)[i];
-            if(tmp && !(tmp->getProtected() & 0x01))
+            if(tmp && !tmp->getProtected())
                 garbageCollectionProtectObject(tmp);
         }
     }
@@ -246,7 +267,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
         FieldsData &fieldData = *(FieldsData *)obj->data;
         for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
             MjvmObject *tmp = fieldData.fieldsObject[i].object;
-            if(tmp && !(tmp->getProtected() & 0x01))
+            if(tmp && !tmp->getProtected())
                 garbageCollectionProtectObject(tmp);
         }
     }
@@ -257,7 +278,7 @@ void Execution::garbageCollection(void) {
     Mjvm::lock();
     objectSizeToGc = 0;
     for(MjvmConstString *node = constStringList; node != 0; node = node->next) {
-        if(!(node->mjvmString.getProtected() & 0x01))
+        if(!node->mjvmString.getProtected())
             garbageCollectionProtectObject(&node->mjvmString);
     }
     for(ClassData *node = classDataList; node != 0; node = node->next) {
@@ -265,7 +286,7 @@ void Execution::garbageCollection(void) {
         if(fieldsData && fieldsData->fieldsObjCount) {
             for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
                 MjvmObject *obj = fieldsData->fieldsObject[i].object;
-                if(obj && !(obj->getProtected() & 0x01))
+                if(obj && !obj->getProtected())
                     garbageCollectionProtectObject(obj);
             }
         }
@@ -273,7 +294,7 @@ void Execution::garbageCollection(void) {
     for(int32_t i = 0; i <= peakSp; i++) {
         if(getStackType(i) == STACK_TYPE_OBJECT) {
             MjvmObject *obj = (MjvmObject *)stack[i];
-            if(obj && !(obj->getProtected() & 0x01))
+            if(obj && !obj->getProtected())
                 garbageCollectionProtectObject(obj);
         }
     }
@@ -419,6 +440,8 @@ void Execution::stackPushObject(MjvmObject *obj) {
     sp = peakSp = sp + 1;
     stack[sp] = (int32_t)obj;
     stackType[sp / 8] |= (1 << (sp % 8));
+    if(obj && (obj->getProtected() & 0x02))
+        clearProtectObjectNew(obj);
 }
 
 int32_t Execution::stackPopInt32(void) {
