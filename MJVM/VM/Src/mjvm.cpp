@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "mjvm.h"
+#include "mjvm_system_api.h"
 
 static uint32_t objectCount = 0;
 
@@ -35,10 +36,10 @@ void Mjvm::unlock(void) {
 }
 
 void *Mjvm::malloc(uint32_t size) {
-    void *ret = ::malloc(size);
+    void *ret = MjvmSystem_Malloc(size);
     if(ret == 0) {
         Mjvm::garbageCollection();
-        ret = ::malloc(size);
+        ret = MjvmSystem_Malloc(size);
         if(ret == 0)
             throw (OutOfMemoryError *)"not enough memory to allocate";
     }
@@ -48,7 +49,7 @@ void *Mjvm::malloc(uint32_t size) {
 
 void Mjvm::free(void *p) {
     objectCount--;
-    ::free(p);
+    MjvmSystem_Free(p);
 }
 
 Execution &Mjvm::newExecution(void) {
@@ -85,7 +86,7 @@ void Mjvm::destroy(const Execution &execution) {
         node->next->prev = node->prev;
     unlock();
     node->~ExecutionNode();
-    Mjvm::free(node);
+    MjvmSystem_Free(node);
 }
 
 void Mjvm::garbageCollection(void) {
