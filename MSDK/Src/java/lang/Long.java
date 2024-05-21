@@ -117,15 +117,15 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     public static String toString(long i) {
-    	byte[] buffer = new byte[21];
+        byte[] buffer = new byte[21];
         int index = buffer.length - 1;
         boolean negative;
         if(i < 0) {
-        	negative = true;
+            negative = true;
             i = -i;
         }
         else
-        	negative = false;
+            negative = false;
 
         do {
             buffer[--index] = (byte)((i % 10) + 48);
@@ -147,7 +147,7 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     public static long parseLong(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
-    	if(s == null)
+        if(s == null)
             throw new NumberFormatException("Cannot parse null string");
         if(radix < 2)
             throw new NumberFormatException("radix " + radix + " less than 2");

@@ -14,7 +14,7 @@ public final class Byte extends Number implements Comparable<Byte> {
     }
 
     public static Byte valueOf(byte b) {
-    	return new Byte(b);
+        return new Byte(b);
     }
 
     public static byte parseByte(String s, int radix) throws NumberFormatException {

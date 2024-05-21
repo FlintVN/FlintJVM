@@ -1,7 +1,7 @@
 package java.lang;
 
 public final class StringBuffer extends AbstractStringBuilder implements Comparable<StringBuilder>, CharSequence {
-	public StringBuffer() {
+    public StringBuffer() {
         super(16);
     }
 
@@ -18,77 +18,77 @@ public final class StringBuffer extends AbstractStringBuilder implements Compara
     }
     
     public synchronized void setCharAt(int index, char ch) {
-    	super.setCharAt(index, ch);
+        super.setCharAt(index, ch);
     }
     
     public synchronized StringBuffer clear() {
-    	super.clear();
-    	return this;
+        super.clear();
+        return this;
     }
     
     public synchronized StringBuffer append(Object obj) {
-    	super.append(String.valueOf(obj));
-    	return this;
+        super.append(String.valueOf(obj));
+        return this;
     }
     
     public synchronized StringBuffer append(String str) {
-		super.append(str, 0, str.length());
-		return this;
+        super.append(str, 0, str.length());
+        return this;
     }
     
     public synchronized StringBuffer append(StringBuffer sb) {
-		super.append(sb, 0, sb.length());
-		return this;
+        super.append(sb, 0, sb.length());
+        return this;
     }
     
     public synchronized StringBuffer append(CharSequence s) {
-    	super.append(s);
-    	return this;
+        super.append(s);
+        return this;
     }
     
     public synchronized StringBuffer append(CharSequence s, int start, int end) {
-    	super.append(s, start, end);
-    	return this;
+        super.append(s, start, end);
+        return this;
     }
     
     public synchronized StringBuffer append(char[] str) {
-    	super.append(str, 0, str.length);
-    	return this;
+        super.append(str, 0, str.length);
+        return this;
     }
     
     public synchronized StringBuffer append(char[] str, int offset, int len) {
-    	super.append(str, offset, len);
-    	return this;
+        super.append(str, offset, len);
+        return this;
     }
     
     public synchronized StringBuffer append(boolean b) {
-		super.append(String.valueOf(b));
-		return this;
-	}
+        super.append(String.valueOf(b));
+        return this;
+    }
     
     public synchronized StringBuffer append(char c) {
-    	super.append(c);
-    	return this;
+        super.append(c);
+        return this;
     }
     
     public synchronized StringBuffer append(int i) {
-		super.append(String.valueOf(i));
-		return this;
-	}
+        super.append(String.valueOf(i));
+        return this;
+    }
     
     public synchronized StringBuffer append(long l) {
-		super.append(String.valueOf(l));
-		return this;
-	}
+        super.append(String.valueOf(l));
+        return this;
+    }
     
     public synchronized StringBuffer append(float f) {
-    	super.append(f);
-    	return this;
+        super.append(f);
+        return this;
     }
     
     public synchronized StringBuffer append(double d) {
-    	super.append(d);
-    	return this;
+        super.append(d);
+        return this;
     }
     
     public synchronized void trimToSize() {
@@ -100,27 +100,27 @@ public final class StringBuffer extends AbstractStringBuilder implements Compara
     }
     
     public synchronized char charAt(int index) {
-    	return super.charAt(index);
+        return super.charAt(index);
     }
     
     public synchronized String substring(int start) {
-    	return super.substring(start, count);
+        return super.substring(start, count);
     }
     
     public synchronized CharSequence subSequence(int start, int end) {
-		return super.substring(start, end);
-	}
+        return super.substring(start, end);
+    }
     
     public synchronized String substring(int start, int end) {
-    	return super.substring(start, end);
+        return super.substring(start, end);
     }
     
     public synchronized int indexOf(String str) {
-    	return super.indexOf(str);
+        return super.indexOf(str);
     }
     
     public synchronized int lastIndexOf(String str) {
-    	return super.lastIndexOf(str);
+        return super.lastIndexOf(str);
     }
     
     public synchronized int length() {
@@ -132,6 +132,6 @@ public final class StringBuffer extends AbstractStringBuilder implements Compara
     }
     
     public synchronized String toString() {
-    	return super.substring(0, count);
+        return super.substring(0, count);
     }
 }

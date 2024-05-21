@@ -1,7 +1,7 @@
 package java.lang;
 
 public final class StringBuilder extends AbstractStringBuilder implements Comparable<StringBuilder>, CharSequence {
-	public StringBuilder() {
+    public StringBuilder() {
         super(16);
     }
 
@@ -18,73 +18,73 @@ public final class StringBuilder extends AbstractStringBuilder implements Compar
     }
     
     public StringBuilder clear() {
-    	super.clear();
-    	return this;
+        super.clear();
+        return this;
     }
     
     public StringBuilder append(Object obj) {
-    	super.append(String.valueOf(obj));
-    	return this;
+        super.append(String.valueOf(obj));
+        return this;
     }
     
     public StringBuilder append(String str) {
-		super.append(str, 0, str.length());
-		return this;
+        super.append(str, 0, str.length());
+        return this;
     }
     
     public StringBuilder append(StringBuffer sb) {
-		super.append(sb, 0, sb.length());
-		return this;
+        super.append(sb, 0, sb.length());
+        return this;
     }
     
     public StringBuilder append(CharSequence s) {
-    	super.append(s);
-    	return this;
+        super.append(s);
+        return this;
     }
     
     public StringBuilder append(CharSequence s, int start, int end) {
-    	super.append(s, start, end);
-    	return this;
+        super.append(s, start, end);
+        return this;
     }
     
     public StringBuilder append(char[] str) {
-    	super.append(str, 0, str.length);
-    	return this;
+        super.append(str, 0, str.length);
+        return this;
     }
     
     public StringBuilder append(char[] str, int offset, int len) {
-    	super.append(str, offset, len);
-    	return this;
+        super.append(str, offset, len);
+        return this;
     }
     
     public StringBuilder append(boolean b) {
-		super.append(String.valueOf(b));
-		return this;
-	}
+        super.append(String.valueOf(b));
+        return this;
+    }
     
     public StringBuilder append(char c) {
-    	super.append(c);
-    	return this;
+        super.append(c);
+        return this;
     }
     
     public StringBuilder append(int i) {
-		super.append(String.valueOf(i));
-		return this;
-	}
+        super.append(String.valueOf(i));
+        return this;
+    }
     
     public StringBuilder append(long l) {
-		super.append(String.valueOf(l));
-		return this;
-	}
+        super.append(String.valueOf(l));
+        return this;
+    }
     
     public StringBuilder append(float f) {
-    	super.append(f);
-    	return this;
+        super.append(f);
+        return this;
     }
     
     public StringBuilder append(double d) {
-    	super.append(d);
-    	return this;
+        super.append(d);
+        return this;
     }
     
     public int compareTo(StringBuilder another) {
@@ -100,6 +100,6 @@ public final class StringBuilder extends AbstractStringBuilder implements Compar
     }
     
     public String toString() {
-    	return substring(0, count);
+        return substring(0, count);
     }
 }

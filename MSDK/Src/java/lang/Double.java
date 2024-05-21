@@ -49,12 +49,12 @@ public final class Double extends Number implements Comparable<Double> {
 
                 String signif = Long.toHexString(signifBits).substring(3, 16);
                 if(signif.equals("0000000000000"))
-                	signif = "0";
+                    signif = "0";
                 else {
-                	int length = signif.length();
-                	while(signif.charAt(length - 1) == '0')
-                		length--;
-                	signif = signif.substring(0, length);
+                    int length = signif.length();
+                    while(signif.charAt(length - 1) == '0')
+                        length--;
+                    signif = signif.substring(0, length);
                 }
                 answer.append(signif);
 
@@ -74,9 +74,9 @@ public final class Double extends Number implements Comparable<Double> {
     }
 
     public static double parseDouble(String s) throws NumberFormatException {
-    	// TODO
+        // TODO
         // return FloatingDecimal.parseDouble(s);
-    	throw new NumberFormatException("TODO");
+        throw new NumberFormatException("TODO");
     }
 
     public static boolean isNaN(double v) {

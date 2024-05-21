@@ -3,7 +3,7 @@ package java.lang;
 import java.util.Random;
 
 public final class Math {
-	public static final double E = 2.718281828459045;
+    public static final double E = 2.718281828459045;
     public static final double PI = 3.141592653589793;
     public static final double TAU = 2.0 * PI;
 
@@ -48,7 +48,7 @@ public final class Math {
     }
 
     public static double exp(double a) {
-    	return pow(Math.E, a);
+        return pow(Math.E, a);
     }
 
     public static native double log(double a);
@@ -64,11 +64,11 @@ public final class Math {
     }
 
     public static double ceil(double a) {
-    	return floorOrCeil(a, -0.0, 1.0, 1.0);
+        return floorOrCeil(a, -0.0, 1.0, 1.0);
     }
 
     public static double floor(double a) {
-    	return floorOrCeil(a, -1.0, 0.0, -1.0);
+        return floorOrCeil(a, -1.0, 0.0, -1.0);
     }
 
     private static double floorOrCeil(double a, double negativeBoundary, double positiveBoundary, double sign) {
@@ -94,7 +94,7 @@ public final class Math {
     }
 
     public static double rint(double a) {
-    	double twoToThe52 = (double)(1L << 52);
+        double twoToThe52 = (double)(1L << 52);
         double sign = Math.copySign(1.0, a);
         a = Math.abs(a);
 
@@ -137,7 +137,7 @@ public final class Math {
     }
 
     public static double random() {
-    	return Random.nextDouble();
+        return Random.nextDouble();
     }
 
     public static long multiplyFull(int x, int y) {
@@ -317,7 +317,7 @@ public final class Math {
     public static native double tanh(double x);
 
     public static double hypot(double x, double y) {
-    	return sqrt((x * x) + (y * y));
+        return sqrt((x * x) + (y * y));
     }
 
     public static double expm1(double x) {

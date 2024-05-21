@@ -1,7 +1,7 @@
 package java.lang;
 
 public final class Class<T> {
-	private transient String name;
+    private transient String name;
 
     public String toString() {
         String kind = isInterface() ? "interface " : isPrimitive() ? "" : "class ";
@@ -25,7 +25,7 @@ public final class Class<T> {
     public native Class<? super T> getSuperclass();
 
     public String getPackageName() {
-    	Class<?> c = isArray() ? elementType() : this;
+        Class<?> c = isArray() ? elementType() : this;
         if(c.isPrimitive())
             return "java.lang";
         else {
@@ -41,7 +41,7 @@ public final class Class<T> {
 
     private Class<?> elementType() {
         if(!isArray())
-        	return null;
+            return null;
 
         Class<?> c = this;
         while(c.isArray())
@@ -54,33 +54,33 @@ public final class Class<T> {
     private native Class<?> getDeclaringClass0();
 
     public String getSimpleName() {
-    	String simpleName = getName();
+        String simpleName = getName();
         int arrayCount = 0;
         int startIndex = simpleName.lastIndexOf('.');
         int endIndex = simpleName.length();
         while(simpleName.charAt(arrayCount) == '[')
-        	arrayCount++;
+            arrayCount++;
         boolean isPrimative = (simpleName.charAt(arrayCount) == 'L') ? false : true;
         startIndex = (startIndex < 0) ? (isPrimative ? arrayCount : arrayCount + 1) : startIndex + 1;
         if(simpleName.charAt(endIndex - 1) == ';')
-        	endIndex--;
+            endIndex--;
         if(isPrimative) {
-        	char ch = simpleName.charAt(startIndex);
-        	simpleName = switch(ch) {
-	        	case 'Z' -> "boolean";
-	        	case 'C' -> "char";
-	        	case 'F' -> "float";
-	        	case 'D' -> "double";
-	        	case 'B' -> "byte";
-	        	case 'S' -> "short";
-	        	case 'I' -> "int";
-	        	default -> "long";
-        	};
+            char ch = simpleName.charAt(startIndex);
+            simpleName = switch(ch) {
+                case 'Z' -> "boolean";
+                case 'C' -> "char";
+                case 'F' -> "float";
+                case 'D' -> "double";
+                case 'B' -> "byte";
+                case 'S' -> "short";
+                case 'I' -> "int";
+                default -> "long";
+            };
         }
         else
-        	simpleName = simpleName.substring(startIndex, endIndex);
+            simpleName = simpleName.substring(startIndex, endIndex);
         if(arrayCount > 0)
-        	simpleName = simpleName.concat("[]".repeat(arrayCount));
+            simpleName = simpleName.concat("[]".repeat(arrayCount));
         return simpleName;
     }
 
@@ -96,7 +96,7 @@ public final class Class<T> {
                 return cl.getName().concat("[]".repeat(dimensions));
             }
             catch(Throwable e) {
-            	
+                
             }
         }
         return getName();

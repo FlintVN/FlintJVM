@@ -12,10 +12,10 @@ public final class System {
     public static native final void arraycopy(Object src, int srcPos, Object dest, int destPos, int length);
     
     public static void exit(int status) {
-    	// TODO
+        // TODO
     }
     
     public static void gc() {
-    	// TODO
+        // TODO
     }
 }

@@ -1,7 +1,7 @@
 package java.lang;
 
 public final class Integer extends Number implements Comparable<Integer> {
-	public static final int SIZE = 32;
+    public static final int SIZE = 32;
     public static final int BYTES = SIZE / Byte.SIZE;
     public static final int MIN_VALUE = 0x80000000;
     public static final int MAX_VALUE = 0x7fffffff;
@@ -10,11 +10,11 @@ public final class Integer extends Number implements Comparable<Integer> {
     private final int value;
 
     static char digitToChar(int i) {
-    	if(0 <= i && i < 10)
-    		return (char)(i + '0');
-    	else if(10 <= i && i < 36)
-    		return (char)(i + 'a');
-    	throw new NumberFormatException("Cannot convert number " + i + " to char");
+        if(0 <= i && i < 10)
+            return (char)(i + '0');
+        else if(10 <= i && i < 36)
+            return (char)(i + 'a');
+        throw new NumberFormatException("Cannot convert number " + i + " to char");
     }
 
     public static String toString(int i, int radix) {
@@ -82,11 +82,11 @@ public final class Integer extends Number implements Comparable<Integer> {
         int index = buffer.length - 1;
         boolean negative;
         if(i < 0) {
-        	negative = true;
+            negative = true;
             i = -i;
         }
         else
-        	negative = false;
+            negative = false;
 
         do {
             buffer[--index] = (byte)((i % 10) + '0');
@@ -104,11 +104,11 @@ public final class Integer extends Number implements Comparable<Integer> {
     }
 
     public static int parseInt(String s, int radix) throws NumberFormatException {
-    	return parseInt(s, 0, s.length(), radix);
+        return parseInt(s, 0, s.length(), radix);
     }
 
     public static int parseInt(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
-    	if(s == null)
+        if(s == null)
             throw new NumberFormatException("Cannot parse null string");
         if(radix < 2)
             throw new NumberFormatException("radix " + radix + " less than 2");

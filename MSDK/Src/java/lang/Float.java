@@ -22,16 +22,16 @@ public final class Float extends Number implements Comparable<Float> {
     private final float value;
 
     public static String toString(float f) {
-    	return FloatToDecimal.toString(f);
+        return FloatToDecimal.toString(f);
     }
 
     public static String toHexString(float f) {
         if(Math.abs(f) < Float.MIN_NORMAL &&  f != 0.0f) {
             String s = Double.toHexString(Math.scalb((double)f, Double.MIN_EXPONENT - Float.MIN_EXPONENT));
             int index = s.lastIndexOf("p-1022");
-        	StringBuilder sb = new StringBuilder(s.substring(0, index));
-        	sb.append("p-126");
-        	return sb.toString();
+            StringBuilder sb = new StringBuilder(s.substring(0, index));
+            sb.append("p-126");
+            return sb.toString();
         }
         else
             return Double.toHexString(f);
@@ -46,9 +46,9 @@ public final class Float extends Number implements Comparable<Float> {
     }
 
     public static float parseFloat(String s) throws NumberFormatException {
-    	// TODO
-    	// return FloatingDecimal.parseFloat(s);
-    	throw new NumberFormatException("TODO");
+        // TODO
+        // return FloatingDecimal.parseFloat(s);
+        throw new NumberFormatException("TODO");
     }
 
     public static boolean isNaN(float v) {
@@ -145,10 +145,10 @@ public final class Float extends Number implements Comparable<Float> {
         if(bin16Exp == -15)
             return sign * (0x1p-24f * bin16SignifBits);
         else if(bin16Exp == 16) {
-        	if(bin16SignifBits == 0)
-        		return sign * Float.POSITIVE_INFINITY;
-        	else
-        		Float.intBitsToFloat((bin16SignBit << 16) | 0x7f80_0000 | (bin16SignifBits << (FLOAT_SIGNIFICAND_WIDTH - 11)));
+            if(bin16SignifBits == 0)
+                return sign * Float.POSITIVE_INFINITY;
+            else
+                Float.intBitsToFloat((bin16SignBit << 16) | 0x7f80_0000 | (bin16SignifBits << (FLOAT_SIGNIFICAND_WIDTH - 11)));
         }
 
         // assert -15 < bin16Exp  && bin16Exp < 16;
