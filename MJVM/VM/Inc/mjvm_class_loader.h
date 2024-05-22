@@ -34,8 +34,6 @@ private:
     void readFile(void *file);
     AttributeInfo &readAttribute(void *file);
     AttributeInfo &readAttributeCode(void *file);
-    AttributeInfo &readAttributeLineNumberTable(void *file);
-    AttributeInfo &readAttributeLocalVariableTable(void *file);
     AttributeInfo &readAttributeBootstrapMethods(void *file);
 protected:
     ClassLoader(const char *fileName);

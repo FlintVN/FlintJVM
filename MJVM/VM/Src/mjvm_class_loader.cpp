@@ -243,10 +243,6 @@ AttributeInfo &ClassLoader::readAttribute(void *file) {
     switch(type) {
         case ATTRIBUTE_CODE:
             return readAttributeCode(file);
-        case ATTRIBUTE_LINE_NUMBER_TABLE:
-            return readAttributeLineNumberTable(file);
-        case ATTRIBUTE_LOCAL_VARIABLE_TABLE:
-            return readAttributeLocalVariableTable(file);
         case ATTRIBUTE_BOOTSTRAP_METHODS:
             return readAttributeBootstrapMethods(file);
         default:
@@ -285,33 +281,6 @@ AttributeInfo &ClassLoader::readAttributeCode(void *file) {
         attribute->setAttributes(codeAttributes, attrbutesCount);
         for(uint16_t i = 0; i < attrbutesCount; i++)
             codeAttributes[i] = &readAttribute(file);
-    }
-    return *attribute;
-}
-
-AttributeInfo &ClassLoader::readAttributeLineNumberTable(void *file) {
-    uint16_t lineNumberTableLength = ClassLoader_ReadUInt16(file);
-    AttributeLineNumberTable *attribute = (AttributeLineNumberTable *)Mjvm::malloc(sizeof(AttributeLineNumberTable) + lineNumberTableLength * sizeof(LineNumber));
-    new (attribute)AttributeLineNumberTable(lineNumberTableLength);
-    for(uint16_t i = 0; i < lineNumberTableLength; i++) {
-        uint16_t startPc = ClassLoader_ReadUInt16(file);
-        uint16_t lineNumber = ClassLoader_ReadUInt16(file);
-        new ((LineNumber *)&attribute->getLineNumber(i))LineNumber(startPc, lineNumber);
-    }
-    return *attribute;
-}
-
-AttributeInfo &ClassLoader::readAttributeLocalVariableTable(void *file) {
-    uint16_t localVariableTableLength = ClassLoader_ReadUInt16(file);
-    AttributeLocalVariableTable *attribute = (AttributeLocalVariableTable *)Mjvm::malloc(sizeof(AttributeLocalVariableTable) + localVariableTableLength * sizeof(LocalVariable));
-    new (attribute)AttributeLocalVariableTable(localVariableTableLength);
-    for(uint16_t i = 0; i < localVariableTableLength; i++) {
-        uint16_t startPc = ClassLoader_ReadUInt16(file);
-        uint16_t length = ClassLoader_ReadUInt16(file);
-        uint16_t nameIndex = ClassLoader_ReadUInt16(file);
-        uint16_t descriptorIndex = ClassLoader_ReadUInt16(file);
-        uint16_t index = ClassLoader_ReadUInt16(file);
-        new ((LocalVariable *)&attribute->getLocalVariable(i))LocalVariable(startPc, length, getConstUtf8(nameIndex), getConstUtf8(descriptorIndex), index);
     }
     return *attribute;
 }

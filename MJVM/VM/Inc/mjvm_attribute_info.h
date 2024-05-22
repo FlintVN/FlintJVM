@@ -120,67 +120,6 @@ public:
     const AttributeInfo &getAttributes(uint16_t index) const;
 };
 
-class LineNumber {
-public:
-    const uint16_t startPc;
-    const uint16_t lineNumber;
-private:
-    LineNumber(uint16_t startPc, uint16_t lineNumber);
-    LineNumber(const LineNumber &) = delete;
-    void operator=(const LineNumber &) = delete;
-
-    friend class ClassLoader;
-};
-
-class AttributeLineNumberTable : public AttributeInfo {
-public:
-    const uint16_t LineNumberLenght;
-private:
-    LineNumber lineNumberTable[];
-
-    AttributeLineNumberTable(uint16_t length);
-    AttributeLineNumberTable(const AttributeLineNumberTable &) = delete;
-    void operator=(const AttributeLineNumberTable &) = delete;
-
-    ~AttributeLineNumberTable(void);
-
-    friend class ClassLoader;
-public:
-    const LineNumber &getLineNumber(uint16_t index) const;
-};
-
-class LocalVariable {
-public:
-    const uint16_t startPc;
-    const uint16_t length;
-    const uint16_t index;
-    const ConstUtf8 &name;
-    const ConstUtf8 &descriptor;
-private:
-    LocalVariable(uint16_t startPc, uint16_t length, const ConstUtf8 &name, const ConstUtf8 &descriptor, uint16_t index);
-    LocalVariable(const LocalVariable &) = delete;
-    void operator=(const LocalVariable &) = delete;
-
-    friend class ClassLoader;
-};
-
-class AttributeLocalVariableTable : public AttributeInfo {
-public:
-    const uint16_t localVariableLength;
-private:
-    LocalVariable lineNumberTable[];
-
-    AttributeLocalVariableTable(uint16_t length);
-    AttributeLocalVariableTable(const AttributeLocalVariableTable &) = delete;
-    void operator=(const AttributeLocalVariableTable &) = delete;
-
-    ~AttributeLocalVariableTable(void);
-
-    friend class ClassLoader;
-public:
-    const LocalVariable &getLocalVariable(uint16_t index) const;
-};
-
 class BootstrapMethod {
 public:
     const uint16_t bootstrapMethodRef;
