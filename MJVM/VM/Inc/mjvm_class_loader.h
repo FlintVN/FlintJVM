@@ -26,15 +26,17 @@ private:
     uint16_t *interfaces;
     FieldInfo *fields;
     MethodInfo *methods;
-    AttributeInfo **attributes;
+    AttributeInfo *attributes;
 
     ClassLoader(const ClassLoader &) = delete;
     void operator=(const ClassLoader &) = delete;
 
+    void addAttribute(AttributeInfo *attribute);
+
     void readFile(void *file);
-    AttributeInfo &readAttribute(void *file);
-    AttributeInfo &readAttributeCode(void *file);
-    AttributeInfo &readAttributeBootstrapMethods(void *file);
+    AttributeInfo *readAttribute(void *file);
+    AttributeInfo *readAttributeCode(void *file);
+    AttributeInfo *readAttributeBootstrapMethods(void *file);
 protected:
     ClassLoader(const char *fileName);
     ClassLoader(const char *fileName, uint16_t length);

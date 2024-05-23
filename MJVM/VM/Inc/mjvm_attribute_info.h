@@ -31,11 +31,17 @@ typedef enum : uint8_t {
 } AttributeType;
 
 class AttributeInfo {
+protected:
+    AttributeInfo *next;
 public:
     const AttributeType attributeType;
 private:
     AttributeInfo(const AttributeInfo &) = delete;
     void operator=(const AttributeInfo &) = delete;
+
+    friend class ClassLoader;
+    friend class MethodInfo;
+    friend class AttributeCode;
 protected:
     AttributeInfo(AttributeType type);
 public:
@@ -98,11 +104,10 @@ public:
     const uint16_t maxLocals;
     const uint32_t codeLength;
     const uint16_t exceptionTableLength;
-    const uint16_t attributesCount;
     const uint8_t *code;
 private:
     const ExceptionTable *exceptionTable;
-    const AttributeInfo **attributes;
+    AttributeInfo *attributes;
 
     AttributeCode(uint16_t maxStack, uint16_t maxLocals);
     AttributeCode(const AttributeCode &) = delete;
@@ -110,14 +115,13 @@ private:
 
     void setCode(uint8_t *code, uint32_t length);
     void setExceptionTable(ExceptionTable *exceptionTable, uint16_t length);
-    void setAttributes(AttributeInfo **attributes, uint16_t length);
+    void addAttribute(AttributeInfo *attribute);
 
     ~AttributeCode(void);
 
     friend class ClassLoader;
 public:
     const ExceptionTable &getException(uint16_t index) const;
-    const AttributeInfo &getAttributes(uint16_t index) const;
 };
 
 class BootstrapMethod {

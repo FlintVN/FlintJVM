@@ -18,6 +18,7 @@ MjvmSys_FileResult MjvmSystem_FileSeek(void *fileHandle, uint32_t offset);
 MjvmSys_FileResult MjvmSystem_FileClose(void *fileHandle);
 
 void *MjvmSystem_Malloc(uint32_t size);
+void *MjvmSystem_Realloc(void *p, uint32_t size);
 void MjvmSystem_Free(void *p);
 
 #endif /* __MJVM_SYSTEM_API_H */

@@ -13,20 +13,18 @@ public:
     const MethodAccessFlag accessFlag;
     const ConstUtf8 &name;
     const ConstUtf8 &descriptor;
-    const uint16_t attributesCount;
 private:
-    const AttributeInfo **attributes;
+    AttributeInfo *attributes;
 
     MethodInfo(const ClassLoader &classLoader, MethodAccessFlag accessFlag, const ConstUtf8 &name, const ConstUtf8 &descriptor);
 
     MethodInfo(const MethodInfo &) = delete;
     void operator=(const MethodInfo &) = delete;
 
-    void setAttributes(AttributeInfo **attributes, uint16_t length);
+    void addAttribute(AttributeInfo *attribute);
 
     friend class ClassLoader;
 public:
-    const AttributeInfo &getAttribute(uint16_t index) const;
     const AttributeInfo &getAttribute(AttributeType type) const;
     const AttributeCode &getAttributeCode(void) const;
     const AttributeNative &getAttributeNative(void) const;

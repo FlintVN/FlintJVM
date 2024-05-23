@@ -55,6 +55,7 @@ typedef enum : uint16_t {
     FIELD_TRANSIENT = 0x0080,
     FIELD_SYNTHETIC = 0x1000,
     FIELD_ENUM = 0x4000,
+    FIELD_UNLOAD = 0x8000,
 } FieldAccessFlag;
 
 typedef enum : uint16_t {

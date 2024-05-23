@@ -46,6 +46,17 @@ void *Mjvm::malloc(uint32_t size) {
     return ret;
 }
 
+void *Mjvm::realloc(void *p, uint32_t size) {
+    void *ret = MjvmSystem_Realloc(p, size);
+    if(ret == 0) {
+        Mjvm::garbageCollection();
+        ret = MjvmSystem_Realloc(p, size);
+        if(ret == 0)
+            throw (OutOfMemoryError *)"not enough memory to allocate";
+    }
+    return ret;
+}
+
 void Mjvm::free(void *p) {
     objectCount--;
     MjvmSystem_Free(p);

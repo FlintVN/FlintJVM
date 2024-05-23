@@ -10,6 +10,10 @@ AttributeType AttributeInfo::parseAttributeType(const ConstUtf8 &name) {
             if(strncmp(name.text, "Code", name.length) == 0)
                 return ATTRIBUTE_CODE;
             break;
+        case 13:
+            if(strncmp(name.text, "ConstantValue", name.length) == 0)
+                return ATTRIBUTE_CONSTANT_VALUE;
+            break;
         case 16:
             if(strncmp(name.text, "BootstrapMethods", name.length) == 0)
                 return ATTRIBUTE_BOOTSTRAP_METHODS;
@@ -55,7 +59,7 @@ startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 AttributeCode::AttributeCode(uint16_t maxStack, uint16_t maxLocals) :
 AttributeInfo(ATTRIBUTE_CODE), maxStack(maxStack), maxLocals(maxLocals), codeLength(0),
-exceptionTableLength(0), attributesCount(0), code(0), exceptionTable(0), attributes(0) {
+exceptionTableLength(0), code(0), exceptionTable(0), attributes(0) {
 
 }
 
@@ -69,9 +73,9 @@ void AttributeCode::setExceptionTable(ExceptionTable *exceptionTable, uint16_t l
     *(uint16_t *)&exceptionTableLength = length;
 }
 
-void AttributeCode::setAttributes(AttributeInfo **attributes, uint16_t length) {
-    this->attributes = (const AttributeInfo **)attributes;
-    *(uint16_t *)&attributesCount = length;
+void AttributeCode::addAttribute(AttributeInfo *attribute) {
+    attribute->next = this->attributes;
+    this->attributes = attribute;
 }
 
 const ExceptionTable &AttributeCode::getException(uint16_t index) const {
@@ -80,23 +84,16 @@ const ExceptionTable &AttributeCode::getException(uint16_t index) const {
     throw "index for ExceptionTable is invalid";
 }
 
-const AttributeInfo &AttributeCode::getAttributes(uint16_t index) const {
-    if(index < attributesCount)
-        return *attributes[index];
-    throw "index for attribute is invalid";
-}
-
 AttributeCode::~AttributeCode(void) {
     if(code)
         Mjvm::free((void *)code);
     if(exceptionTable)
         Mjvm::free((void *)exceptionTable);
-    if(attributes) {
-        for(uint16_t i = 0; i < attributesCount; i++) {
-            attributes[i]->~AttributeInfo();
-            Mjvm::free((void *)attributes[i]);
-        }
-        Mjvm::free((void *)attributes);
+    for(AttributeInfo *node = attributes; node != 0;) {
+        AttributeInfo *next = node->next;
+        node->~AttributeInfo();
+        Mjvm::free(node);
+        node = next;
     }
 }
 

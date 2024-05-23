@@ -9,6 +9,8 @@
 				"-m32",
 				"-std=gnu++11",
 				"-fdiagnostics-color=always",
+				"-Wall",
+				"-Wno-sign-compare",
 				"-g",
 				"MJVM/VM/Src/*.cpp",
 				"MJVM/Native/Src/*.cpp",

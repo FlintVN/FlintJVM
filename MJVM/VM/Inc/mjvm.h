@@ -41,6 +41,7 @@ private:
     void operator=(const Mjvm &) = delete;
 public:
     static void *malloc(uint32_t size);
+    static void *realloc(void *p, uint32_t size);
     static void free(void *p);
 
     static void lock(void);

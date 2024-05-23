@@ -4,7 +4,7 @@
 #include "mjvm_method_info.h"
 #include "mjvm_native_class.h"
 
-static NativeMethodPtr findNaiveMathod(const MethodInfo &methodInfo) {
+static NativeMethodPtr findNativeMathod(const MethodInfo &methodInfo) {
     const ConstUtf8 &className = methodInfo.classLoader.getThisClass();
     for(uint32_t i = 0; i < NATIVE_CLASS_COUNT; i++) {
         if(NATIVE_CLASS_LIST[i]->className == className) {
@@ -23,30 +23,24 @@ static NativeMethodPtr findNaiveMathod(const MethodInfo &methodInfo) {
 }
 
 MethodInfo::MethodInfo(const ClassLoader &classLoader, MethodAccessFlag accessFlag, const ConstUtf8 &name, const ConstUtf8 &descriptor) :
-classLoader(classLoader), accessFlag(accessFlag), name(name), descriptor(descriptor), attributesCount(0), attributes(0) {
+classLoader(classLoader), accessFlag(accessFlag), name(name), descriptor(descriptor), attributes(0) {
 
 }
 
-void MethodInfo::setAttributes(AttributeInfo **attributes, uint16_t length) {
-    this->attributes = (const AttributeInfo **)attributes;
-    *(uint16_t *)&attributesCount = length;
-}
-
-const AttributeInfo &MethodInfo::getAttribute(uint16_t index) const {
-    if(index < attributesCount)
-        return *attributes[index];
-    throw "index for const field attribute is invalid";
+void MethodInfo::addAttribute(AttributeInfo *attribute) {
+    attribute->next = this->attributes;
+    this->attributes = attribute;
 }
 
 const AttributeInfo &MethodInfo::getAttribute(AttributeType type) const {
-    for(uint16_t i = 0; i < attributesCount; i++) {
-        if(attributes[i]->attributeType == type) {
+    for(AttributeInfo *node = attributes; node != 0;) {
+        if(node->attributeType == type) {
             if(type != ATTRIBUTE_NATIVE)
-                return *attributes[i];
+                return *node;
             else {
-                AttributeNative *attrNative = (AttributeNative *)attributes[i];
+                AttributeNative *attrNative = (AttributeNative *)node;
                 if(attrNative->nativeMethod == 0)
-                    *(void **)&attrNative->nativeMethod = (void *)findNaiveMathod(*this);
+                    *(void **)&attrNative->nativeMethod = (void *)findNativeMathod(*this);
                 return *attrNative;
             }
         }
@@ -67,11 +61,10 @@ ParamInfo MethodInfo::parseParamInfo(void) const {
 }
 
 MethodInfo::~MethodInfo(void) {
-    if(attributes) {
-        for(uint16_t i = 0; i < attributesCount; i++) {
-            attributes[i]->~AttributeInfo();
-            Mjvm::free((void *)attributes[i]);
-        }
-        Mjvm::free((void *)attributes);
+    for(AttributeInfo *node = attributes; node != 0;) {
+        AttributeInfo *next = node->next;
+        node->~AttributeInfo();
+        Mjvm::free(node);
+        node = next;
     }
 }
