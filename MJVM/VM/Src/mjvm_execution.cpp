@@ -2193,7 +2193,7 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
-        const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
+        const ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
         MjvmObject *obj = newObject(sizeof(FieldsData), constClass);
         try {
             ClassData &classData = *(ClassData *)&load(constClass.text);
@@ -2228,7 +2228,7 @@ int64_t Execution::run(const char *mainClass) {
         if(count < 0)
             goto negative_array_size_excp;
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
-        const ConstUtf8 &constClass =  method->classLoader.getConstClass(poolIndex);
+        const ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
         MjvmObject *obj = newObject(4 * count, constClass, 1);
         stackPushObject(obj);
         memset(obj->data, 0, obj->size);
@@ -2278,7 +2278,7 @@ int64_t Execution::run(const char *mainClass) {
         for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
             const ExceptionTable &exceptionTable = attributeCode.getException(i);
             if(exceptionTable.startPc <= pc && pc < exceptionTable.endPc) {
-                if(isInstanceof(obj, method->classLoader.getConstClass(exceptionTable.catchType))) {
+                if(isInstanceof(obj, method->classLoader.getConstUtf8Class(exceptionTable.catchType))) {
                     pc = exceptionTable.handlerPc;
                     goto *opcodes[code[pc]];
                 }
@@ -2293,7 +2293,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_checkcast: {
         MjvmObject *obj = (MjvmObject *)stack[sp];
-        const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
+        const ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         if(obj != 0) {
             bool isInsOf;
             try {
@@ -2322,7 +2322,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_instanceof: {
         MjvmObject *obj = stackPopObject();
-        const ConstUtf8 &type = method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
+        const ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         try {
             stackPushInt32(isInstanceof(obj, type));
         }
@@ -2435,7 +2435,7 @@ int64_t Execution::run(const char *mainClass) {
         }
     }
     op_multianewarray: {
-        const ConstUtf8 *typeName = &method->classLoader.getConstClass(ARRAY_TO_INT16(&code[pc + 1]));
+        const ConstUtf8 *typeName = &method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         const uint8_t dimensions = code[pc + 3];
         const char *typeNameText = typeName->text;
         uint32_t length = typeName->length - dimensions;

@@ -62,8 +62,8 @@ public:
     const ConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
     const ConstUtf8 &getConstUtf8(const ConstPool &constPool) const;
 
-    const ConstUtf8 &getConstClass(uint16_t poolIndex) const;
-    const ConstUtf8 &getConstClass(const ConstPool &constPool) const;
+    const ConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
+    const ConstUtf8 &getConstUtf8Class(const ConstPool &constPool) const;
 
     MjvmString &getConstString(Execution &execution, uint16_t poolIndex) const;
     MjvmString &getConstString(Execution &execution, const ConstPool &constPool) const;
