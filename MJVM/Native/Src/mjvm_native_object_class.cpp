@@ -19,19 +19,15 @@ static bool nativeHashCode(Execution &execution) {
 static bool nativeClone(Execution &execution) {
     MjvmObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
-        Mjvm::lock();
         MjvmObject *cloneObj = execution.newObject(obj->size, obj->type, obj->dimensions);
         memcpy(cloneObj->data, obj->data, obj->size);
         execution.stackPushObject(cloneObj);
-        Mjvm::unlock();
         return true;
     }
     else {
-        Mjvm::lock();
         MjvmString *strObj = execution.newString(STR_AND_SIZE("Clone method is not supported"));
         MjvmThrowable *excpObj = execution.newCloneNotSupportedException(strObj);
         execution.stackPushObject(excpObj);
-        Mjvm::unlock();
         return false;
     }
 }
