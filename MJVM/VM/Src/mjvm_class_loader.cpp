@@ -415,10 +415,14 @@ MjvmString &ClassLoader::getConstString(Execution &execution, uint16_t poolIndex
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_STRING) {
         if(poolTable[poolIndex].tag & 0x80) {
-            const ConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
-            MjvmString *strObj = execution.getConstString(utf8Str);
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)strObj;
-            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
+            Mjvm::lock();
+            if(poolTable[poolIndex].tag & 0x80) {
+                const ConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
+                MjvmString *strObj = execution.getConstString(utf8Str);
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)strObj;
+                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
+            }
+            Mjvm::unlock();
         }
         return *(MjvmString *)poolTable[poolIndex].value;
     }
@@ -428,10 +432,14 @@ MjvmString &ClassLoader::getConstString(Execution &execution, uint16_t poolIndex
 MjvmString &ClassLoader::getConstString(Execution &execution, const ConstPool &constPool) const {
     if((constPool.tag & 0x7F) == CONST_STRING) {
         if(constPool.tag & 0x80) {
-            const ConstUtf8 &utf8Str = getConstUtf8(constPool.value);
-            MjvmString *strObj = execution.getConstString(utf8Str);
-            *(uint32_t *)&constPool.value = (uint32_t)strObj;
-            *(ConstPoolTag *)&constPool.tag = CONST_STRING;
+            Mjvm::lock();
+            if(constPool.tag & 0x80) {
+                const ConstUtf8 &utf8Str = getConstUtf8(constPool.value);
+                MjvmString *strObj = execution.getConstString(utf8Str);
+                *(uint32_t *)&constPool.value = (uint32_t)strObj;
+                *(ConstPoolTag *)&constPool.tag = CONST_STRING;
+            }
+            Mjvm::unlock();
         }
         return *(MjvmString *)constPool.value;
     }
@@ -455,11 +463,15 @@ const ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) con
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_NAME_AND_TYPE) {
         if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstNameAndType));
-            new ((ConstNameAndType *)poolTable[poolIndex].value)ConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
+            Mjvm::lock();
+            if(poolTable[poolIndex].tag & 0x80) {
+                uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+                uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstNameAndType));
+                new ((ConstNameAndType *)poolTable[poolIndex].value)ConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
+            }
+            Mjvm::unlock();
         }
         return *(ConstNameAndType *)poolTable[poolIndex].value;
     }
@@ -474,11 +486,15 @@ const ConstField &ClassLoader::getConstField(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_FIELD) {
         if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstField));
-            new ((ConstField *)poolTable[poolIndex].value)ConstField(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+            Mjvm::lock();
+            if(poolTable[poolIndex].tag & 0x80) {
+                uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+                uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstField));
+                new ((ConstField *)poolTable[poolIndex].value)ConstField(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+            }
+            Mjvm::unlock();
         }
         return *(ConstField *)poolTable[poolIndex].value;
     }
@@ -493,11 +509,15 @@ const ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_METHOD) {
         if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstMethod));
-            new ((ConstMethod *)poolTable[poolIndex].value)ConstMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+            Mjvm::lock();
+            if(poolTable[poolIndex].tag & 0x80) {
+                uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+                uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstMethod));
+                new ((ConstMethod *)poolTable[poolIndex].value)ConstMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+            }
+            Mjvm::unlock();
         }
         return *(ConstMethod *)poolTable[poolIndex].value;
     }
@@ -512,11 +532,15 @@ const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIn
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_INTERFACE_METHOD) {
         if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstInterfaceMethod));
-            new ((ConstInterfaceMethod *)poolTable[poolIndex].value)ConstInterfaceMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+            Mjvm::lock();
+            if(poolTable[poolIndex].tag & 0x80) {
+                uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+                uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstInterfaceMethod));
+                new ((ConstInterfaceMethod *)poolTable[poolIndex].value)ConstInterfaceMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+            }
+            Mjvm::unlock();
         }
         return *(ConstInterfaceMethod *)poolTable[poolIndex].value;
     }

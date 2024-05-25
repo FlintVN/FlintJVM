@@ -6,8 +6,8 @@
 
 class ConstPool {
 public:
-    const ConstPoolTag tag;
-    const uint32_t value;
+    volatile const ConstPoolTag tag;
+    volatile const uint32_t value;
 private:
     ConstPool(void) = delete;
     ConstPool(const ConstPool &) = delete;
