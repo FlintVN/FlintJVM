@@ -5,7 +5,7 @@ public final class Long extends Number implements Comparable<Long> {
     public static final long MAX_VALUE = 0x7fffffffffffffffL;
     public static final int SIZE = 64;
     public static final int BYTES = SIZE / Byte.SIZE;
-    // public static final Class<Long> TYPE = (Class<Long>) Class.getPrimitiveClass("long");
+    public static final Class<Long> TYPE = (Class<Long>)Class.getPrimitiveClass("long");
 
     private final long value;
 

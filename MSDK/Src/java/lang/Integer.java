@@ -5,7 +5,7 @@ public final class Integer extends Number implements Comparable<Integer> {
     public static final int BYTES = SIZE / Byte.SIZE;
     public static final int MIN_VALUE = 0x80000000;
     public static final int MAX_VALUE = 0x7fffffff;
-    // public static final Class<Integer> TYPE = (Class<Integer>) Class.getPrimitiveClass("int");
+    public static final Class<Integer> TYPE = (Class<Integer>)Class.getPrimitiveClass("int");
 
     private final int value;
 

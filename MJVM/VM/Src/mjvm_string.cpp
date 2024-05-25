@@ -91,6 +91,18 @@ uint8_t MjvmString::getCoder(void) const {
     return ((FieldsData *)data)->getFieldData32(*(ConstNameAndType *)stringCoderFieldName).value;
 }
 
+bool MjvmString::equals(const char *text, uint32_t length) const {
+    uint8_t coder1 = getCoder();
+    if((getLength() != length) || (coder1 != 0))
+        return false;
+    const char *value1 = getText();
+    for(uint32_t i = 0; i < length; i++) {
+        if(value1[i] != text[i])
+            return false;
+    }
+    return true;
+}
+
 bool MjvmString::equals(const ConstUtf8 &utf8) const {
     uint32_t len2 = utf8StrLen(utf8.text);
     uint8_t coder1 = getCoder();

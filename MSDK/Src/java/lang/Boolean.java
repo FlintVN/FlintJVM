@@ -3,7 +3,7 @@ package java.lang;
 public final class Boolean implements Comparable<Boolean> {
     public static final Boolean TRUE = true;
     public static final Boolean FALSE = false;
-    // public static final Class<Boolean> TYPE = (Class<Boolean>) Class.getPrimitiveClass("boolean");
+    public static final Class<Boolean> TYPE = (Class<Boolean>)Class.getPrimitiveClass("boolean");
 
     private final boolean value;
 

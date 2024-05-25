@@ -17,7 +17,7 @@ public final class Float extends Number implements Comparable<Float> {
     public static final int MAX_EXPONENT = (1 << (SIZE - PRECISION - 1)) - 1;
     public static final int MIN_EXPONENT = 1 - MAX_EXPONENT;
     public static final int BYTES = SIZE / Byte.SIZE;
-    // public static final Class<Float> TYPE = (Class<Float>) Class.getPrimitiveClass("float");
+    public static final Class<Float> TYPE = (Class<Float>)Class.getPrimitiveClass("float");
 
     private final float value;
 

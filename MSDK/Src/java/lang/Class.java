@@ -2,11 +2,17 @@ package java.lang;
 
 public final class Class<T> {
     private transient String name;
+    
+    private Class() {
+
+    }
 
     public String toString() {
         String kind = isInterface() ? "interface " : isPrimitive() ? "" : "class ";
         return kind.concat(getName());
     }
+
+    static native Class<?> getPrimitiveClass(String name);
 
     public native static Class<?> forName(String className) throws ClassNotFoundException;
 
@@ -20,8 +26,10 @@ public final class Class<T> {
 
     public native boolean isPrimitive();
 
-    public native String getName();
-    
+    public String getName() {
+        return name;
+    }
+
     public native Class<? super T> getSuperclass();
 
     public String getPackageName() {
@@ -36,7 +44,7 @@ public final class Class<T> {
     }
 
     public native Class<?>[] getInterfaces();
-    
+
     public native Class<?> getComponentType();
 
     private Class<?> elementType() {
@@ -51,8 +59,6 @@ public final class Class<T> {
 
     public native int getModifiers();
 
-    private native Class<?> getDeclaringClass0();
-
     public String getSimpleName() {
         String simpleName = getName();
         int arrayCount = 0;
@@ -60,11 +66,8 @@ public final class Class<T> {
         int endIndex = simpleName.length();
         while(simpleName.charAt(arrayCount) == '[')
             arrayCount++;
-        boolean isPrimative = (simpleName.charAt(arrayCount) == 'L') ? false : true;
-        startIndex = (startIndex < 0) ? (isPrimative ? arrayCount : arrayCount + 1) : startIndex + 1;
-        if(simpleName.charAt(endIndex - 1) == ';')
-            endIndex--;
-        if(isPrimative) {
+        startIndex = (startIndex < 0) ? arrayCount : (startIndex + 1);
+        if((endIndex - startIndex) == 1) {
             char ch = simpleName.charAt(startIndex);
             simpleName = switch(ch) {
                 case 'Z' -> "boolean";
@@ -74,11 +77,17 @@ public final class Class<T> {
                 case 'B' -> "byte";
                 case 'S' -> "short";
                 case 'I' -> "int";
-                default -> "long";
+                case 'J' -> "long";
+                default -> String.valueOf(ch);
             };
         }
-        else
+        else {
+            if(arrayCount > 0 && startIndex == arrayCount && simpleName.charAt(arrayCount) == 'L')
+                startIndex++;
+            if(simpleName.charAt(endIndex - 1) == ';')
+                endIndex--;
             simpleName = simpleName.substring(startIndex, endIndex);
+        }
         if(arrayCount > 0)
             simpleName = simpleName.concat("[]".repeat(arrayCount));
         return simpleName;

@@ -5,7 +5,7 @@ public final class Byte extends Number implements Comparable<Byte> {
     public static final byte MAX_VALUE = 127;
     public static final int SIZE = 8;
     public static final int BYTES = SIZE / Byte.SIZE;
-    // public static final Class<Byte> TYPE = (Class<Byte>) Class.getPrimitiveClass("byte");
+    public static final Class<Byte> TYPE = (Class<Byte>)Class.getPrimitiveClass("byte");
 
     private final byte value;
 

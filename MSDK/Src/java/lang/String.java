@@ -265,13 +265,13 @@ public final class String implements Comparable<String>, CharSequence {
             byte[] buff = new byte[(len1 + len2) << 1];
             if(coder == 0) {
                 for(int i = 0; i < len1; i++)
-                    StringUTF16.putCharAt(buff, i, value1[i]);
+                    StringUTF16.putCharAt(buff, i, (char)(value1[i] & 0xFF));
             }
-            else for(int i = 0; i < len2; i++)
+            else for(int i = 0; i < len1; i++)
                 StringUTF16.putCharAt(buff, i, StringUTF16.charAt(value1, i));
             if(str.coder == 0) {
                 for(int i = 0; i < len2; i++)
-                    StringUTF16.putCharAt(buff, i + len1, value2[i]);
+                    StringUTF16.putCharAt(buff, i + len1, (char)(value2[i] & 0xFF));
             }
             else for(int i = 0; i < len2; i++)
                 StringUTF16.putCharAt(buff, i + len1, StringUTF16.charAt(value2, i));
