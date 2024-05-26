@@ -3,6 +3,7 @@
 #define __MJVM_EXECUTION_H
 
 #include "mjvm_common.h"
+#include "mjvm_class.h"
 #include "mjvm_string.h"
 #include "mjvm_throwable.h"
 #include "mjvm_class_loader.h"
@@ -39,6 +40,7 @@ private:
     uint8_t *stackType;
     ClassData *classDataList;
     MjvmObject *objectList;
+    MjvmConstClass *constClassList;
     MjvmConstString *constStringList;
     uint32_t objectSizeToGc;
 
@@ -63,11 +65,17 @@ public:
 
     MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
-    MjvmString *newString(const char *utf8, uint16_t size);
+    MjvmClass *newClass(MjvmString &typeName);
+    MjvmClass *newClass(const char *typeName, uint16_t length);
+    MjvmClass *getConstClass(const char *text, uint16_t length);
+    MjvmClass *getConstClass(MjvmString &str);
+
+    MjvmString *newString(uint16_t length, uint8_t coder);
+    MjvmString *newString(const char *text, uint16_t size, bool isUtf8 = false);
     MjvmString *newString(const char *latin1Str[], uint16_t count);
     MjvmString *getConstString(const ConstUtf8 &utf8);
     MjvmString *getConstString(MjvmString &str);
-public:
+
     MjvmThrowable *newThrowable(MjvmString *strObj, const ConstUtf8 &excpType);
     MjvmThrowable *newArrayStoreException(MjvmString *strObj);
     MjvmThrowable *newArithmeticException(MjvmString *strObj);
@@ -115,7 +123,7 @@ private:
 
     friend class Mjvm;
 public:
-    bool isInstanceof(MjvmObject *obj, const ConstUtf8 &type);
+    bool isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length);
 
     void garbageCollection(void);
 

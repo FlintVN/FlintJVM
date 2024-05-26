@@ -12,6 +12,11 @@ const ConstUtf8 *primTypeConstUtf8List[] = {
     (ConstUtf8 *)"\x01\x00""J",                 /* long */
 };
 
+const uint32_t stringNameFieldName[] = {
+    (uint32_t)"\x04\x00""name",                 /* field name */
+    (uint32_t)"\x12\x00""Ljava/lang/String;"    /* field type */
+};
+
 const uint32_t stringValueFieldName[] = {
     (uint32_t)"\x05\x00""value",                /* field name */
     (uint32_t)"\x02\x00""[B"                    /* field type */
@@ -28,6 +33,7 @@ const uint32_t exceptionDetailMessageFieldName[] = {
 };
 
 const ConstUtf8 &mathClassName = *(const ConstUtf8 *)"\x0E\x00""java/lang/Math";
+const ConstUtf8 &classClassName = *(const ConstUtf8 *)"\x0F\x00""java/lang/Class";
 const ConstUtf8 &floatClassName = *(const ConstUtf8 *)"\x0F\x00""java/lang/Float";
 const ConstUtf8 &doubleClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/Double";
 const ConstUtf8 &objectClassName = *(const ConstUtf8 *)"\x10\x00""java/lang/Object";

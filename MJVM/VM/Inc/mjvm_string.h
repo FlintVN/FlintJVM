@@ -9,6 +9,7 @@ public:
     const char *getText(void) const;
     uint32_t getLength(void) const;
     uint8_t getCoder(void) const;
+    bool equals(const char *text, uint32_t length) const;
     bool equals(const ConstUtf8 &utf8) const;
     bool equals(MjvmString &utf8) const;
 

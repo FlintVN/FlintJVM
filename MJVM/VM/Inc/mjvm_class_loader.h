@@ -5,6 +5,7 @@
 #include "mjvm_const_pool.h"
 #include "mjvm_field_info.h"
 #include "mjvm_method_info.h"
+#include "mjvm_class.h"
 #include "mjvm_string.h"
 
 class Execution;
@@ -64,6 +65,8 @@ public:
 
     const ConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     const ConstUtf8 &getConstUtf8Class(const ConstPool &constPool) const;
+    MjvmClass &getConstClass(Execution &execution, uint16_t poolIndex) const;
+    MjvmClass &getConstClass(Execution &execution, const ConstPool &constPool) const;
 
     MjvmString &getConstString(Execution &execution, uint16_t poolIndex) const;
     MjvmString &getConstString(Execution &execution, const ConstPool &constPool) const;

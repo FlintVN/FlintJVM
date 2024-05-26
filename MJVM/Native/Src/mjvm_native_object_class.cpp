@@ -6,7 +6,30 @@
 #include "mjvm_native_object_class.h"
 
 static bool nativeGetClass(Execution &execution) {
-    // TODO
+    uint32_t idx = 0;
+    MjvmObject *obj = execution.stackPopObject();
+    uint16_t length = obj->type.length;
+    bool isPrim = MjvmObject::isPrimType(obj->type);
+    if(obj->dimensions) {
+        length += obj->dimensions;
+        if(!isPrim)
+            length += 2;
+    }
+    MjvmString *strObj = execution.newString(length, 0);
+    MjvmObject *byteArray = ((FieldsData *)strObj->data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
+    if(obj->dimensions) {
+        for(uint32_t i = 0; i < obj->dimensions; i++)
+            byteArray->data[idx++] = '[';
+        if(!isPrim)
+            byteArray->data[idx++] = 'L';
+    }
+    for(uint32_t i = 0; i < obj->type.length; i++) {
+        uint8_t c = obj->type.text[i];
+        byteArray->data[idx++] = (c == '/') ? '.' : c;
+    }
+    if(obj->dimensions && !isPrim)
+        byteArray->data[idx++] = ';';
+    execution.stackPushObject(execution.getConstClass(*strObj));
     return true;
 }
 
@@ -33,7 +56,7 @@ static bool nativeClone(Execution &execution) {
 }
 
 static const NativeMethod methods[] = {
-    NATIVE_METHOD("\x08\x00""getClass", "\x09\x00""()LClass;",            nativeGetClass),
+    NATIVE_METHOD("\x08\x00""getClass", "\x13\x00""()Ljava/lang/Class;",  nativeGetClass),
     NATIVE_METHOD("\x08\x00""hashCode", "\x03\x00""()I",                  nativeHashCode),
     NATIVE_METHOD("\x05\x00""clone",    "\x14\x00""()Ljava/lang/Object;", nativeClone),
 };

@@ -5,11 +5,13 @@
 #include "mjvm_const_pool.h"
 
 extern const ConstUtf8 *primTypeConstUtf8List[];
+extern const uint32_t stringNameFieldName[];
 extern const uint32_t stringValueFieldName[];
 extern const uint32_t stringCoderFieldName[];
 extern const uint32_t exceptionDetailMessageFieldName[];
 
 extern const ConstUtf8 &mathClassName;
+extern const ConstUtf8 &classClassName;
 extern const ConstUtf8 &floatClassName;
 extern const ConstUtf8 &doubleClassName;
 extern const ConstUtf8 &objectClassName;

@@ -5,6 +5,11 @@
 #include "mjvm_system_api.h"
 #include "mjvm_class_loader.h"
 
+typedef struct {
+    const ConstUtf8 *constUtf8Class;
+    MjvmClass *constClass;
+} ConstClassValue;
+
 static void *ClassLoader_Open(const char *fileName) {
     char buff[256];
     uint32_t i = 0;
@@ -167,9 +172,9 @@ void ClassLoader::readFile(void *file) {
                 i++;
                 break;
             }
+            case CONST_CLASS:
             case CONST_STRING:
                 *(uint8_t *)&poolTable[i].tag |= 0x80;
-            case CONST_CLASS:
             case CONST_METHOD_TYPE:
                 *(uint32_t *)&poolTable[i].value = ClassLoader_ReadUInt16(file);
                 break;
@@ -400,14 +405,73 @@ const ConstUtf8 &ClassLoader::getConstUtf8(const ConstPool &constPool) const {
 
 const ConstUtf8 &ClassLoader::getConstUtf8Class(uint16_t poolIndex) const {
     poolIndex--;
-    if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_CLASS)
-        return getConstUtf8(poolTable[poolIndex].value);
+    if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
+        if(poolTable[poolIndex].tag & 0x80) {
+            Mjvm::lock();
+            if(poolTable[poolIndex].tag & 0x80) {
+                uint16_t index = poolTable[poolIndex].value;
+                Mjvm::unlock();
+                return getConstUtf8(index);
+            }
+            Mjvm::unlock();
+        }
+        return *((ConstClassValue *)poolTable[poolIndex].value)->constUtf8Class;
+    }
     throw "index for const class is invalid";
 }
 
 const ConstUtf8 &ClassLoader::getConstUtf8Class(const ConstPool &constPool) const {
-    if(constPool.tag == CONST_CLASS)
-        return getConstUtf8(constPool.value);
+    if((constPool.tag & 0x7F) == CONST_CLASS) {
+        if(constPool.tag & 0x80) {
+            Mjvm::lock();
+            if(constPool.tag & 0x80) {
+                uint16_t index = constPool.value;
+                Mjvm::unlock();
+                return getConstUtf8(index);
+            }
+            Mjvm::unlock();
+        }
+        return *((ConstClassValue *)constPool.value)->constUtf8Class;
+    }
+    throw "const pool tag is not class tag";
+}
+
+MjvmClass &ClassLoader::getConstClass(Execution &execution, uint16_t poolIndex) const {
+    poolIndex--;
+    if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
+        if(poolTable[poolIndex].tag & 0x80) {
+            Mjvm::lock();
+            if(poolTable[poolIndex].tag & 0x80) {
+                const ConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
+                ConstClassValue *constClassValue = (ConstClassValue *)Mjvm::malloc(sizeof(ConstClassValue));
+                constClassValue->constUtf8Class = &constUtf8Class;
+                constClassValue->constClass = execution.getConstClass(constUtf8Class.text, constUtf8Class.length);
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)constClassValue;
+                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_CLASS;
+            }
+            Mjvm::unlock();
+        }
+        return *((ConstClassValue *)poolTable[poolIndex].value)->constClass;
+    }
+    throw "index for const class is invalid";
+}
+
+MjvmClass &ClassLoader::getConstClass(Execution &execution, const ConstPool &constPool) const {
+    if((constPool.tag & 0x7F) == CONST_CLASS) {
+        if(constPool.tag & 0x80) {
+            Mjvm::lock();
+            if(constPool.tag & 0x80) {
+                const ConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
+                ConstClassValue *constClassValue = (ConstClassValue *)Mjvm::malloc(sizeof(ConstClassValue));
+                constClassValue->constUtf8Class = &constUtf8Class;
+                constClassValue->constClass = execution.getConstClass(constUtf8Class.text, constUtf8Class.length);
+                *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
+                *(ConstPoolTag *)&constPool.tag = CONST_CLASS;
+            }
+            Mjvm::unlock();
+        }
+        return *((ConstClassValue *)constPool.value)->constClass;
+    }
     throw "const pool tag is not class tag";
 }
 
@@ -662,6 +726,7 @@ ClassLoader::~ClassLoader(void) {
                 case CONST_DOUBLE:
                     i++;
                     break;
+                case CONST_CLASS:
                 case CONST_METHOD_HANDLE:
                     Mjvm::free((void *)poolTable[i].value);
                     break;

@@ -21,6 +21,7 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
     classDataList = 0;
     objectList = 0;
+    constClassList = 0;
     constStringList = 0;
     objectSizeToGc = 0;
 }
@@ -34,6 +35,7 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
     classDataList = 0;
     objectList = 0;
+    constClassList = 0;
     constStringList = 0;
     objectSizeToGc = 0;
 }
@@ -70,30 +72,123 @@ MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensio
     }
 }
 
-MjvmString *Execution::newString(const char *utf8, uint16_t size) {
+MjvmClass *Execution::newClass(MjvmString &typeName) {
+    // TODO - Check the existence of type
+
+    /* create new class object */
+    MjvmObject *classObj = newObject(sizeof(FieldsData), classClassName);
+
+    /* init field data */
+    FieldsData *fields = (FieldsData *)classObj->data;
+    new (fields)FieldsData(*this, load(classClassName), false);
+
+    /* set value for name field */
+    fields->getFieldObject(*(ConstNameAndType *)stringNameFieldName).object = &typeName;
+
+    return (MjvmClass *)classObj;
+}
+
+MjvmClass *Execution::newClass(const char *typeName, uint16_t length) {
+    /* create String object to store typeName */
+    MjvmString *name = newString(typeName, length);
+
+    /* replace '/' to '.' */
+    char *text = (char *)name->getText();
+    uint8_t coder = name->getCoder();
+    if(coder == 0) {
+        for(uint32_t i = 0; i < length; i++) {
+            if(text[i] == '/')
+                text[i] = '.';
+        }
+    }
+    else {
+        uint16_t *buff = (uint16_t *)text;
+        for(uint32_t i = 0; i < length; i++) {
+            if(buff[i] == '/')
+                buff[i] = '.';
+        }
+    }
+    return newClass(*name);
+}
+
+MjvmClass *Execution::getConstClass(const char *typeName, uint16_t length) {
+    for(MjvmConstClass *node = constClassList; node != 0; node = node->next) {
+        if(node->mjvmClass.getName().equals(typeName, length))
+            return &node->mjvmClass;
+    }
+    MjvmClass *classObj = newClass(typeName, length);
+    MjvmConstClass *newNode = (MjvmConstClass *)Mjvm::malloc(sizeof(MjvmConstClass));
+    new (newNode)MjvmConstClass(*classObj);
+
+    newNode->next = constClassList;
+    constClassList = newNode;
+    
+    return classObj;
+}
+
+MjvmClass *Execution::getConstClass(MjvmString &str) {
+    for(MjvmConstClass *node = constClassList; node != 0; node = node->next) {
+        if(node->mjvmClass.getName().equals(str))
+            return &node->mjvmClass;
+    }
+    MjvmClass *classObj = newClass(str);
+    MjvmConstClass *newNode = (MjvmConstClass *)Mjvm::malloc(sizeof(MjvmConstClass));
+    new (newNode)MjvmConstClass(*classObj);
+
+    newNode->next = constClassList;
+    constClassList = newNode;
+    
+    return classObj;
+}
+
+MjvmString *Execution::newString(uint16_t length, uint8_t coder) {
+    /* create new byte array to store string */
+    MjvmObject *byteArray = newObject(length << (coder ? 1 : 0), *primTypeConstUtf8List[4], 1);
+
+    /* create new string object */
+    MjvmObject *strObj = newObject(sizeof(FieldsData), stringClassName);
+
+    /* init field data */
+    FieldsData *fields = (FieldsData *)strObj->data;
+    new (fields)FieldsData(*this, load(stringClassName), false);
+
+    /* set value for value field */
+    fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
+
+    /* set value for coder field */
+    fields->getFieldData32(*(ConstNameAndType *)stringCoderFieldName).value = coder;
+
+    return (MjvmString *)strObj;
+}
+
+MjvmString *Execution::newString(const char *text, uint16_t size, bool isUtf8) {
     uint32_t index = 0;
-    bool isLatin1 = MjvmString::isLatin1(utf8);
-    uint32_t strLen = MjvmString::utf8StrLen(utf8);
+    bool isLatin1 = isUtf8 ? MjvmString::isLatin1(text) : true;
+    uint32_t strLen = isUtf8 ? MjvmString::utf8StrLen(text) : size;
 
     /* create new byte array to store string */
     uint32_t arrayLen = isLatin1 ? strLen : (strLen << 1);
     MjvmObject *byteArray = newObject(arrayLen, *primTypeConstUtf8List[4], 1);
-    if(isLatin1) {
-        while(*utf8) {
-            uint32_t c = MjvmString::utf8Decode(utf8);
-            byteArray->data[index] = c;
-            utf8 += MjvmString::getUtf8DecodeSize(*utf8);
+    if(!isUtf8)
+        memcpy(byteArray->data, text, strLen);
+    else {
+        if(isLatin1) {
+            while(*text) {
+                uint32_t c = MjvmString::utf8Decode(text);
+                byteArray->data[index] = c;
+                text += MjvmString::getUtf8DecodeSize(*text);
+                index++;
+            }
+        }
+        else while(*text) {
+            uint32_t c = MjvmString::utf8Decode(text);
+            if(c <= 0xFFFFFF)
+                ((uint16_t *)byteArray->data)[index] = c;
+            else
+                throw "Characters are not supported";
+            text += MjvmString::getUtf8DecodeSize(*text);
             index++;
         }
-    }
-    else while(*utf8) {
-        uint32_t c = MjvmString::utf8Decode(utf8);
-        if(c <= 0xFFFFFF)
-            ((uint16_t *)byteArray->data)[index] = c;
-        else
-            throw "Characters are not supported";
-        utf8 += MjvmString::getUtf8DecodeSize(*utf8);
-        index++;
     }
 
     /* create new string object */
@@ -148,7 +243,7 @@ MjvmString *Execution::getConstString(const ConstUtf8 &utf8) {
         if(node->mjvmString.equals(utf8))
             return &node->mjvmString;
     }
-    MjvmString *strObj = newString(utf8.text, utf8.length);
+    MjvmString *strObj = newString(utf8.text, utf8.length, true);
     MjvmConstString *newNode = (MjvmConstString *)Mjvm::malloc(sizeof(MjvmConstString));
     new (newNode)MjvmConstString(*strObj);
 
@@ -215,6 +310,11 @@ MjvmThrowable *Execution::newArrayIndexOutOfBoundsException(MjvmString *strObj) 
 }
 
 void Execution::freeAllObject(void) {
+    for(MjvmConstClass *node = constClassList; node != 0;) {
+        MjvmConstClass *next = node->next;
+        Mjvm::free(node);
+        node = next;
+    }
     for(MjvmConstString *node = constStringList; node != 0;) {
         MjvmConstString *next = node->next;
         Mjvm::free(node);
@@ -277,6 +377,10 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
 void Execution::garbageCollection(void) {
     Mjvm::lock();
     objectSizeToGc = 0;
+    for(MjvmConstClass *node = constClassList; node != 0; node = node->next) {
+        if(!node->mjvmClass.getProtected())
+            garbageCollectionProtectObject(&node->mjvmClass);
+    }
     for(MjvmConstString *node = constStringList; node != 0; node = node->next) {
         if(!node->mjvmString.getProtected())
             garbageCollectionProtectObject(&node->mjvmString);
@@ -697,30 +801,52 @@ bool Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
         throw "invoke interface to static method";
 }
 
-bool Execution::isInstanceof(MjvmObject *obj, const ConstUtf8 &type) {
-    const char *text = type.text;
+bool Execution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length) {
+    const char *text = typeName;
     while(*text == '[')
         text++;
-    uint32_t dimensions = text - type.text;
-    uint32_t length = type.length - dimensions;
+    uint32_t dimensions = text - typeName;
+    uint32_t len = length - dimensions;
     if(*text == 'L') {
         text++;
-        length -= 2;
+        len -= 2;
     }
-    if(length == 16 && obj->dimensions >= dimensions && strncmp(text, objectClassName.text, length) == 0)
-        return true;
-    else if(dimensions != obj->dimensions)
+    if(len == 16 && obj->dimensions >= dimensions) {
+        bool isEquals = true;
+        const char *text2 = objectClassName.text;
+        for(uint32_t i = 0; i < len; i++) {
+            if(text[i] == text2[i])
+                continue;
+            else if((text[i] == '.' && text2[i] == '/') || (text[i] == '/' && text2[i] == '.'))
+                continue;
+            isEquals = false;
+            break;
+        }
+        if(isEquals)
+            return true;
+    }
+    if(dimensions != obj->dimensions)
         return false;
     else {
         const ConstUtf8 *objType = &obj->type;
         while(1) {
-            if(length == objType->length && strncmp(objType->text, text, length) == 0)
-                return true;
-            else {
-                objType = &load(*objType).getSuperClass();
-                if(objType == 0)
-                    return false;
+            if(len == objType->length) {
+                bool isEquals = true;
+                const char *text2 = objType->text;
+                for(uint32_t i = 0; i < len; i++) {
+                    if(text[i] == text2[i])
+                        continue;
+                    else if((text[i] == '.' && text2[i] == '/') || (text[i] == '/' && text2[i] == '.'))
+                        continue;
+                    isEquals = false;
+                    break;
+                }
+                if(isEquals)
+                    return true;
             }
+            objType = &load(*objType).getSuperClass();
+            if(objType == 0)
+                return false;
         }
     }
 }
@@ -854,7 +980,7 @@ int64_t Execution::run(const char *mainClass) {
                 stackPushObject(&method->classLoader.getConstString(*this, constPool));
                 goto *opcodes[code[pc]];
             case CONST_CLASS:
-                // TODO
+                stackPushObject(&method->classLoader.getConstClass(*this, constPool));
                 goto *opcodes[code[pc]];
             case CONST_METHOD_TYPE:
                 // TODO
@@ -881,7 +1007,7 @@ int64_t Execution::run(const char *mainClass) {
                 stackPushObject(&method->classLoader.getConstString(*this, constPool));
                 goto *opcodes[code[pc]];
             case CONST_CLASS:
-                // TODO
+                stackPushObject(&method->classLoader.getConstClass(*this, constPool));
                 goto *opcodes[code[pc]];
             case CONST_METHOD_TYPE:
                 // TODO
@@ -2218,8 +2344,8 @@ int64_t Execution::run(const char *mainClass) {
         uint8_t atype = code[pc + 1];
         uint8_t typeSize = MjvmObject::getPrimitiveTypeSize(atype);
         MjvmObject *obj = newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1);
-        stackPushObject(obj);
         memset(obj->data, 0, obj->size);
+        stackPushObject(obj);
         pc += 2;
         goto *opcodes[code[pc]];
     }
@@ -2230,8 +2356,8 @@ int64_t Execution::run(const char *mainClass) {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         const ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
         MjvmObject *obj = newObject(4 * count, constClass, 1);
-        stackPushObject(obj);
         memset(obj->data, 0, obj->size);
+        stackPushObject(obj);
         pc += 3;
         goto *opcodes[code[pc]];
     }
@@ -2278,7 +2404,8 @@ int64_t Execution::run(const char *mainClass) {
         for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
             const ExceptionTable &exceptionTable = attributeCode.getException(i);
             if(exceptionTable.startPc <= pc && pc < exceptionTable.endPc) {
-                if(isInstanceof(obj, method->classLoader.getConstUtf8Class(exceptionTable.catchType))) {
+                const ConstUtf8 &typeName = method->classLoader.getConstUtf8Class(exceptionTable.catchType);
+                if(isInstanceof(obj, typeName.text, typeName.length)) {
                     pc = exceptionTable.handlerPc;
                     goto *opcodes[code[pc]];
                 }
@@ -2297,7 +2424,7 @@ int64_t Execution::run(const char *mainClass) {
         if(obj != 0) {
             bool isInsOf;
             try {
-                isInsOf = isInstanceof(obj, type);
+                isInsOf = isInstanceof(obj, type.text, type.length);
             }
             catch(LoadFileError *file) {
                 fileNotFound = file;
@@ -2324,7 +2451,7 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         const ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         try {
-            stackPushInt32(isInstanceof(obj, type));
+            stackPushInt32(isInstanceof(obj, type.text, type.length));
         }
         catch(LoadFileError *file) {
             fileNotFound = file;
