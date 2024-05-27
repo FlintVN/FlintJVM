@@ -6,7 +6,65 @@
 #include "mjvm_native_class_class.h"
 
 static bool nativeGetPrimitiveClass(Execution &execution) {
-    throw "getPrimitiveClass is not implemented in VM";
+    MjvmString *str = (MjvmString *)execution.stackPopObject();
+    if(str->getCoder() == 0) {
+        uint32_t len = str->getLength();
+        switch(len) {
+            case 3:
+                if(strncmp(str->getText(), "int", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("int", len));
+                    return true;
+                }
+                break;
+            case 4: {
+                const char *text = str->getText();
+                if(strncmp(text, "void", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("void", len));
+                    return true;
+                }
+                else if(strncmp(text, "byte", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("byte", len));
+                    return true;
+                }
+                else if(strncmp(text, "char", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("char", len));
+                    return true;
+                }
+                else if(strncmp(text, "long", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("long", len));
+                    return true;
+                }
+                break;
+            }
+            case 5: {
+                const char *text = str->getText();
+                if(strncmp(text, "float", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("float", len));
+                    return true;
+                }
+                else if(strncmp(text, "short", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("short", len));
+                    return true;
+                }
+                break;
+            }
+            case 6:
+                if(strncmp(str->getText(), "double", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("double", len));
+                    return true;
+                }
+                break;
+            case 7:
+                if(strncmp(str->getText(), "boolean", len) == 0) {
+                    execution.stackPushObject(execution.getConstClass("boolean", len));
+                    return true;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+    throw "primitive type name is invalid";
 }
 
 static bool nativeForName(Execution &execution) {
@@ -48,32 +106,41 @@ static bool nativeIsArray(Execution &execution) {
 static bool nativeIsPrimitive(Execution &execution) {
     MjvmClass *clsObj = (MjvmClass *)execution.stackPopObject();
     MjvmString &name = clsObj->getName();
-    const char *text = name.getText();
     uint8_t coder = name.getCoder();
     uint32_t length = name.getLength();
     uint8_t result = 0;
     if(coder == 0) {
         switch(length) {
             case 3:
-                if(strncmp(text, "int", length) == 0)
+                if(strncmp(name.getText(), "int", length) == 0)
                     result = 1;
                 break;
-            case 4:
-                if(strncmp(text, "byte", length) == 0)
+            case 4: {
+                const char *text = name.getText();
+                if(strncmp(text, "void", length) == 0)
+                    result = 1;
+                else if(strncmp(text, "byte", length) == 0)
+                    result = 1;
+                else if(strncmp(text, "char", length) == 0)
                     result = 1;
                 else if(strncmp(text, "long", length) == 0)
                     result = 1;
                 break;
-            case 5:
+            }
+            case 5: {
+                const char *text = name.getText();
                 if(strncmp(text, "float", length) == 0)
                     result = 1;
+                else if(strncmp(text, "short", length) == 0)
+                    result = 1;
                 break;
+            }
             case 6:
-                if(strncmp(text, "double", length) == 0)
+                if(strncmp(name.getText(), "double", length) == 0)
                     result = 1;
                 break;
             case 7:
-                if(strncmp(text, "boolean", length) == 0)
+                if(strncmp(name.getText(), "boolean", length) == 0)
                     result = 1;
                 break;
             default:
