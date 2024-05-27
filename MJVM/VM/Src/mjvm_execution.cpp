@@ -122,7 +122,7 @@ MjvmClass *Execution::getConstClass(const char *typeName, uint16_t length) {
 
     newNode->next = constClassList;
     constClassList = newNode;
-    
+
     return classObj;
 }
 
@@ -137,7 +137,7 @@ MjvmClass *Execution::getConstClass(MjvmString &str) {
 
     newNode->next = constClassList;
     constClassList = newNode;
-    
+
     return classObj;
 }
 
@@ -249,7 +249,7 @@ MjvmString *Execution::getConstString(const ConstUtf8 &utf8) {
 
     newNode->next = constStringList;
     constStringList = newNode;
-    
+
     return strObj;
 }
 
@@ -263,7 +263,7 @@ MjvmString *Execution::getConstString(MjvmString &str) {
 
     newNode->next = constStringList;
     constStringList = newNode;
-    
+
     return &str;
 }
 

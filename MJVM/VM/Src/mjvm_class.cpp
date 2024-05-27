@@ -10,4 +10,3 @@ MjvmString &MjvmClass::getName(void) const {
 MjvmConstClass::MjvmConstClass(MjvmClass &mjvmClass) : mjvmClass(mjvmClass) {
 
 }
- 

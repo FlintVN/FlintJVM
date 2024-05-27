@@ -5,19 +5,19 @@ final class StringUTF16 {
         index <<= 1;
         return (char)((value[index + 1] << 8) | (value[index] & 0xFF));
     }
-    
+
     public static void putCharAt(byte[] value, int index, char c) {
         index <<= 1;
         value[index] = (byte)c;
         value[index + 1] = (byte)(c >>> 8);
     }
-    
+
     public static void putCharAt(byte[] value, int index, byte c) {
         index <<= 1;
         value[index] = c;
         value[index + 1] = 0;
     }
-    
+
     public static int indexOf(byte[] value, int ch, int fromIndex) {
         if(ch > 65535)
             return -1;
@@ -27,7 +27,7 @@ final class StringUTF16 {
         }
         return -1;
     }
-    
+
     public static int indexOf(byte[] value, byte[] str, int fromIndex) {
         if(str.length == 0)
             return 0;
@@ -50,7 +50,7 @@ final class StringUTF16 {
         }
         return -1;
     }
-    
+
     public static int indexOfLatin1(byte[] value, byte[] str, int fromIndex) {
         if(str.length == 0)
             return 0;
@@ -73,7 +73,7 @@ final class StringUTF16 {
         }
         return -1;
     }
-    
+
     public static int lastIndexOf(byte[] value, int ch, int fromIndex) {
         if(ch > 65535)
             return -1;
@@ -83,7 +83,7 @@ final class StringUTF16 {
         }
         return -1;
     }
-    
+
     public static int lastIndexOf(byte[] value, byte[] str, int fromIndex) {
         if(str.length == 0)
             return value.length - 1;
@@ -105,7 +105,7 @@ final class StringUTF16 {
         }
         return -1;
     }
-    
+
     public static int lastIndexOfLatin1(byte[] value, byte[] str, int fromIndex) {
         if(str.length == 0)
             return value.length - 1;
@@ -164,11 +164,11 @@ final class StringUTF16 {
             byte[] buff = new byte[len];
             for(i = 0; i < len; i++)
                 buff[i] = ret[i << 1];
-            return String.newString(ret, (byte)0); 
+            return String.newString(ret, (byte)0);
         }
         return null;
     }
-    
+
     public static String[] split(byte[] value) {
         int len = value.length >> 1;
         String[] ret = new String[len];
@@ -184,7 +184,7 @@ final class StringUTF16 {
         }
         return ret;
     }
-    
+
     public static String[] split(byte[] value, char ch) {
         if(ch > 65535)
             return null;
@@ -257,7 +257,7 @@ final class StringUTF16 {
         }
         return (ret == null) ? null : String.newString(ret,  (byte)1);
     }
-    
+
     public static String toUpper(byte[] value) {
         int i;
         int length = value.length >>> 1;
@@ -283,7 +283,7 @@ final class StringUTF16 {
         }
         return (ret == null) ? null : String.newString(ret,  (byte)1);
     }
-    
+
     public static String trim(byte[] value) {
         int len = value.length >>> 1;
         int st = 0;
@@ -303,7 +303,7 @@ final class StringUTF16 {
         }
         return ret;
     }
-    
+
     public static int compareTo(byte[] value, byte[] other) {
         int len1 = value.length >>> 1;
         int len2 = other.length >>> 1;
@@ -316,11 +316,11 @@ final class StringUTF16 {
         }
         return len1 - len2;
     }
-    
+
     public static int  compareToLatin1(byte[] value, byte[] other) {
         return -StringLatin1.compareToUTF16(other, value);
     }
-    
+
     public static boolean equalsIgnoreCase(byte[] value, byte[] other) {
         int len = value.length >>> 1;
         for(int i = 0; i < len; i++)

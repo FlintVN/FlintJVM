@@ -35,7 +35,7 @@ public:
     const NativeMethod *methods;
 private:
     void operator=(const NativeClass &) = delete;
-};      
+};
 
 extern const NativeClass *NATIVE_CLASS_LIST[];
 extern const uint32_t NATIVE_CLASS_COUNT;

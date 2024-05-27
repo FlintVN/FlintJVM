@@ -82,7 +82,7 @@ public:
     ClassData(const char *fileName);
     ClassData(const char *fileName, uint16_t length);
     ClassData(const ConstUtf8 &fileName);
-    
+
     ClassData(const ClassData &) = delete;
     void operator=(const ClassData &) = delete;
 

@@ -2,7 +2,7 @@ package java.lang;
 
 public final class Class<T> {
     private transient String name;
-    
+
     private Class() {
 
     }
@@ -105,7 +105,7 @@ public final class Class<T> {
                 return cl.getName().concat("[]".repeat(dimensions));
             }
             catch(Throwable e) {
-                
+
             }
         }
         return getName();

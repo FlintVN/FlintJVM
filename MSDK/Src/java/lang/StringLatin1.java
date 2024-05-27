@@ -4,7 +4,7 @@ final class StringLatin1 {
     public static char charAt(byte[] value, int index) {
         return (char)(value[index] & 0xFF);
     }
-    
+
     public static void putCharAt(byte[] value, int index, char c) {
         if(c > 255)
             throw new Error("Character is not latin1");
@@ -21,7 +21,7 @@ final class StringLatin1 {
         }
         return -1;
     }
-    
+
     public static int indexOf(byte[] value, byte[] str, int fromIndex) {
         if(str.length == 0)
             return 0;
@@ -42,7 +42,7 @@ final class StringLatin1 {
         }
         return -1;
     }
-    
+
     public static int lastIndexOf(byte[] value, int ch, int fromIndex) {
         if(ch > 255)
             return -1;
@@ -53,7 +53,7 @@ final class StringLatin1 {
         }
         return -1;
     }
-    
+
     public static int lastIndexOf(byte[] value, byte[] str, int fromIndex) {
         if(str.length == 0)
             return value.length - 1;
@@ -75,7 +75,7 @@ final class StringLatin1 {
         }
         return -1;
     }
-    
+
     public static String replace(byte[] value, char oldChar, char newChar) {
         if(oldChar > 255)
             return null;
@@ -124,7 +124,7 @@ final class StringLatin1 {
             return (ret == null) ? null : String.newString(ret, (byte)1);
         }
     }
-    
+
     public static String[] split(byte[] value) {
         int len = value.length;
         String[] ret = new String[len];
@@ -132,7 +132,7 @@ final class StringLatin1 {
             ret[i] = String.newString(value, i, 1, (byte)0);
         return ret;
     }
-    
+
     public static String[] split(byte[] value, char ch) {
         if(ch > 255)
             return null;
@@ -159,14 +159,14 @@ final class StringLatin1 {
             ret[index] = String.newString(value, start, len - start, (byte)0);
         return ret;
     }
-    
+
     private static byte toLower(byte ch) {
         int c = ch & 0xFF;
         if((('A' <= c) && (c <= 'Z')) || (('À' <= c) && (c <= 'Ö')) || (c == 'Ø'))
             return (byte)(c + 32);
         return ch;
     }
-    
+
     public static String toLower(byte[] value) {
         int i;
         int length = value.length;
@@ -190,7 +190,7 @@ final class StringLatin1 {
         }
         return (ret == null) ? null : String.newString(ret,  (byte)0);
     }
-    
+
     public static String toUpper(byte[] value) {
         int i;
         int length = value.length;
@@ -214,7 +214,7 @@ final class StringLatin1 {
         }
         return (ret == null) ? null : String.newString(ret,  (byte)0);
     }
-    
+
     public static String trim(byte[] value) {
         int len = value.length;
         int st = 0;
@@ -224,7 +224,7 @@ final class StringLatin1 {
             len--;
         return ((st > 0) || (len < value.length)) ? String.newString(value, st, len - st, (byte)0) : null;
     }
-    
+
     public static char[] toChars(byte[] value) {
         int len = value.length;
         char[] ret = new char[len];
@@ -232,7 +232,7 @@ final class StringLatin1 {
             ret[i] = (char)(value[i] & 0xFF);
         return ret;
     }
-    
+
     public static int compareTo(byte[] value, byte[] other) {
         int lim = Math.min(value.length, other.length);
         for(int i = 0; i < lim; i++) {
@@ -241,7 +241,7 @@ final class StringLatin1 {
         }
         return value.length - other.length;
     }
-    
+
     public static int compareToUTF16(byte[] value, byte[] other) {
         int lim = Math.min(value.length, other.length >> 1);
         for(int i = 0; i < lim; i++) {
@@ -252,7 +252,7 @@ final class StringLatin1 {
         }
         return value.length - (other.length >> 1);
     }
-    
+
     public static boolean equals(byte[] value, byte[] other) {
         if(value.length != other.length)
             return false;
@@ -262,7 +262,7 @@ final class StringLatin1 {
         }
         return true;
     }
-    
+
     public static boolean equalsIgnoreCase(byte[] value, byte[] other) {
         int len = value.length;
         for(int i = 0; i < len; i++)

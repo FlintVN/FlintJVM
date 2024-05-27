@@ -345,7 +345,7 @@ public final class Math {
     public static int getExponent(double d) {
         return (int)(((Double.doubleToRawLongBits(d) & DOUBLE_EXP_BIT_MASK) >> (DOUBLE_SIGNIFICAND_WIDTH - 1)) - DOUBLE_EXP_BIAS);
     }
-    
+
     public static double nextAfter(double start, double direction) {
         if(start > direction) {
             if(start != 0.0d) {

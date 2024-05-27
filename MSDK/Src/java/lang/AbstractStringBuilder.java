@@ -9,21 +9,21 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
     boolean maybeLatin1;
     byte coder;
     int count;
-    
+
     AbstractStringBuilder() {
         value = new byte[16];
         coder = 0;
         count = 0;
         maybeLatin1 = false;
     }
-    
+
     AbstractStringBuilder(int capacity) {
         value = new byte[capacity];
         coder = 0;
         count = 0;
         maybeLatin1 = false;
     }
-    
+
     AbstractStringBuilder(String str) {
         int len = str.length();
         coder = str.coder();
@@ -32,7 +32,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         maybeLatin1 = false;
         append(str);
     }
-    
+
     AbstractStringBuilder(CharSequence seq) {
         final byte initCoder;
         int length = seq.length();
@@ -48,7 +48,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         coder = initCoder;
         append(seq);
     }
-    
+
     public void setCharAt(int index, char ch) {
         if(index >= count)
             throw new StringIndexOutOfBoundsException("Index " + index + " out of bounds for length " + count);
@@ -63,26 +63,26 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
                 maybeLatin1 = true;
         }
     }
-    
+
     public AbstractStringBuilder clear() {
         maybeLatin1 = false;
         coder = 0;
         count = 0;
         return this;
     }
-    
+
     public AbstractStringBuilder append(Object obj) {
         return append(String.valueOf(obj));
     }
-    
+
     public AbstractStringBuilder append(String str) {
         return append(str, 0, str.length());
     }
-    
+
     public AbstractStringBuilder append(StringBuffer sb) {
         return append(sb, 0, sb.length());
     }
-    
+
     public AbstractStringBuilder append(CharSequence s) {
         if(s == null)
             return appendNull();
@@ -92,7 +92,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
             return append((AbstractStringBuilder)s);
         return append(s, 0, s.length());
     }
-    
+
     public AbstractStringBuilder append(CharSequence s, int start, int end) {
         if(s == null)
             s = "null";
@@ -151,11 +151,11 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         this.count = count;
         return this;
     }
-    
+
     public AbstractStringBuilder append(char[] str) {
         return append(str, 0, str.length);
     }
-    
+
     public AbstractStringBuilder append(char[] str, int offset, int len) {
         int count = this.count;
         byte[] val;
@@ -193,11 +193,11 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         this.count = count;
         return this;
     }
-    
+
     public AbstractStringBuilder append(boolean b) {
         return append(String.valueOf(b));
     }
-    
+
     public AbstractStringBuilder append(char c) {
         if((coder == 0) && (c < 256)) {
             ensureCapacityInternal(count + 1);
@@ -216,15 +216,15 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         }
         return this;
     }
-    
+
     public AbstractStringBuilder append(int i) {
         return append(String.valueOf(i));
     }
-    
+
     public AbstractStringBuilder append(long l) {
         return append(String.valueOf(l));
     }
-    
+
     public AbstractStringBuilder append(float f) {
         try {
             FloatToDecimal.appendTo(f, this);
@@ -234,7 +234,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         }
         return this;
     }
-    
+
     public AbstractStringBuilder append(double d) {
         try {
             DoubleToDecimal.appendTo(d, this);
@@ -268,11 +268,11 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         this.count = count;
         return this;
     }
-    
+
     int compareTo(AbstractStringBuilder another) {
         if(this == another)
             return 0;
-        
+
         int lim = Math.min(count, another.count);
         for(int i = 0; i < lim; i++) {
             char c1 = charAt(i);
@@ -282,7 +282,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         }
         return count - another.count;
     }
-    
+
     private void inflate() {
         if(this.coder == 1)
             return;
@@ -295,7 +295,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         this.value = buf;
         this.coder = 1;
     }
-    
+
     public void trimToSize() {
         int length = count << coder;
         if(length < value.length) {
@@ -304,17 +304,17 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
             value = buff;
         }
     }
-    
+
     public int length() {
         return count;
     }
-    
+
     public char charAt(int index) {
         if(coder == 0)
             return (char)value[index];
         return StringUTF16.charAt(value, index);
     }
-    
+
     public String substring(int start) {
         return substring(start, count);
     }
@@ -322,7 +322,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
     public CharSequence subSequence(int start, int end) {
         return substring(start, end);
     }
-    
+
     public String substring(int start, int end) {
         byte[] val = value;
         if(coder == 0) {
@@ -348,13 +348,13 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
             val = val.clone();
         return String.newString(val, start << 1, (end - start) << 1, (byte)1);
     }
-    
+
     public int indexOf(String str) {
         if(coder == 0)
             return StringLatin1.indexOf(value, str.value(), 0);
         return StringUTF16.indexOf(value, str.value(), 0);
     }
-    
+
     public int lastIndexOf(String str) {
         if(coder == 0)
             return StringLatin1.lastIndexOf(value, str.value(), count - 1);
@@ -362,11 +362,11 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
     }
 
     public abstract String toString();
-    
+
     public int capacity() {
         return value.length >> coder;
     }
-    
+
     private void ensureCapacityInternal(int minimumCapacity) {
         byte coder = this.coder;
         int oldCapacity = value.length >> coder;
