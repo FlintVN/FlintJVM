@@ -12,13 +12,13 @@ public final class Integer extends Number implements Comparable<Integer> {
     static char digitToChar(int i) {
         if(0 <= i && i < 10)
             return (char)(i + '0');
-        else if(10 <= i && i < 36)
+        else if(10 <= i && i < Character.MAX_RADIX)
             return (char)(i + 'a');
         throw new NumberFormatException("Cannot convert number " + i + " to char");
     }
 
     public static String toString(int i, int radix) {
-        if(radix < 2 || radix > 36)
+        if(radix < Character.MIN_RADIX || radix > Character.MAX_RADIX)
             radix = 10;
 
         if(radix == 10)
@@ -110,9 +110,9 @@ public final class Integer extends Number implements Comparable<Integer> {
     public static int parseInt(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
         if(s == null)
             throw new NumberFormatException("Cannot parse null string");
-        if(radix < 2)
+        if(radix < Character.MIN_RADIX)
             throw new NumberFormatException("radix " + radix + " less than 2");
-        if(radix > 36)
+        if(radix > Character.MAX_RADIX)
             throw new NumberFormatException("radix " + radix + " greater than 36");
 
         boolean negative = false;

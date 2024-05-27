@@ -10,7 +10,7 @@ public final class Long extends Number implements Comparable<Long> {
     private final long value;
 
     public static String toString(long i, int radix) {
-        if(radix < 2 || radix > 36)
+        if(radix < Character.MIN_RADIX || radix > Character.MAX_RADIX)
             radix = 10;
 
         if(radix == 10)
@@ -101,7 +101,7 @@ public final class Long extends Number implements Comparable<Long> {
     }
 
     static String fastUUID(long lsb, long msb) {
-        byte[] buf = new byte[36];
+        byte[] buf = new byte[Character.MAX_RADIX];
         formatUnsignedLong0(lsb,        4, buf, 24, 12);
         formatUnsignedLong0(lsb >>> 48, 4, buf, 19, 4);
         formatUnsignedLong0(msb,        4, buf, 14, 4);
@@ -149,9 +149,9 @@ public final class Long extends Number implements Comparable<Long> {
     public static long parseLong(CharSequence s, int beginIndex, int endIndex, int radix) throws NumberFormatException {
         if(s == null)
             throw new NumberFormatException("Cannot parse null string");
-        if(radix < 2)
+        if(radix < Character.MIN_RADIX)
             throw new NumberFormatException("radix " + radix + " less than 2");
-        if(radix > 36)
+        if(radix > Character.MAX_RADIX)
             throw new NumberFormatException("radix " + radix + " greater than 36");
 
         boolean negative = false;
