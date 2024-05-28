@@ -16,6 +16,7 @@ public final class Double extends Number implements Comparable<Double> {
     public static final int MAX_EXPONENT = (1 << (SIZE - PRECISION - 1)) - 1; // 1023
     public static final int MIN_EXPONENT = 1 - MAX_EXPONENT; // -1022
     public static final int BYTES = SIZE / Byte.SIZE;
+    @SuppressWarnings("unchecked")
     public static final Class<Double> TYPE = (Class<Double>)Class.getPrimitiveClass("double");
 
     private final double value;
@@ -106,34 +107,42 @@ public final class Double extends Number implements Comparable<Double> {
         return isInfinite(value);
     }
 
+    @Override
     public String toString() {
         return toString(value);
     }
 
+    @Override
     public byte byteValue() {
         return (byte)value;
     }
 
+    @Override
     public short shortValue() {
         return (short)value;
     }
 
+    @Override
     public int intValue() {
         return (int)value;
     }
 
+    @Override
     public long longValue() {
         return (long)value;
     }
 
+    @Override
     public float floatValue() {
         return (float)value;
     }
 
+    @Override
     public double doubleValue() {
         return value;
     }
 
+    @Override
     public int hashCode() {
         return Double.hashCode(value);
     }
@@ -142,6 +151,7 @@ public final class Double extends Number implements Comparable<Double> {
         return Long.hashCode(doubleToLongBits(value));
     }
 
+    @Override
     public boolean equals(Object obj) {
         return (obj instanceof Double) && (doubleToLongBits(((Double)obj).value) == doubleToLongBits(value));
     }
@@ -156,6 +166,7 @@ public final class Double extends Number implements Comparable<Double> {
 
     public static native double longBitsToDouble(long bits);
 
+    @Override
     public int compareTo(Double anotherDouble) {
         return Double.compare(value, anotherDouble.value);
     }

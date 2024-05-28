@@ -7,6 +7,7 @@ public final class Class<T> {
 
     }
 
+    @Override
     public String toString() {
         String kind = isInterface() ? "interface " : isPrimitive() ? "" : "class ";
         return kind.concat(getName());
@@ -133,6 +134,7 @@ public final class Class<T> {
         return (this.getModifiers() & 0x00000010) != 0;
     }
 
+    @SuppressWarnings("unchecked")
     public T cast(Object obj) {
         if(obj != null && !isInstance(obj))
             throw new ClassCastException(cannotCastMsg(obj));

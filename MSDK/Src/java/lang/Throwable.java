@@ -20,6 +20,6 @@ public class Throwable {
     }
 
     public String toString() {
-        return this.getName() + ": " + detailMessage;
+        return this.getClass().getName() + ": " + detailMessage;
     }
 }

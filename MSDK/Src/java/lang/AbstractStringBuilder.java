@@ -83,6 +83,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         return append(sb, 0, sb.length());
     }
 
+    @Override
     public AbstractStringBuilder append(CharSequence s) {
         if(s == null)
             return appendNull();
@@ -93,6 +94,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         return append(s, 0, s.length());
     }
 
+    @Override
     public AbstractStringBuilder append(CharSequence s, int start, int end) {
         if(s == null)
             s = "null";
@@ -198,6 +200,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         return append(String.valueOf(b));
     }
 
+    @Override
     public AbstractStringBuilder append(char c) {
         if((coder == 0) && (c < 256)) {
             ensureCapacityInternal(count + 1);
@@ -305,10 +308,12 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         }
     }
 
+    @Override
     public int length() {
         return count;
     }
 
+    @Override
     public char charAt(int index) {
         if(coder == 0)
             return (char)value[index];
@@ -319,6 +324,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         return substring(start, count);
     }
 
+    @Override
     public CharSequence subSequence(int start, int end) {
         return substring(start, end);
     }
@@ -361,6 +367,7 @@ abstract sealed class AbstractStringBuilder implements Appendable, CharSequence 
         return StringUTF16.lastIndexOf(value, str.value(), count - 1);
     }
 
+    @Override
     public abstract String toString();
 
     public int capacity() {

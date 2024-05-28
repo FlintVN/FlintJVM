@@ -3,6 +3,7 @@ package java.lang;
 public final class Boolean implements Comparable<Boolean> {
     public static final Boolean TRUE = true;
     public static final Boolean FALSE = false;
+    @SuppressWarnings("unchecked")
     public static final Class<Boolean> TYPE = (Class<Boolean>)Class.getPrimitiveClass("boolean");
 
     private final boolean value;
@@ -35,10 +36,12 @@ public final class Boolean implements Comparable<Boolean> {
         return String.valueOf(b);
     }
 
+    @Override
     public String toString() {
         return String.valueOf(value);
     }
 
+    @Override
     public int hashCode() {
         return Boolean.hashCode(value);
     }
@@ -47,12 +50,14 @@ public final class Boolean implements Comparable<Boolean> {
         return value ? 1231 : 1237;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if(obj instanceof Boolean)
             return value == ((Boolean)obj).booleanValue();
         return false;
     }
 
+    @Override
     public int compareTo(Boolean b) {
         return compare(this.value, b.value);
     }

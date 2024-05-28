@@ -5,6 +5,7 @@ public final class Byte extends Number implements Comparable<Byte> {
     public static final byte MAX_VALUE = 127;
     public static final int SIZE = 8;
     public static final int BYTES = SIZE / Byte.SIZE;
+    @SuppressWarnings("unchecked")
     public static final Class<Byte> TYPE = (Class<Byte>)Class.getPrimitiveClass("byte");
 
     private final byte value;
@@ -52,34 +53,42 @@ public final class Byte extends Number implements Comparable<Byte> {
         this.value = parseByte(s, 10);
     }
 
+    @Override
     public byte byteValue() {
         return value;
     }
 
+    @Override
     public short shortValue() {
         return (short)value;
     }
 
+    @Override
     public int intValue() {
         return (int)value;
     }
 
+    @Override
     public long longValue() {
         return (long)value;
     }
 
+    @Override
     public float floatValue() {
         return (float)value;
     }
 
+    @Override
     public double doubleValue() {
         return (double)value;
     }
 
+    @Override
     public String toString() {
         return Integer.toString(value);
     }
 
+    @Override
     public int hashCode() {
         return Byte.hashCode(value);
     }
@@ -88,6 +97,7 @@ public final class Byte extends Number implements Comparable<Byte> {
         return (int)value;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if(obj instanceof Byte) {
             return value == ((Byte)obj).byteValue();
@@ -95,6 +105,7 @@ public final class Byte extends Number implements Comparable<Byte> {
         return false;
     }
 
+    @Override
     public int compareTo(Byte anotherByte) {
         return compare(this.value, anotherByte.value);
     }

@@ -17,6 +17,7 @@ public final class Float extends Number implements Comparable<Float> {
     public static final int MAX_EXPONENT = (1 << (SIZE - PRECISION - 1)) - 1;
     public static final int MIN_EXPONENT = 1 - MAX_EXPONENT;
     public static final int BYTES = SIZE / Byte.SIZE;
+    @SuppressWarnings("unchecked")
     public static final Class<Float> TYPE = (Class<Float>)Class.getPrimitiveClass("float");
 
     private final float value;
@@ -83,34 +84,42 @@ public final class Float extends Number implements Comparable<Float> {
         return isInfinite(value);
     }
 
+    @Override
     public String toString() {
         return Float.toString(value);
     }
 
+    @Override
     public byte byteValue() {
         return (byte)value;
     }
 
+    @Override
     public short shortValue() {
         return (short)value;
     }
 
+    @Override
     public int intValue() {
         return (int)value;
     }
 
+    @Override
     public long longValue() {
         return (long)value;
     }
 
+    @Override
     public float floatValue() {
         return value;
     }
 
+    @Override
     public double doubleValue() {
         return (double)value;
     }
 
+    @Override
     public int hashCode() {
         return Float.hashCode(value);
     }
@@ -119,6 +128,7 @@ public final class Float extends Number implements Comparable<Float> {
         return floatToIntBits(value);
     }
 
+    @Override
     public boolean equals(Object obj) {
         return (obj instanceof Float) && (floatToIntBits(((Float)obj).value) == floatToIntBits(value));
     }
@@ -199,6 +209,7 @@ public final class Float extends Number implements Comparable<Float> {
         return (short)(sign_bit | ( ((exp + 15) << 10) + signif_bits ) );
     }
 
+    @Override
     public int compareTo(Float anotherFloat) {
         return Float.compare(value, anotherFloat.value);
     }

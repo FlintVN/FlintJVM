@@ -5,7 +5,10 @@ public final class Short extends Number implements Comparable<Short> {
     public static final short MAX_VALUE = 32767;
     public static final int SIZE = 16;
     public static final int BYTES = SIZE / Byte.SIZE;
+    @SuppressWarnings("unchecked")
     public static final Class<Short> TYPE = (Class<Short>) Class.getPrimitiveClass("short");
+
+    private final short value;
 
     public static String toString(short s) {
         return Integer.toString(s);
@@ -42,8 +45,6 @@ public final class Short extends Number implements Comparable<Short> {
         return valueOf((short)i);
     }
 
-    private final short value;
-
     public Short(short value) {
         this.value = value;
     }
@@ -52,34 +53,42 @@ public final class Short extends Number implements Comparable<Short> {
         this.value = parseShort(s, 10);
     }
 
+    @Override
     public byte byteValue() {
         return (byte)value;
     }
 
+    @Override
     public short shortValue() {
         return value;
     }
 
+    @Override
     public int intValue() {
         return (int)value;
     }
 
+    @Override
     public long longValue() {
         return (long)value;
     }
 
+    @Override
     public float floatValue() {
         return (float)value;
     }
 
+    @Override
     public double doubleValue() {
         return (double)value;
     }
 
+    @Override
     public String toString() {
         return Integer.toString(value);
     }
 
+    @Override
     public int hashCode() {
         return Short.hashCode(value);
     }
@@ -88,12 +97,14 @@ public final class Short extends Number implements Comparable<Short> {
         return (int)value;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (obj instanceof Short)
             return value == ((Short)obj).shortValue();
         return false;
     }
 
+    @Override
     public int compareTo(Short anotherShort) {
         return compare(this.value, anotherShort.value);
     }

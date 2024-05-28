@@ -154,16 +154,19 @@ public final class String implements Comparable<String>, CharSequence {
         return value;
     }
 
+    @Override
     public int length() {
         return value.length >>> coder;
     }
 
+    @Override
     public char charAt(int index) {
         if(coder == 0)
             return (char)value[index];
         return StringUTF16.charAt(value, index);
     }
 
+    @Override
     public boolean isEmpty() {
         return value.length == 0;
     }
@@ -350,6 +353,7 @@ public final class String implements Comparable<String>, CharSequence {
         return newString(val, beginIndex << 1, subLen << 1, (byte)1);
     }
 
+    @Override
     public CharSequence subSequence(int beginIndex, int endIndex) {
         return this.substring(beginIndex, endIndex);
     }
@@ -526,6 +530,7 @@ public final class String implements Comparable<String>, CharSequence {
         return new String(buff, 0, buff.length, this.coder);
     }
 
+    @Override
     public String toString() {
         return this;
     }
@@ -550,6 +555,7 @@ public final class String implements Comparable<String>, CharSequence {
         return false;
     }
 
+    @Override
     public int compareTo(String anotherString) {
         byte[] v1 = value;
         byte[] v2 = anotherString.value;

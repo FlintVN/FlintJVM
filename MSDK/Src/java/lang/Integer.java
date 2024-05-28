@@ -5,6 +5,7 @@ public final class Integer extends Number implements Comparable<Integer> {
     public static final int BYTES = SIZE / Byte.SIZE;
     public static final int MIN_VALUE = 0x80000000;
     public static final int MAX_VALUE = 0x7fffffff;
+    @SuppressWarnings("unchecked")
     public static final Class<Integer> TYPE = (Class<Integer>)Class.getPrimitiveClass("int");
 
     private final int value;
@@ -222,34 +223,42 @@ public final class Integer extends Number implements Comparable<Integer> {
         this.value = parseInt(s, 10);
     }
 
+    @Override
     public byte byteValue() {
         return (byte)value;
     }
 
+    @Override
     public short shortValue() {
         return (short)value;
     }
 
+    @Override
     public int intValue() {
         return value;
     }
 
+    @Override
     public long longValue() {
         return (long)value;
     }
 
+    @Override
     public float floatValue() {
         return (float)value;
     }
 
+    @Override
     public double doubleValue() {
         return (double)value;
     }
 
+    @Override
     public String toString() {
         return toString(value);
     }
 
+    @Override
     public int hashCode() {
         return Integer.hashCode(value);
     }
@@ -258,6 +267,7 @@ public final class Integer extends Number implements Comparable<Integer> {
         return value;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if(obj instanceof Integer)
             return value == ((Integer)obj).intValue();
@@ -307,6 +317,7 @@ public final class Integer extends Number implements Comparable<Integer> {
         return result;
     }
 
+    @Override
     public int compareTo(Integer anotherInteger) {
         return compare(this.value, anotherInteger.value);
     }

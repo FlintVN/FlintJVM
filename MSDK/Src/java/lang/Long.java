@@ -5,6 +5,7 @@ public final class Long extends Number implements Comparable<Long> {
     public static final long MAX_VALUE = 0x7fffffffffffffffL;
     public static final int SIZE = 64;
     public static final int BYTES = SIZE / Byte.SIZE;
+    @SuppressWarnings("unchecked")
     public static final Class<Long> TYPE = (Class<Long>)Class.getPrimitiveClass("long");
 
     private final long value;
@@ -316,34 +317,42 @@ public final class Long extends Number implements Comparable<Long> {
         this.value = parseLong(s, 10);
     }
 
+    @Override
     public byte byteValue() {
         return (byte)value;
     }
 
+    @Override
     public short shortValue() {
         return (short)value;
     }
 
+    @Override
     public int intValue() {
         return (int)value;
     }
 
+    @Override
     public long longValue() {
         return value;
     }
 
+    @Override
     public float floatValue() {
         return (float)value;
     }
 
+    @Override
     public double doubleValue() {
         return (double)value;
     }
 
+    @Override
     public String toString() {
         return toString(value);
     }
 
+    @Override
     public int hashCode() {
         return Long.hashCode(value);
     }
@@ -352,12 +361,14 @@ public final class Long extends Number implements Comparable<Long> {
         return (int)(value ^ (value >>> 32));
     }
 
+    @Override
     public boolean equals(Object obj) {
         if(obj instanceof Long)
             return value == ((Long)obj).longValue();
         return false;
     }
 
+    @Override
     public int compareTo(Long anotherLong) {
         return compare(this.value, anotherLong.value);
     }

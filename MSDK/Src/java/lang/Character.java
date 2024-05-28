@@ -5,6 +5,7 @@ public final class Character implements Comparable<Character> {
     public static final int MAX_RADIX = 36;
     public static final char MIN_VALUE = 0x0000;
     public static final char MAX_VALUE = 0xFFFF;
+    @SuppressWarnings("unchecked")
     public static final Class<Character> TYPE = (Class<Character>) Class.getPrimitiveClass("char");
 
     private final char value;
@@ -50,6 +51,7 @@ public final class Character implements Comparable<Character> {
         return value;
     }
 
+    @Override
     public int hashCode() {
         return Character.hashCode(value);
     }
@@ -58,12 +60,14 @@ public final class Character implements Comparable<Character> {
         return (int)value;
     }
 
+    @Override
     public boolean equals(Object obj) {
         if(obj instanceof Character)
             return value == ((Character)obj).charValue();
         return false;
     }
 
+    @Override
     public String toString() {
         return String.valueOf(value);
     }
@@ -72,6 +76,7 @@ public final class Character implements Comparable<Character> {
         return String.valueOf(c);
     }
 
+    @Override
     public int compareTo(Character anotherCharacter) {
         return value - anotherCharacter.value;
     }
