@@ -5,4 +5,5 @@ module java.base {
     exports java.math;
     exports java.util;
     exports jdk.internal.math;
+    exports java.lang.annotation;
 }
