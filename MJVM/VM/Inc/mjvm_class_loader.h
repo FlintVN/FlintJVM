@@ -49,57 +49,57 @@ public:
     uint16_t getMinorVersion(void) const;
     uint16_t getMajorversion(void) const;
 
-    const ConstPool &getConstPool(uint16_t index) const;
+    ConstPool &getConstPool(uint16_t index) const;
 
     int32_t getConstInteger(uint16_t poolIndex) const;
-    int32_t getConstInteger(const ConstPool &constPool) const;
+    int32_t getConstInteger(ConstPool &constPool) const;
     float getConstFloat(uint16_t poolIndex) const;
-    float getConstFloat(const ConstPool &constPool) const;
+    float getConstFloat(ConstPool &constPool) const;
     int64_t getConstLong(uint16_t poolIndex) const;
-    int64_t getConstLong(const ConstPool &constPool) const;
+    int64_t getConstLong(ConstPool &constPool) const;
     double getConstDouble(uint16_t poolIndex) const;
-    double getConstDouble(const ConstPool &constPool) const;
+    double getConstDouble(ConstPool &constPool) const;
 
-    const ConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
-    const ConstUtf8 &getConstUtf8(const ConstPool &constPool) const;
+    ConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
+    ConstUtf8 &getConstUtf8(ConstPool &constPool) const;
 
-    const ConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
-    const ConstUtf8 &getConstUtf8Class(const ConstPool &constPool) const;
-    MjvmClass &getConstClass(Execution &execution, uint16_t poolIndex) const;
-    MjvmClass &getConstClass(Execution &execution, const ConstPool &constPool) const;
+    ConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
+    ConstUtf8 &getConstUtf8Class(ConstPool &constPool) const;
+    MjvmClass &getConstClass(Execution &execution, uint16_t poolIndex);
+    MjvmClass &getConstClass(Execution &execution, ConstPool &constPool);
 
-    MjvmString &getConstString(Execution &execution, uint16_t poolIndex) const;
-    MjvmString &getConstString(Execution &execution, const ConstPool &constPool) const;
+    MjvmString &getConstString(Execution &execution, uint16_t poolIndex);
+    MjvmString &getConstString(Execution &execution, ConstPool &constPool);
 
-    const ConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
-    const ConstUtf8 &getConstMethodType(const ConstPool &constPool) const;
+    ConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
+    ConstUtf8 &getConstMethodType(ConstPool &constPool) const;
 
-    const ConstNameAndType &getConstNameAndType(uint16_t poolIndex) const;
-    const ConstNameAndType &getConstNameAndType(const ConstPool &constPool) const;
-    const ConstField &getConstField(uint16_t poolIndex) const;
-    const ConstField &getConstField(const ConstPool &constPool) const;
-    const ConstMethod &getConstMethod(uint16_t poolIndex) const;
-    const ConstMethod &getConstMethod(const ConstPool &constPool) const;
-    const ConstInterfaceMethod &getConstInterfaceMethod(uint16_t poolIndex) const;
-    const ConstInterfaceMethod &getConstInterfaceMethod(const ConstPool &constPool) const;
+    ConstNameAndType &getConstNameAndType(uint16_t poolIndex);
+    ConstNameAndType &getConstNameAndType(ConstPool &constPool);
+    ConstField &getConstField(uint16_t poolIndex);
+    ConstField &getConstField(ConstPool &constPool);
+    ConstMethod &getConstMethod(uint16_t poolIndex);
+    ConstMethod &getConstMethod(ConstPool &constPool);
+    ConstInterfaceMethod &getConstInterfaceMethod(uint16_t poolIndex);
+    ConstInterfaceMethod &getConstInterfaceMethod(ConstPool &constPool);
 
     ClassAccessFlag getAccessFlag(void) const;
 
-    const ConstUtf8 &getThisClass(void) const;
-    const ConstUtf8 &getSuperClass(void) const;
+    ConstUtf8 &getThisClass(void) const;
+    ConstUtf8 &getSuperClass(void) const;
 
     uint16_t getInterfacesCount(void) const;
-    const ConstUtf8 &getInterface(uint8_t interfaceIndex) const;
+    ConstUtf8 &getInterface(uint8_t interfaceIndex) const;
 
     uint16_t getFieldsCount(void) const;
-    const FieldInfo &getFieldInfo(uint8_t fieldIndex) const;
-    const FieldInfo &getFieldInfo(const ConstNameAndType &fieldName) const;
+    FieldInfo &getFieldInfo(uint8_t fieldIndex) const;
+    FieldInfo &getFieldInfo(ConstNameAndType &fieldName) const;
 
     uint16_t getMethodsCount(void) const;
-    const MethodInfo &getMethodInfo(uint8_t methodIndex) const;
-    const MethodInfo &getMethodInfo(const ConstNameAndType &methodName) const;
-    const MethodInfo &getMainMethodInfo(void) const;
-    const MethodInfo &getStaticConstructor(void) const;
+    MethodInfo &getMethodInfo(uint8_t methodIndex) const;
+    MethodInfo &getMethodInfo(ConstNameAndType &methodName) const;
+    MethodInfo &getMainMethodInfo(void) const;
+    MethodInfo &getStaticConstructor(void) const;
 };
 
 #endif /* __MJVM_CLASS_LOADER_H */

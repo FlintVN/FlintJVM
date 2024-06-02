@@ -9,14 +9,14 @@ class ClassLoader;
 
 class MethodInfo {
 public:
-    const ClassLoader &classLoader;
     const MethodAccessFlag accessFlag;
-    const ConstUtf8 &name;
-    const ConstUtf8 &descriptor;
+    ClassLoader &classLoader;
+    ConstUtf8 &name;
+    ConstUtf8 &descriptor;
 private:
     AttributeInfo *attributes;
 
-    MethodInfo(const ClassLoader &classLoader, MethodAccessFlag accessFlag, const ConstUtf8 &name, const ConstUtf8 &descriptor);
+    MethodInfo(ClassLoader &classLoader, MethodAccessFlag accessFlag, ConstUtf8 &name, ConstUtf8 &descriptor);
 
     MethodInfo(const MethodInfo &) = delete;
     void operator=(const MethodInfo &) = delete;
@@ -25,9 +25,9 @@ private:
 
     friend class ClassLoader;
 public:
-    const AttributeInfo &getAttribute(AttributeType type) const;
-    const AttributeCode &getAttributeCode(void) const;
-    const AttributeNative &getAttributeNative(void) const;
+    AttributeInfo &getAttribute(AttributeType type) const;
+    AttributeCode &getAttributeCode(void) const;
+    AttributeNative &getAttributeNative(void) const;
 
     ParamInfo parseParamInfo(void) const;
 

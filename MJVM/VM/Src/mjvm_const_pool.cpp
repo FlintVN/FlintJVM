@@ -14,21 +14,18 @@ bool ConstUtf8::operator!=(const ConstUtf8 &another) const {
     return false;
 }
 
-ConstNameAndType::ConstNameAndType(const ConstUtf8 &name, const ConstUtf8 &descriptor) :
-name(name),
-descriptor(descriptor) {
+ConstNameAndType::ConstNameAndType(ConstUtf8 &name, ConstUtf8 &descriptor) :
+name(name), descriptor(descriptor) {
 
 }
 
-ConstField::ConstField(const ConstUtf8 &className, const ConstNameAndType &nameAndType) :
-className(className),
-nameAndType(nameAndType) {
+ConstField::ConstField(ConstUtf8 &className, ConstNameAndType &nameAndType) :
+className(className), nameAndType(nameAndType) {
 
 }
 
-ConstMethod::ConstMethod(const ConstUtf8 &className, const ConstNameAndType &nameAndType) :
-className(className),
-nameAndType(nameAndType) {
+ConstMethod::ConstMethod(ConstUtf8 &className, ConstNameAndType &nameAndType) :
+className(className), nameAndType(nameAndType) {
 
 }
 

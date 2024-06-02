@@ -40,7 +40,7 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     objectSizeToGc = 0;
 }
 
-MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) {
+MjvmObject *Execution::newObject(uint32_t size, ConstUtf8 &type, uint8_t dimensions) {
     objectSizeToGc += size;
     if(objectSizeToGc >= OBJECT_SIZE_TO_GC)
         garbageCollection();
@@ -56,7 +56,7 @@ MjvmObject *Execution::newObject(uint32_t size, const ConstUtf8 &type, uint8_t d
     return newNode;
 }
 
-MjvmObject *Execution::newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
+MjvmObject *Execution::newMultiArray(ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
     if(dimensions > 1) {
         MjvmObject *array = newObject(counts[0] * sizeof(MjvmObject *), typeName, dimensions);
         for(uint32_t i = 0; i < counts[0]; i++)
@@ -76,11 +76,11 @@ MjvmClass *Execution::newClass(MjvmString &typeName) {
     // TODO - Check the existence of type
 
     /* create new class object */
-    MjvmObject *classObj = newObject(sizeof(FieldsData), classClassName);
+    MjvmObject *classObj = newObject(sizeof(FieldsData), *(ConstUtf8 *)&classClassName);
 
     /* init field data */
     FieldsData *fields = (FieldsData *)classObj->data;
-    new (fields)FieldsData(*this, load(classClassName), false);
+    new (fields)FieldsData(*this, load(*(ConstUtf8 *)&classClassName), false);
 
     /* set value for name field */
     fields->getFieldObject(*(ConstNameAndType *)stringNameFieldName).object = &typeName;
@@ -143,14 +143,14 @@ MjvmClass *Execution::getConstClass(MjvmString &str) {
 
 MjvmString *Execution::newString(uint16_t length, uint8_t coder) {
     /* create new byte array to store string */
-    MjvmObject *byteArray = newObject(length << (coder ? 1 : 0), *primTypeConstUtf8List[4], 1);
+    MjvmObject *byteArray = newObject(length << (coder ? 1 : 0), *(ConstUtf8 *)&primTypeConstUtf8List[4], 1);
 
     /* create new string object */
-    MjvmObject *strObj = newObject(sizeof(FieldsData), stringClassName);
+    MjvmObject *strObj = newObject(sizeof(FieldsData), *(ConstUtf8 *)&stringClassName);
 
     /* init field data */
     FieldsData *fields = (FieldsData *)strObj->data;
-    new (fields)FieldsData(*this, load(stringClassName), false);
+    new (fields)FieldsData(*this, load(*(ConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
     fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
@@ -168,7 +168,7 @@ MjvmString *Execution::newString(const char *text, uint16_t size, bool isUtf8) {
 
     /* create new byte array to store string */
     uint32_t arrayLen = isLatin1 ? strLen : (strLen << 1);
-    MjvmObject *byteArray = newObject(arrayLen, *primTypeConstUtf8List[4], 1);
+    MjvmObject *byteArray = newObject(arrayLen, *(ConstUtf8 *)primTypeConstUtf8List[4], 1);
     if(!isUtf8)
         memcpy(byteArray->data, text, strLen);
     else {
@@ -192,11 +192,11 @@ MjvmString *Execution::newString(const char *text, uint16_t size, bool isUtf8) {
     }
 
     /* create new string object */
-    MjvmObject *strObj = newObject(sizeof(FieldsData), stringClassName);
+    MjvmObject *strObj = newObject(sizeof(FieldsData), *(ConstUtf8 *)&stringClassName);
 
     /* init field data */
     FieldsData *fields = (FieldsData *)strObj->data;
-    new (fields)FieldsData(*this, load(stringClassName), false);
+    new (fields)FieldsData(*this, load(*(ConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
     fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
@@ -214,7 +214,7 @@ MjvmString *Execution::newString(const char *latin1Str[], uint16_t count) {
         length += strlen(latin1Str[i]);
 
     /* create new byte array to store string */
-    MjvmObject *byteArray = newObject(length, *primTypeConstUtf8List[4], 1);
+    MjvmObject *byteArray = newObject(length, *(ConstUtf8 *)primTypeConstUtf8List[4], 1);
     for(uint16_t i = 0; i < count; i++) {
         const char *buff = latin1Str[i];
         while(*buff) {
@@ -226,11 +226,11 @@ MjvmString *Execution::newString(const char *latin1Str[], uint16_t count) {
     }
 
     /* create new string object */
-    MjvmObject *strObj = newObject(sizeof(FieldsData), stringClassName);
+    MjvmObject *strObj = newObject(sizeof(FieldsData), *(ConstUtf8 *)&stringClassName);
 
     /* init field data */
     FieldsData *fields = (FieldsData *)strObj->data;
-    new (fields)FieldsData(*this, load(stringClassName), false);
+    new (fields)FieldsData(*this, load(*(ConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
     fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
@@ -238,7 +238,7 @@ MjvmString *Execution::newString(const char *latin1Str[], uint16_t count) {
     return (MjvmString *)strObj;
 }
 
-MjvmString *Execution::getConstString(const ConstUtf8 &utf8) {
+MjvmString *Execution::getConstString(ConstUtf8 &utf8) {
     for(MjvmConstString *node = constStringList; node != 0; node = node->next) {
         if(node->mjvmString.equals(utf8))
             return &node->mjvmString;
@@ -267,7 +267,7 @@ MjvmString *Execution::getConstString(MjvmString &str) {
     return &str;
 }
 
-MjvmThrowable *Execution::newThrowable(MjvmString *strObj, const ConstUtf8 &excpType) {
+MjvmThrowable *Execution::newThrowable(MjvmString *strObj, ConstUtf8 &excpType) {
     /* create new exception object */
     MjvmObject *obj = newObject(sizeof(FieldsData), excpType);
 
@@ -282,31 +282,31 @@ MjvmThrowable *Execution::newThrowable(MjvmString *strObj, const ConstUtf8 &excp
 }
 
 MjvmThrowable *Execution::newArrayStoreException(MjvmString *strObj) {
-    return newThrowable(strObj, arrayStoreExceptionClassName);
+    return newThrowable(strObj, *(ConstUtf8 *)&arrayStoreExceptionClassName);
 }
 
 MjvmThrowable *Execution::newArithmeticException(MjvmString *strObj) {
-    return newThrowable(strObj, arithmeticExceptionClassName);
+    return newThrowable(strObj, *(ConstUtf8 *)&arithmeticExceptionClassName);
 }
 
 MjvmThrowable *Execution::newNullPointerException(MjvmString *strObj) {
-    return newThrowable(strObj, nullPtrExcpClassName);
+    return newThrowable(strObj, *(ConstUtf8 *)&nullPtrExcpClassName);
 }
 
 MjvmThrowable *Execution::newClassNotFoundException(MjvmString *strObj) {
-    return newThrowable(strObj, classNotFoundExceptionClassName);
+    return newThrowable(strObj, *(ConstUtf8 *)&classNotFoundExceptionClassName);
 }
 
 MjvmThrowable *Execution::newCloneNotSupportedException(MjvmString *strObj) {
-    return newThrowable(strObj, cloneNotSupportedExceptionClassName);
+    return newThrowable(strObj, *(ConstUtf8 *)&cloneNotSupportedExceptionClassName);
 }
 
 MjvmThrowable *Execution::newNegativeArraySizeException(MjvmString *strObj) {
-    return newThrowable(strObj, negativeArraySizeExceptionClassName);
+    return newThrowable(strObj, *(ConstUtf8 *)&negativeArraySizeExceptionClassName);
 }
 
 MjvmThrowable *Execution::newArrayIndexOutOfBoundsException(MjvmString *strObj) {
-    return newThrowable(strObj, arrayIndexOutOfBoundsExceptionClassName);
+    return newThrowable(strObj, *(ConstUtf8 *)&arrayIndexOutOfBoundsExceptionClassName);
 }
 
 void Execution::freeAllObject(void) {
@@ -426,12 +426,12 @@ void Execution::garbageCollection(void) {
     Mjvm::unlock();
 }
 
-const ClassLoader &Execution::load(const char *className, uint16_t length) {
+ClassLoader &Execution::load(const char *className, uint16_t length) {
     Mjvm::lock();
     ClassData *newNode = 0;
     try {
         for(ClassData *node = classDataList; node != 0; node = node->next) {
-            const ConstUtf8 &name = node->getThisClass();
+            ConstUtf8 &name = node->getThisClass();
             if(name.length == length && strncmp(name.text, className, length) == 0)
                 return *node;
         }
@@ -453,20 +453,20 @@ const ClassLoader &Execution::load(const char *className, uint16_t length) {
     }
 }
 
-const ClassLoader &Execution::load(const char *className) {
+ClassLoader &Execution::load(const char *className) {
     return load(className, strlen(className));
 }
 
-const ClassLoader &Execution::load(const ConstUtf8 &className) {
+ClassLoader &Execution::load(ConstUtf8 &className) {
     return load(className.text, className.length);
 }
 
-const FieldsData &Execution::getStaticFields(const ConstUtf8 &className) const {
+FieldsData &Execution::getStaticFields(ConstUtf8 &className) const {
     for(ClassData *node = classDataList; node != 0; node = node->next) {
         if(className == node->getThisClass())
             return *node->staticFiledsData;
     }
-    return *(const FieldsData *)0;
+    return *(FieldsData *)0;
 }
 
 void Execution::initStaticField(ClassData &classData) {
@@ -487,7 +487,7 @@ Execution::StackValue Execution::getStackValue(uint32_t index) {
     return ret;
 }
 
-void Execution::setStackValue(uint32_t index, const StackValue &value) {
+void Execution::setStackValue(uint32_t index, StackValue &value) {
     stack[index] = value.value;
     if(value.type == STACK_TYPE_OBJECT)
         stackType[index / 8] |= (1 << (index % 8));
@@ -495,7 +495,7 @@ void Execution::setStackValue(uint32_t index, const StackValue &value) {
         stackType[index / 8] &= ~(1 << (index % 8));
 }
 
-void Execution::stackPush(const StackValue &value) {
+void Execution::stackPush(StackValue &value) {
     sp = peakSp = sp + 1;
     stack[sp] = value.value;
     if(value.type == STACK_TYPE_OBJECT)
@@ -593,13 +593,13 @@ void Execution::stackRestoreContext(void) {
     startSp = stackPopInt32();
     lr = stackPopInt32();
     pc = stackPopInt32();
-    method = (const MethodInfo *)stackPopInt32();
+    method = (MethodInfo *)stackPopInt32();
     code = method->getAttributeCode().code;
     locals = &stack[startSp + 1];
 }
 
-void Execution::initNewContext(const MethodInfo &methodInfo, uint16_t argc) {
-    const AttributeCode &attributeCode = methodInfo.getAttributeCode();
+void Execution::initNewContext(MethodInfo &methodInfo, uint16_t argc) {
+    AttributeCode &attributeCode = methodInfo.getAttributeCode();
     if((sp + attributeCode.maxLocals + attributeCode.maxStack) >= stackLength)
         throw "stack overflow";
     method = &methodInfo;
@@ -614,26 +614,27 @@ void Execution::initNewContext(const MethodInfo &methodInfo, uint16_t argc) {
     sp += attributeCode.maxLocals;
 }
 
-const MethodInfo &Execution::findMethod(const ConstMethod &constMethod) {
-    const ClassLoader *loader;
-    loader = &load(constMethod.className);
+MethodInfo &Execution::findMethod(ConstMethod &constMethod) {
+    ClassLoader *loader = &load(constMethod.className);
     while(loader) {
-        const MethodInfo *methodInfo = (const MethodInfo *)&loader->getMethodInfo(constMethod.nameAndType);
+        MethodInfo *methodInfo = &loader->getMethodInfo(constMethod.nameAndType);
         if(methodInfo)
             return *methodInfo;
         else {
-            const ConstUtf8 *superClass = &loader->getSuperClass();
-            loader = superClass ? &load(loader->getSuperClass()) : (const ClassLoader *)0;
+            ConstUtf8 *superClass = &loader->getSuperClass();
+            loader = superClass ? &load(loader->getSuperClass()) : (ClassLoader *)0;
         }
     }
     throw "can't find the method";
 }
 
-bool Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
+bool Execution::invoke(MethodInfo &methodInfo, uint8_t argc) {
     if((methodInfo.accessFlag & METHOD_NATIVE) != METHOD_NATIVE) {
         peakSp = sp + 4;
-        for(uint32_t i = 0; i < argc; i++)
-            setStackValue(sp - i + 4, getStackValue(sp - i));
+        for(uint32_t i = 0; i < argc; i++) {
+            StackValue stackValue = getStackValue(sp - i);
+            setStackValue(sp - i + 4, stackValue);
+        }
         sp -= argc;
 
         /* Save current context */
@@ -652,7 +653,7 @@ bool Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
         return true;
     }
     else {
-        const AttributeNative &attrNative = methodInfo.getAttributeNative();
+        AttributeNative &attrNative = methodInfo.getAttributeNative();
         if(attrNative.nativeMethod(*this)) {
             pc = lr;
             return true;
@@ -661,9 +662,9 @@ bool Execution::invoke(const MethodInfo &methodInfo, uint8_t argc) {
     }
 }
 
-bool Execution::invokeStatic(const ConstMethod &constMethod) {
+bool Execution::invokeStatic(ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
-    const MethodInfo &methodInfo = findMethod(constMethod);
+    MethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             ClassData &classData = *(ClassData *)&methodInfo.classLoader;
@@ -690,9 +691,9 @@ bool Execution::invokeStatic(const ConstMethod &constMethod) {
         throw "invoke static to non-static method";
 }
 
-bool Execution::invokeSpecial(const ConstMethod &constMethod) {
+bool Execution::invokeSpecial(ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc + 1;
-    const MethodInfo &methodInfo = findMethod(constMethod);
+    MethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             MjvmObject *obj = (MjvmObject *)stack[sp - argc - 1];
@@ -719,7 +720,7 @@ bool Execution::invokeSpecial(const ConstMethod &constMethod) {
         throw "invoke special to static method";
 }
 
-bool Execution::invokeVirtual(const ConstMethod &constMethod) {
+bool Execution::invokeVirtual(ConstMethod &constMethod) {
     uint8_t argc = constMethod.parseParamInfo().argc;
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
     if(obj == 0) {
@@ -729,12 +730,12 @@ bool Execution::invokeVirtual(const ConstMethod &constMethod) {
         stackPushObject(excpObj);
         return false;
     }
-    const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClassName : obj->type;
+    ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? *(ConstUtf8 *)&objectClassName : obj->type;
     uint32_t virtualConstMethod[] = {
         (uint32_t)&type,                                /* class name */
         (uint32_t)&constMethod.nameAndType              /* name and type */
     };
-    const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)virtualConstMethod);
+    MethodInfo &methodInfo = findMethod(*(ConstMethod *)virtualConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             Mjvm::lock();
@@ -761,7 +762,7 @@ bool Execution::invokeVirtual(const ConstMethod &constMethod) {
         throw "invoke virtual to static method";
 }
 
-bool Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
+bool Execution::invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     MjvmObject *obj = (MjvmObject *)stack[sp - argc + 1];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
@@ -770,12 +771,12 @@ bool Execution::invokeInterface(const ConstInterfaceMethod &interfaceMethod, uin
         stackPushObject(excpObj);
         return false;
     }
-    const ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? objectClassName : obj->type;
+    ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? *(ConstUtf8 *)&objectClassName : obj->type;
     uint32_t interfaceConstMethod[] = {
         (uint32_t)&type,                                /* class name */
         (uint32_t)&interfaceMethod.nameAndType          /* name and type */
     };
-    const MethodInfo &methodInfo = findMethod(*(const ConstMethod *)interfaceConstMethod);
+    MethodInfo &methodInfo = findMethod(*(ConstMethod *)interfaceConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             Mjvm::lock();
@@ -828,7 +829,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t len
     if(dimensions != obj->dimensions)
         return false;
     else {
-        const ConstUtf8 *objType = &obj->type;
+        ConstUtf8 *objType = &obj->type;
         while(1) {
             if(len == objType->length) {
                 bool isEquals = true;
@@ -967,7 +968,7 @@ int64_t Execution::run(const char *mainClass) {
         pc += 3;
         goto *opcodes[code[pc]];
     op_ldc: {
-        const ConstPool &constPool = method->classLoader.getConstPool(code[pc + 1]);
+        ConstPool &constPool = method->classLoader.getConstPool(code[pc + 1]);
         pc += 2;
         switch(constPool.tag & 0x7F) {
             case CONST_INTEGER:
@@ -994,7 +995,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_ldc_w: {
         uint16_t index = ARRAY_TO_INT16(&code[pc + 1]);
-        const ConstPool &constPool = method->classLoader.getConstPool(index);
+        ConstPool &constPool = method->classLoader.getConstPool(index);
         pc += 3;
         switch(constPool.tag & 0x7F) {
             case CONST_INTEGER:
@@ -1021,7 +1022,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_ldc2_w: {
         uint16_t index = ARRAY_TO_INT16(&code[pc + 1]);
-        const ConstPool &constPool = method->classLoader.getConstPool(index);
+        ConstPool &constPool = method->classLoader.getConstPool(index);
         pc += 3;
         switch(constPool.tag) {
             case CONST_LONG:
@@ -1485,10 +1486,12 @@ int64_t Execution::run(const char *mainClass) {
         stackPopInt64();
         pc++;
         goto *opcodes[code[pc]];
-    op_dup:
-        stackPush(getStackValue(sp));
+    op_dup: {
+        StackValue value = getStackValue(sp);
+        stackPush(value);
         pc++;
         goto *opcodes[code[pc]];
+    }
     op_dup_x1: {
         StackValue value2 = getStackValue(sp - 1);
         StackValue value1 = getStackValue(sp - 0);
@@ -2075,8 +2078,8 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     }
     op_getstatic: {
-        const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        const FieldsData &fields = getStaticFields(constField.className);
+        ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
+        FieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
             try {
                 stackPushInt32((int32_t)(ClassData *)&load(constField.className));
@@ -2108,8 +2111,8 @@ int64_t Execution::run(const char *mainClass) {
         }
     }
     op_putstatic: {
-        const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        const FieldsData &fields = getStaticFields(constField.className);
+        ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
+        FieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
             try {
                 stackPushInt32((int32_t)(ClassData *)&load(constField.className));
@@ -2149,7 +2152,7 @@ int64_t Execution::run(const char *mainClass) {
         }
     }
     op_getfield: {
-        const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
+        ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         pc += 3;
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'J':
@@ -2157,7 +2160,7 @@ int64_t Execution::run(const char *mainClass) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
+                FieldsData &fields = *(FieldsData *)obj->data;
                 stackPushInt64(fields.getFieldData64(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
             }
@@ -2166,7 +2169,7 @@ int64_t Execution::run(const char *mainClass) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
+                FieldsData &fields = *(FieldsData *)obj->data;
                 stackPushObject(fields.getFieldObject(constField.nameAndType).object);
                 goto *opcodes[code[pc]];
             }
@@ -2174,7 +2177,7 @@ int64_t Execution::run(const char *mainClass) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
+                FieldsData &fields = *(FieldsData *)obj->data;
                 stackPushInt32(fields.getFieldData32(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
             }
@@ -2194,7 +2197,7 @@ int64_t Execution::run(const char *mainClass) {
         }
     }
     op_putfield: {
-        const ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
+        ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         pc += 3;
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
@@ -2203,7 +2206,7 @@ int64_t Execution::run(const char *mainClass) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
+                FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldData32(constField.nameAndType).value = (int8_t)value;
                 goto *opcodes[code[pc]];
             }
@@ -2213,7 +2216,7 @@ int64_t Execution::run(const char *mainClass) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
+                FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldData32(constField.nameAndType).value = (int16_t)value;
                 goto *opcodes[code[pc]];
             }
@@ -2223,7 +2226,7 @@ int64_t Execution::run(const char *mainClass) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
+                FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldData64(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
             }
@@ -2233,7 +2236,7 @@ int64_t Execution::run(const char *mainClass) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
+                FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldObject(constField.nameAndType).object = value;
                 goto *opcodes[code[pc]];
             }
@@ -2242,7 +2245,7 @@ int64_t Execution::run(const char *mainClass) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                const FieldsData &fields = *(FieldsData *)obj->data;
+                FieldsData &fields = *(FieldsData *)obj->data;
                 fields.getFieldData32(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
             }
@@ -2262,7 +2265,7 @@ int64_t Execution::run(const char *mainClass) {
         }
     }
     op_invokevirtual: {
-        const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
             if(!invokeVirtual(constMethod))
@@ -2275,7 +2278,7 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
-        const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
             if(!invokeSpecial(constMethod))
@@ -2288,7 +2291,7 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     }
     op_invokestatic: {
-        const ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
             if(!invokeStatic(constMethod))
@@ -2301,7 +2304,7 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     }
     op_invokeinterface: {
-        const ConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        ConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t count = code[pc + 3];
         lr = pc + 5;
         try {
@@ -2319,7 +2322,7 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
-        const ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
+        ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
         MjvmObject *obj = newObject(sizeof(FieldsData), constClass);
         try {
             ClassData &classData = *(ClassData *)&load(constClass.text);
@@ -2343,7 +2346,7 @@ int64_t Execution::run(const char *mainClass) {
             goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
         uint8_t typeSize = MjvmObject::getPrimitiveTypeSize(atype);
-        MjvmObject *obj = newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1);
+        MjvmObject *obj = newObject(typeSize * count, *(ConstUtf8 *)primTypeConstUtf8List[atype - 4], 1);
         memset(obj->data, 0, obj->size);
         stackPushObject(obj);
         pc += 2;
@@ -2354,7 +2357,7 @@ int64_t Execution::run(const char *mainClass) {
         if(count < 0)
             goto negative_array_size_excp;
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
-        const ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
+        ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
         MjvmObject *obj = newObject(4 * count, constClass, 1);
         memset(obj->data, 0, obj->size);
         stackPushObject(obj);
@@ -2400,11 +2403,11 @@ int64_t Execution::run(const char *mainClass) {
         MjvmObject *obj = stackPopObject();
         sp = startSp + method->getAttributeCode().maxLocals;
         stackPushObject(obj);
-        const AttributeCode &attributeCode = method->getAttributeCode();
+        AttributeCode &attributeCode = method->getAttributeCode();
         for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
-            const ExceptionTable &exceptionTable = attributeCode.getException(i);
+            ExceptionTable &exceptionTable = attributeCode.getException(i);
             if(exceptionTable.startPc <= pc && pc < exceptionTable.endPc) {
-                const ConstUtf8 &typeName = method->classLoader.getConstUtf8Class(exceptionTable.catchType);
+                ConstUtf8 &typeName = method->classLoader.getConstUtf8Class(exceptionTable.catchType);
                 if(isInstanceof(obj, typeName.text, typeName.length)) {
                     pc = exceptionTable.handlerPc;
                     goto *opcodes[code[pc]];
@@ -2420,7 +2423,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_checkcast: {
         MjvmObject *obj = (MjvmObject *)stack[sp];
-        const ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
+        ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         if(obj != 0) {
             bool isInsOf;
             try {
@@ -2449,7 +2452,7 @@ int64_t Execution::run(const char *mainClass) {
     }
     op_instanceof: {
         MjvmObject *obj = stackPopObject();
-        const ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
+        ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         try {
             stackPushInt32(isInstanceof(obj, type.text, type.length));
         }
@@ -2562,8 +2565,8 @@ int64_t Execution::run(const char *mainClass) {
         }
     }
     op_multianewarray: {
-        const ConstUtf8 *typeName = &method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
-        const uint8_t dimensions = code[pc + 3];
+        ConstUtf8 *typeName = &method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
+        uint8_t dimensions = code[pc + 3];
         const char *typeNameText = typeName->text;
         uint32_t length = typeName->length - dimensions;
         try {
@@ -2571,7 +2574,7 @@ int64_t Execution::run(const char *mainClass) {
                 uint8_t atype = MjvmObject::convertToAType(typeNameText[dimensions]);
                 if(atype == 0)
                     throw "invalid primative type";
-                typeName = primTypeConstUtf8List[atype - 4];
+                typeName = (ConstUtf8 *)primTypeConstUtf8List[atype - 4];
             }
             else
                 typeName = &load(&typeNameText[dimensions + 1], length - 2).getThisClass();
@@ -2613,7 +2616,7 @@ int64_t Execution::run(const char *mainClass) {
         };
         initStaticField(classDataToInit);
         lr = pc;
-        invokeStatic(*(const ConstMethod *)ctorConstMethod);
+        invokeStatic(*(ConstMethod *)ctorConstMethod);
         goto *opcodes[code[pc]];
     }
     divided_by_zero_excp: {

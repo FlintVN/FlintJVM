@@ -3,7 +3,7 @@
 #include "mjvm.h"
 #include "mjvm_field_info.h"
 
-FieldInfo::FieldInfo(const ClassLoader &classLoader, FieldAccessFlag accessFlag, const ConstUtf8 &name, const ConstUtf8 &descriptor) :
-classLoader(classLoader), accessFlag(accessFlag), name(name), descriptor(descriptor) {
+FieldInfo::FieldInfo(ClassLoader &classLoader, FieldAccessFlag accessFlag, ConstUtf8 &name, ConstUtf8 &descriptor) :
+accessFlag(accessFlag), classLoader(classLoader), name(name), descriptor(descriptor) {
 
 }

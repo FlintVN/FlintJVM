@@ -100,7 +100,7 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
                 }
             }
         }
-        const ConstUtf8 *superClass = &loader->getSuperClass();
+        ConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &execution.load(*superClass) : 0;
     }
 
@@ -129,7 +129,7 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
                 }
             }
         }
-        const ConstUtf8 *superClass = &loader->getSuperClass();
+        ConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &execution.load(*superClass) : 0;
     }
 }

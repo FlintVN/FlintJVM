@@ -106,7 +106,7 @@ public:
     const uint16_t exceptionTableLength;
     const uint8_t *code;
 private:
-    const ExceptionTable *exceptionTable;
+    ExceptionTable *exceptionTable;
     AttributeInfo *attributes;
 
     AttributeCode(uint16_t maxStack, uint16_t maxLocals);
@@ -121,7 +121,7 @@ private:
 
     friend class ClassLoader;
 public:
-    const ExceptionTable &getException(uint16_t index) const;
+    ExceptionTable &getException(uint16_t index) const;
 };
 
 class BootstrapMethod {
@@ -144,14 +144,14 @@ class AttributeBootstrapMethods : public AttributeInfo {
 public:
     const uint16_t numBootstrapMethods;
 private:
-    const BootstrapMethod **bootstrapMethods;
+    BootstrapMethod **bootstrapMethods;
 
     AttributeBootstrapMethods(uint16_t numBootstrapMethods);
     AttributeBootstrapMethods(const AttributeBootstrapMethods &) = delete;
     void operator=(const AttributeBootstrapMethods &) = delete;
 
-    const BootstrapMethod &getBootstrapMethod(uint16_t index);
-    void setBootstrapMethod(uint16_t index, const BootstrapMethod &bootstrapMethod);
+    BootstrapMethod &getBootstrapMethod(uint16_t index);
+    void setBootstrapMethod(uint16_t index, BootstrapMethod &bootstrapMethod);
 
     ~AttributeBootstrapMethods(void);
 

@@ -1,7 +1,7 @@
 
 #include "mjvm_const_name.h"
 
-const ConstUtf8 *primTypeConstUtf8List[] = {
+const ConstUtf8 * const primTypeConstUtf8List[] = {
     (ConstUtf8 *)"\x01\x00""Z",                 /* boolean */
     (ConstUtf8 *)"\x01\x00""C",                 /* char */
     (ConstUtf8 *)"\x01\x00""F",                 /* float */

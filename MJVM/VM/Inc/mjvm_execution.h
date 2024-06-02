@@ -28,7 +28,7 @@
 class Execution {
 private:
     const uint32_t stackLength;
-    const MethodInfo *method;
+    MethodInfo *method;
     const uint8_t *code;
     uint32_t pc;
     uint32_t lr;
@@ -61,9 +61,9 @@ protected:
 
     ~Execution(void);
 public:
-    MjvmObject *newObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions = 0);
+    MjvmObject *newObject(uint32_t size, ConstUtf8 &type, uint8_t dimensions = 0);
 
-    MjvmObject *newMultiArray(const ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
+    MjvmObject *newMultiArray(ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
     MjvmClass *newClass(MjvmString &typeName);
     MjvmClass *newClass(const char *typeName, uint16_t length);
@@ -73,10 +73,10 @@ public:
     MjvmString *newString(uint16_t length, uint8_t coder);
     MjvmString *newString(const char *text, uint16_t size, bool isUtf8 = false);
     MjvmString *newString(const char *latin1Str[], uint16_t count);
-    MjvmString *getConstString(const ConstUtf8 &utf8);
+    MjvmString *getConstString(ConstUtf8 &utf8);
     MjvmString *getConstString(MjvmString &str);
 
-    MjvmThrowable *newThrowable(MjvmString *strObj, const ConstUtf8 &excpType);
+    MjvmThrowable *newThrowable(MjvmString *strObj, ConstUtf8 &excpType);
     MjvmThrowable *newArrayStoreException(MjvmString *strObj);
     MjvmThrowable *newArithmeticException(MjvmString *strObj);
     MjvmThrowable *newNullPointerException(MjvmString *strObj);
@@ -90,13 +90,13 @@ private:
     void garbageCollectionProtectObject(MjvmObject *obj);
 
     void initStaticField(ClassData &classData);
-    const FieldsData &getStaticFields(const ConstUtf8 &className) const;
+    FieldsData &getStaticFields(ConstUtf8 &className) const;
 
     StackType getStackType(uint32_t index);
     StackValue getStackValue(uint32_t index);
-    void setStackValue(uint32_t index, const StackValue &value);
+    void setStackValue(uint32_t index, StackValue &value);
 
-    void stackPush(const StackValue &value);
+    void stackPush(StackValue &value);
 public:
     void stackPushInt32(int32_t value);
     void stackPushInt64(int64_t value);
@@ -112,14 +112,14 @@ public:
 private:
     void stackRestoreContext(void);
 
-    void initNewContext(const MethodInfo &methodInfo, uint16_t argc = 0);
+    void initNewContext(MethodInfo &methodInfo, uint16_t argc = 0);
 
-    const MethodInfo &findMethod(const ConstMethod &constMethod);
-    bool invoke(const MethodInfo &methodInfo, uint8_t argc);
-    bool invokeStatic(const ConstMethod &constMethod);
-    bool invokeSpecial(const ConstMethod &constMethod);
-    bool invokeVirtual(const ConstMethod &constMethod);
-    bool invokeInterface(const ConstInterfaceMethod &interfaceMethod, uint8_t argc);
+    MethodInfo &findMethod(ConstMethod &constMethod);
+    bool invoke(MethodInfo &methodInfo, uint8_t argc);
+    bool invokeStatic(ConstMethod &constMethod);
+    bool invokeSpecial(ConstMethod &constMethod);
+    bool invokeVirtual(ConstMethod &constMethod);
+    bool invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
     friend class Mjvm;
 public:
@@ -127,9 +127,9 @@ public:
 
     void garbageCollection(void);
 
-    const ClassLoader &load(const char *className, uint16_t length);
-    const ClassLoader &load(const char *className);
-    const ClassLoader &load(const ConstUtf8 &className);
+    ClassLoader &load(const char *className, uint16_t length);
+    ClassLoader &load(const char *className);
+    ClassLoader &load(ConstUtf8 &className);
 
     int64_t run(const char *mainClass);
 };

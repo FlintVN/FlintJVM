@@ -78,7 +78,7 @@ void AttributeCode::addAttribute(AttributeInfo *attribute) {
     this->attributes = attribute;
 }
 
-const ExceptionTable &AttributeCode::getException(uint16_t index) const {
+ExceptionTable &AttributeCode::getException(uint16_t index) const {
     if(index < exceptionTableLength)
         return exceptionTable[index];
     throw "index for ExceptionTable is invalid";
@@ -110,16 +110,16 @@ uint16_t BootstrapMethod::getBootstrapArgument(uint16_t index) const {
 
 AttributeBootstrapMethods::AttributeBootstrapMethods(uint16_t numBootstrapMethods) :
 AttributeInfo(ATTRIBUTE_BOOTSTRAP_METHODS), numBootstrapMethods(numBootstrapMethods) {
-    bootstrapMethods = (const BootstrapMethod **)Mjvm::malloc(numBootstrapMethods * sizeof(BootstrapMethod *));
+    bootstrapMethods = (BootstrapMethod **)Mjvm::malloc(numBootstrapMethods * sizeof(BootstrapMethod *));
 }
 
-const BootstrapMethod &AttributeBootstrapMethods::getBootstrapMethod(uint16_t index) {
+BootstrapMethod &AttributeBootstrapMethods::getBootstrapMethod(uint16_t index) {
     if(index < numBootstrapMethods)
         return *bootstrapMethods[index];
     throw "index for BootstrapMethod is invalid";
 }
 
-void AttributeBootstrapMethods::setBootstrapMethod(uint16_t index, const BootstrapMethod &bootstrapMethod) {
+void AttributeBootstrapMethods::setBootstrapMethod(uint16_t index, BootstrapMethod &bootstrapMethod) {
     bootstrapMethods[index] = &bootstrapMethod;
 }
 

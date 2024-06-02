@@ -4,7 +4,7 @@
 
 #include "mjvm_const_pool.h"
 
-extern const ConstUtf8 *primTypeConstUtf8List[];
+extern const ConstUtf8 * const primTypeConstUtf8List[];
 extern const uint32_t stringNameFieldName[];
 extern const uint32_t stringValueFieldName[];
 extern const uint32_t stringCoderFieldName[];

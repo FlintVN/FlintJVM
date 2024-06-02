@@ -6,7 +6,7 @@
 #include "mjvm_class_loader.h"
 
 typedef struct {
-    const ConstUtf8 *constUtf8Class;
+    ConstUtf8 *constUtf8Class;
     MjvmClass *constClass;
 } ConstClassValue;
 
@@ -333,7 +333,7 @@ uint16_t ClassLoader::getMajorversion(void) const {
     return majorVersion;
 }
 
-const ConstPool &ClassLoader::getConstPool(uint16_t poolIndex) const {
+ConstPool &ClassLoader::getConstPool(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount)
         return poolTable[poolIndex];
@@ -347,7 +347,7 @@ int32_t ClassLoader::getConstInteger(uint16_t poolIndex) const {
     throw "index for const integer is invalid";
 }
 
-int32_t ClassLoader::getConstInteger(const ConstPool &constPool) const {
+int32_t ClassLoader::getConstInteger(ConstPool &constPool) const {
     if(constPool.tag == CONST_INTEGER)
         return (int32_t)constPool.value;
     throw "const pool tag is not integer tag";
@@ -360,7 +360,7 @@ float ClassLoader::getConstFloat(uint16_t poolIndex) const {
     throw "index for const float is invalid";
 }
 
-float ClassLoader::getConstFloat(const ConstPool &constPool) const {
+float ClassLoader::getConstFloat(ConstPool &constPool) const {
     if(constPool.tag == CONST_FLOAT)
         return *(float *)&constPool.value;
     throw "const pool tag is not float tag";
@@ -373,7 +373,7 @@ int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
     throw "index for const long is invalid";
 }
 
-int64_t ClassLoader::getConstLong(const ConstPool &constPool) const {
+int64_t ClassLoader::getConstLong(ConstPool &constPool) const {
     return getConstLong((uint16_t)(&constPool - poolTable) + 1);
 }
 
@@ -386,24 +386,24 @@ double ClassLoader::getConstDouble(uint16_t poolIndex) const {
     throw "index for const double is invalid";
 }
 
-double ClassLoader::getConstDouble(const ConstPool &constPool) const {
+double ClassLoader::getConstDouble(ConstPool &constPool) const {
     return getConstDouble((uint16_t)(&constPool - poolTable) + 1);
 }
 
-const ConstUtf8 &ClassLoader::getConstUtf8(uint16_t poolIndex) const {
+ConstUtf8 &ClassLoader::getConstUtf8(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_UTF8)
         return *(ConstUtf8 *)poolTable[poolIndex].value;
     throw "index for const utf8 is invalid";
 }
 
-const ConstUtf8 &ClassLoader::getConstUtf8(const ConstPool &constPool) const {
+ConstUtf8 &ClassLoader::getConstUtf8(ConstPool &constPool) const {
     if(constPool.tag == CONST_UTF8)
         return *(ConstUtf8 *)constPool.value;
     throw "const pool tag is not utf8 tag";
 }
 
-const ConstUtf8 &ClassLoader::getConstUtf8Class(uint16_t poolIndex) const {
+ConstUtf8 &ClassLoader::getConstUtf8Class(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -420,7 +420,7 @@ const ConstUtf8 &ClassLoader::getConstUtf8Class(uint16_t poolIndex) const {
     throw "index for const class is invalid";
 }
 
-const ConstUtf8 &ClassLoader::getConstUtf8Class(const ConstPool &constPool) const {
+ConstUtf8 &ClassLoader::getConstUtf8Class(ConstPool &constPool) const {
     if((constPool.tag & 0x7F) == CONST_CLASS) {
         if(constPool.tag & 0x80) {
             Mjvm::lock();
@@ -436,13 +436,13 @@ const ConstUtf8 &ClassLoader::getConstUtf8Class(const ConstPool &constPool) cons
     throw "const pool tag is not class tag";
 }
 
-MjvmClass &ClassLoader::getConstClass(Execution &execution, uint16_t poolIndex) const {
+MjvmClass &ClassLoader::getConstClass(Execution &execution, uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
         if(poolTable[poolIndex].tag & 0x80) {
             Mjvm::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                const ConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
+                ConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
                 ConstClassValue *constClassValue = (ConstClassValue *)Mjvm::malloc(sizeof(ConstClassValue));
                 constClassValue->constUtf8Class = &constUtf8Class;
                 constClassValue->constClass = execution.getConstClass(constUtf8Class.text, constUtf8Class.length);
@@ -456,12 +456,12 @@ MjvmClass &ClassLoader::getConstClass(Execution &execution, uint16_t poolIndex) 
     throw "index for const class is invalid";
 }
 
-MjvmClass &ClassLoader::getConstClass(Execution &execution, const ConstPool &constPool) const {
+MjvmClass &ClassLoader::getConstClass(Execution &execution, ConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_CLASS) {
         if(constPool.tag & 0x80) {
             Mjvm::lock();
             if(constPool.tag & 0x80) {
-                const ConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
+                ConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
                 ConstClassValue *constClassValue = (ConstClassValue *)Mjvm::malloc(sizeof(ConstClassValue));
                 constClassValue->constUtf8Class = &constUtf8Class;
                 constClassValue->constClass = execution.getConstClass(constUtf8Class.text, constUtf8Class.length);
@@ -475,13 +475,13 @@ MjvmClass &ClassLoader::getConstClass(Execution &execution, const ConstPool &con
     throw "const pool tag is not class tag";
 }
 
-MjvmString &ClassLoader::getConstString(Execution &execution, uint16_t poolIndex) const {
+MjvmString &ClassLoader::getConstString(Execution &execution, uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_STRING) {
         if(poolTable[poolIndex].tag & 0x80) {
             Mjvm::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                const ConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
+                ConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
                 MjvmString *strObj = execution.getConstString(utf8Str);
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)strObj;
                 *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
@@ -493,12 +493,12 @@ MjvmString &ClassLoader::getConstString(Execution &execution, uint16_t poolIndex
     throw "index for const string is invalid";
 }
 
-MjvmString &ClassLoader::getConstString(Execution &execution, const ConstPool &constPool) const {
+MjvmString &ClassLoader::getConstString(Execution &execution, ConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_STRING) {
         if(constPool.tag & 0x80) {
             Mjvm::lock();
             if(constPool.tag & 0x80) {
-                const ConstUtf8 &utf8Str = getConstUtf8(constPool.value);
+                ConstUtf8 &utf8Str = getConstUtf8(constPool.value);
                 MjvmString *strObj = execution.getConstString(utf8Str);
                 *(uint32_t *)&constPool.value = (uint32_t)strObj;
                 *(ConstPoolTag *)&constPool.tag = CONST_STRING;
@@ -510,20 +510,20 @@ MjvmString &ClassLoader::getConstString(Execution &execution, const ConstPool &c
     throw "const pool tag is not string tag";
 }
 
-const ConstUtf8 &ClassLoader::getConstMethodType(uint16_t poolIndex) const {
+ConstUtf8 &ClassLoader::getConstMethodType(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_METHOD)
         return getConstUtf8(poolTable[poolIndex].value);
     throw "index for const method type is invalid";
 }
 
-const ConstUtf8 &ClassLoader::getConstMethodType(const ConstPool &constPool) const {
+ConstUtf8 &ClassLoader::getConstMethodType(ConstPool &constPool) const {
     if(constPool.tag == CONST_METHOD)
         return getConstUtf8(constPool.value);
     throw "const pool tag is not method type tag";
 }
 
-const ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) const {
+ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_NAME_AND_TYPE) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -542,11 +542,11 @@ const ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) con
     throw "index for const name and type is invalid";
 }
 
-const ConstNameAndType &ClassLoader::getConstNameAndType(const ConstPool &constPool) const {
+ConstNameAndType &ClassLoader::getConstNameAndType(ConstPool &constPool) {
     return getConstNameAndType((uint16_t)(&constPool - poolTable) + 1);
 }
 
-const ConstField &ClassLoader::getConstField(uint16_t poolIndex) const {
+ConstField &ClassLoader::getConstField(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_FIELD) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -565,11 +565,11 @@ const ConstField &ClassLoader::getConstField(uint16_t poolIndex) const {
     throw "index for const field is invalid";
 }
 
-const ConstField &ClassLoader::getConstField(const ConstPool &constPool) const {
+ConstField &ClassLoader::getConstField(ConstPool &constPool) {
     return getConstField((uint16_t)(&constPool - poolTable) + 1);
 }
 
-const ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) const {
+ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_METHOD) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -588,11 +588,11 @@ const ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) const {
     throw "index for const method is invalid";
 }
 
-const ConstMethod &ClassLoader::getConstMethod(const ConstPool &constPool) const {
+ConstMethod &ClassLoader::getConstMethod(ConstPool &constPool) {
     return getConstMethod((uint16_t)(&constPool - poolTable) + 1);
 }
 
-const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIndex) const {
+ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_INTERFACE_METHOD) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -611,7 +611,7 @@ const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIn
     throw "index for const interface method is invalid";
 }
 
-const ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(const ConstPool &constPool) const {
+ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(ConstPool &constPool) {
     return getConstInterfaceMethod((uint16_t)(&constPool - poolTable) + 1);
 }
 
@@ -619,11 +619,11 @@ ClassAccessFlag ClassLoader::getAccessFlag(void) const {
     return (ClassAccessFlag)accessFlags;
 }
 
-const ConstUtf8 &ClassLoader::getThisClass(void) const {
+ConstUtf8 &ClassLoader::getThisClass(void) const {
     return getConstUtf8Class(thisClass);
 }
 
-const ConstUtf8 &ClassLoader::getSuperClass(void) const {
+ConstUtf8 &ClassLoader::getSuperClass(void) const {
     if(superClass == 0)
         return *(ConstUtf8 *)0;
     return getConstUtf8Class(superClass);
@@ -633,7 +633,7 @@ uint16_t ClassLoader::getInterfacesCount(void) const {
     return interfacesCount;
 }
 
-const ConstUtf8 &ClassLoader::getInterface(uint8_t interfaceIndex) const {
+ConstUtf8 &ClassLoader::getInterface(uint8_t interfaceIndex) const {
     if(interfaceIndex < interfacesCount)
         return getConstUtf8Class(interfaces[interfaceIndex]);
     throw "index for const interface is invalid";
@@ -643,43 +643,43 @@ uint16_t ClassLoader::getFieldsCount(void) const {
     return fieldsCount;
 }
 
-const FieldInfo &ClassLoader::getFieldInfo(uint8_t fieldIndex) const {
+FieldInfo &ClassLoader::getFieldInfo(uint8_t fieldIndex) const {
     if(fieldIndex < fieldsCount)
         return fields[fieldIndex];
     throw "index for field info is invalid";
 }
 
-const FieldInfo &ClassLoader::getFieldInfo(const ConstNameAndType &fieldName) const {
+FieldInfo &ClassLoader::getFieldInfo(ConstNameAndType &fieldName) const {
     for(uint16_t i = 0; i < fieldsCount; i++) {
         if(&fieldName.name == &fields[i].name && &fieldName.descriptor == &fields[i].descriptor)
             return fields[i];
         else if(fieldName.name == fields[i].name && fieldName.descriptor == fields[i].descriptor)
             return fields[i];
     }
-    return *(const FieldInfo *)0;
+    return *(FieldInfo *)0;
 }
 
 uint16_t ClassLoader::getMethodsCount(void) const {
     return methodsCount;
 }
 
-const MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
+MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
     if(methodIndex < methodsCount)
         return methods[methodIndex];
     throw "index for method info is invalid";
 }
 
-const MethodInfo &ClassLoader::getMethodInfo(const ConstNameAndType &methodName) const {
+MethodInfo &ClassLoader::getMethodInfo(ConstNameAndType &methodName) const {
     for(uint16_t i = 0; i < methodsCount; i++) {
         if(&methodName.name == &methods[i].name && &methodName.descriptor == &methods[i].descriptor)
             return methods[i];
         else if(methodName.name == methods[i].name && methodName.descriptor == methods[i].descriptor)
             return methods[i];
     }
-    return *(const MethodInfo *)0;
+    return *(MethodInfo *)0;
 }
 
-const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
+MethodInfo &ClassLoader::getMainMethodInfo(void) const {
     for(uint16_t i = 0; i < methodsCount; i++) {
         if(methods[i].name.length == (sizeof("main") - 1) && methods[i].descriptor.length >= sizeof("([Ljava/lang/String;)")) {
             if(
@@ -692,10 +692,10 @@ const MethodInfo &ClassLoader::getMainMethodInfo(void) const {
             }
         }
     }
-    return *(const MethodInfo *)0;
+    return *(MethodInfo *)0;
 }
 
-const MethodInfo &ClassLoader::getStaticConstructor(void) const {
+MethodInfo &ClassLoader::getStaticConstructor(void) const {
     for(int32_t i = methodsCount - 1; i >= 0; i--) {
         if(
             methods[i].accessFlag == METHOD_STATIC &&

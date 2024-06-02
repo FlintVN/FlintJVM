@@ -30,13 +30,13 @@ public:
 
 class ConstNameAndType {
 public:
-    const ConstUtf8 &name;
-    const ConstUtf8 &descriptor;
+    ConstUtf8 &name;
+    ConstUtf8 &descriptor;
 
     bool operator==(const ConstNameAndType &another) const;
     bool operator!=(const ConstNameAndType &another) const;
 private:
-    ConstNameAndType(const ConstUtf8 &name, const ConstUtf8 &descriptor);
+    ConstNameAndType(ConstUtf8 &name, ConstUtf8 &descriptor);
     ConstNameAndType(const ConstNameAndType &) = delete;
     void operator=(const ConstNameAndType &) = delete;
 
@@ -45,10 +45,10 @@ private:
 
 class ConstField {
 public:
-    const ConstUtf8 &className;
-    const ConstNameAndType &nameAndType;
+    ConstUtf8 &className;
+    ConstNameAndType &nameAndType;
 private:
-    ConstField(const ConstUtf8 &className, const ConstNameAndType &nameAndType);
+    ConstField(ConstUtf8 &className, ConstNameAndType &nameAndType);
     ConstField(const ConstField &) = delete;
     void operator=(const ConstField &) = delete;
 
@@ -64,12 +64,12 @@ ParamInfo parseParamInfo(const ConstUtf8 &descriptor);
 
 class ConstMethod {
 public:
-    const ConstUtf8 &className;
-    const ConstNameAndType &nameAndType;
+    ConstUtf8 &className;
+    ConstNameAndType &nameAndType;
 
     ParamInfo parseParamInfo(void) const;
 private:
-    ConstMethod(const ConstUtf8 &className, const ConstNameAndType &nameAndType);
+    ConstMethod(ConstUtf8 &className, ConstNameAndType &nameAndType);
     ConstMethod(const ConstMethod &) = delete;
     void operator=(const ConstMethod &) = delete;
 

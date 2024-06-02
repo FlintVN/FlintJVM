@@ -40,7 +40,7 @@ uint8_t MjvmObject::isPrimType(const ConstUtf8 &type) {
     return 0;
 }
 
-MjvmObject::MjvmObject(uint32_t size, const ConstUtf8 &type, uint8_t dimensions) :
+MjvmObject::MjvmObject(uint32_t size, ConstUtf8 &type, uint8_t dimensions) :
 size(size), prot(0x02), type(type), dimensions(dimensions), monitorCount(0), ownId(0) {
 
 }
