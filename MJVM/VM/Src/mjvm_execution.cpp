@@ -1687,7 +1687,7 @@ int64_t Execution::run(const char *mainClass) {
     op_ddiv: {
         double value2 = stackPopDouble();
         double value1 = stackPopDouble();
-        stackPushFloat(value1 / value2);
+        stackPushDouble(value1 / value2);
         pc++;
         goto *opcodes[code[pc]];
     }
