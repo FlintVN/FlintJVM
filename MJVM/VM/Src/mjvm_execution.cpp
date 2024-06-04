@@ -430,10 +430,15 @@ ClassLoader &Execution::load(const char *className, uint16_t length) {
     Mjvm::lock();
     ClassData *newNode = 0;
     try {
-        for(ClassData *node = classDataList; node != 0; node = node->next) {
-            ConstUtf8 &name = node->getThisClass();
-            if(name.length == length && strncmp(name.text, className, length) == 0)
-                return *node;
+        if(classDataList) {
+            uint32_t hash;
+            ((uint16_t *)&hash)[0] = length;
+            ((uint16_t *)&hash)[1] = calcCrc((uint8_t *)className, length);
+            for(ClassData *node = classDataList; node != 0; node = node->next) {
+                ConstUtf8 &name = node->getThisClass();
+                if(name.length == length && strncmp(name.text, className, length) == 0)
+                    return *node;
+            }
         }
         newNode = (ClassData *)Mjvm::malloc(sizeof(ClassData));
         memset((void *)newNode, 0, sizeof(ClassData));
@@ -458,7 +463,31 @@ ClassLoader &Execution::load(const char *className) {
 }
 
 ClassLoader &Execution::load(ConstUtf8 &className) {
-    return load(className.text, className.length);
+    Mjvm::lock();
+    ClassData *newNode = 0;
+    try {
+        uint32_t hash = CONST_UTF8_HASH(className);
+        for(ClassData *node = classDataList; node != 0; node = node->next) {
+            ConstUtf8 &name = node->getThisClass();
+            if(hash == CONST_UTF8_HASH(name) && strncmp(name.text, className.text, className.length) == 0)
+                return *node;
+        }
+        newNode = (ClassData *)Mjvm::malloc(sizeof(ClassData));
+        memset((void *)newNode, 0, sizeof(ClassData));
+        new (newNode)ClassData(className.text, className.length);
+        newNode->next = classDataList;
+        classDataList = newNode;
+        Mjvm::unlock();
+        return *newNode;
+    }
+    catch(const char *msg) {
+        Mjvm::unlock();
+        if(newNode) {
+            newNode->~ClassData();
+            Mjvm::free(newNode);
+        }
+        throw (LoadFileError *)className.text;
+    }
 }
 
 FieldsData &Execution::getStaticFields(ConstUtf8 &className) const {
@@ -1797,7 +1826,7 @@ int64_t Execution::run(const char *mainClass) {
         goto *opcodes[code[pc]];
     }
     op_iinc:
-        locals[code[pc + 1]] += (int8_t )code[pc + 2];
+        locals[code[pc + 1]] += (int8_t)code[pc + 2];
         pc += 3;
         goto *opcodes[code[pc]];
     op_i2l:
@@ -2600,8 +2629,8 @@ int64_t Execution::run(const char *mainClass) {
         throw "unknow opcode";
     init_static_field: {
         static const uint32_t nameAndType[] = {
-            (uint32_t)"\x08\x00<clinit>",                           /* method name */
-            (uint32_t)"\x03\x00()V"                                 /* method type */
+            (uint32_t)"\x08\x00\xFD\x02""<clinit>",                           /* method name */
+            (uint32_t)"\x03\x00\xA7\x00""()V",                                /* method type */
         };
         ClassData &classDataToInit = *(ClassData *)stackPopInt32();
         Mjvm::lock();

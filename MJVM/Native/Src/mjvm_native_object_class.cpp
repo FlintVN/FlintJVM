@@ -56,9 +56,9 @@ static bool nativeClone(Execution &execution) {
 }
 
 static const NativeMethod methods[] = {
-    NATIVE_METHOD("\x08\x00""getClass", "\x13\x00""()Ljava/lang/Class;",  nativeGetClass),
-    NATIVE_METHOD("\x08\x00""hashCode", "\x03\x00""()I",                  nativeHashCode),
-    NATIVE_METHOD("\x05\x00""clone",    "\x14\x00""()Ljava/lang/Object;", nativeClone),
+    NATIVE_METHOD("\x08\x00\x36\x03""getClass", "\x13\x00\x70\x06""()Ljava/lang/Class;",  nativeGetClass),
+    NATIVE_METHOD("\x08\x00\x1F\x03""hashCode", "\x03\x00\x9A\x00""()I",                  nativeHashCode),
+    NATIVE_METHOD("\x05\x00\x11\x02""clone",    "\x14\x00\xD1\x06""()Ljava/lang/Object;", nativeClone),
 };
 
 const NativeClass OBJECT_CLASS = NATIVE_CLASS(objectClassName, methods);

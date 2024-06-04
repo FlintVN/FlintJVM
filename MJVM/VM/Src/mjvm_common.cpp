@@ -26,3 +26,10 @@ uint64_t swap64(uint64_t value) {
     ((uint8_t *)&ret)[7] = ((uint8_t *)&value)[0];
     return ret;
 }
+
+uint16_t calcCrc(const uint8_t *data, uint32_t length) {
+    uint16_t ret = 0;
+    for(int i = 0; i < length; i++)
+        ret += data[i];
+    return ret;
+}

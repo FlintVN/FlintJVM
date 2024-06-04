@@ -1,5 +1,4 @@
 
-#include <string.h>
 #include "mjvm.h"
 #include "mjvm_field_info.h"
 

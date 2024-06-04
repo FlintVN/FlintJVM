@@ -1,17 +1,22 @@
 
 #include <string.h>
+#include "mjvm_common.h"
 #include "mjvm_const_pool.h"
 
 bool ConstUtf8::operator==(const ConstUtf8 &another) const {
-    if(length == another.length && strncmp(text, another.text, length) == 0)
-        return true;
+    if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
+        if(strncmp(text, another.text, length) == 0)
+            return true;
+    }
     return false;
 }
 
 bool ConstUtf8::operator!=(const ConstUtf8 &another) const {
-    if(length != another.length || strncmp(text, another.text, length) != 0)
-        return true;
-    return false;
+    if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
+        if(strncmp(text, another.text, length) == 0)
+            return false;
+    }
+    return true;
 }
 
 ConstNameAndType::ConstNameAndType(ConstUtf8 &name, ConstUtf8 &descriptor) :
@@ -67,13 +72,25 @@ ParamInfo ConstMethod::parseParamInfo(void) const {
 }
 
 bool ConstNameAndType::operator==(const ConstNameAndType &another) const {
-    if(name == another.name && descriptor == another.descriptor)
+    if(
+        (CONST_UTF8_HASH(name) == CONST_UTF8_HASH(another.name)) &&
+        (CONST_UTF8_HASH(descriptor) == CONST_UTF8_HASH(another.descriptor)) &&
+        (strncmp(name.text, another.name.text, name.length) == 0) &&
+        (strncmp(descriptor.text, another.descriptor.text, descriptor.length) == 0)
+    ) {
         return true;
+    }
     return false;
 }
 
 bool ConstNameAndType::operator!=(const ConstNameAndType &another) const {
-    if(name != another.name || descriptor != another.descriptor)
-        return true;
-    return false;
+    if(
+        (CONST_UTF8_HASH(name) == CONST_UTF8_HASH(another.name)) &&
+        (CONST_UTF8_HASH(descriptor) == CONST_UTF8_HASH(another.descriptor)) &&
+        (strncmp(name.text, another.name.text, name.length) == 0) &&
+        (strncmp(descriptor.text, another.descriptor.text, descriptor.length) == 0)
+    ) {
+        return false;
+    }
+    return true;
 }

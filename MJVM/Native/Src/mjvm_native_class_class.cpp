@@ -216,18 +216,18 @@ static bool nativeIsHidden(Execution &execution) {
 }
 
 static const NativeMethod methods[] = {
-    NATIVE_METHOD("\x11\x00""getPrimitiveClass", "\x25\x00""(Ljava/lang/String;)Ljava/lang/Class;", nativeGetPrimitiveClass),
-    NATIVE_METHOD("\x07\x00""forName",           "\x25\x00""(Ljava/lang/String;)Ljava/lang/Class;", nativeForName),
-    NATIVE_METHOD("\x0A\x00""isInstance",        "\x15\x00""(Ljava/lang/Object;)Z",                 nativeIsInstance),
-    NATIVE_METHOD("\x10\x00""isAssignableFrom",  "\x14\x00""(Ljava/lang/Class;)Z",                  nativeIsAssignableFrom),
-    NATIVE_METHOD("\x0B\x00""isInterface",       "\x03\x00""()Z",                                   nativeIsInterface),
-    NATIVE_METHOD("\x07\x00""isArray",           "\x03\x00""()Z",                                   nativeIsArray),
-    NATIVE_METHOD("\x0B\x00""isPrimitive",       "\x03\x00""()Z",                                   nativeIsPrimitive),
-    NATIVE_METHOD("\x0D\x00""getSuperclass",     "\x13\x00""()Ljava/lang/Class;",                   nativeGetSuperclass),
-    NATIVE_METHOD("\x0D\x00""getInterfaces",     "\x14\x00""()[Ljava/lang/Class;",                  nativeGetInterfaces),
-    NATIVE_METHOD("\x10\x00""getComponentType",  "\x13\x00""()Ljava/lang/Class;",                   nativeGetComponentType),
-    NATIVE_METHOD("\x0C\x00""getModifiers",      "\x03\x00""()I",                                   nativeGetModifiers),
-    NATIVE_METHOD("\x08\x00""isHidden",          "\x03\x00""()Z",                                   nativeIsHidden),
+    NATIVE_METHOD("\x11\x00\xEF\x06""getPrimitiveClass", "\x25\x00\x10\x0D""(Ljava/lang/String;)Ljava/lang/Class;", nativeGetPrimitiveClass),
+    NATIVE_METHOD("\x07\x00\xC8\x02""forName",           "\x25\x00\x10\x0D""(Ljava/lang/String;)Ljava/lang/Class;", nativeForName),
+    NATIVE_METHOD("\x0A\x00\x11\x04""isInstance",        "\x15\x00\x2B\x07""(Ljava/lang/Object;)Z",                 nativeIsInstance),
+    NATIVE_METHOD("\x10\x00\x69\x06""isAssignableFrom",  "\x14\x00\xCA\x06""(Ljava/lang/Class;)Z",                  nativeIsAssignableFrom),
+    NATIVE_METHOD("\x0B\x00\x6D\x04""isInterface",       "\x03\x00\xAB\x00""()Z",                                   nativeIsInterface),
+    NATIVE_METHOD("\x07\x00\xDB\x02""isArray",           "\x03\x00\xAB\x00""()Z",                                   nativeIsArray),
+    NATIVE_METHOD("\x0B\x00\x95\x04""isPrimitive",       "\x03\x00\xAB\x00""()Z",                                   nativeIsPrimitive),
+    NATIVE_METHOD("\x0D\x00\x65\x05""getSuperclass",     "\x13\x00\x70\x06""()Ljava/lang/Class;",                   nativeGetSuperclass),
+    NATIVE_METHOD("\x0D\x00\x44\x05""getInterfaces",     "\x14\x00\xCB\x06""()[Ljava/lang/Class;",                  nativeGetInterfaces),
+    NATIVE_METHOD("\x10\x00\x95\x06""getComponentType",  "\x13\x00\x70\x06""()Ljava/lang/Class;",                   nativeGetComponentType),
+    NATIVE_METHOD("\x0C\x00\xE2\x04""getModifiers",      "\x03\x00\x9A\x00""()I",                                   nativeGetModifiers),
+    NATIVE_METHOD("\x08\x00\x28\x03""isHidden",          "\x03\x00\xAB\x00""()Z",                                   nativeIsHidden),
 };
 
 const NativeClass CLASS_CLASS = NATIVE_CLASS(classClassName, methods);

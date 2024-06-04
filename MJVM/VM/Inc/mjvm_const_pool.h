@@ -4,6 +4,8 @@
 
 #include "mjvm_types.h"
 
+#define CONST_UTF8_HASH(utf8)       *(uint32_t *)&(utf8)
+
 class ConstPool {
 public:
     volatile const ConstPoolTag tag;
@@ -17,6 +19,7 @@ private:
 class ConstUtf8 {
 public:
     const uint16_t length;
+    const uint16_t crc;
     const char text[];
 private:
     ConstUtf8(const ConstUtf8 &) = delete;

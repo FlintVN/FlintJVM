@@ -147,6 +147,7 @@ void ClassLoader::readFile(void *file) {
                 *(uint16_t *)&((ConstUtf8 *)poolTable[i].value)->length = length;
                 char *textBuff = (char *)((ConstUtf8 *)poolTable[i].value)->text;
                 ClassLoader_Read(file, textBuff, length);
+                *(uint16_t *)&((ConstUtf8 *)poolTable[i].value)->crc = calcCrc((uint8_t *)textBuff, length);
                 textBuff[length] = 0;
                 break;
             }
@@ -670,11 +671,19 @@ MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
 }
 
 MethodInfo &ClassLoader::getMethodInfo(ConstNameAndType &methodName) const {
+    uint32_t nameHash = CONST_UTF8_HASH(methodName.name);
+    uint32_t descriptorHash = CONST_UTF8_HASH(methodName.descriptor);
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(&methodName.name == &methods[i].name && &methodName.descriptor == &methods[i].descriptor)
-            return methods[i];
-        else if(methodName.name == methods[i].name && methodName.descriptor == methods[i].descriptor)
-            return methods[i];
+        if(nameHash == CONST_UTF8_HASH(methods[i].name) && descriptorHash == CONST_UTF8_HASH(methods[i].descriptor)) {
+            if(&methodName.name == &methods[i].name && &methodName.descriptor == &methods[i].descriptor)
+                return methods[i];
+            else if(
+                strncmp(methodName.name.text, methods[i].name.text, methodName.name.length) == 0 &&
+                strncmp(methodName.descriptor.text, methods[i].descriptor.text, methodName.descriptor.length) == 0
+            ) {
+                return methods[i]; 
+            }
+        }
     }
     return *(MethodInfo *)0;
 }

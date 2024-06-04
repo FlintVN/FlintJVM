@@ -57,9 +57,9 @@ static bool nativeArraycopy(Execution &execution) {
 }
 
 static const NativeMethod methods[] = {
-    NATIVE_METHOD("\x11\x00""currentTimeMillis", "\x03\x00""()J",                                        nativeCurrentTimeMillis),
-    NATIVE_METHOD("\x08\x00""nanoTime",          "\x03\x00""()J",                                        nativeNanoTime),
-    NATIVE_METHOD("\x09\x00""arraycopy",         "\x2A\x00""(Ljava/lang/Object;ILjava/lang/Object;II)V", nativeArraycopy),
+    NATIVE_METHOD("\x11\x00\xFC\x06""currentTimeMillis", "\x03\x00\x9B\x00""()J",                                        nativeCurrentTimeMillis),
+    NATIVE_METHOD("\x08\x00\x3B\x03""nanoTime",          "\x03\x00\x9B\x00""()J",                                        nativeNanoTime),
+    NATIVE_METHOD("\x09\x00\xDA\x03""arraycopy",         "\x2A\x00\x82\x0E""(Ljava/lang/Object;ILjava/lang/Object;II)V", nativeArraycopy),
 };
 
 const NativeClass SYSTEM_CLASS = NATIVE_CLASS(systemClassName, methods);

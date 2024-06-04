@@ -130,8 +130,8 @@ static bool nativeToUpper(Execution &execution) {
 }
 
 static const NativeMethod methods[] = {
-    NATIVE_METHOD("\x07\x00""toLower", "\x04\x00""(C)C", nativeToLower),
-    NATIVE_METHOD("\x07\x00""toUpper", "\x04\x00""(C)C", nativeToUpper),
+    NATIVE_METHOD("\x07\x00\xEC\x02""toLower", "\x04\x00\xD7\x00""(C)C", nativeToLower),
+    NATIVE_METHOD("\x07\x00\xEF\x02""toUpper", "\x04\x00\xD7\x00""(C)C", nativeToUpper),
 };
 
 const NativeClass CHARACTER_CLASS = NATIVE_CLASS(characterClassName, methods);
