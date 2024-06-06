@@ -689,34 +689,19 @@ MethodInfo &ClassLoader::getMethodInfo(ConstNameAndType &methodName) const {
 }
 
 MethodInfo &ClassLoader::getMainMethodInfo(void) const {
-    for(uint16_t i = 0; i < methodsCount; i++) {
-        if(methods[i].name.length == (sizeof("main") - 1) && methods[i].descriptor.length >= sizeof("([Ljava/lang/String;)")) {
-            if(
-                strncmp(methods[i].name.text, "main", sizeof("main") - 1) == 0 &&
-                strncmp(methods[i].descriptor.text, "([Ljava/lang/String;)V", sizeof("([Ljava/lang/String;)") - 1) == 0
-            ) {
-                if((methods[i].accessFlag & (METHOD_PUBLIC | METHOD_STATIC)) == (METHOD_PUBLIC | METHOD_STATIC))
-                    return methods[i];
-                throw "main must be static public method";
-            }
-        }
-    }
-    return *(MethodInfo *)0;
+    static const uint32_t nameAndType[] = {
+        (uint32_t)"\x04\x00\xA5\x01""main",                     /* method name */
+        (uint32_t)"\x16\x00\xA2\x07""([Ljava/lang/String;)V",   /* method type */
+    };
+    return getMethodInfo(*(ConstNameAndType *)nameAndType);
 }
 
 MethodInfo &ClassLoader::getStaticConstructor(void) const {
-    for(int32_t i = methodsCount - 1; i >= 0; i--) {
-        if(
-            methods[i].accessFlag == METHOD_STATIC &&
-            methods[i].name.length == (sizeof("<clinit>") - 1) &&
-            methods[i].descriptor.length == (sizeof("()V") - 1) &&
-            strncmp(methods[i].name.text, "<clinit>", sizeof("<clinit>") - 1) == 0 &&
-            strncmp(methods[i].descriptor.text, "()V", sizeof("()V") - 1) == 0
-        ) {
-            return methods[i];
-        }
-    }
-    return *(MethodInfo *)0;
+    static const uint32_t nameAndType[] = {
+        (uint32_t)"\x08\x00\xFD\x02""<clinit>",                 /* method name */
+        (uint32_t)"\x03\x00\xA7\x00""()V",                      /* method type */
+    };
+    return getMethodInfo(*(ConstNameAndType *)nameAndType);
 }
 
 ClassLoader::~ClassLoader(void) {

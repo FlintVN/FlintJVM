@@ -49,15 +49,23 @@ AttributeInfo &MethodInfo::getAttribute(AttributeType type) const {
 }
 
 AttributeCode &MethodInfo::getAttributeCode(void) const {
-    return *(AttributeCode *)&getAttribute(ATTRIBUTE_CODE);
+    for(AttributeInfo *node = attributes; node != 0;) {
+        if(node->attributeType == ATTRIBUTE_CODE)
+            return *(AttributeCode *)node;
+    }
+    throw "can't find the code attribute";
 }
 
 AttributeNative &MethodInfo::getAttributeNative(void) const {
-    return *(AttributeNative *)&getAttribute(ATTRIBUTE_NATIVE);
-}
-
-ParamInfo MethodInfo::parseParamInfo(void) const {
-    return ::parseParamInfo(descriptor);
+    for(AttributeInfo *node = attributes; node != 0;) {
+        if(node->attributeType == ATTRIBUTE_NATIVE) {
+            AttributeNative *attrNative = (AttributeNative *)node;
+            if(attrNative->nativeMethod == 0)
+                *(void **)&attrNative->nativeMethod = (void *)findNativeMathod(*this);
+            return *(AttributeNative *)attrNative;
+        }
+    }
+    throw "can't find the native attribute";
 }
 
 MethodInfo::~MethodInfo(void) {

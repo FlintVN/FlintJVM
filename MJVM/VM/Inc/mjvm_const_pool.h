@@ -63,20 +63,22 @@ typedef struct {
     uint8_t retType;
 } ParamInfo;
 
-ParamInfo parseParamInfo(const ConstUtf8 &descriptor);
-
 class ConstMethod {
 public:
     ConstUtf8 &className;
     ConstNameAndType &nameAndType;
-
-    ParamInfo parseParamInfo(void) const;
+private:
+    ParamInfo paramInfo;
+public:
+    const ParamInfo &getParmInfo(void);
 private:
     ConstMethod(ConstUtf8 &className, ConstNameAndType &nameAndType);
+    ConstMethod(ConstUtf8 &className, ConstNameAndType &nameAndType, uint8_t argc, uint8_t retType);
     ConstMethod(const ConstMethod &) = delete;
     void operator=(const ConstMethod &) = delete;
 
     friend class ClassLoader;
+    friend class Execution;
 };
 
 typedef ConstMethod ConstInterfaceMethod;

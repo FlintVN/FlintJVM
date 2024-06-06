@@ -692,7 +692,7 @@ bool Execution::invoke(MethodInfo &methodInfo, uint8_t argc) {
 }
 
 bool Execution::invokeStatic(ConstMethod &constMethod) {
-    uint8_t argc = constMethod.parseParamInfo().argc;
+    uint8_t argc = constMethod.getParmInfo().argc;
     MethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
@@ -721,7 +721,7 @@ bool Execution::invokeStatic(ConstMethod &constMethod) {
 }
 
 bool Execution::invokeSpecial(ConstMethod &constMethod) {
-    uint8_t argc = constMethod.parseParamInfo().argc + 1;
+    uint8_t argc = constMethod.getParmInfo().argc + 1;
     MethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
@@ -750,7 +750,7 @@ bool Execution::invokeSpecial(ConstMethod &constMethod) {
 }
 
 bool Execution::invokeVirtual(ConstMethod &constMethod) {
-    uint8_t argc = constMethod.parseParamInfo().argc;
+    uint8_t argc = constMethod.getParmInfo().argc;
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", constMethod.className.text, ".", constMethod.nameAndType.name.text, " by null object"};
@@ -760,11 +760,8 @@ bool Execution::invokeVirtual(ConstMethod &constMethod) {
         return false;
     }
     ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? *(ConstUtf8 *)&objectClassName : obj->type;
-    uint32_t virtualConstMethod[] = {
-        (uint32_t)&type,                                /* class name */
-        (uint32_t)&constMethod.nameAndType              /* name and type */
-    };
-    MethodInfo &methodInfo = findMethod(*(ConstMethod *)virtualConstMethod);
+    ConstMethod virtualConstMethod(type, constMethod.nameAndType, 0, 0);
+    MethodInfo &methodInfo = findMethod(virtualConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             Mjvm::lock();
@@ -801,11 +798,8 @@ bool Execution::invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t a
         return false;
     }
     ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? *(ConstUtf8 *)&objectClassName : obj->type;
-    uint32_t interfaceConstMethod[] = {
-        (uint32_t)&type,                                /* class name */
-        (uint32_t)&interfaceMethod.nameAndType          /* name and type */
-    };
-    MethodInfo &methodInfo = findMethod(*(ConstMethod *)interfaceConstMethod);
+    ConstMethod interfaceConstMethod(type, interfaceMethod.nameAndType, 0, 0);
+    MethodInfo &methodInfo = findMethod(interfaceConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             Mjvm::lock();
@@ -2628,10 +2622,6 @@ int64_t Execution::run(const char *mainClass) {
     op_unknow:
         throw "unknow opcode";
     init_static_field: {
-        static const uint32_t nameAndType[] = {
-            (uint32_t)"\x08\x00\xFD\x02""<clinit>",                           /* method name */
-            (uint32_t)"\x03\x00\xA7\x00""()V",                                /* method type */
-        };
         ClassData &classDataToInit = *(ClassData *)stackPopInt32();
         Mjvm::lock();
         if(classDataToInit.staticFiledsData) {
@@ -2639,13 +2629,10 @@ int64_t Execution::run(const char *mainClass) {
             goto *opcodes[code[pc]];
         }
         classDataToInit.isInitializing = 1;
-        uint32_t ctorConstMethod[] = {
-            (uint32_t)&classDataToInit.getThisClass(),              /* class name */
-            (uint32_t)nameAndType                                   /* method type */
-        };
         initStaticField(classDataToInit);
+        MethodInfo &ctorMethod = classDataToInit.getStaticConstructor();
         lr = pc;
-        invokeStatic(*(ConstMethod *)ctorConstMethod);
+        invoke(ctorMethod, 0);
         goto *opcodes[code[pc]];
     }
     divided_by_zero_excp: {

@@ -29,8 +29,6 @@ public:
     AttributeCode &getAttributeCode(void) const;
     AttributeNative &getAttributeNative(void) const;
 
-    ParamInfo parseParamInfo(void) const;
-
     ~MethodInfo(void);
 };
 
