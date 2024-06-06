@@ -231,6 +231,8 @@ typedef enum : uint8_t {
     OP_GOTO_W = 0xC8,
     OP_JSRW = 0xC9,
     OP_BREAKPOINT = 0xCA,
+
+    OP_EXIT = 0xFF,
 } JvmOpCode;
 
 #endif // __MVM_OPCODES_H

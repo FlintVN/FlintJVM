@@ -110,6 +110,7 @@ public:
     double stackPopDouble(void);
     MjvmObject *stackPopObject(void);
 private:
+    void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
 
     void initNewContext(MethodInfo &methodInfo, uint16_t argc = 0);
@@ -131,7 +132,7 @@ public:
     ClassLoader &load(const char *className);
     ClassLoader &load(ConstUtf8 &className);
 
-    int64_t run(const char *mainClass);
+    void run(const char *mainClass);
 };
 
 #endif /* __MJVM_EXECUTION_H */

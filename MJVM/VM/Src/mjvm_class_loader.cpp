@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string.h>
 #include "mjvm.h"
+#include "mjvm_opcodes.h"
 #include "mjvm_system_api.h"
 #include "mjvm_class_loader.h"
 
@@ -281,9 +282,10 @@ AttributeInfo *ClassLoader::readAttributeCode(void *file) {
     uint16_t maxStack = ClassLoader_ReadUInt16(file);
     uint16_t maxLocals = ClassLoader_ReadUInt16(file);
     uint32_t codeLength = ClassLoader_ReadUInt32(file);
-    uint8_t *code = (uint8_t *)Mjvm::malloc(codeLength);
+    uint8_t *code = (uint8_t *)Mjvm::malloc(codeLength + 1);
     new (attribute)AttributeCode(maxStack, maxLocals);
     ClassLoader_Read(file, code, codeLength);
+    code[codeLength] = OP_EXIT;
     attribute->setCode(code, codeLength);
     uint16_t exceptionTableLength = ClassLoader_ReadUInt16(file);
     if(exceptionTableLength) {

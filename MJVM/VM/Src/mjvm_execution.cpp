@@ -605,6 +605,18 @@ MjvmObject *Execution::stackPopObject(void) {
     return (MjvmObject *)stack[sp--];
 }
 
+void Execution::stackInitExitPoint(uint32_t exitPc) {
+    stack[++sp] = (int32_t)method;              /* method */
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = exitPc;                       /* pc */
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = exitPc;                       /* lr */
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = startSp;                      /* startSp */
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    startSp = sp;
+}
+
 void Execution::stackRestoreContext(void) {
     if((method->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
         Mjvm::lock();
@@ -875,7 +887,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t len
     }
 }
 
-int64_t Execution::run(const char *mainClass) {
+void Execution::run(const char *mainClass) {
     static const void *opcodes[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
         &&op_lconst_0, &&op_lconst_1, &&op_fconst_0, &&op_fconst_1, &&op_fconst_2, &&op_dconst_0, &&op_dconst_1, &&op_bipush, &&op_sipush,
@@ -902,12 +914,14 @@ int64_t Execution::run(const char *mainClass) {
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
-        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
+        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_exit,
     };
 
     LoadFileError *fileNotFound = 0;
 
     method = &load(mainClass).getMainMethodInfo();
+
+    stackInitExitPoint(method->getAttributeCode().codeLength);
 
     initNewContext(*method);
 
@@ -2037,10 +2051,6 @@ int64_t Execution::run(const char *mainClass) {
                 Mjvm::unlock();
             }
         }
-        if(startSp < 0) {
-            sp = peakSp = startSp;
-            return retVal;
-        }
         stackRestoreContext();
         stackPushInt32(retVal);
         pc = lr;
@@ -2056,10 +2066,6 @@ int64_t Execution::run(const char *mainClass) {
                 Mjvm::unlock();
             }
         }
-        if(startSp < 0) {
-            sp = peakSp = startSp;
-            return retVal;
-        }
         stackRestoreContext();
         stackPushInt64(retVal);
         pc = lr;
@@ -2074,10 +2080,6 @@ int64_t Execution::run(const char *mainClass) {
                 Mjvm::unlock();
             }
         }
-        if(startSp < 0) {
-            sp = peakSp = startSp;
-            return retVal;
-        }
         stackRestoreContext();
         stackPushObject((MjvmObject *)retVal);
         pc = lr;
@@ -2090,10 +2092,6 @@ int64_t Execution::run(const char *mainClass) {
                 classData.isInitializing = 0;
                 Mjvm::unlock();
             }
-        }
-        if(startSp < 0) {
-            sp = peakSp = startSp;
-            return 0;
         }
         stackRestoreContext();
         peakSp = sp;
@@ -2690,6 +2688,8 @@ int64_t Execution::run(const char *mainClass) {
         stackPushObject(excpObj);
         goto exception_handler;
     }
+    op_exit:
+        return;
 }
 
 Execution::~Execution(void) {
