@@ -47,10 +47,6 @@ public:
     static void lock(void);
     static void unlock(void);
 
-    static const ClassLoader &load(const char *fileName);
-    static const ClassLoader &load(const char *fileName, uint16_t length);
-    static const ClassLoader &load(const ConstUtf8 &fileName);
-    static void destroy(const ClassLoader &classLoader);
     static void destroy(const Execution &execution);
 
     static Execution &newExecution(void);

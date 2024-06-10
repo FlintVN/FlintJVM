@@ -5,6 +5,7 @@
 #include "mjvm_opcodes.h"
 #include "mjvm_execution.h"
 #include "mjvm_const_name.h"
+#include "mjvm_system_api.h"
 
 #define FLOAT_NAN                   0x7FC00000
 #define DOUBLE_NAN                  0x7FF8000000000000
@@ -887,7 +888,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t len
     }
 }
 
-void Execution::run(const char *mainClass) {
+void Execution::run(MethodInfo &methodInfo) {
     static const void *opcodes[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
         &&op_lconst_0, &&op_lconst_1, &&op_fconst_0, &&op_fconst_1, &&op_fconst_2, &&op_dconst_0, &&op_dconst_1, &&op_bipush, &&op_sipush,
@@ -919,7 +920,7 @@ void Execution::run(const char *mainClass) {
 
     LoadFileError *fileNotFound = 0;
 
-    method = &load(mainClass).getMainMethodInfo();
+    method = &methodInfo;
 
     stackInitExitPoint(method->getAttributeCode().codeLength);
 
@@ -2690,6 +2691,35 @@ void Execution::run(const char *mainClass) {
     }
     op_exit:
         return;
+}
+
+void Execution::runToMain(const char *mainClass) {
+    try {
+        run(load(mainClass).getMainMethodInfo());
+    }
+    catch(MjvmThrowable *ex) {
+        MjvmString &str = ex->getDetailMessage();
+        MjvmSystem_Write(str.getText(), str.getLength(), str.getCoder());
+        MjvmSystem_Write("\n", 1, 0);
+    }
+    catch(OutOfMemoryError *err) {
+        const char *msg = err->getMessage();
+        MjvmSystem_Write(msg, strlen(msg), 0);
+        MjvmSystem_Write("\n", 1, 0);
+    }
+    catch(LoadFileError *file) {
+        const char *fileName = file->getFileName();
+        MjvmSystem_Write("Could not find or load class ", 29, 0);
+        while(*fileName) {
+            MjvmSystem_Write((*fileName == '/') ? "." : fileName, 1, 0);
+            fileName++;
+        }
+        MjvmSystem_Write("\n", 1, 0);
+    }
+    catch(const char *msg) {
+        MjvmSystem_Write(msg, strlen(msg), 0);
+        MjvmSystem_Write("\n", 1, 0);
+    }
 }
 
 Execution::~Execution(void) {

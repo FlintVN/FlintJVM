@@ -122,6 +122,8 @@ private:
     bool invokeVirtual(ConstMethod &constMethod);
     bool invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
+    void run(MethodInfo &method);
+
     friend class Mjvm;
 public:
     bool isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length);
@@ -132,7 +134,7 @@ public:
     ClassLoader &load(const char *className);
     ClassLoader &load(ConstUtf8 &className);
 
-    void run(const char *mainClass);
+    void runToMain(const char *mainClass);
 };
 
 #endif /* __MJVM_EXECUTION_H */
