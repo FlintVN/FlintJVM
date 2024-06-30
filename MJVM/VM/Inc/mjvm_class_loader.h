@@ -93,11 +93,13 @@ public:
 
     uint16_t getFieldsCount(void) const;
     FieldInfo &getFieldInfo(uint8_t fieldIndex) const;
-    FieldInfo &getFieldInfo(ConstNameAndType &fieldName) const;
+    FieldInfo &getFieldInfo(ConstUtf8 &name, ConstUtf8 &descriptor) const;
+    FieldInfo &getFieldInfo(ConstNameAndType &nameAndType) const;
 
     uint16_t getMethodsCount(void) const;
     MethodInfo &getMethodInfo(uint8_t methodIndex) const;
-    MethodInfo &getMethodInfo(ConstNameAndType &methodName) const;
+    MethodInfo &getMethodInfo(ConstUtf8 &name, ConstUtf8 &descriptor) const;
+    MethodInfo &getMethodInfo(ConstNameAndType &nameAndType) const;
     MethodInfo &getMainMethodInfo(void) const;
     MethodInfo &getStaticConstructor(void) const;
 };

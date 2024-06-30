@@ -652,14 +652,26 @@ FieldInfo &ClassLoader::getFieldInfo(uint8_t fieldIndex) const {
     throw "index for field info is invalid";
 }
 
-FieldInfo &ClassLoader::getFieldInfo(ConstNameAndType &fieldName) const {
+FieldInfo &ClassLoader::getFieldInfo(ConstUtf8 &name, ConstUtf8 &descriptor) const {
+    uint32_t nameHash = CONST_UTF8_HASH(name);
+    uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < fieldsCount; i++) {
-        if(&fieldName.name == &fields[i].name && &fieldName.descriptor == &fields[i].descriptor)
-            return fields[i];
-        else if(fieldName.name == fields[i].name && fieldName.descriptor == fields[i].descriptor)
-            return fields[i];
+        if(nameHash == CONST_UTF8_HASH(fields[i].name) && descriptorHash == CONST_UTF8_HASH(fields[i].descriptor)) {
+            if(&name == &fields[i].name && &descriptor == &fields[i].descriptor)
+                return fields[i];
+            else if(
+                strncmp(name.text, fields[i].name.text, name.length) == 0 &&
+                strncmp(descriptor.text, fields[i].descriptor.text, descriptor.length) == 0
+            ) {
+                return fields[i];
+            }
+        }
     }
     return *(FieldInfo *)0;
+}
+
+FieldInfo &ClassLoader::getFieldInfo(ConstNameAndType &nameAndType) const {
+    return getFieldInfo(nameAndType.name, nameAndType.descriptor);
 }
 
 uint16_t ClassLoader::getMethodsCount(void) const {
@@ -672,22 +684,26 @@ MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
     throw "index for method info is invalid";
 }
 
-MethodInfo &ClassLoader::getMethodInfo(ConstNameAndType &methodName) const {
-    uint32_t nameHash = CONST_UTF8_HASH(methodName.name);
-    uint32_t descriptorHash = CONST_UTF8_HASH(methodName.descriptor);
+MethodInfo &ClassLoader::getMethodInfo(ConstUtf8 &name, ConstUtf8 &descriptor) const {
+    uint32_t nameHash = CONST_UTF8_HASH(name);
+    uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < methodsCount; i++) {
         if(nameHash == CONST_UTF8_HASH(methods[i].name) && descriptorHash == CONST_UTF8_HASH(methods[i].descriptor)) {
-            if(&methodName.name == &methods[i].name && &methodName.descriptor == &methods[i].descriptor)
+            if(&name == &methods[i].name && &descriptor == &methods[i].descriptor)
                 return methods[i];
             else if(
-                strncmp(methodName.name.text, methods[i].name.text, methodName.name.length) == 0 &&
-                strncmp(methodName.descriptor.text, methods[i].descriptor.text, methodName.descriptor.length) == 0
+                strncmp(name.text, methods[i].name.text, name.length) == 0 &&
+                strncmp(descriptor.text, methods[i].descriptor.text, descriptor.length) == 0
             ) {
-                return methods[i]; 
+                return methods[i];
             }
         }
     }
     return *(MethodInfo *)0;
+}
+
+MethodInfo &ClassLoader::getMethodInfo(ConstNameAndType &nameAndType) const {
+    return getMethodInfo(nameAndType.name, nameAndType.descriptor);
 }
 
 MethodInfo &ClassLoader::getMainMethodInfo(void) const {

@@ -5,6 +5,7 @@
 #include "mjvm_common.h"
 #include "mjvm_class.h"
 #include "mjvm_string.h"
+#include "mjvm_debugger.h"
 #include "mjvm_throwable.h"
 #include "mjvm_class_loader.h"
 #include "mjvm_fields_data.h"
@@ -14,16 +15,16 @@
 #endif
 
 #ifndef DEFAULT_STACK_SIZE
-#define DEFAULT_STACK_SIZE      MEGA_BYTE(1)
+#define DEFAULT_STACK_SIZE          MEGA_BYTE(1)
 #warning "DEFAULT_STACK_SIZE is not defined. Default value will be used"
 #endif /* DEFAULT_STACK_SIZE */
 
 #ifndef OBJECT_SIZE_TO_GC
-#define OBJECT_SIZE_TO_GC       MEGA_BYTE(1)
+#define OBJECT_SIZE_TO_GC           MEGA_BYTE(1)
 #warning "OBJECT_SIZE_TO_GC is not defined. Default value will be used"
 #endif /* OBJECT_SIZE_TO_GC */
 
-#define STR_AND_SIZE(str)       str, (sizeof(str) - 1)
+#define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 
 class Execution {
 private:
@@ -109,6 +110,8 @@ public:
     float stackPopFloat(void);
     double stackPopDouble(void);
     MjvmObject *stackPopObject(void);
+
+    void getStackTrace(uint32_t index, StackTrace *stackTrace) const;
 private:
     void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
@@ -122,7 +125,7 @@ private:
     bool invokeVirtual(ConstMethod &constMethod);
     bool invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
-    void run(MethodInfo &method);
+    void run(MethodInfo &method, Debugger *dbg);
 
     friend class Mjvm;
 public:
@@ -134,7 +137,7 @@ public:
     ClassLoader &load(const char *className);
     ClassLoader &load(ConstUtf8 &className);
 
-    void runToMain(const char *mainClass);
+    void runToMain(const char *mainClass, Debugger *dbg = 0);
 };
 
 #endif /* __MJVM_EXECUTION_H */

@@ -606,6 +606,19 @@ MjvmObject *Execution::stackPopObject(void) {
     return (MjvmObject *)stack[sp--];
 }
 
+void Execution::getStackTrace(uint32_t index, StackTrace *stackTrace) const {
+    if(index == 0)
+        new (stackTrace)StackTrace(pc, *method);
+    else {
+        int32_t traceSp = startSp;
+        while(--index)
+            traceSp = stack[traceSp];
+        uint32_t tracePc = stack[traceSp - 2];
+        MethodInfo &traceMethod = *(MethodInfo *)stack[traceSp - 3];
+        new (stackTrace)StackTrace(tracePc, traceMethod);
+    }
+}
+
 void Execution::stackInitExitPoint(uint32_t exitPc) {
     stack[++sp] = (int32_t)method;              /* method */
     stackType[sp / 8] &= ~(1 << (sp % 8));
@@ -888,8 +901,8 @@ bool Execution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t len
     }
 }
 
-void Execution::run(MethodInfo &methodInfo) {
-    static const void *opcodes[256] = {
+void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
+    static const void *opcodeLabels[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
         &&op_lconst_0, &&op_lconst_1, &&op_fconst_0, &&op_fconst_1, &&op_fconst_2, &&op_dconst_0, &&op_dconst_1, &&op_bipush, &&op_sipush,
         &&op_ldc, &&op_ldc_w, &&op_ldc2_w, &&op_iload, &&op_lload, &&op_fload, &&op_dload, &&op_aload, &&op_iload_0, &&op_iload_1, &&op_iload_2,
@@ -918,6 +931,37 @@ void Execution::run(MethodInfo &methodInfo) {
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_exit,
     };
 
+    static const void *opcodeLabelsDebug[256] = {
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&op_unknow, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp, &&check_bkp,
+        &&check_bkp, &&check_bkp, &&check_bkp, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
+        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
+        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
+        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
+        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
+        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_exit,
+    };
+
+    const register void **opcodes = dbg ? opcodeLabelsDebug : opcodeLabels;
+
     LoadFileError *fileNotFound = 0;
 
     method = &methodInfo;
@@ -938,6 +982,23 @@ void Execution::run(MethodInfo &methodInfo) {
     }
 
     goto *opcodes[code[pc]];
+    check_bkp: {
+        if(!(dbg->status & DBG_STATUS_STOP)) {
+            for(uint8_t i = 0; i < dbg->breakPointCount; i++) {
+                if(dbg->breakPoints[i].method == method && dbg->breakPoints[i].pc == pc) {
+                    dbg->status |= DBG_STATUS_STOP | DBG_STATUS_HIT_BKP;
+                    break;
+                }
+            }
+        }
+        while(dbg->status & (DBG_STATUS_STOP | DBG_STATUS_HIT_BKP)) {
+            if(dbg->status & DBG_STATUS_SINGLE_STEP) {
+                dbg->status &= ~(DBG_STATUS_SINGLE_STEP | DBG_STATUS_HIT_BKP);
+                goto *opcodeLabels[code[pc]];
+            }
+        }
+        goto *opcodeLabels[code[pc]];
+    }
     op_nop:
         goto *opcodes[code[pc]];
     op_iconst_m1:
@@ -2693,9 +2754,9 @@ void Execution::run(MethodInfo &methodInfo) {
         return;
 }
 
-void Execution::runToMain(const char *mainClass) {
+void Execution::runToMain(const char *mainClass, Debugger *dbg) {
     try {
-        run(load(mainClass).getMainMethodInfo());
+        run(load(mainClass).getMainMethodInfo(), dbg);
     }
     catch(MjvmThrowable *ex) {
         MjvmString &str = ex->getDetailMessage();

@@ -9,4 +9,6 @@
 #define DEFAULT_STACK_SIZE      MEGA_BYTE(1)
 #define OBJECT_SIZE_TO_GC       MEGA_BYTE(1)
 
+#define MAX_OF_BREAK_POINT      10
+
 #endif /* __MJVM_CONF_H */

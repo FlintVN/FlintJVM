@@ -21,7 +21,8 @@
 				"-IMJVM/Native/Inc",
 				"-IUser/Inc",
 				"-o",
-				"Build/Bin/WinMJVM.exe"
+				"Build/Bin/WinMJVM.exe",
+				"-lws2_32"
 			],
 			"presentation": {
                 "echo": true,
