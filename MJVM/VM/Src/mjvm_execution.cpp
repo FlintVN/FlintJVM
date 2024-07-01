@@ -673,12 +673,12 @@ MethodInfo &Execution::findMethod(ConstMethod &constMethod) {
     ClassLoader *loader = &load(constMethod.className);
     while(loader) {
         MethodInfo *methodInfo = &loader->getMethodInfo(constMethod.nameAndType);
-        if(methodInfo)
-            return *methodInfo;
-        else {
-            ConstUtf8 *superClass = &loader->getSuperClass();
-            loader = superClass ? &load(loader->getSuperClass()) : (ClassLoader *)0;
+        if(methodInfo) {
+            if((methodInfo->accessFlag & METHOD_BRIDGE) != METHOD_BRIDGE)
+                return *methodInfo;
         }
+        ConstUtf8 *superClass = &loader->getSuperClass();
+        loader = superClass ? &load(loader->getSuperClass()) : (ClassLoader *)0;
     }
     throw "can't find the method";
 }
