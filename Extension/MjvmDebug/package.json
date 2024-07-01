@@ -1,0 +1,108 @@
+{
+    "name": "embedded-debugger",
+    "displayName": "Embedded Debugger",
+    "description": "Embedded Debugger",
+    "version": "0.0.1",
+    "author": {
+        "name": "Microsoft Corporation"
+    },
+    "license": "MIT",
+    "engines": {
+        "vscode": "^1.81.0"
+    },
+    "categories": [
+        "Debuggers"
+    ],
+    "activationEvents": [
+        "onDebugResolve:mjvm-debug",
+        "onDebugDynamicConfigurations:mjvm-debug"
+    ],
+    "main": "./dist/extension.js",
+    "contributes": {
+        "debuggers": [{
+            "type": "mjvm-debug",
+            "languages": [
+                "java",
+                "class"
+            ],
+            "label": "MJVM Debug",
+            "program": "./out/debugAdapter.js",
+            "runtime": "node",
+            "configurationAttributes": {
+                "launch": {
+                    "required": ["program"],
+                    "properties": {
+                        "program": {
+                            "type": "string",
+                            "description": "Absolute path to a text file.",
+                            "default": "${workspaceFolder}/build/main.class"
+                        }
+                    }
+                },
+                "attach": {
+                    "required": ["program"],
+                    "properties": {
+                        "program": {
+                            "type": "string",
+                            "description": "Absolute path to a text file.",
+                            "default": "${workspaceFolder}/${command:AskForProgramName}"
+                        }
+                    }
+                }
+            },
+            "initialConfigurations": [{
+                "type": "mjvm-debug",
+                "request": "launch",
+                "name": "Ask for file name",
+                "program": "${workspaceFolder}/build/main.class"
+            }],
+            "configurationSnippets": [{
+                "label": "ARM Debug: Launch",
+                "description": "A new configuration for 'debugging' a user selected markdown file.",
+                "body": {
+                    "type": "mjvm-debug",
+                    "request": "launch",
+                    "name": "Ask for file name",
+                    "program": "${workspaceFolder}/build/main.class"
+                }
+            }]
+        }]
+    },
+    "scripts": {
+        "vscode:prepublish": "yarn run package",
+        "compile": "webpack",
+        "watch": "webpack --watch",
+        "package": "webpack --mode production --devtool hidden-source-map",
+        "compile-tests": "tsc -p . --outDir out",
+        "watch-tests": "tsc -p . -w --outDir out",
+        "pretest": "yarn run compile-tests && yarn run compile && yarn run lint",
+        "lint": "eslint src --ext ts",
+        "test": "node ./out/test/runTest.js"
+    },
+    "devDependencies": {
+        "@types/vscode": "^1.81.0",
+        "@types/glob": "^8.1.0",
+        "@types/mocha": "^10.0.1",
+        "@types/node": "20.2.5",
+        "@typescript-eslint/eslint-plugin": "^5.59.8",
+        "@typescript-eslint/parser": "^5.59.8",
+        "eslint": "^8.41.0",
+        "glob": "^8.1.0",
+        "mocha": "^10.2.0",
+        "typescript": "^5.1.3",
+        "ts-loader": "^9.4.3",
+        "webpack": "^5.85.0",
+        "webpack-cli": "^5.1.1",
+        "@vscode/test-electron": "^2.3.2",
+        "@vscode/debugadapter": "^1.56.0",
+        "@vscode/debugadapter-testsupport": "^1.56.0",
+        "await-notify": "^1.0.1",
+        "base64-js": "^1.5.1",
+        "esbuild": "^0.14.29",
+        "events": "^3.3.0",
+        "path-browserify": "^1.0.1",
+        "rimraf": "^3.0.2",
+        "url": "^0.11.0",
+        "vsce": "^2.7.0"
+    }
+}
