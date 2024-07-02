@@ -24,6 +24,42 @@ Debugger::Debugger(Execution &execution) : execution(execution), status(DBG_STAT
 
 }
 
+void Debugger::checkBreakPoint(uint32_t pc, const MethodInfo *method) {
+    if(!(status & DBG_STATUS_STOP)) {
+        if(breakPointCount) {
+            for(uint8_t i = 0; i < breakPointCount; i++) {
+                if(breakPoints[i].method == method && breakPoints[i].pc == pc) {
+                    Mjvm::lock();
+                    status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                    Mjvm::unlock();
+                    break;
+                }
+            }
+        }
+    }
+    while(status & (DBG_STATUS_STOP | DBG_STATUS_STEP_IN)) {
+        if(status & DBG_STATUS_STEP_IN) {
+            if(status & DBG_STATUS_STOP) {
+                Mjvm::lock();
+                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                Mjvm::unlock();
+                return;
+            }
+            else if(
+                &startPoint.method != method ||
+                (pc - startPoint.pc) >= stepCodeLength ||
+                pc <= startPoint.pc
+            ) {
+                Mjvm::lock();
+                status = (status & ~DBG_STATUS_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                Mjvm::unlock();
+            }
+            else
+                return;
+        }
+    }
+}
+
 void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     static uint8_t txBuff[1024];
     txBuff[0] = data[0];
@@ -31,11 +67,15 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_READ_STATUS: {
             txBuff[1] = 0;
             txBuff[2] = status;
-            sendData(txBuff, 3);
+            if(sendData(txBuff, 3)) {
+                Mjvm::lock();
+                status &= ~DBG_STATUS_STOP_SET;
+                Mjvm::unlock();
+            }
             break;
         }
         case DBG_READ_STACK_TRACE: {
-            if(this->status & DBG_STATUS_STOP) {
+            if(status & DBG_STATUS_STOP && length == 5) {
                 uint32_t index = sizeof(DebuggerCmd);
                 uint32_t stackIndex = *(uint32_t *)&data[1];
 
@@ -99,25 +139,38 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             break;
         }
         case DBG_RUN: {
-            this->status &= ~(DBG_STATUS_STOP | DBG_STATUS_HIT_BKP);
+            Mjvm::lock();
+            status &= ~DBG_STATUS_STOP;
+            Mjvm::unlock();
             txBuff[1] = 0;
             sendData(txBuff, 2);
             break;
         }
         case DBG_STOP: {
-            this->status |= DBG_STATUS_STOP;
+            Mjvm::lock();
+            status = (status & ~DBG_STATUS_STOP_SET) | DBG_STATUS_STOP;
+            Mjvm::unlock();
             txBuff[1] = 0;
             sendData(txBuff, 2);
             break;
         }
-        case DBG_SINGLE_STEP: {
-            txBuff[1] = (this->status & DBG_STATUS_STOP) ? this->status |= DBG_STATUS_SINGLE_STEP, 0 : 1;
+        case DBG_STEP_IN: {
+            if(status & DBG_STATUS_STOP && length == 5 && data[1] > 0) {
+                execution.getStackTrace(0, &startPoint);
+                stepCodeLength = *(uint32_t *)&data[1];
+                Mjvm::lock();
+                status |= DBG_STATUS_STEP_IN;
+                Mjvm::unlock();
+                txBuff[1] = 0;
+            }
+            else
+                txBuff[1] = 1;
             sendData(txBuff, 2);
             break;
         }
         case DBG_READ_VARIABLE:
         case DBG_WRITE_VARIABLE: {
-            if(this->status & DBG_STATUS_STOP) {
+            if(status & DBG_STATUS_STOP) {
                 // TODO
                 if((DebuggerCmd)data[0] == DBG_READ_VARIABLE) {
                     // TODO

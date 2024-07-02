@@ -983,23 +983,11 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
 
     goto *opcodes[code[pc]];
     check_bkp: {
-        if(!(dbg->status & DBG_STATUS_STOP)) {
-            for(uint8_t i = 0; i < dbg->breakPointCount; i++) {
-                if(dbg->breakPoints[i].method == method && dbg->breakPoints[i].pc == pc) {
-                    dbg->status |= DBG_STATUS_STOP | DBG_STATUS_HIT_BKP;
-                    break;
-                }
-            }
-        }
-        while(dbg->status & (DBG_STATUS_STOP | DBG_STATUS_HIT_BKP)) {
-            if(dbg->status & DBG_STATUS_SINGLE_STEP) {
-                dbg->status &= ~(DBG_STATUS_SINGLE_STEP | DBG_STATUS_HIT_BKP);
-                goto *opcodeLabels[code[pc]];
-            }
-        }
+        dbg->checkBreakPoint(pc, method);
         goto *opcodeLabels[code[pc]];
     }
     op_nop:
+        pc++;
         goto *opcodes[code[pc]];
     op_iconst_m1:
         stackPushInt32(-1);

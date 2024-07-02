@@ -66,10 +66,10 @@ export class AttributeLineNumber extends AttributeInfo {
 export class AttributeCode extends AttributeInfo {
     public readonly maxStack: number;
     public readonly maxLocals: number;
-    public readonly code: Buffer | null;
+    public readonly code: Buffer;
     public attributes: AttributeInfo[] | null;
 
-    public constructor(maxStack: number, maxLocals: number, code: Buffer | null, attributes: AttributeInfo[] | null) {
+    public constructor(maxStack: number, maxLocals: number, code: Buffer, attributes: AttributeInfo[] | null) {
         super(AttributeInfo.ATTRIBUTE_CODE);
         this.maxStack = maxStack;
         this.maxLocals = maxLocals;

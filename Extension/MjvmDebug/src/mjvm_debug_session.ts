@@ -17,7 +17,7 @@ export class MjvmDebugSession extends LoggingDebugSession {
         super('mjvm-debug.txt');
         this.clientDebugger = new MjvmClientDebugger();
 
-        this.clientDebugger.onHitBkp(() => {
+        this.clientDebugger.onStop(() => {
             this.sendEvent(new StoppedEvent('stop', 1));
         });
 
