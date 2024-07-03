@@ -71,6 +71,21 @@ void Debugger::checkBreakPoint(uint32_t pc, uint32_t baseSp, const MethodInfo *m
             else
                 return;
         }
+        else if(status & DBG_STATUS_STEP_OUT) {
+            if(status & DBG_STATUS_STOP) {
+                Mjvm::lock();
+                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                Mjvm::unlock();
+                return;
+            }
+            else if(baseSp < startPoint.baseSp) {
+                Mjvm::lock();
+                status = (status & ~DBG_STATUS_STEP_OUT) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                Mjvm::unlock();
+            }
+            else
+                return;
+        }
     }
 }
 
@@ -81,6 +96,8 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_READ_STATUS: {
             txBuff[1] = 0;
             txBuff[2] = status;
+            if(txBuff[2] & (DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT))
+                txBuff[2] &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
             if(sendData(txBuff, 3)) {
                 Mjvm::lock();
                 status &= ~DBG_STATUS_STOP_SET;
@@ -173,15 +190,34 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             if(status & DBG_STATUS_STOP && length == 5 && data[1] > 0) {
                 execution.getStackTrace(0, &startPoint);
                 stepCodeLength = *(uint32_t *)&data[1];
-                Mjvm::lock();
-                status |= ((DebuggerCmd)data[0] == DBG_STEP_IN) ? DBG_STATUS_STEP_IN : DBG_STEP_OVER;
-                Mjvm::unlock();
+                if((DebuggerCmd)data[0] == DBG_STEP_IN) {
+                    Mjvm::lock();
+                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT)) | DBG_STATUS_STEP_IN;
+                    Mjvm::unlock();
+                }
+                else {
+                    Mjvm::lock();
+                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OUT)) | DBG_STATUS_STEP_OVER;
+                    Mjvm::unlock();
+                }
                 txBuff[1] = 0;
             }
             else
                 txBuff[1] = 1;
             sendData(txBuff, 2);
             break;
+        }
+        case DBG_STEP_OUT: {
+            if(status & DBG_STATUS_STOP) {
+                execution.getStackTrace(0, &startPoint);
+                Mjvm::lock();
+                status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER)) | DBG_STATUS_STEP_OUT;
+                Mjvm::unlock();
+                txBuff[1] = 0;
+            }
+            else
+                txBuff[1] = 1;
+            sendData(txBuff, 2);
         }
         case DBG_READ_VARIABLE:
         case DBG_WRITE_VARIABLE: {

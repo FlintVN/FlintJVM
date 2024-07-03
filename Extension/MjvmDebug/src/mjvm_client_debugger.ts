@@ -41,7 +41,6 @@ export class MjvmClientDebugger {
 
     private tcpSemaphore = new Semaphore(1);
 
-    private stopEventEnable: boolean = true;
     private stopCallback?: () => void;
     private errorCallback?: () => void;
     private closeCallback?: () => void;
@@ -61,12 +60,12 @@ export class MjvmClientDebugger {
                             this.currentStatus = data[2];
                             if((data[2] & MjvmClientDebugger.DBG_STATUS_STOP_SET) && (data[2] & MjvmClientDebugger.DBG_STATUS_STOP)) {
                                 this.currentStackFrames = undefined;
-                                if(this.stopEventEnable && this.stopCallback)
+                                if(this.stopCallback)
                                     this.stopCallback();
                             }
                             else if((tmp & MjvmClientDebugger.DBG_STATUS_STOP) !== (data[2] & MjvmClientDebugger.DBG_STATUS_STOP)) {
                                 this.currentStackFrames = undefined;
-                                if(this.stopEventEnable && this.stopCallback && (data[2] & MjvmClientDebugger.DBG_STATUS_STOP))
+                                if(this.stopCallback && (data[2] & MjvmClientDebugger.DBG_STATUS_STOP))
                                     this.stopCallback();
                             }
                         }
@@ -153,37 +152,6 @@ export class MjvmClientDebugger {
         });
     }
 
-    private waitStop(timeout: number) : Thenable<boolean> {
-        return new Promise((resolve) => {
-            this.currentStatus &= ~MjvmClientDebugger.DBG_STATUS_STOP;
-            const interval = setInterval(() => {
-                if(this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP) {
-                    this.stopEventEnable = true;
-                    clearInterval(interval);
-                    resolve(true);
-                }
-                else if(timeout > 50)
-                    timeout -= 50;
-                else {
-                    this.stopEventEnable = true;
-                    clearInterval(interval);
-                    resolve(false);
-                }
-            }, 50);
-            this.stopEventEnable = false;
-            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_READ_STATUS])).then((data) => {
-                if(data && data[0] === MjvmClientDebugger.DBG_READ_STATUS && data[1] === 0) {
-                    this.currentStatus = data[2];
-                    if(!(data[2] & MjvmClientDebugger.DBG_STATUS_STOP)) {
-                        this.stopEventEnable = true;
-                        clearInterval(interval);
-                        resolve(true);
-                    }
-                }
-            });
-        });
-    }
-
     public stop() : Thenable<boolean> {
         this.currentStackFrames = undefined;
         return new Promise((resolve) => {
@@ -192,10 +160,8 @@ export class MjvmClientDebugger {
             else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_STOP])).then((data) => {
                 if(!(data && data.length === 2 && data[0] === MjvmClientDebugger.DBG_STOP && data[1] === 0))
                     resolve(false);
-                else if(this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)
-                    resolve(true);
                 else
-                    this.waitStop(MjvmClientDebugger.TCP_RECEIVED_TIMEOUT * 2).then((value) => resolve(value));
+                    resolve(true);
             });
         });
     }
@@ -397,24 +363,6 @@ export class MjvmClientDebugger {
         });
     }
 
-    private setRequest(stepCmd: number, stepCodeLength: number) : Thenable<boolean> {
-        this.currentStackFrames = undefined;
-        return new Promise((resolve) => {
-            const txData = Buffer.alloc(5);
-            txData[0] = stepCmd;
-            txData[1] = stepCodeLength & 0xFF;
-            txData[2] = (stepCodeLength >>> 8) & 0xFF;
-            txData[3] = (stepCodeLength >>> 16) & 0xFF;
-            txData[4] = (stepCodeLength >>> 24) & 0xFF;
-            this.sendCmd(Buffer.from(txData)).then((data) => {
-                if(!(data && data[0] === stepCmd && data[1] === 0))
-                    resolve(false);
-                else
-                    this.waitStop(MjvmClientDebugger.TCP_RECEIVED_TIMEOUT * 2).then((value) => resolve(value));
-            });
-        });
-    }
-
     private readStackFrame(stackIndex: number) : Thenable<DebugLineInfo | null> {
         return new Promise((resolve) => {
             const txData: Buffer = Buffer.alloc(5);
@@ -455,34 +403,52 @@ export class MjvmClientDebugger {
         });
     }
 
+    private stepRequest(stepCmd: number, stepCodeLength: number) : Thenable<boolean> {
+        this.currentStackFrames = undefined;
+        return new Promise((resolve) => {
+            const txData = Buffer.alloc(5);
+            txData[0] = stepCmd;
+            txData[1] = stepCodeLength & 0xFF;
+            txData[2] = (stepCodeLength >>> 8) & 0xFF;
+            txData[3] = (stepCodeLength >>> 16) & 0xFF;
+            txData[4] = (stepCodeLength >>> 24) & 0xFF;
+            this.sendCmd(Buffer.from(txData)).then((data) => {
+                if(!(data && data[0] === stepCmd && data[1] === 0))
+                    resolve(false);
+                else
+                    resolve(true);
+            });
+        });
+    }
+
     public stepInRequest() : Thenable<boolean> {
         return new Promise((resolve) => {
-            if(this.currentStackFrames) {
-                const currentPoint = this.currentStackFrames[0];
-                this.setRequest(MjvmClientDebugger.DBG_STEP_IN, currentPoint.codeLength).then((value) => resolve(value));
-            }
+            if(this.currentStackFrames)
+                this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, this.currentStackFrames[0].codeLength).then((value) => resolve(value));
             else this.readStackFrame(0).then((currentPoint) => {
                 if(!currentPoint)
                     resolve(false);
                 else
-                    this.setRequest(MjvmClientDebugger.DBG_STEP_IN, currentPoint.codeLength).then((value) => resolve(value));
+                    resolve(true);
             });
         });
     }
 
     public stepOverRequest() : Thenable<boolean> {
         return new Promise((resolve) => {
-            if(this.currentStackFrames) {
-                const currentPoint = this.currentStackFrames[0];
-                this.setRequest(MjvmClientDebugger.DBG_STEP_OVER, currentPoint.codeLength).then((value) => resolve(value));
-            }
+            if(this.currentStackFrames)
+                this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, this.currentStackFrames[0].codeLength).then((value) => resolve(value));
             else this.readStackFrame(0).then((currentPoint) => {
                 if(!currentPoint)
                     resolve(false);
                 else
-                    this.setRequest(MjvmClientDebugger.DBG_STEP_OVER, currentPoint.codeLength).then((value) => resolve(value));
+                    resolve(true);
             });
         });
+    }
+
+    public stepOutRequest() : Thenable<boolean> {
+        return this.stepRequest(MjvmClientDebugger.DBG_STEP_OUT, 0);
     }
 
     private convertToStackFrame(linesInfo: DebugLineInfo[]) : StackFrame[] {

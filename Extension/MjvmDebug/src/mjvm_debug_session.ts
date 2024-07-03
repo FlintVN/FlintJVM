@@ -110,7 +110,6 @@ export class MjvmDebugSession extends LoggingDebugSession {
             if(!value)
                 response.success = false;
             this.sendResponse(response);
-            this.sendEvent(new StoppedEvent('stop', 1));
         });
     }
 
@@ -127,7 +126,6 @@ export class MjvmDebugSession extends LoggingDebugSession {
             if(!value)
                 response.success = false;
             this.sendResponse(response);
-            this.sendEvent(new StoppedEvent('stop', 1));
         });
     }
 
@@ -136,12 +134,15 @@ export class MjvmDebugSession extends LoggingDebugSession {
             if(!value)
                 response.success = false;
             this.sendResponse(response);
-            this.sendEvent(new StoppedEvent('stop', 1));
         });
     }
 
     protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments, request?: DebugProtocol.Request | undefined): void {
-        this.sendResponse(response);
+        this.clientDebugger.stepOutRequest().then((value) => {
+            if(!value)
+                response.success = false;
+            this.sendResponse(response);
+        });
     }
 
     protected restartRequest(response: DebugProtocol.RestartResponse, args: DebugProtocol.RestartArguments, request?: DebugProtocol.Request | undefined): void {
