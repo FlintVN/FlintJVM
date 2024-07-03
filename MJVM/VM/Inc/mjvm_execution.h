@@ -13,16 +13,7 @@
 #if __has_include("mjvm_conf.h")
 #include "mjvm_conf.h"
 #endif
-
-#ifndef DEFAULT_STACK_SIZE
-#define DEFAULT_STACK_SIZE          MEGA_BYTE(1)
-#warning "DEFAULT_STACK_SIZE is not defined. Default value will be used"
-#endif /* DEFAULT_STACK_SIZE */
-
-#ifndef OBJECT_SIZE_TO_GC
-#define OBJECT_SIZE_TO_GC           MEGA_BYTE(1)
-#warning "OBJECT_SIZE_TO_GC is not defined. Default value will be used"
-#endif /* OBJECT_SIZE_TO_GC */
+#include "mjvm_default_conf.h"
 
 #define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 

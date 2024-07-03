@@ -7,11 +7,7 @@
 #if __has_include("mjvm_conf.h")
 #include "mjvm_conf.h"
 #endif
-
-#ifndef MAX_OF_BREAK_POINT
-#define MAX_OF_BREAK_POINT          10
-#warning "MAX_OF_BREAK_POINT is not defined. Default value will be used"
-#endif /* MAX_OF_BREAK_POINT */
+#include "mjvm_default_conf.h"
 
 #define DBG_STATUS_STOP             0x01
 #define DBG_STATUS_STOP_SET         0x02

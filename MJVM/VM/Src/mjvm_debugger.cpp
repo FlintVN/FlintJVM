@@ -90,7 +90,7 @@ void Debugger::checkBreakPoint(uint32_t pc, uint32_t baseSp, const MethodInfo *m
 }
 
 void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
-    static uint8_t txBuff[1024];
+    static uint8_t txBuff[MAX_OF_DBG_BUFFER];
     txBuff[0] = data[0];
     switch((DebuggerCmd)data[0]) {
         case DBG_READ_STATUS: {
