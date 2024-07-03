@@ -123,8 +123,12 @@ export class MjvmDebugSession extends LoggingDebugSession {
     }
 
     protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
-        this.sendResponse(response);
-        this.sendEvent(new StoppedEvent('stop', 1));
+        this.clientDebugger.stepOverRequest().then((value) => {
+            if(!value)
+                response.success = false;
+            this.sendResponse(response);
+            this.sendEvent(new StoppedEvent('stop', 1));
+        });
     }
 
     protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments, request?: DebugProtocol.Request | undefined): void {

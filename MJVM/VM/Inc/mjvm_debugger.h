@@ -16,6 +16,8 @@
 #define DBG_STATUS_STOP             0x01
 #define DBG_STATUS_STOP_SET         0x02
 #define DBG_STATUS_STEP_IN          0x04
+#define DBG_STATUS_STEP_OVER        0x08
+#define DBG_STATUS_STEP_OUT         0x10
 
 class Execution;
 
@@ -28,6 +30,8 @@ typedef enum : uint8_t {
     DBG_RUN,
     DBG_STOP,
     DBG_STEP_IN,
+    DBG_STEP_OVER,
+    DBG_STEP_OUT,
     DBG_READ_VARIABLE,
     DBG_WRITE_VARIABLE,
 } DebuggerCmd;
@@ -46,10 +50,11 @@ private:
 class StackTrace {
 public:
     const uint32_t pc;
+    const uint32_t baseSp;
     MethodInfo &method;
 
     StackTrace(void);
-    StackTrace(uint32_t pc, MethodInfo &method);
+    StackTrace(uint32_t pc, uint32_t baseSp, MethodInfo &method);
 private:
     StackTrace(const StackTrace &) = delete;
     void operator=(const StackTrace &) = delete;
@@ -71,7 +76,7 @@ public:
 
     void receivedDataHandler(uint8_t *data, uint32_t length);
 
-    void checkBreakPoint(uint32_t pc, const MethodInfo *method);
+    void checkBreakPoint(uint32_t pc, uint32_t baseSp, const MethodInfo *method);
 private:
     Debugger(const Debugger &) = delete;
     void operator=(const Debugger &) = delete;

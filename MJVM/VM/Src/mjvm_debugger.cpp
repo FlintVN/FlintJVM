@@ -12,11 +12,11 @@ BreakPoint::BreakPoint(uint32_t pc, MethodInfo &method) : pc(pc), method(&method
 
 }
 
-StackTrace::StackTrace(void) : pc(0), method(*(MethodInfo *)0) {
+StackTrace::StackTrace(void) : pc(0), baseSp(0), method(*(MethodInfo *)0) {
     
 }
 
-StackTrace::StackTrace(uint32_t pc, MethodInfo &method) : pc(pc), method(method) {
+StackTrace::StackTrace(uint32_t pc, uint32_t baseSp, MethodInfo &method) : pc(pc), baseSp(baseSp), method(method) {
 
 }
 
@@ -24,7 +24,7 @@ Debugger::Debugger(Execution &execution) : execution(execution), status(DBG_STAT
 
 }
 
-void Debugger::checkBreakPoint(uint32_t pc, const MethodInfo *method) {
+void Debugger::checkBreakPoint(uint32_t pc, uint32_t baseSp, const MethodInfo *method) {
     if(!(status & DBG_STATUS_STOP)) {
         if(breakPointCount) {
             for(uint8_t i = 0; i < breakPointCount; i++) {
@@ -37,7 +37,7 @@ void Debugger::checkBreakPoint(uint32_t pc, const MethodInfo *method) {
             }
         }
     }
-    while(status & (DBG_STATUS_STOP | DBG_STATUS_STEP_IN)) {
+    while(status & (DBG_STATUS_STOP | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT)) {
         if(status & DBG_STATUS_STEP_IN) {
             if(status & DBG_STATUS_STOP) {
                 Mjvm::lock();
@@ -45,13 +45,27 @@ void Debugger::checkBreakPoint(uint32_t pc, const MethodInfo *method) {
                 Mjvm::unlock();
                 return;
             }
-            else if(
-                &startPoint.method != method ||
-                (pc - startPoint.pc) >= stepCodeLength ||
-                pc <= startPoint.pc
-            ) {
+            else if(&startPoint.method != method || (pc - startPoint.pc) >= stepCodeLength || pc <= startPoint.pc) {
                 Mjvm::lock();
                 status = (status & ~DBG_STATUS_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                Mjvm::unlock();
+            }
+            else
+                return;
+        }
+        else if(status & DBG_STATUS_STEP_OVER) {
+            if(status & DBG_STATUS_STOP) {
+                Mjvm::lock();
+                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                Mjvm::unlock();
+                return;
+            }
+            else if(
+                (baseSp <= startPoint.baseSp) &&
+                (&startPoint.method != method || (pc - startPoint.pc) >= stepCodeLength || pc <= startPoint.pc)
+            ) {
+                Mjvm::lock();
+                status = (status & ~DBG_STATUS_STEP_OVER) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                 Mjvm::unlock();
             }
             else
@@ -140,7 +154,7 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_RUN: {
             Mjvm::lock();
-            status &= ~DBG_STATUS_STOP;
+            status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT);
             Mjvm::unlock();
             txBuff[1] = 0;
             sendData(txBuff, 2);
@@ -148,18 +162,19 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_STOP: {
             Mjvm::lock();
-            status = (status & ~DBG_STATUS_STOP_SET) | DBG_STATUS_STOP;
+            status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT)) | DBG_STATUS_STOP;
             Mjvm::unlock();
             txBuff[1] = 0;
             sendData(txBuff, 2);
             break;
         }
-        case DBG_STEP_IN: {
+        case DBG_STEP_IN:
+        case DBG_STEP_OVER: {
             if(status & DBG_STATUS_STOP && length == 5 && data[1] > 0) {
                 execution.getStackTrace(0, &startPoint);
                 stepCodeLength = *(uint32_t *)&data[1];
                 Mjvm::lock();
-                status |= DBG_STATUS_STEP_IN;
+                status |= ((DebuggerCmd)data[0] == DBG_STEP_IN) ? DBG_STATUS_STEP_IN : DBG_STEP_OVER;
                 Mjvm::unlock();
                 txBuff[1] = 0;
             }

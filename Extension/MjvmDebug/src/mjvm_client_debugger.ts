@@ -20,12 +20,16 @@ export class MjvmClientDebugger {
     private static readonly DBG_RUN: number = 5;
     private static readonly DBG_STOP: number = 6;
     private static readonly DBG_STEP_IN: number = 7;
-    private static readonly DBG_READ_VARIABLE: number = 8;
-    private static readonly DBG_WRITE_VARIABLE: number = 9;
+    private static readonly DBG_STEP_OVER: number = 8;
+    private static readonly DBG_STEP_OUT: number = 9;
+    private static readonly DBG_READ_VARIABLE: number = 10;
+    private static readonly DBG_WRITE_VARIABLE: number = 11;
 
     private static readonly DBG_STATUS_STOP: number = 0x01;
     private static readonly DBG_STATUS_STOP_SET: number = 0x02;
     private static readonly DBG_STATUS_STEP_IN: number = 0x04;
+    private static readonly DBG_STATUS_STEP_OVER: number = 0x04;
+    private static readonly DBG_STATUS_STEP_OUT: number = 0x04;
 
     private static TCP_RECEIVED_TIMEOUT: number = 100;
 
@@ -393,35 +397,20 @@ export class MjvmClientDebugger {
         });
     }
 
-    private setInRequest(stepCodeLength: number) : Thenable<boolean> {
+    private setRequest(stepCmd: number, stepCodeLength: number) : Thenable<boolean> {
         this.currentStackFrames = undefined;
         return new Promise((resolve) => {
             const txData = Buffer.alloc(5);
-            txData[0] = MjvmClientDebugger.DBG_STEP_IN;
+            txData[0] = stepCmd;
             txData[1] = stepCodeLength & 0xFF;
             txData[2] = (stepCodeLength >>> 8) & 0xFF;
             txData[3] = (stepCodeLength >>> 16) & 0xFF;
             txData[4] = (stepCodeLength >>> 24) & 0xFF;
             this.sendCmd(Buffer.from(txData)).then((data) => {
-                if(!(data && data[0] === MjvmClientDebugger.DBG_STEP_IN && data[1] === 0))
+                if(!(data && data[0] === stepCmd && data[1] === 0))
                     resolve(false);
                 else
                     this.waitStop(MjvmClientDebugger.TCP_RECEIVED_TIMEOUT * 2).then((value) => resolve(value));
-            });
-        });
-    }
-
-    public stepInRequest() : Thenable<boolean> {
-        return new Promise((resolve) => {
-            if(this.currentStackFrames) {
-                const currentPoint = this.currentStackFrames[0];
-                this.setInRequest(currentPoint.codeLength).then((value) => resolve(value));
-            }
-            else this.readStackFrame(0).then((currentPoint) => {
-                if(!currentPoint)
-                    resolve(false);
-                else
-                    this.setInRequest(currentPoint.codeLength).then((value) => resolve(value));
             });
         });
     }
@@ -462,6 +451,36 @@ export class MjvmClientDebugger {
                     resolve(lineInfo);
                 }
                 resolve(null);
+            });
+        });
+    }
+
+    public stepInRequest() : Thenable<boolean> {
+        return new Promise((resolve) => {
+            if(this.currentStackFrames) {
+                const currentPoint = this.currentStackFrames[0];
+                this.setRequest(MjvmClientDebugger.DBG_STEP_IN, currentPoint.codeLength).then((value) => resolve(value));
+            }
+            else this.readStackFrame(0).then((currentPoint) => {
+                if(!currentPoint)
+                    resolve(false);
+                else
+                    this.setRequest(MjvmClientDebugger.DBG_STEP_IN, currentPoint.codeLength).then((value) => resolve(value));
+            });
+        });
+    }
+
+    public stepOverRequest() : Thenable<boolean> {
+        return new Promise((resolve) => {
+            if(this.currentStackFrames) {
+                const currentPoint = this.currentStackFrames[0];
+                this.setRequest(MjvmClientDebugger.DBG_STEP_OVER, currentPoint.codeLength).then((value) => resolve(value));
+            }
+            else this.readStackFrame(0).then((currentPoint) => {
+                if(!currentPoint)
+                    resolve(false);
+                else
+                    this.setRequest(MjvmClientDebugger.DBG_STEP_OVER, currentPoint.codeLength).then((value) => resolve(value));
             });
         });
     }

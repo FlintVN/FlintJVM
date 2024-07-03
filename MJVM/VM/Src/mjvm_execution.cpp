@@ -608,14 +608,14 @@ MjvmObject *Execution::stackPopObject(void) {
 
 void Execution::getStackTrace(uint32_t index, StackTrace *stackTrace) const {
     if(index == 0)
-        new (stackTrace)StackTrace(pc, *method);
+        new (stackTrace)StackTrace(pc, startSp, *method);
     else {
         int32_t traceSp = startSp;
         while(--index)
             traceSp = stack[traceSp];
         uint32_t tracePc = stack[traceSp - 2];
         MethodInfo &traceMethod = *(MethodInfo *)stack[traceSp - 3];
-        new (stackTrace)StackTrace(tracePc, traceMethod);
+        new (stackTrace)StackTrace(tracePc, traceSp, traceMethod);
     }
 }
 
@@ -983,7 +983,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
 
     goto *opcodes[code[pc]];
     check_bkp: {
-        dbg->checkBreakPoint(pc, method);
+        dbg->checkBreakPoint(pc, startSp, method);
         goto *opcodeLabels[code[pc]];
     }
     op_nop:
