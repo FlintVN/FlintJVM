@@ -20,7 +20,7 @@ StackTrace::StackTrace(uint32_t pc, uint32_t baseSp, MethodInfo &method) : pc(pc
 
 }
 
-Debugger::Debugger(Execution &execution) : execution(execution), status(DBG_STATUS_STOP), breakPointCount(0) {
+Debugger::Debugger(Execution &execution) : execution(execution), stepCodeLength(0), status(DBG_STATUS_STOP), breakPointCount(0) {
 
 }
 
@@ -37,7 +37,7 @@ void Debugger::checkBreakPoint(uint32_t pc, uint32_t baseSp, const MethodInfo *m
             }
         }
     }
-    while(status & (DBG_STATUS_STOP | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT)) {
+    while(status & (DBG_STATUS_STOP | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) {
         if(status & DBG_STATUS_STEP_IN) {
             if(status & DBG_STATUS_STOP) {
                 Mjvm::lock();
@@ -99,9 +99,11 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             if(txBuff[2] & (DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT))
                 txBuff[2] &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
             if(sendData(txBuff, 3)) {
-                Mjvm::lock();
-                status &= ~DBG_STATUS_STOP_SET;
-                Mjvm::unlock();
+                if(txBuff[2] & DBG_STATUS_STOP_SET) {
+                    Mjvm::lock();
+                    status &= ~DBG_STATUS_STOP_SET;
+                    Mjvm::unlock();
+                }
             }
             break;
         }
@@ -171,7 +173,7 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_RUN: {
             Mjvm::lock();
-            status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT);
+            status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP);
             Mjvm::unlock();
             txBuff[1] = 0;
             sendData(txBuff, 2);
@@ -179,7 +181,7 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_STOP: {
             Mjvm::lock();
-            status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT)) | DBG_STATUS_STOP;
+            status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STOP;
             Mjvm::unlock();
             txBuff[1] = 0;
             sendData(txBuff, 2);
@@ -192,12 +194,12 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                 stepCodeLength = *(uint32_t *)&data[1];
                 if((DebuggerCmd)data[0] == DBG_STEP_IN) {
                     Mjvm::lock();
-                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT)) | DBG_STATUS_STEP_IN;
+                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_IN;
                     Mjvm::unlock();
                 }
                 else {
                     Mjvm::lock();
-                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OUT)) | DBG_STATUS_STEP_OVER;
+                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OVER;
                     Mjvm::unlock();
                 }
                 txBuff[1] = 0;
@@ -211,13 +213,25 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             if(status & DBG_STATUS_STOP) {
                 execution.getStackTrace(0, &startPoint);
                 Mjvm::lock();
-                status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER)) | DBG_STATUS_STEP_OUT;
+                status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OUT;
                 Mjvm::unlock();
                 txBuff[1] = 0;
             }
             else
                 txBuff[1] = 1;
             sendData(txBuff, 2);
+            break;
+        }
+        case DBG_SET_EXCP_MODE: {
+            Mjvm::lock();
+            if(data[1] & 0x01)
+                status |= DBG_STATUS_EXCP_EN;
+            else
+                status &= ~DBG_STATUS_EXCP_EN;
+            Mjvm::unlock();
+            txBuff[1] = 0;
+            sendData(txBuff, 2);
+            break;
         }
         case DBG_READ_VARIABLE:
         case DBG_WRITE_VARIABLE: {
@@ -233,6 +247,7 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             else
                 txBuff[1] = 1;
             sendData(txBuff, 2);
+            break;
         }
         default: {
             txBuff[1] = 0xFF;
@@ -284,4 +299,23 @@ bool Debugger::removeBreakPoint(uint32_t pc, ConstUtf8 &className, ConstUtf8 &me
 
     }
     return false;
+}
+
+bool Debugger::exceptionIsEnabled(void) {
+    return (status & DBG_STATUS_EXCP_EN) == DBG_STATUS_EXCP_EN;
+}
+
+void Debugger::caughtException(void) {
+    Mjvm::lock();
+    status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
+    Mjvm::unlock();
+    while(status & DBG_STATUS_STOP) {
+
+    }
+}
+
+void Debugger::done(void) {
+    Mjvm::lock();
+    status |= DBG_STATUS_DONE;
+    Mjvm::unlock();
 }

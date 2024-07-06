@@ -30,7 +30,7 @@ export class AttributeInfo {
         this.tag = tag;
     }
 
-    public static parseAttributeType(name: string) : number {
+    public static parseAttributeType(name: string): number {
         if(name === "Code")
             return AttributeInfo.ATTRIBUTE_CODE;
         else if(name === "LineNumberTable")
@@ -77,7 +77,7 @@ export class AttributeCode extends AttributeInfo {
         this.attributes = attributes;
     }
 
-    public getLinesNumber() : AttributeLineNumber | null {
+    public getLinesNumber(): AttributeLineNumber | null {
         if(this.attributes) {
             for(let i = 0; i < this.attributes.length; i++) {
                 if(this.attributes[i].tag === AttributeInfo.ATTRIBUTE_LINE_NUMBER_TABLE)

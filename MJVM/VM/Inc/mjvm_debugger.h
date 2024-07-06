@@ -14,6 +14,9 @@
 #define DBG_STATUS_STEP_IN          0x04
 #define DBG_STATUS_STEP_OVER        0x08
 #define DBG_STATUS_STEP_OUT         0x10
+#define DBG_STATUS_EXCP_EN          0x20
+#define DBG_STATUS_EXCP             0x40
+#define DBG_STATUS_DONE             0x80
 
 class Execution;
 
@@ -28,6 +31,7 @@ typedef enum : uint8_t {
     DBG_STEP_IN,
     DBG_STEP_OVER,
     DBG_STEP_OUT,
+    DBG_SET_EXCP_MODE,
     DBG_READ_VARIABLE,
     DBG_WRITE_VARIABLE,
 } DebuggerCmd;
@@ -60,19 +64,20 @@ class Debugger {
 private:
     Execution &execution;
     volatile uint32_t stepCodeLength;
-    StackTrace startPoint;
-public:
     volatile uint8_t status;
     volatile uint8_t breakPointCount;
+    StackTrace startPoint;
     BreakPoint breakPoints[MAX_OF_BREAK_POINT];
-
+public:
     Debugger(Execution &execution);
 
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
-
     void receivedDataHandler(uint8_t *data, uint32_t length);
 
+    bool exceptionIsEnabled(void);
+    void caughtException(void);
     void checkBreakPoint(uint32_t pc, uint32_t baseSp, const MethodInfo *method);
+    void done(void);
 private:
     Debugger(const Debugger &) = delete;
     void operator=(const Debugger &) = delete;

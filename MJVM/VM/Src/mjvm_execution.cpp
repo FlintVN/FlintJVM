@@ -957,7 +957,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
-        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_exit,
+        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_exit_dbg,
     };
 
     const register void **opcodes = dbg ? opcodeLabelsDebug : opcodeLabels;
@@ -2471,26 +2471,37 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto exception_handler;
     }
     exception_handler: {
+        if(dbg && dbg->exceptionIsEnabled())
+            dbg->caughtException();
+        uint32_t tracePc = pc;
+        int32_t traceStartSp = startSp;
+        MethodInfo *traceMethod = method;
         MjvmObject *obj = stackPopObject();
-        sp = startSp + method->getAttributeCode().maxLocals;
-        stackPushObject(obj);
-        AttributeCode &attributeCode = method->getAttributeCode();
-        for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
-            ExceptionTable &exceptionTable = attributeCode.getException(i);
-            if(exceptionTable.startPc <= pc && pc < exceptionTable.endPc) {
-                ConstUtf8 &typeName = method->classLoader.getConstUtf8Class(exceptionTable.catchType);
-                if(isInstanceof(obj, typeName.text, typeName.length)) {
-                    pc = exceptionTable.handlerPc;
-                    goto *opcodes[code[pc]];
+        while(1) {
+            AttributeCode &attributeCode = traceMethod->getAttributeCode();
+            for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
+                ExceptionTable &exceptionTable = attributeCode.getException(i);
+                if(exceptionTable.startPc <= tracePc && tracePc < exceptionTable.endPc) {
+                    ConstUtf8 &typeName = method->classLoader.getConstUtf8Class(exceptionTable.catchType);
+                    if(isInstanceof(obj, typeName.text, typeName.length)) {
+                        while(startSp > traceStartSp)
+                            stackRestoreContext();
+                        sp = startSp + method->getAttributeCode().maxLocals;
+                        stackPushObject(obj);
+                        pc = exceptionTable.handlerPc;
+                        goto *opcodes[code[pc]];
+                    }
                 }
             }
+            if(traceStartSp < 0) {
+                if(dbg && !dbg->exceptionIsEnabled())
+                    dbg->caughtException();
+                throw (MjvmThrowable *)obj;
+            }
+            traceMethod = (MethodInfo *)stack[traceStartSp - 3];
+            tracePc = stack[traceStartSp - 2];
+            traceStartSp = stack[traceStartSp];
         }
-        if(startSp < 0)
-            throw (MjvmThrowable *)obj;
-        stackRestoreContext();
-        sp = startSp + method->getAttributeCode().maxLocals;
-        stackPushObject(obj);
-        goto exception_handler;
     }
     op_checkcast: {
         MjvmObject *obj = (MjvmObject *)stack[sp];
@@ -2738,6 +2749,8 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         stackPushObject(excpObj);
         goto exception_handler;
     }
+    op_exit_dbg:
+        dbg->done();
     op_exit:
         return;
 }

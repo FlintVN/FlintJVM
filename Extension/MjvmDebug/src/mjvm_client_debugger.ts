@@ -22,8 +22,9 @@ export class MjvmClientDebugger {
     private static readonly DBG_STEP_IN: number = 7;
     private static readonly DBG_STEP_OVER: number = 8;
     private static readonly DBG_STEP_OUT: number = 9;
-    private static readonly DBG_READ_VARIABLE: number = 10;
-    private static readonly DBG_WRITE_VARIABLE: number = 11;
+    private static readonly DBG_SET_EXCP_MODE: number = 10;
+    private static readonly DBG_READ_VARIABLE: number = 11;
+    private static readonly DBG_WRITE_VARIABLE: number = 12;
 
     private static readonly DBG_STATUS_STOP: number = 0x01;
     private static readonly DBG_STATUS_STOP_SET: number = 0x02;
@@ -117,7 +118,7 @@ export class MjvmClientDebugger {
         await this.client.connect(5555, '127.0.0.1');
     }
 
-    private sendCmd(data: Buffer) : Thenable<Buffer | null> {
+    private sendCmd(data: Buffer): Thenable<Buffer | null> {
         return new Promise((resolve) => {
             this.tcpSemaphore.acquire().then(() => {
                 const timeout = setTimeout(() => {
@@ -138,7 +139,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    public run() : Thenable<boolean> {
+    public run(): Thenable<boolean> {
         this.currentStackFrames = undefined;
         return new Promise((resolve) => {
             if(!(this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP))
@@ -152,7 +153,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    public stop() : Thenable<boolean> {
+    public stop(): Thenable<boolean> {
         this.currentStackFrames = undefined;
         return new Promise((resolve) => {
             if(this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)
@@ -166,14 +167,14 @@ export class MjvmClientDebugger {
         });
     }
 
-    private calcCrc(str: string) : number {
+    private calcCrc(str: string): number {
         let crc: number = 0;
         for(let i = 0; i < str.length; i++)
             crc += str.charCodeAt(i);
         return crc;
     }
 
-    private putConstUtf8ToBuffer(buff: Buffer, str: string, offset: number) : number {
+    private putConstUtf8ToBuffer(buff: Buffer, str: string, offset: number): number {
         buff[offset++] = (str.length >>> 0) & 0xFF;
         buff[offset++] = (str.length >>> 8) & 0xFF;
         const crc = this.calcCrc(str);
@@ -184,7 +185,7 @@ export class MjvmClientDebugger {
         return offset + data.length + 1;
     }
 
-    public removeAllBreakPoints() : Thenable<boolean> {
+    public removeAllBreakPoints(): Thenable<boolean> {
         return new Promise((resolve) => {
             this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_REMOVE_ALL_BKP])).then((data) => {
                 if(data && data[0] === MjvmClientDebugger.DBG_REMOVE_ALL_BKP && data[1] === 0)
@@ -195,7 +196,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    private getRemoveBreakpointList(lines: number[], source: string) : DebugLineInfo[] | null {
+    private getRemoveBreakpointList(lines: number[], source: string): DebugLineInfo[] | null {
         const ret: DebugLineInfo[] = [];
         for(let i = 0; i < this.currentBreakpoints.length; i++) {
             if(source === this.currentBreakpoints[i].sourcePath) {
@@ -213,7 +214,7 @@ export class MjvmClientDebugger {
         return ret;
     }
 
-    private getAddBreakpointList(lines: number[], source: string) : DebugLineInfo[] | null {
+    private getAddBreakpointList(lines: number[], source: string): DebugLineInfo[] | null {
         const ret: DebugLineInfo[] = [];
         for(let i = 0; i < lines.length; i++) {
             let isContain = false;
@@ -234,7 +235,7 @@ export class MjvmClientDebugger {
         return ret;
     }
 
-    private removeBreakPoints(lineInfo: DebugLineInfo[]) : Thenable<boolean> {
+    private removeBreakPoints(lineInfo: DebugLineInfo[]): Thenable<boolean> {
         return new Promise((resolve) => {
             const sendRemoveBkpTask = () => {
                 const line = lineInfo.shift();
@@ -283,7 +284,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    private addBreakPoints(lineInfo: DebugLineInfo[]) : Thenable<boolean> {
+    private addBreakPoints(lineInfo: DebugLineInfo[]): Thenable<boolean> {
         return new Promise((resolve) => {
             const sendAddBkpTask = () => {
                 const line = lineInfo.shift();
@@ -331,7 +332,18 @@ export class MjvmClientDebugger {
         });
     }
 
-    public setBreakPointsRequest(lines: number[], source: string) : Thenable<boolean> {
+    public setExceptionBreakPointsRequest(isEnabled: boolean): Thenable<boolean> {
+        return new Promise((resolve) => {
+            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_SET_EXCP_MODE, isEnabled ? 1 : 0], )).then((data) => {
+                if(data && data[0] === MjvmClientDebugger.DBG_SET_EXCP_MODE && data[1] === 0)
+                    resolve(true);
+                else
+                    resolve(false);
+            });
+        });
+    }
+
+    public setBreakPointsRequest(lines: number[], source: string): Thenable<boolean> {
         return new Promise((resolve) => {
             let bkps = this.getRemoveBreakpointList(lines, source);
             if(bkps === null) {
@@ -363,7 +375,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    private readStackFrame(stackIndex: number) : Thenable<DebugLineInfo | null> {
+    private readStackFrame(stackIndex: number): Thenable<DebugLineInfo | null> {
         return new Promise((resolve) => {
             const txData: Buffer = Buffer.alloc(5);
             txData[0] = MjvmClientDebugger.DBG_READ_STACK_TRACE;
@@ -403,7 +415,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    private stepRequest(stepCmd: number, stepCodeLength: number) : Thenable<boolean> {
+    private stepRequest(stepCmd: number, stepCodeLength: number): Thenable<boolean> {
         this.currentStackFrames = undefined;
         return new Promise((resolve) => {
             const txData = Buffer.alloc(5);
@@ -421,7 +433,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    public stepInRequest() : Thenable<boolean> {
+    public stepInRequest(): Thenable<boolean> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
                 this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, this.currentStackFrames[0].codeLength).then((value) => resolve(value));
@@ -434,7 +446,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    public stepOverRequest() : Thenable<boolean> {
+    public stepOverRequest(): Thenable<boolean> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
                 this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, this.currentStackFrames[0].codeLength).then((value) => resolve(value));
@@ -447,11 +459,11 @@ export class MjvmClientDebugger {
         });
     }
 
-    public stepOutRequest() : Thenable<boolean> {
+    public stepOutRequest(): Thenable<boolean> {
         return this.stepRequest(MjvmClientDebugger.DBG_STEP_OUT, 0);
     }
 
-    private convertToStackFrame(linesInfo: DebugLineInfo[]) : StackFrame[] {
+    private convertToStackFrame(linesInfo: DebugLineInfo[]): StackFrame[] {
         const ret: StackFrame[] = [];
         for(let i = 0; i < linesInfo.length; i++) {
             const src = new Source(linesInfo[i].className + ".java", linesInfo[i].sourcePath);
@@ -462,7 +474,7 @@ export class MjvmClientDebugger {
         return ret;
     }
 
-    public stackFrameRequest() : Thenable<StackFrame[] | null> {
+    public stackFrameRequest(): Thenable<StackFrame[] | null> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
                 resolve(this.convertToStackFrame(this.currentStackFrames));
@@ -492,13 +504,13 @@ export class MjvmClientDebugger {
         this.client.end();
     }
 
-    private readU16(data: Buffer, offset : number) : number {
+    private readU16(data: Buffer, offset : number): number {
         let ret = data[offset];
         ret |= data[offset + 1] << 8;
         return ret;
     }
 
-    private readU32(data: Buffer, offset : number) : number {
+    private readU32(data: Buffer, offset : number): number {
         let ret = data[offset];
         ret |= data[offset + 1] << 8;
         ret |= data[offset + 2] << 16;

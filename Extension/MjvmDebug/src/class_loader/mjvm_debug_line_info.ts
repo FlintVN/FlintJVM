@@ -4,7 +4,7 @@ import path = require('path');
 import { ClassLoader } from './mjvm_class_loader';
 import * as vscode from 'vscode';
 import { MethodInfo } from './mjvm_method_info';
-import { AttributeLineNumber } from './mjvm_attribute_info';
+import { AttributeLineNumber, LineNumber } from './mjvm_attribute_info';
 
 export class DebugLineInfo {
     public readonly pc: number;
@@ -35,7 +35,7 @@ export class DebugLineInfo {
         return DebugLineInfo.classLoaderDictionary[classFile];
     }
 
-    private static findSourceFile(name: string) : string | null {
+    private static findSourceFile(name: string): string | null {
         const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
         const srcPath: string = path.join(workspace, name) + ".java";
         if(fs.existsSync(srcPath))
@@ -43,7 +43,7 @@ export class DebugLineInfo {
         return null;
     }
 
-    private static findClassFileFromName(name: string) : string | null {
+    private static findClassFileFromName(name: string): string | null {
         const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
         const srcPath: string = path.join(workspace, name) + ".class";
         if(fs.existsSync(srcPath))
@@ -51,7 +51,7 @@ export class DebugLineInfo {
         return null;
     }
 
-    private static getClassNameFormSource(source: string) : string | null {
+    private static getClassNameFormSource(source: string): string | null {
         const lastDotIndex = source.lastIndexOf('.');
         if(lastDotIndex < 0)
             return null;
@@ -65,7 +65,7 @@ export class DebugLineInfo {
         return fileNameWithoutExtension;
     }
 
-    public static getLineInfoFromPc(pc: number, className: string, method: string, descriptor: string) : DebugLineInfo | null {
+    public static getLineInfoFromPc(pc: number, className: string, method: string, descriptor: string): DebugLineInfo | null {
         const clsPath = this.findClassFileFromName(className);
         if(clsPath) {
             const srcPath = this.findSourceFile(className);
@@ -92,7 +92,15 @@ export class DebugLineInfo {
         return null;
     }
 
-    public static getLineInfoFromLine(line: number, srcPath: string) : DebugLineInfo | null {
+    private static sortByLine(linesNumber: LineNumber[]): [number, LineNumber][] {
+        const ret: [number, LineNumber][] = [];
+        for(let i = 0; i < linesNumber.length; i++)
+            ret.push([i, linesNumber[i]]);
+        ret.sort((a, b) => a[1].line - b[1].line);
+        return ret;
+    }
+
+    public static getLineInfoFromLine(line: number, srcPath: string): DebugLineInfo | null {
         const className = this.getClassNameFormSource(srcPath);
         const clsPath = className ? this.findClassFileFromName(className) : null;
         if(className && clsPath) {
@@ -104,14 +112,16 @@ export class DebugLineInfo {
                     if(!attrLineNumber)
                         return null;
                     const linesNumber = attrLineNumber.linesNumber;
-                    if(linesNumber[linesNumber.length - 1].line < line)
+                    const linesNumberSort = this.sortByLine(linesNumber);
+                    if(linesNumberSort[linesNumberSort.length - 1][1].line < line)
                         continue;
-                    for(let j = 0; j < linesNumber.length; j++) {
-                        if(linesNumber[j].line >= line) {
-                            const pc = linesNumber[j].startPc;
+                    for(let j = 0; j < linesNumberSort.length; j++) {
+                        if(linesNumberSort[j][1].line >= line) {
+                            const pc = linesNumberSort[j][1].startPc;
                             const method = methodInfo.name;
                             const descriptor = methodInfo.descriptor;
-                            const codeLength = (((i + 1) < linesNumber.length) ? linesNumber[i + 1].startPc : methodInfo.attributeCode.code.length) - pc;
+                            const index = linesNumberSort[j][0];
+                            const codeLength = (((index + 1) < linesNumber.length) ? linesNumber[index + 1].startPc : methodInfo.attributeCode.code.length) - pc;
                             return new DebugLineInfo(pc, line, codeLength, method, descriptor, className, clsPath, srcPath);
                         }
                     }

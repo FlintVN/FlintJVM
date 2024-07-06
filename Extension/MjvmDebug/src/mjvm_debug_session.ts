@@ -60,6 +60,7 @@ export class MjvmDebugSession extends LoggingDebugSession {
         response.body.supportsLogPoints = true;
         response.body.supportsRestartRequest = true;
         response.body.supportsGotoTargetsRequest = true;
+        response.body.exceptionBreakpointFilters = [{filter: 'all', label: 'Caught Exceptions', default: false}];
 
         this.clientDebugger.removeAllBreakPoints().then((value) => {
             if(value) {
@@ -73,15 +74,15 @@ export class MjvmDebugSession extends LoggingDebugSession {
         });
     }
 
-    protected launchRequest(response: DebugProtocol.LaunchResponse, args: DebugProtocol.LaunchRequestArguments, request?: DebugProtocol.Request) {
+    protected launchRequest(response: DebugProtocol.LaunchResponse, args: DebugProtocol.LaunchRequestArguments, request?: DebugProtocol.Request): void {
         this.sendResponse(response);
     }
 
-    protected attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments, request?: DebugProtocol.Request) {
+    protected attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments, request?: DebugProtocol.Request): void {
         this.sendResponse(response);
     }
 
-    protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments, request?: DebugProtocol.Request) {
+    protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments, request?: DebugProtocol.Request): void {
         this.sendResponse(response);
     }
 
@@ -89,7 +90,18 @@ export class MjvmDebugSession extends LoggingDebugSession {
         this.sendEvent(new StoppedEvent('entry', 1));
     }
 
-    protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request) {
+    protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments, request?: DebugProtocol.Request): void {
+        let isEnabled: boolean = false;
+        if(args.filterOptions && args.filterOptions.length > 0 && args.filterOptions[0].filterId === 'all')
+            isEnabled = true;
+        this.clientDebugger.setExceptionBreakPointsRequest(isEnabled).then((value) => {
+            if(!value)
+                response.success = false;
+            this.sendResponse(response);
+        });
+    }
+
+    protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {
         if(args.lines && args.source.path) {
             this.clientDebugger.setBreakPointsRequest(args.lines, args.source.path).then((value) => {
                 if(!value)
@@ -158,7 +170,7 @@ export class MjvmDebugSession extends LoggingDebugSession {
         this.clientDebugger.disconnect();
 	}
 
-    protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments) {
+    protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
         this.clientDebugger.stackFrameRequest().then((frames) => {
             if(frames) {
                 response.body = {

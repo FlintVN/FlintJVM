@@ -209,11 +209,9 @@ export class ClassLoader {
                 while(methodAttributesCount--) {
                     const tmp: [number, AttributeInfo | null] = this.readAttribute(data, index);
                     index = tmp[0];
-                    if(tmp[1]) {
-                        if(tmp[1].tag === AttributeInfo.ATTRIBUTE_CODE) {
+                    if(tmp[1] && !attributeCode) {
+                        if(tmp[1].tag === AttributeInfo.ATTRIBUTE_CODE)
                             attributeCode = tmp[1] as AttributeCode;
-                            break;
-                        }
                     }
                 }
                 const methodName: string = this.poolTable[methodNameIndex - 1] as string;
@@ -225,7 +223,7 @@ export class ClassLoader {
         this.methodsInfos = methodsInfos;
     }
 
-    private readAttribute(data: Buffer, index: number) : [number, AttributeInfo | null] {
+    private readAttribute(data: Buffer, index: number): [number, AttributeInfo | null] {
         const nameIndex: number = this.readU16(data, index);
         index += 2;
         const length = this.readU32(data, index);
@@ -242,7 +240,7 @@ export class ClassLoader {
         }
     }
 
-    private readAttributeCode(data: Buffer, index: number) : [number, AttributeCode] {
+    private readAttributeCode(data: Buffer, index: number): [number, AttributeCode] {
         const maxStack: number = this.readU16(data, index);
         index += 2;
         const maxLocals: number = this.readU16(data, index);
@@ -270,7 +268,7 @@ export class ClassLoader {
         return [index, new AttributeCode(maxStack, maxLocals, code, null)];
     }
 
-    private readAttributeLineNumberTable(data: Buffer, index: number) : [number, AttributeLineNumber] {
+    private readAttributeLineNumberTable(data: Buffer, index: number): [number, AttributeLineNumber] {
         const lineNumberTableLength: number = this.readU16(data, index);
         index += 2;
         const linesNumber: LineNumber[] = [];
@@ -284,7 +282,7 @@ export class ClassLoader {
         return [index, new AttributeLineNumber(linesNumber)];
     }
 
-    public getMethodInfo(name: string, descriptor: string) : MethodInfo | null {
+    public getMethodInfo(name: string, descriptor: string): MethodInfo | null {
         if(!this.methodsInfos)
             return null;
         for(let i = 0; i < this.methodsInfos.length; i++) {
@@ -294,13 +292,13 @@ export class ClassLoader {
         return null;
     }
 
-    private readU16(data: Buffer, offset : number) : number {
+    private readU16(data: Buffer, offset : number): number {
         let ret = data[offset + 1];
         ret |= data[offset] << 8;
         return ret;
     }
 
-    private readU32(data: Buffer, offset : number) : number {
+    private readU32(data: Buffer, offset : number): number {
         let ret = data[offset + 3];
         ret |= data[offset + 2] << 8;
         ret |= data[offset + 1] << 16;
@@ -308,7 +306,7 @@ export class ClassLoader {
         return ret;
     }
 
-    private readU64(data: Buffer, offset : number) : number {
+    private readU64(data: Buffer, offset : number): number {
         let ret = data[offset + 7];
         ret |= data[offset + 6] << 8;
         ret |= data[offset + 5] << 16;
