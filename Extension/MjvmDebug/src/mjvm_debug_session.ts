@@ -162,8 +162,24 @@ export class MjvmDebugSession extends LoggingDebugSession {
         this.sendEvent(new StoppedEvent('entry', 1));
     }
 
-    protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
+    protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request): void {
         this.sendResponse(response);
+    }
+
+    protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
+        this.clientDebugger.readVariable(args.expression).then((value) => {
+            if(value !== undefined) {
+                if(value === null)
+                    response.body = {result: 'null', variablesReference: 0};
+                else if(typeof value === 'number')
+                    response.body = {result: value.toString(), variablesReference: 0};
+                else if(typeof value === 'string')
+                    response.body = {result: value, variablesReference: 0};
+                else if(typeof value === 'object')
+                    response.body = {result: 'Object TODO', variablesReference: 0};
+            }
+            this.sendResponse(response);
+        });
     }
     
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments, request?: DebugProtocol.Request): void {
@@ -171,8 +187,8 @@ export class MjvmDebugSession extends LoggingDebugSession {
 	}
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
-        const start = (args.startFrame != null) ? args.startFrame : 0;
-        const level = ((args.startFrame != null) && (args.levels != null)) ? args.levels : 1;
+        const start = (args.startFrame !== null) ? args.startFrame : 0;
+        const level = ((args.startFrame !== null) && (args.levels !== null)) ? args.levels : 1;
         if(start !== 0) {
             this.sendResponse(response);
             return;

@@ -2,12 +2,9 @@
 import {
     StackFrame, Source
 } from '@vscode/debugadapter';
-import * as vscode from 'vscode';
 import * as net from 'net';
-import { clear } from 'console';
-import path = require('path');
 import { Semaphore } from './mjvm_semaphone'
-import { DebugProtocol } from '@vscode/debugprotocol';
+import { ClassLoader } from './class_loader/mjvm_class_loader'
 import { DebugLineInfo } from './class_loader/mjvm_debug_line_info'
 
 export class MjvmClientDebugger {
@@ -118,12 +115,12 @@ export class MjvmClientDebugger {
         await this.client.connect(5555, '127.0.0.1');
     }
 
-    private sendCmd(data: Buffer): Thenable<Buffer | null> {
+    private sendCmd(data: Buffer): Thenable<Buffer | undefined> {
         return new Promise((resolve) => {
             this.tcpSemaphore.acquire().then(() => {
                 const timeout = setTimeout(() => {
                     this.tcpSemaphore.release();
-                    resolve(null);
+                    resolve(undefined);
                 }, MjvmClientDebugger.TCP_RECEIVED_TIMEOUT);
                 this.onReceived((data) => {
                     this.tcpSemaphore.release();
@@ -133,7 +130,7 @@ export class MjvmClientDebugger {
                 if(!this.client.write(data)) {
                     this.tcpSemaphore.release();
                     clearTimeout(timeout);
-                    resolve(null);
+                    resolve(undefined);
                 }
             });
         });
@@ -196,7 +193,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    private getRemoveBreakpointList(lines: number[], source: string): DebugLineInfo[] | null {
+    private getRemoveBreakpointList(lines: number[], source: string): DebugLineInfo[] | undefined {
         const ret: DebugLineInfo[] = [];
         for(let i = 0; i < this.currentBreakpoints.length; i++) {
             if(source === this.currentBreakpoints[i].sourcePath) {
@@ -214,7 +211,7 @@ export class MjvmClientDebugger {
         return ret;
     }
 
-    private getAddBreakpointList(lines: number[], source: string): DebugLineInfo[] | null {
+    private getAddBreakpointList(lines: number[], source: string): DebugLineInfo[] | undefined {
         const ret: DebugLineInfo[] = [];
         for(let i = 0; i < lines.length; i++) {
             let isContain = false;
@@ -229,7 +226,7 @@ export class MjvmClientDebugger {
                 if(lineInfo)
                     ret.push(lineInfo);
                 else
-                    return null;
+                    return undefined;
             }
         }
         return ret;
@@ -346,7 +343,7 @@ export class MjvmClientDebugger {
     public setBreakPointsRequest(lines: number[], source: string): Thenable<boolean> {
         return new Promise((resolve) => {
             let bkps = this.getRemoveBreakpointList(lines, source);
-            if(bkps === null) {
+            if(bkps === undefined) {
                 resolve(false);
                 return;
             }
@@ -359,7 +356,7 @@ export class MjvmClientDebugger {
                 });
             }
             bkps = this.getAddBreakpointList(lines, source);
-            if(bkps === null) {
+            if(bkps === undefined) {
                 resolve(false);
                 return;
             }
@@ -375,7 +372,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    private readStackFrame(stackIndex: number): Thenable<[boolean, DebugLineInfo] | null> {
+    private readStackFrame(stackIndex: number): Thenable<[boolean, DebugLineInfo] | undefined> {
         return new Promise((resolve) => {
             const txData: Buffer = Buffer.alloc(5);
             txData[0] = MjvmClientDebugger.DBG_READ_STACK_TRACE;
@@ -390,7 +387,7 @@ export class MjvmClientDebugger {
                     const currentStackIndex = currentStack & 0x7FFFFFFF;
                     const isEndStack = (currentStack & 0x80000000) ? true : false;
                     if(currentStackIndex !== stackIndex) {
-                        resolve(null);
+                        resolve(undefined);
                         return;
                     }
                     index += 4;
@@ -414,7 +411,7 @@ export class MjvmClientDebugger {
                         return;
                     }
                 }
-                resolve(null);
+                resolve(undefined);
             });
         });
     }
@@ -474,7 +471,7 @@ export class MjvmClientDebugger {
         while(index < name.length) {
             let arrayCount = 0;
             let ch = name.charAt(index++);
-            while(ch == '[') {
+            while(ch === '[') {
                 arrayCount++;
                 ch = name.charAt(index++);
             }
@@ -539,7 +536,7 @@ export class MjvmClientDebugger {
         return ret;
     }
 
-    public stackFrameRequest(): Thenable<StackFrame[] | null> {
+    public stackFrameRequest(): Thenable<StackFrame[] | undefined> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
                 resolve(this.convertToStackFrame(this.currentStackFrames));
@@ -556,7 +553,7 @@ export class MjvmClientDebugger {
                             readStackFrameTask(stackIndex + 1);
                     }
                     else
-                        resolve(null);
+                        resolve(undefined);
                 });
                 readStackFrameTask(0);
             }

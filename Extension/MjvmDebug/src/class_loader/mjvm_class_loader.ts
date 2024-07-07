@@ -1,5 +1,7 @@
 
 import fs = require('fs');
+import path = require('path');
+import * as vscode from 'vscode';
 import {
     ConstClass,
     ConstSting,
@@ -15,7 +17,9 @@ import {
     AttributeCode,
     AttributeInfo,
     LineNumber,
-    AttributeLineNumber
+    AttributeLineNumber,
+    LocalVariable,
+    AttributeLocalVariable
 } from './mjvm_attribute_info';
 import { MethodInfo } from './mjvm_method_info';
 
@@ -78,8 +82,32 @@ export class ClassLoader {
     private static readonly FIELD_ENUM = 0x4000;
     private static readonly FIELD_UNLOAD = 0x8000;
 
-    public constructor(filePath: string) {
-        const data = fs.readFileSync(filePath, null);
+    private static classLoaderDictionary: Record<string, ClassLoader> = {};
+
+    public static findSourceFile(name: string): string | undefined {
+        const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
+        const srcPath: string = path.join(workspace, name) + ".java";
+        if(fs.existsSync(srcPath))
+            return srcPath;
+        return undefined;
+    }
+
+    public static findClassFile(name: string): string | undefined {
+        const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
+        const srcPath: string = path.join(workspace, name) + ".class";
+        if(fs.existsSync(srcPath))
+            return srcPath;
+        return undefined;
+    }
+
+    public static load(classFile: string): ClassLoader {
+        if(!(classFile in ClassLoader.classLoaderDictionary))
+            ClassLoader.classLoaderDictionary[classFile] = new ClassLoader(classFile);
+        return ClassLoader.classLoaderDictionary[classFile];
+    }
+
+    private constructor(filePath: string) {
+        const data = fs.readFileSync(filePath, undefined);
 
         let index = 0;
         this.magic = this.readU32(data, index);
@@ -187,7 +215,7 @@ export class ClassLoader {
                 let fieldsAttributesCount = this.readU16(data, index);
                 index += 2;
                 while(fieldsAttributesCount--) {
-                    const tmp: [number, AttributeInfo | null] = this.readAttribute(data, index);
+                    const tmp: [number, AttributeInfo | undefined] = this.readAttribute(data, index);
                     index = tmp[0];
                 }
             }
@@ -205,9 +233,9 @@ export class ClassLoader {
                 index += 2;
                 let methodAttributesCount = this.readU16(data, index);
                 index += 2;
-                let attributeCode: AttributeCode | null = null;
+                let attributeCode: AttributeCode | undefined = undefined;
                 while(methodAttributesCount--) {
-                    const tmp: [number, AttributeInfo | null] = this.readAttribute(data, index);
+                    const tmp: [number, AttributeInfo | undefined] = this.readAttribute(data, index);
                     index = tmp[0];
                     if(tmp[1] && !attributeCode) {
                         if(tmp[1].tag === AttributeInfo.ATTRIBUTE_CODE)
@@ -223,7 +251,7 @@ export class ClassLoader {
         this.methodsInfos = methodsInfos;
     }
 
-    private readAttribute(data: Buffer, index: number): [number, AttributeInfo | null] {
+    private readAttribute(data: Buffer, index: number): [number, AttributeInfo | undefined] {
         const nameIndex: number = this.readU16(data, index);
         index += 2;
         const length = this.readU32(data, index);
@@ -234,9 +262,11 @@ export class ClassLoader {
                 return this.readAttributeCode(data, index);
             case AttributeInfo.ATTRIBUTE_LINE_NUMBER_TABLE:
                 return this.readAttributeLineNumberTable(data, index);
+            case AttributeInfo.ATTRIBUTE_LOCAL_VARIABLE_TABLE:
+                return this.readAttributeLocalVariableTable(data, index);
             default:
                 index += length;
-                return [index, null];
+                return [index, undefined];
         }
     }
 
@@ -258,14 +288,14 @@ export class ClassLoader {
         if(attrbutesCount) {
             const attr: AttributeInfo[] = [];
             while(attrbutesCount--) {
-                const tmp: [number, AttributeInfo | null] = this.readAttribute(data, index);
+                const tmp: [number, AttributeInfo | undefined] = this.readAttribute(data, index);
                 index = tmp[0];
                 if(tmp[1])
                     attr.push(tmp[1]);
             }
             return [index, new AttributeCode(maxStack, maxLocals, code, attr)];
         }
-        return [index, new AttributeCode(maxStack, maxLocals, code, null)];
+        return [index, new AttributeCode(maxStack, maxLocals, code, undefined)];
     }
 
     private readAttributeLineNumberTable(data: Buffer, index: number): [number, AttributeLineNumber] {
@@ -282,14 +312,36 @@ export class ClassLoader {
         return [index, new AttributeLineNumber(linesNumber)];
     }
 
-    public getMethodInfo(name: string, descriptor: string): MethodInfo | null {
+    private readAttributeLocalVariableTable(data: Buffer, index: number): [number, AttributeLocalVariable] {
+        const localVariableTableLength = this.readU16(data, index);
+        index += 2;
+        const localVariables: LocalVariable[] = [];
+        for(let i = 0; i < localVariableTableLength; i++) {
+            const startPc = this.readU16(data, index);
+            index += 2;
+            const length = this.readU16(data, index);
+            index += 2;
+            const nameIndex = this.readU16(data, index);
+            index += 2;
+            const descriptorIndex = this.readU16(data, index);
+            index += 2;
+            const variableIndex = this.readU16(data, index);
+            index += 2;
+            const name = this.poolTable[nameIndex - 1] as string;
+            const descriptor = this.poolTable[descriptorIndex - 1] as string;
+            localVariables.push(new LocalVariable(startPc, length, variableIndex, name, descriptor));
+        }
+        return [index, new AttributeLocalVariable(localVariables)];
+    }
+
+    public getMethodInfo(name: string, descriptor: string): MethodInfo | undefined {
         if(!this.methodsInfos)
-            return null;
+            return undefined;
         for(let i = 0; i < this.methodsInfos.length; i++) {
             if(this.methodsInfos[i].name === name && this.methodsInfos[i].descriptor === descriptor)
                 return this.methodsInfos[i];
         }
-        return null;
+        return undefined;
     }
 
     private readU16(data: Buffer, offset : number): number {

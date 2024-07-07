@@ -16,9 +16,9 @@ export class MethodInfo {
 
     public readonly name: string;
     public readonly descriptor: string;
-    public readonly attributeCode: AttributeCode | null;
+    public readonly attributeCode?: AttributeCode;
 
-    public constructor(name: string, descriptor: string, code: AttributeCode | null) {
+    public constructor(name: string, descriptor: string, code?: AttributeCode) {
         this.name = name;
         this.descriptor = descriptor;
         this.attributeCode = code;

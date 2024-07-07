@@ -43,7 +43,6 @@ export class AttributeInfo {
     }
 }
 
-
 export class LineNumber {
     public readonly startPc: number;
     public readonly line: number;
@@ -63,13 +62,38 @@ export class AttributeLineNumber extends AttributeInfo {
     }
 }
 
+export class LocalVariable {
+    public readonly startPc: number;
+    public readonly length: number;
+    public readonly index: number;
+    public readonly name: string;
+    public readonly descriptor: string;
+
+    public constructor(startPc: number, length: number, index: number, name: string, descriptor: string) {
+        this.startPc = startPc;
+        this.length = length;
+        this.index = index;
+        this.name = name;
+        this.descriptor = descriptor;
+    }
+};
+
+export class AttributeLocalVariable extends AttributeInfo {
+    public localVariables: LocalVariable[];
+
+    public constructor(localVariables: LocalVariable[]) {
+        super(AttributeInfo.ATTRIBUTE_LOCAL_VARIABLE_TABLE);
+        this.localVariables = localVariables;
+    }
+}
+
 export class AttributeCode extends AttributeInfo {
     public readonly maxStack: number;
     public readonly maxLocals: number;
     public readonly code: Buffer;
-    public attributes: AttributeInfo[] | null;
+    public attributes: AttributeInfo[] | undefined;
 
-    public constructor(maxStack: number, maxLocals: number, code: Buffer, attributes: AttributeInfo[] | null) {
+    public constructor(maxStack: number, maxLocals: number, code: Buffer, attributes: AttributeInfo[] | undefined) {
         super(AttributeInfo.ATTRIBUTE_CODE);
         this.maxStack = maxStack;
         this.maxLocals = maxLocals;
@@ -77,13 +101,23 @@ export class AttributeCode extends AttributeInfo {
         this.attributes = attributes;
     }
 
-    public getLinesNumber(): AttributeLineNumber | null {
+    public getLinesNumber(): AttributeLineNumber | undefined {
         if(this.attributes) {
             for(let i = 0; i < this.attributes.length; i++) {
                 if(this.attributes[i].tag === AttributeInfo.ATTRIBUTE_LINE_NUMBER_TABLE)
                     return this.attributes[i] as AttributeLineNumber;
             };
         }
-        return null;
+        return undefined;
+    }
+
+    public getLocalVariables(): AttributeLocalVariable | undefined {
+        if(this.attributes) {
+            for(let i = 0; i < this.attributes.length; i++) {
+                if(this.attributes[i].tag === AttributeInfo.ATTRIBUTE_LOCAL_VARIABLE_TABLE)
+                    return this.attributes[i] as AttributeLocalVariable;
+            };
+        }
+        return undefined;
     }
 }

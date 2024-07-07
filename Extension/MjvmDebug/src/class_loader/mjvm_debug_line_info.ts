@@ -1,10 +1,8 @@
 
-import fs = require('fs');
-import path = require('path');
 import { ClassLoader } from './mjvm_class_loader';
 import * as vscode from 'vscode';
 import { MethodInfo } from './mjvm_method_info';
-import { AttributeLineNumber, LineNumber } from './mjvm_attribute_info';
+import { LineNumber } from './mjvm_attribute_info';
 
 export class DebugLineInfo {
     public readonly pc: number;
@@ -15,8 +13,6 @@ export class DebugLineInfo {
     public readonly className: string;
     public readonly classPath: string;
     public readonly sourcePath: string;
-
-    private static classLoaderDictionary: Record<string, ClassLoader> = {};
 
     private constructor(pc: number, line: number, codeLength: number, methodName: string, descriptor: string, clsName: string, clsPath: string, srcPath: string) {
         this.pc = pc;
@@ -29,54 +25,32 @@ export class DebugLineInfo {
         this.sourcePath = srcPath;
     }
 
-    private static load(classFile: string): ClassLoader {
-        if(!(classFile in DebugLineInfo.classLoaderDictionary))
-            DebugLineInfo.classLoaderDictionary[classFile] = new ClassLoader(classFile);
-        return DebugLineInfo.classLoaderDictionary[classFile];
-    }
-
-    private static findSourceFile(name: string): string | null {
-        const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
-        const srcPath: string = path.join(workspace, name) + ".java";
-        if(fs.existsSync(srcPath))
-            return srcPath;
-        return null;
-    }
-
-    private static findClassFileFromName(name: string): string | null {
-        const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
-        const srcPath: string = path.join(workspace, name) + ".class";
-        if(fs.existsSync(srcPath))
-            return srcPath;
-        return null;
-    }
-
-    private static getClassNameFormSource(source: string): string | null {
+    private static getClassNameFormSource(source: string): string | undefined {
         const lastDotIndex = source.lastIndexOf('.');
         if(lastDotIndex < 0)
-            return null;
+            return undefined;
         const extensionName = source.substring(lastDotIndex, source.length);
         if(extensionName.toLowerCase() !== '.java')
-            return null;
+            return undefined;
         const fileNameWithoutExtension = source.substring(0, lastDotIndex);
-        const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath + "\\" : null;
+        const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath + "\\" : undefined;
         if(workspace && fileNameWithoutExtension.indexOf(workspace) === 0)
             return fileNameWithoutExtension.substring(workspace.length, fileNameWithoutExtension.length);
         return fileNameWithoutExtension;
     }
 
-    public static getLineInfoFromPc(pc: number, className: string, method: string, descriptor: string): DebugLineInfo | null {
-        const clsPath = this.findClassFileFromName(className);
+    public static getLineInfoFromPc(pc: number, className: string, method: string, descriptor: string): DebugLineInfo | undefined {
+        const clsPath = ClassLoader.findClassFile(className);
         if(clsPath) {
-            const srcPath = this.findSourceFile(className);
+            const srcPath = ClassLoader.findSourceFile(className);
             if(!srcPath)
-                return null;
-            const classLoader: ClassLoader = DebugLineInfo.load(clsPath);
-            const methodInfo: MethodInfo | null = classLoader.getMethodInfo(method, descriptor);
+                return undefined;
+            const classLoader: ClassLoader = ClassLoader.load(clsPath);
+            const methodInfo: MethodInfo | undefined = classLoader.getMethodInfo(method, descriptor);
             if(methodInfo && methodInfo.attributeCode) {
                 const attrLinesNumber = methodInfo.attributeCode.getLinesNumber();
                 if(!attrLinesNumber)
-                    return null;
+                    return undefined;
                 const linesNumber = attrLinesNumber.linesNumber;
                 const length: number = linesNumber.length;
                 for(let i = length - 1; i >= 0; i--) {
@@ -87,9 +61,9 @@ export class DebugLineInfo {
                     }
                 }
             }
-            return null;
+            return undefined;
         }
-        return null;
+        return undefined;
     }
 
     private static sortByLine(linesNumber: LineNumber[]): [number, LineNumber][] {
@@ -100,17 +74,17 @@ export class DebugLineInfo {
         return ret;
     }
 
-    public static getLineInfoFromLine(line: number, srcPath: string): DebugLineInfo | null {
+    public static getLineInfoFromLine(line: number, srcPath: string): DebugLineInfo | undefined {
         const className = this.getClassNameFormSource(srcPath);
-        const clsPath = className ? this.findClassFileFromName(className) : null;
+        const clsPath = className ? ClassLoader.findClassFile(className) : undefined;
         if(className && clsPath) {
-            const classLoader: ClassLoader = DebugLineInfo.load(clsPath);
+            const classLoader: ClassLoader = ClassLoader.load(clsPath);
             for(let i = 0; i < classLoader.methodsInfos.length; i++) {
                 const methodInfo = classLoader.methodsInfos[i];
                 if(methodInfo.attributeCode) {
                     const attrLineNumber = methodInfo.attributeCode.getLinesNumber();
                     if(!attrLineNumber)
-                        return null;
+                        return undefined;
                     const linesNumber = attrLineNumber.linesNumber;
                     const linesNumberSort = this.sortByLine(linesNumber);
                     if(linesNumberSort[linesNumberSort.length - 1][1].line < line)
@@ -127,8 +101,7 @@ export class DebugLineInfo {
                     }
                 }
             }
-            return null;
         }
-        return null;
+        return undefined;
     }
 }
