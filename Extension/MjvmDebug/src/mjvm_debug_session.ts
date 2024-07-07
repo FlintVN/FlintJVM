@@ -171,6 +171,12 @@ export class MjvmDebugSession extends LoggingDebugSession {
 	}
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
+        const start = (args.startFrame != null) ? args.startFrame : 0;
+        const level = ((args.startFrame != null) && (args.levels != null)) ? args.levels : 1;
+        if(start !== 0) {
+            this.sendResponse(response);
+            return;
+        }
         this.clientDebugger.stackFrameRequest().then((frames) => {
             if(frames) {
                 response.body = {

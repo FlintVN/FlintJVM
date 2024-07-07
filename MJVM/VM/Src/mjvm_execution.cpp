@@ -606,16 +606,28 @@ MjvmObject *Execution::stackPopObject(void) {
     return (MjvmObject *)stack[sp--];
 }
 
-void Execution::getStackTrace(uint32_t index, StackTrace *stackTrace) const {
-    if(index == 0)
+bool Execution::getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEndStack) const {
+    if(index == 0) {
         new (stackTrace)StackTrace(pc, startSp, *method);
+        if(isEndStack)
+            *isEndStack = (startSp < 4);
+        return true;
+    }
     else {
         int32_t traceSp = startSp;
-        while(--index)
+        if(traceSp < 4)
+            return false;
+        while(--index) {
             traceSp = stack[traceSp];
+            if(traceSp < 4)
+                return false;
+        }
         uint32_t tracePc = stack[traceSp - 2];
         MethodInfo &traceMethod = *(MethodInfo *)stack[traceSp - 3];
         new (stackTrace)StackTrace(tracePc, traceSp, traceMethod);
+        if(isEndStack)
+            *isEndStack = (stack[traceSp] < 4);
+        return true;
     }
 }
 
@@ -983,7 +995,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
 
     goto *opcodes[code[pc]];
     check_bkp: {
-        dbg->checkBreakPoint(pc, startSp, method);
+        dbg->checkBreakPoint();
         goto *opcodeLabels[code[pc]];
     }
     op_nop:

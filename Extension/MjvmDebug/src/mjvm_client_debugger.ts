@@ -375,7 +375,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    private readStackFrame(stackIndex: number): Thenable<DebugLineInfo | null> {
+    private readStackFrame(stackIndex: number): Thenable<[boolean, DebugLineInfo] | null> {
         return new Promise((resolve) => {
             const txData: Buffer = Buffer.alloc(5);
             txData[0] = MjvmClientDebugger.DBG_READ_STACK_TRACE;
@@ -386,7 +386,9 @@ export class MjvmClientDebugger {
             this.sendCmd(txData).then((data) => {
                 if(data && data[0] === MjvmClientDebugger.DBG_READ_STACK_TRACE && data[1] === 0) {
                     let index = 2;
-                    const currentStackIndex = this.readU32(data, index);
+                    const currentStack = this.readU32(data, index);
+                    const currentStackIndex = currentStack & 0x7FFFFFFF;
+                    const isEndStack = (currentStack & 0x80000000) ? true : false;
                     if(currentStackIndex !== stackIndex) {
                         resolve(null);
                         return;
@@ -407,8 +409,10 @@ export class MjvmClientDebugger {
                     const descriptor = data.toString('utf-8', index, index + descriptorLength);
 
                     const lineInfo = DebugLineInfo.getLineInfoFromPc(pc, className, name, descriptor);
-
-                    resolve(lineInfo);
+                    if(lineInfo) {
+                        resolve([isEndStack, lineInfo]);
+                        return;
+                    }
                 }
                 resolve(null);
             });
@@ -441,7 +445,7 @@ export class MjvmClientDebugger {
                 if(!currentPoint)
                     resolve(false);
                 else
-                    resolve(true);
+                    this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, currentPoint[1].codeLength).then((value) => resolve(value));
             });
         });
     }
@@ -454,7 +458,7 @@ export class MjvmClientDebugger {
                 if(!currentPoint)
                     resolve(false);
                 else
-                    resolve(true);
+                    this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, currentPoint[1].codeLength).then((value) => resolve(value));
             });
         });
     }
@@ -463,11 +467,72 @@ export class MjvmClientDebugger {
         return this.stepRequest(MjvmClientDebugger.DBG_STEP_OUT, 0);
     }
 
+    private getSimpleNames(name: string): string[] {
+        const ret: string[] = [];
+        let index = 0;
+        let simpleName = '';
+        while(index < name.length) {
+            let arrayCount = 0;
+            let ch = name.charAt(index++);
+            while(ch == '[') {
+                arrayCount++;
+                ch = name.charAt(index++);
+            }
+            if(ch !== 'L') {
+                if(ch === 'Z')
+                    simpleName = "boolean";
+                else if(ch === 'C')
+                    simpleName = "char";
+                else if(ch === 'F')
+                    simpleName = "float";
+                else if(ch === 'D')
+                    simpleName = "double";
+                else if(ch === 'B')
+                    simpleName = "byte";
+                else if(ch === 'S')
+                    simpleName = "short";
+                else if(ch === 'I')
+                    simpleName = "int";
+                else if(ch === 'J')
+                    simpleName = "long";
+                else
+                    simpleName = ch;
+            }
+            else {
+                ch = name.charAt(index++);
+                while(ch !== ';') {
+                    simpleName += ch;
+                    ch = name.charAt(index++);
+                }
+            }
+            if(arrayCount > 0)
+                simpleName = simpleName.concat("[]".repeat(arrayCount));
+            const dotIndexLastIndex = simpleName.lastIndexOf('\/');
+            if(dotIndexLastIndex >= 0)
+                simpleName = simpleName.substring(dotIndexLastIndex + 1);
+            ret.push(simpleName);
+        }
+        return ret;
+    }
+
     private convertToStackFrame(linesInfo: DebugLineInfo[]): StackFrame[] {
         const ret: StackFrame[] = [];
         for(let i = 0; i < linesInfo.length; i++) {
             const src = new Source(linesInfo[i].className + ".java", linesInfo[i].sourcePath);
-            const sf = new StackFrame(i, linesInfo[i].methodName, src, linesInfo[i].line);
+            let methodName = linesInfo[i].className;
+            let dotIndexLastIndex = methodName.lastIndexOf('\/');
+            dotIndexLastIndex = (dotIndexLastIndex < 0) ? 0 : (dotIndexLastIndex + 1);
+            methodName = methodName.substring(dotIndexLastIndex, methodName.length);
+            methodName += '.' + linesInfo[i].methodName + '(';
+            const descriptor = linesInfo[i].descriptor;
+            const names = this.getSimpleNames(descriptor.substring(1, descriptor.lastIndexOf(')')));
+            for(let i = 0; i < names.length; i++) {
+                methodName += names[i];
+                if((i + 1) < names.length)
+                    methodName += ', ';
+            }
+            methodName += ')';
+            const sf = new StackFrame(i, methodName, src, linesInfo[i].line);
             sf.instructionPointerReference = linesInfo[i].pc.toString();
             ret.push(sf);
         }
@@ -480,16 +545,20 @@ export class MjvmClientDebugger {
                 resolve(this.convertToStackFrame(this.currentStackFrames));
             else {
                 const ret: DebugLineInfo[] = [];
-                const stackIndex = 0;
-                this.readStackFrame(stackIndex).then((lineInfo) => {
-                    if(lineInfo && lineInfo.sourcePath) {
-                        ret.push(lineInfo);
-                        this.currentStackFrames = ret;
-                        resolve(this.convertToStackFrame(this.currentStackFrames));
+                const readStackFrameTask = (stackIndex: number) => this.readStackFrame(stackIndex).then((lineInfo) => {
+                    if(lineInfo && lineInfo[1].sourcePath) {
+                        ret.push(lineInfo[1]);
+                        if(lineInfo[0]) {
+                            this.currentStackFrames = ret;
+                            resolve(this.convertToStackFrame(this.currentStackFrames));
+                        }
+                        else
+                            readStackFrameTask(stackIndex + 1);
                     }
                     else
                         resolve(null);
                 });
+                readStackFrameTask(0);
             }
         });
     }

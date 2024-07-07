@@ -24,71 +24,6 @@ Debugger::Debugger(Execution &execution) : execution(execution), stepCodeLength(
 
 }
 
-void Debugger::checkBreakPoint(uint32_t pc, uint32_t baseSp, const MethodInfo *method) {
-    if(!(status & DBG_STATUS_STOP)) {
-        if(breakPointCount) {
-            for(uint8_t i = 0; i < breakPointCount; i++) {
-                if(breakPoints[i].method == method && breakPoints[i].pc == pc) {
-                    Mjvm::lock();
-                    status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                    Mjvm::unlock();
-                    break;
-                }
-            }
-        }
-    }
-    while(status & (DBG_STATUS_STOP | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) {
-        if(status & DBG_STATUS_STEP_IN) {
-            if(status & DBG_STATUS_STOP) {
-                Mjvm::lock();
-                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                Mjvm::unlock();
-                return;
-            }
-            else if(&startPoint.method != method || (pc - startPoint.pc) >= stepCodeLength || pc <= startPoint.pc) {
-                Mjvm::lock();
-                status = (status & ~DBG_STATUS_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                Mjvm::unlock();
-            }
-            else
-                return;
-        }
-        else if(status & DBG_STATUS_STEP_OVER) {
-            if(status & DBG_STATUS_STOP) {
-                Mjvm::lock();
-                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                Mjvm::unlock();
-                return;
-            }
-            else if(
-                (baseSp <= startPoint.baseSp) &&
-                (&startPoint.method != method || (pc - startPoint.pc) >= stepCodeLength || pc <= startPoint.pc)
-            ) {
-                Mjvm::lock();
-                status = (status & ~DBG_STATUS_STEP_OVER) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                Mjvm::unlock();
-            }
-            else
-                return;
-        }
-        else if(status & DBG_STATUS_STEP_OUT) {
-            if(status & DBG_STATUS_STOP) {
-                Mjvm::lock();
-                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                Mjvm::unlock();
-                return;
-            }
-            else if(baseSp < startPoint.baseSp) {
-                Mjvm::lock();
-                status = (status & ~DBG_STATUS_STEP_OUT) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                Mjvm::unlock();
-            }
-            else
-                return;
-        }
-    }
-}
-
 void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     static uint8_t txBuff[MAX_OF_DBG_BUFFER];
     txBuff[0] = data[0];
@@ -110,42 +45,42 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_READ_STACK_TRACE: {
             if(status & DBG_STATUS_STOP && length == 5) {
                 uint32_t index = sizeof(DebuggerCmd);
-                uint32_t stackIndex = *(uint32_t *)&data[1];
+                uint32_t stackIndex = (*(uint32_t *)&data[1]) & 0x7FFFFFFF;
 
                 StackTrace stackTrace;
-                execution.getStackTrace(stackIndex, &stackTrace);
+                bool isEndStack = false;
+                if(execution.getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
+                    MethodInfo &method = stackTrace.method;
+                    ConstUtf8 &className = method.classLoader.getThisClass();
 
-                MethodInfo &method = stackTrace.method;
-                ConstUtf8 &className = method.classLoader.getThisClass();
+                    uint32_t responseSize = 10;
+                    responseSize += sizeof(ConstUtf8) + className.length + 1;
+                    responseSize += sizeof(ConstUtf8) + method.name.length + 1;
+                    responseSize += sizeof(ConstUtf8) + method.descriptor.length + 1;
 
-                uint32_t responseSize = 10;
-                responseSize += sizeof(ConstUtf8) + className.length + 1;
-                responseSize += sizeof(ConstUtf8) + method.name.length + 1;
-                responseSize += sizeof(ConstUtf8) + method.descriptor.length + 1;
-
-                if(responseSize <= sizeof(txBuff)) {
-                    txBuff[1] = 0;
-                    index += sizeof(uint8_t);
-                    *(uint32_t *)&txBuff[index] = stackIndex;
-                    index += sizeof(uint32_t);
-                    *(uint32_t *)&txBuff[index] = stackTrace.pc;
-                    index += sizeof(uint32_t);
-                    memcpy(&txBuff[index], &className, sizeof(ConstUtf8) + className.length + 1);
-                    index += sizeof(ConstUtf8) + className.length + 1;
-                    memcpy(&txBuff[index], &method.name, sizeof(ConstUtf8) + method.name.length + 1);
-                    index += sizeof(ConstUtf8) + method.name.length + 1;
-                    memcpy(&txBuff[index], &method.descriptor, sizeof(ConstUtf8) + method.descriptor.length + 1);
-                    sendData(txBuff, responseSize);
-                }
-                else {
-                    txBuff[1] = 2;
-                    sendData(txBuff, 2);
+                    if(responseSize <= sizeof(txBuff)) {
+                        txBuff[1] = 0;
+                        index += sizeof(uint8_t);
+                        *(uint32_t *)&txBuff[index] = stackIndex | (isEndStack << 31);
+                        index += sizeof(uint32_t);
+                        *(uint32_t *)&txBuff[index] = stackTrace.pc;
+                        index += sizeof(uint32_t);
+                        memcpy(&txBuff[index], &className, sizeof(ConstUtf8) + className.length + 1);
+                        index += sizeof(ConstUtf8) + className.length + 1;
+                        memcpy(&txBuff[index], &method.name, sizeof(ConstUtf8) + method.name.length + 1);
+                        index += sizeof(ConstUtf8) + method.name.length + 1;
+                        memcpy(&txBuff[index], &method.descriptor, sizeof(ConstUtf8) + method.descriptor.length + 1);
+                        sendData(txBuff, responseSize);
+                    }
+                    else {
+                        txBuff[1] = 2;
+                        sendData(txBuff, 2);
+                    }
+                    return;
                 }
             }
-            else {
-                txBuff[1] = 1;
-                sendData(txBuff, 2);
-            }
+            txBuff[1] = 1;
+            sendData(txBuff, 2);
             break;
         }
         case DBG_ADD_BKP:
@@ -190,19 +125,22 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_STEP_IN:
         case DBG_STEP_OVER: {
             if(status & DBG_STATUS_STOP && length == 5 && data[1] > 0) {
-                execution.getStackTrace(0, &startPoint);
-                stepCodeLength = *(uint32_t *)&data[1];
-                if((DebuggerCmd)data[0] == DBG_STEP_IN) {
-                    Mjvm::lock();
-                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_IN;
-                    Mjvm::unlock();
+                if(execution.getStackTrace(0, &startPoint, 0)) {
+                    stepCodeLength = *(uint32_t *)&data[1];
+                    if((DebuggerCmd)data[0] == DBG_STEP_IN) {
+                        Mjvm::lock();
+                        status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_IN;
+                        Mjvm::unlock();
+                    }
+                    else {
+                        Mjvm::lock();
+                        status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OVER;
+                        Mjvm::unlock();
+                    }
+                    txBuff[1] = 0;
                 }
-                else {
-                    Mjvm::lock();
-                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OVER;
-                    Mjvm::unlock();
-                }
-                txBuff[1] = 0;
+                else
+                    txBuff[1] = 1;
             }
             else
                 txBuff[1] = 1;
@@ -210,12 +148,15 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             break;
         }
         case DBG_STEP_OUT: {
-            if(status & DBG_STATUS_STOP) {
-                execution.getStackTrace(0, &startPoint);
-                Mjvm::lock();
-                status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OUT;
-                Mjvm::unlock();
-                txBuff[1] = 0;
+            if((status & DBG_STATUS_STOP) && execution.getStackTrace(0, &startPoint, 0)) {
+                if(execution.getStackTrace(0, &startPoint, 0)) {
+                    Mjvm::lock();
+                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OUT;
+                    Mjvm::unlock();
+                    txBuff[1] = 0;
+                }
+                else
+                    txBuff[1] = 1;
             }
             else
                 txBuff[1] = 1;
@@ -309,8 +250,73 @@ void Debugger::caughtException(void) {
     Mjvm::lock();
     status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     Mjvm::unlock();
-    while(status & DBG_STATUS_STOP) {
+    checkBreakPoint();
+}
 
+void Debugger::checkBreakPoint(void) {
+    if(!(status & DBG_STATUS_STOP)) {
+        if(breakPointCount) {
+            uint32_t pc = execution.pc;
+            MethodInfo *method = execution.method;
+            for(uint8_t i = 0; i < breakPointCount; i++) {
+                if(breakPoints[i].method == method && breakPoints[i].pc == pc) {
+                    Mjvm::lock();
+                    status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                    Mjvm::unlock();
+                    break;
+                }
+            }
+        }
+    }
+    while(status & (DBG_STATUS_STOP | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) {
+        if(status & DBG_STATUS_STEP_IN) {
+            if(status & DBG_STATUS_STOP) {
+                Mjvm::lock();
+                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                Mjvm::unlock();
+                return;
+            }
+            else if(&startPoint.method != execution.method || (execution.pc - startPoint.pc) >= stepCodeLength || execution.pc <= startPoint.pc) {
+                Mjvm::lock();
+                status = (status & ~DBG_STATUS_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                Mjvm::unlock();
+            }
+            else
+                return;
+        }
+        else if(status & DBG_STATUS_STEP_OVER) {
+            if(status & DBG_STATUS_STOP) {
+                Mjvm::lock();
+                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                Mjvm::unlock();
+                return;
+            }
+            else if(
+                (execution.startSp <= startPoint.baseSp) &&
+                (&startPoint.method != execution.method || (execution.pc - startPoint.pc) >= stepCodeLength || execution.pc <= startPoint.pc)
+            ) {
+                Mjvm::lock();
+                status = (status & ~DBG_STATUS_STEP_OVER) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                Mjvm::unlock();
+            }
+            else
+                return;
+        }
+        else if(status & DBG_STATUS_STEP_OUT) {
+            if(status & DBG_STATUS_STOP) {
+                Mjvm::lock();
+                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                Mjvm::unlock();
+                return;
+            }
+            else if(execution.startSp < startPoint.baseSp) {
+                Mjvm::lock();
+                status = (status & ~DBG_STATUS_STEP_OUT) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                Mjvm::unlock();
+            }
+            else
+                return;
+        }
     }
 }
 

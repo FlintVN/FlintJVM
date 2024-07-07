@@ -102,7 +102,7 @@ public:
     double stackPopDouble(void);
     MjvmObject *stackPopObject(void);
 
-    void getStackTrace(uint32_t index, StackTrace *stackTrace) const;
+    bool getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEndStack) const;
 private:
     void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
@@ -119,6 +119,7 @@ private:
     void run(MethodInfo &method, Debugger *dbg);
 
     friend class Mjvm;
+    friend class Debugger;
 public:
     bool isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length);
 

@@ -76,7 +76,7 @@ public:
 
     bool exceptionIsEnabled(void);
     void caughtException(void);
-    void checkBreakPoint(uint32_t pc, uint32_t baseSp, const MethodInfo *method);
+    void checkBreakPoint(void);
     void done(void);
 private:
     Debugger(const Debugger &) = delete;
