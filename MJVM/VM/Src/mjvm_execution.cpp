@@ -631,6 +631,24 @@ bool Execution::getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEn
     }
 }
 
+bool Execution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const {
+    StackTrace stackTrace;
+    if(!getStackTrace(stackIndex, &stackTrace, 0))
+        return false;
+    value = stack[stackTrace.baseSp + 1 + localIndex];
+    uint32_t spIndex = &stack[stackTrace.baseSp + 1 + localIndex] - stack;
+    isObject = (stackType[spIndex / 8] & (1 << (spIndex % 8))) ? true : false;
+    return true;
+}
+
+bool Execution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const {
+    StackTrace stackTrace;
+    if(!getStackTrace(stackIndex, &stackTrace, 0))
+        return false;
+    value = *(int64_t *)&stack[stackTrace.baseSp + 1 + localIndex];
+    return true;
+}
+
 void Execution::stackInitExitPoint(uint32_t exitPc) {
     stack[++sp] = (int32_t)method;              /* method */
     stackType[sp / 8] &= ~(1 << (sp % 8));

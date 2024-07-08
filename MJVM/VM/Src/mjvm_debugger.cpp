@@ -174,12 +174,42 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             sendData(txBuff, 2);
             break;
         }
-        case DBG_READ_VARIABLE:
-        case DBG_WRITE_VARIABLE: {
+        case DBG_READ_LOCAL:
+        case DBG_WRITE_LOCAL: {
+            uint32_t responseSize = 2;
             if(status & DBG_STATUS_STOP) {
-                // TODO
-                if((DebuggerCmd)data[0] == DBG_READ_VARIABLE) {
-                    // TODO
+                uint8_t mode = data[1];
+                uint32_t stackIndex = (*(uint32_t *)&data[2]) & 0x7FFFFFFF;
+                uint32_t localIndex = (*(uint32_t *)&data[6]);
+                if((DebuggerCmd)data[0] == DBG_READ_LOCAL) {
+                    if(mode == 0) {
+                        uint32_t value;
+                        bool isObject;
+                        if(execution.readLocal(stackIndex, localIndex, value, isObject)) {
+                            txBuff[1] = 0;
+                            txBuff[2] = isObject;
+                            *(uint32_t *)&txBuff[3] = value;
+                            responseSize += 5;
+                            if(isObject) {
+                                ConstUtf8 &type = ((MjvmObject *)value)->type;
+                                memcpy(&txBuff[responseSize], &type, sizeof(ConstUtf8) + type.length + 1);
+                                responseSize += sizeof(ConstUtf8) + type.length + 1;
+                            }
+                        }
+                        else
+                            txBuff[1] = 1;
+                    }
+                    else {
+                        uint64_t value;
+                        if(execution.readLocal(stackIndex, localIndex, value)) {
+                            txBuff[1] = 0;
+                            txBuff[2] = 0;
+                            *(uint64_t *)&txBuff[3] = value;
+                            responseSize += 9;
+                        }
+                        else
+                            txBuff[1] = 1;
+                    }
                 }
                 else {
                     // TODO
@@ -187,7 +217,7 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             }
             else
                 txBuff[1] = 1;
-            sendData(txBuff, 2);
+            sendData(txBuff, responseSize);
             break;
         }
         default: {

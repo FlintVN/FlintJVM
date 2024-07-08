@@ -49,17 +49,18 @@ export class MjvmDebugSession extends LoggingDebugSession {
 		response.body.supportsSetExpression = true;
 		response.body.supportsDisassembleRequest = true;
 		response.body.supportsInstructionBreakpoints = true;
-		response.body.supportsReadMemoryRequest = true;
-		response.body.supportsWriteMemoryRequest = true;
+		response.body.supportsReadMemoryRequest = false;
+		response.body.supportsWriteMemoryRequest = false;
 		response.body.supportSuspendDebuggee = true;
 		response.body.supportTerminateDebuggee = true;
 		response.body.supportsFunctionBreakpoints = true;
-		response.body.supportsDelayedStackTraceLoading = true;
+		response.body.supportsDelayedStackTraceLoading = false;
         response.body.supportsHitConditionalBreakpoints = true;
         response.body.supportsConditionalBreakpoints = true;
         response.body.supportsLogPoints = true;
         response.body.supportsRestartRequest = true;
-        response.body.supportsGotoTargetsRequest = true;
+        response.body.supportsGotoTargetsRequest = false;
+
         response.body.exceptionBreakpointFilters = [{filter: 'all', label: 'Caught Exceptions', default: false}];
 
         this.clientDebugger.removeAllBreakPoints().then((value) => {
@@ -67,10 +68,8 @@ export class MjvmDebugSession extends LoggingDebugSession {
                 this.sendResponse(response);
                 this.sendEvent(new InitializedEvent());
             }
-            else {
-                response.success = false;
-                this.sendResponse(response);
-            }
+            else
+                this.sendErrorResponse(response, 1, 'Cound not connect to MJVM server');
         });
     }
 
@@ -95,18 +94,21 @@ export class MjvmDebugSession extends LoggingDebugSession {
         if(args.filterOptions && args.filterOptions.length > 0 && args.filterOptions[0].filterId === 'all')
             isEnabled = true;
         this.clientDebugger.setExceptionBreakPointsRequest(isEnabled).then((value) => {
-            if(!value)
-                response.success = false;
-            this.sendResponse(response);
+            if(value)
+                this.sendResponse(response);
+            else {
+                this.sendErrorResponse(response, 1, 'An error occurred while ' + isEnabled ? 'enabling' : 'disabling' + ' Caught Exceptions');
+            }
         });
     }
 
     protected setBreakPointsRequest(response: DebugProtocol.SetBreakpointsResponse, args: DebugProtocol.SetBreakpointsArguments, request?: DebugProtocol.Request): void {
         if(args.lines && args.source.path) {
             this.clientDebugger.setBreakPointsRequest(args.lines, args.source.path).then((value) => {
-                if(!value)
-                    response.success = false;
-                this.sendResponse(response);
+                if(value)
+                    this.sendResponse(response);
+                else
+                    this.sendErrorResponse(response, 1, 'An error occurred while setting breakpoint');
             });
         }
         else
@@ -119,41 +121,46 @@ export class MjvmDebugSession extends LoggingDebugSession {
 
     protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments, request?: DebugProtocol.Request | undefined): void {
         this.clientDebugger.stop().then((value) => {
-            if(!value)
-                response.success = false;
-            this.sendResponse(response);
+            if(value)
+                this.sendResponse(response);
+            else
+                this.sendErrorResponse(response, 1, 'Cound not pause');
         });
     }
 
     protected continueRequest(response: DebugProtocol.ContinueResponse, args: DebugProtocol.ContinueArguments): void {
         this.clientDebugger.run().then((value) => {
-            if(!value)
-                response.success = false;
-            this.sendResponse(response);
+            if(value)
+                this.sendResponse(response);
+            else
+                this.sendErrorResponse(response, 1, 'Cound not continue');
         });
     }
 
     protected nextRequest(response: DebugProtocol.NextResponse, args: DebugProtocol.NextArguments): void {
         this.clientDebugger.stepOverRequest().then((value) => {
-            if(!value)
-                response.success = false;
-            this.sendResponse(response);
+            if(value)
+                this.sendResponse(response);
+            else
+                this.sendErrorResponse(response, 1, 'Cound not next');
         });
     }
 
     protected stepInRequest(response: DebugProtocol.StepInResponse, args: DebugProtocol.StepInArguments, request?: DebugProtocol.Request | undefined): void {
         this.clientDebugger.stepInRequest().then((value) => {
-            if(!value)
-                response.success = false;
-            this.sendResponse(response);
+            if(value)
+                this.sendResponse(response);
+            else
+                this.sendErrorResponse(response, 1, 'Cound not step in');
         });
     }
 
     protected stepOutRequest(response: DebugProtocol.StepOutResponse, args: DebugProtocol.StepOutArguments, request?: DebugProtocol.Request | undefined): void {
         this.clientDebugger.stepOutRequest().then((value) => {
-            if(!value)
-                response.success = false;
-            this.sendResponse(response);
+            if(value)
+                this.sendResponse(response);
+            else
+                this.sendErrorResponse(response, 1, 'Cound not step over');
         });
     }
 
@@ -162,24 +169,30 @@ export class MjvmDebugSession extends LoggingDebugSession {
         this.sendEvent(new StoppedEvent('entry', 1));
     }
 
+    protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments, request?: DebugProtocol.Request): void {
+        const scopes: DebugProtocol.Scope[] = [
+            new Scope("Local", 0x100000000 | args.frameId, true),
+            new Scope("Global", 0x200000000, true),
+        ];
+        response.body = {
+            scopes: scopes
+        };
+        this.sendResponse(response);
+    }
+
     protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request): void {
+        const variableType = args.variablesReference >>> 32;
+        if(variableType === 1) {
+            response.body
+        }
+        else if(variableType === 2) {
+
+        }
         this.sendResponse(response);
     }
 
     protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {
-        this.clientDebugger.readVariable(args.expression).then((value) => {
-            if(value !== undefined) {
-                if(value === null)
-                    response.body = {result: 'null', variablesReference: 0};
-                else if(typeof value === 'number')
-                    response.body = {result: value.toString(), variablesReference: 0};
-                else if(typeof value === 'string')
-                    response.body = {result: value, variablesReference: 0};
-                else if(typeof value === 'object')
-                    response.body = {result: 'Object TODO', variablesReference: 0};
-            }
-            this.sendResponse(response);
-        });
+        this.sendResponse(response);
     }
     
 	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments, request?: DebugProtocol.Request): void {

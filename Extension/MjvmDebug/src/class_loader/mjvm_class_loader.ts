@@ -28,14 +28,16 @@ export class ClassLoader {
     public readonly minorVersion: number;
     public readonly majorVersion: number;
     public readonly accessFlags: number;
-    public readonly thisClass: number;
-    public readonly superClass: number;
+    public readonly thisClass: string;
+    public readonly superClass: string;
     public readonly interfacesCount: number;
+    public readonly classPath: string;
     
     public methodsInfos: MethodInfo[];
 
     private readonly poolTable: (
         number |
+        bigint |
         string |
         ConstClass |
         ConstSting |
@@ -107,6 +109,7 @@ export class ClassLoader {
     }
 
     private constructor(filePath: string) {
+        this.classPath = filePath;
         const data = fs.readFileSync(filePath, undefined);
 
         let index = 0;
@@ -191,9 +194,11 @@ export class ClassLoader {
 
         this.accessFlags = this.readU16(data, index);
         index += 2;
-        this.thisClass = this.readU16(data, index);
+        const thisClass = this.poolTable[this.readU16(data, index) - 1] as ConstClass;
+        this.thisClass = this.poolTable[thisClass.constUtf8Index - 1] as string;
         index += 2;
-        this.superClass = this.readU16(data, index);
+        const superClass = this.poolTable[this.readU16(data, index) - 1] as ConstClass;
+        this.superClass = this.poolTable[superClass.constUtf8Index - 1] as string;
         index += 2;
         this.interfacesCount = this.readU16(data, index);
         index += 2;
@@ -215,7 +220,7 @@ export class ClassLoader {
                 let fieldsAttributesCount = this.readU16(data, index);
                 index += 2;
                 while(fieldsAttributesCount--) {
-                    const tmp: [number, AttributeInfo | undefined] = this.readAttribute(data, index);
+                    const tmp = this.readAttribute(data, index);
                     index = tmp[0];
                 }
             }
@@ -235,7 +240,7 @@ export class ClassLoader {
                 index += 2;
                 let attributeCode: AttributeCode | undefined = undefined;
                 while(methodAttributesCount--) {
-                    const tmp: [number, AttributeInfo | undefined] = this.readAttribute(data, index);
+                    const tmp = this.readAttribute(data, index);
                     index = tmp[0];
                     if(tmp[1] && !attributeCode) {
                         if(tmp[1].tag === AttributeInfo.ATTRIBUTE_CODE)
@@ -252,11 +257,11 @@ export class ClassLoader {
     }
 
     private readAttribute(data: Buffer, index: number): [number, AttributeInfo | undefined] {
-        const nameIndex: number = this.readU16(data, index);
+        const nameIndex = this.readU16(data, index);
         index += 2;
         const length = this.readU32(data, index);
         index += 4;
-        const type: number = AttributeInfo.parseAttributeType(this.poolTable[nameIndex - 1] as string);
+        const type = AttributeInfo.parseAttributeType(this.poolTable[nameIndex - 1] as string);
         switch(type) {
             case AttributeInfo.ATTRIBUTE_CODE:
                 return this.readAttributeCode(data, index);
@@ -277,7 +282,7 @@ export class ClassLoader {
         index += 2;
         const codeLength: number = this.readU32(data, index);
         index += 4;
-        const code: Buffer = Buffer.alloc(codeLength)
+        const code = Buffer.alloc(codeLength)
         data.copy(code, 0, index, index + codeLength);
         index += codeLength;
         const exceptionTableLength = this.readU16(data, index);
@@ -288,7 +293,7 @@ export class ClassLoader {
         if(attrbutesCount) {
             const attr: AttributeInfo[] = [];
             while(attrbutesCount--) {
-                const tmp: [number, AttributeInfo | undefined] = this.readAttribute(data, index);
+                const tmp = this.readAttribute(data, index);
                 index = tmp[0];
                 if(tmp[1])
                     attr.push(tmp[1]);
@@ -299,7 +304,7 @@ export class ClassLoader {
     }
 
     private readAttributeLineNumberTable(data: Buffer, index: number): [number, AttributeLineNumber] {
-        const lineNumberTableLength: number = this.readU16(data, index);
+        const lineNumberTableLength = this.readU16(data, index);
         index += 2;
         const linesNumber: LineNumber[] = [];
         for(let i = 0; i < lineNumberTableLength; i++) {
@@ -358,15 +363,15 @@ export class ClassLoader {
         return ret;
     }
 
-    private readU64(data: Buffer, offset : number): number {
-        let ret = data[offset + 7];
-        ret |= data[offset + 6] << 8;
-        ret |= data[offset + 5] << 16;
-        ret |= data[offset + 4] << 24;
-        ret |= data[offset + 3] << 32;
-        ret |= data[offset + 2] << 40;
-        ret |= data[offset + 1] << 48;
-        ret |= data[offset] << 56;
+    private readU64(data: Buffer, offset : number): bigint {
+        let ret = BigInt(data[offset + 7]);
+        ret |= BigInt(data[offset + 6]) << 8n;
+        ret |= BigInt(data[offset + 5]) << 16n;
+        ret |= BigInt(data[offset + 4]) << 24n;
+        ret |= BigInt(data[offset + 3]) << 32n;
+        ret |= BigInt(data[offset + 2]) << 40n;
+        ret |= BigInt(data[offset + 1]) << 48n;
+        ret |= BigInt(data[offset]) << 56n;
         return ret;
     }
 }

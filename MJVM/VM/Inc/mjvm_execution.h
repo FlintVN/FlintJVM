@@ -101,8 +101,6 @@ public:
     float stackPopFloat(void);
     double stackPopDouble(void);
     MjvmObject *stackPopObject(void);
-
-    bool getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEndStack) const;
 private:
     void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
@@ -117,6 +115,10 @@ private:
     bool invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
     void run(MethodInfo &method, Debugger *dbg);
+
+    bool getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEndStack) const;
+    bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const;
+    bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const;
 
     friend class Mjvm;
     friend class Debugger;

@@ -1,11 +1,13 @@
 
 import {
-    StackFrame, Source
+    StackFrame, Source,
+    Variable
 } from '@vscode/debugadapter';
 import * as net from 'net';
 import { Semaphore } from './mjvm_semaphone'
 import { ClassLoader } from './class_loader/mjvm_class_loader'
-import { DebugLineInfo } from './class_loader/mjvm_debug_line_info'
+import { MjvmLineInfo } from './class_loader/mjvm_line_info'
+import { MjvmStackFrame } from './class_loader/mjvm_stack_frame';
 
 export class MjvmClientDebugger {
     private readonly client: net.Socket;
@@ -20,8 +22,8 @@ export class MjvmClientDebugger {
     private static readonly DBG_STEP_OVER: number = 8;
     private static readonly DBG_STEP_OUT: number = 9;
     private static readonly DBG_SET_EXCP_MODE: number = 10;
-    private static readonly DBG_READ_VARIABLE: number = 11;
-    private static readonly DBG_WRITE_VARIABLE: number = 12;
+    private static readonly DBG_READ_LOCAL: number = 11;
+    private static readonly DBG_WRITE_LOCAL: number = 12;
 
     private static readonly DBG_STATUS_STOP: number = 0x01;
     private static readonly DBG_STATUS_STOP_SET: number = 0x02;
@@ -34,8 +36,8 @@ export class MjvmClientDebugger {
     private requestStatusTask?: NodeJS.Timeout;
 
     private currentStatus: number = MjvmClientDebugger.DBG_STATUS_STOP;
-    private currentStackFrames?: DebugLineInfo[];
-    private currentBreakpoints: DebugLineInfo[] = [];
+    private currentStackFrames?: MjvmStackFrame[];
+    private currentBreakpoints: MjvmLineInfo[] = [];
 
     private tcpSemaphore = new Semaphore(1);
 
@@ -193,8 +195,8 @@ export class MjvmClientDebugger {
         });
     }
 
-    private getRemoveBreakpointList(lines: number[], source: string): DebugLineInfo[] | undefined {
-        const ret: DebugLineInfo[] = [];
+    private getRemoveBreakpointList(lines: number[], source: string): MjvmLineInfo[] | undefined {
+        const ret: MjvmLineInfo[] = [];
         for(let i = 0; i < this.currentBreakpoints.length; i++) {
             if(source === this.currentBreakpoints[i].sourcePath) {
                 let isContain = false;
@@ -211,8 +213,8 @@ export class MjvmClientDebugger {
         return ret;
     }
 
-    private getAddBreakpointList(lines: number[], source: string): DebugLineInfo[] | undefined {
-        const ret: DebugLineInfo[] = [];
+    private getAddBreakpointList(lines: number[], source: string): MjvmLineInfo[] | undefined {
+        const ret: MjvmLineInfo[] = [];
         for(let i = 0; i < lines.length; i++) {
             let isContain = false;
             for(let j = 0; j < this.currentBreakpoints.length; j++) {
@@ -222,7 +224,7 @@ export class MjvmClientDebugger {
                 }
             }
             if(!isContain) {
-                const lineInfo = DebugLineInfo.getLineInfoFromLine(lines[i], source);
+                const lineInfo = MjvmLineInfo.getLineInfoFromLine(lines[i], source);
                 if(lineInfo)
                     ret.push(lineInfo);
                 else
@@ -232,15 +234,18 @@ export class MjvmClientDebugger {
         return ret;
     }
 
-    private removeBreakPoints(lineInfo: DebugLineInfo[]): Thenable<boolean> {
+    private removeBreakPoints(lineInfo: MjvmLineInfo[]): Thenable<boolean> {
         return new Promise((resolve) => {
             const sendRemoveBkpTask = () => {
                 const line = lineInfo.shift();
                 if(line) {
                     let bufferSize = 1 + 4;
-                    bufferSize += 4 + line.className.length + 1;
-                    bufferSize += 4 + line.methodName.length + 1;
-                    bufferSize += 4 + line.descriptor.length + 1;
+                    const className = line.classLoader.thisClass.replace(/\\/g, '/');
+                    const methodName = line.methodInfo.name;
+                    const descriptor = line.methodInfo.descriptor;
+                    bufferSize += 4 + className.length + 1;
+                    bufferSize += 4 + methodName.length + 1;
+                    bufferSize += 4 + descriptor.length + 1;
 
                     const txBuff = Buffer.alloc(bufferSize);
                     let index = 0;
@@ -255,14 +260,13 @@ export class MjvmClientDebugger {
                     txBuff[index++] = (line.pc >>> 24) & 0xFF;
 
                     /* class name */
-                    const className = line.className.replace(/\\/g, '/');
                     index = this.putConstUtf8ToBuffer(txBuff, className, index);
 
                     /* method name */
-                    index = this.putConstUtf8ToBuffer(txBuff, line.methodName, index);
+                    index = this.putConstUtf8ToBuffer(txBuff, methodName, index);
 
                     /* descriptor */
-                    index = this.putConstUtf8ToBuffer(txBuff, line.descriptor, index);
+                    index = this.putConstUtf8ToBuffer(txBuff, descriptor, index);
 
                     this.sendCmd(txBuff).then((data) => {
                         if(data && data[0] === MjvmClientDebugger.DBG_REMOVE_BKP && data[1] === 0) {
@@ -281,15 +285,18 @@ export class MjvmClientDebugger {
         });
     }
 
-    private addBreakPoints(lineInfo: DebugLineInfo[]): Thenable<boolean> {
+    private addBreakPoints(lineInfo: MjvmLineInfo[]): Thenable<boolean> {
         return new Promise((resolve) => {
             const sendAddBkpTask = () => {
                 const line = lineInfo.shift();
                 if(line) {
                     let bufferSize = 1 + 4;
-                    bufferSize += 4 + line.className.length + 1;
-                    bufferSize += 4 + line.methodName.length + 1;
-                    bufferSize += 4 + line.descriptor.length + 1;
+                    const className = line.classLoader.thisClass.replace(/\\/g, '/');
+                    const methodName = line.methodInfo.name;
+                    const descriptor = line.methodInfo.descriptor;
+                    bufferSize += 4 + className.length + 1;
+                    bufferSize += 4 + methodName.length + 1;
+                    bufferSize += 4 + descriptor.length + 1;
 
                     const txBuff = Buffer.alloc(bufferSize);
                     let index = 0;
@@ -304,14 +311,13 @@ export class MjvmClientDebugger {
                     txBuff[index++] = (line.pc >>> 24) & 0xFF;
 
                     /* class name */
-                    const className = line.className.replace(/\\/g, '/');
                     index = this.putConstUtf8ToBuffer(txBuff, className, index);
 
                     /* method name */
-                    index = this.putConstUtf8ToBuffer(txBuff, line.methodName, index);
+                    index = this.putConstUtf8ToBuffer(txBuff, methodName, index);
 
                     /* descriptor */
-                    index = this.putConstUtf8ToBuffer(txBuff, line.descriptor, index);
+                    index = this.putConstUtf8ToBuffer(txBuff, descriptor, index);
 
                     this.sendCmd(txBuff).then((data) => {
                         if(data && data[0] === MjvmClientDebugger.DBG_ADD_BKP && data[1] === 0) {
@@ -372,21 +378,21 @@ export class MjvmClientDebugger {
         });
     }
 
-    private readStackFrame(stackIndex: number): Thenable<[boolean, DebugLineInfo] | undefined> {
+    private readStackFrame(frameId: number): Thenable<MjvmStackFrame | undefined> {
         return new Promise((resolve) => {
             const txData: Buffer = Buffer.alloc(5);
             txData[0] = MjvmClientDebugger.DBG_READ_STACK_TRACE;
-            txData[1] = stackIndex & 0xFF;
-            txData[2] = (stackIndex >>> 8) & 0xFF;
-            txData[3] = (stackIndex >>> 16) & 0xFF;
-            txData[4] = (stackIndex >>> 24) & 0xFF;
+            txData[1] = frameId & 0xFF;
+            txData[2] = (frameId >>> 8) & 0xFF;
+            txData[3] = (frameId >>> 16) & 0xFF;
+            txData[4] = (frameId >>> 24) & 0xFF;
             this.sendCmd(txData).then((data) => {
                 if(data && data[0] === MjvmClientDebugger.DBG_READ_STACK_TRACE && data[1] === 0) {
                     let index = 2;
                     const currentStack = this.readU32(data, index);
                     const currentStackIndex = currentStack & 0x7FFFFFFF;
                     const isEndStack = (currentStack & 0x80000000) ? true : false;
-                    if(currentStackIndex !== stackIndex) {
+                    if(currentStackIndex !== frameId) {
                         resolve(undefined);
                         return;
                     }
@@ -405,9 +411,24 @@ export class MjvmClientDebugger {
                     index += 2 + 2;
                     const descriptor = data.toString('utf-8', index, index + descriptorLength);
 
-                    const lineInfo = DebugLineInfo.getLineInfoFromPc(pc, className, name, descriptor);
+                    const lineInfo = MjvmLineInfo.getLineInfoFromPc(pc, className, name, descriptor);
                     if(lineInfo) {
-                        resolve([isEndStack, lineInfo]);
+                        const methodInfo = lineInfo.methodInfo;
+                        let localVar = undefined;
+                        if(methodInfo.attributeCode) {
+                            const localVarAttr = methodInfo.attributeCode.getLocalVariables();
+                            if(localVarAttr) {
+                                localVar = [];
+                                for(let i = 0; i < localVarAttr.localVariables.length; i++) {
+                                    const tmp = localVarAttr.localVariables[i];
+                                    if(tmp.startPc <= pc && pc < (tmp.startPc + tmp.length))
+                                        localVar.push(tmp);
+                                }
+                                if(localVar.length === 0)
+                                    localVar = undefined;
+                            }
+                        }
+                        resolve(new MjvmStackFrame(frameId, lineInfo, isEndStack, localVar));
                         return;
                     }
                 }
@@ -437,12 +458,12 @@ export class MjvmClientDebugger {
     public stepInRequest(): Thenable<boolean> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
-                this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, this.currentStackFrames[0].codeLength).then((value) => resolve(value));
+                this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, this.currentStackFrames[0].lineInfo.codeLength).then((value) => resolve(value));
             else this.readStackFrame(0).then((currentPoint) => {
                 if(!currentPoint)
                     resolve(false);
                 else
-                    this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, currentPoint[1].codeLength).then((value) => resolve(value));
+                    this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, currentPoint.lineInfo.codeLength).then((value) => resolve(value));
             });
         });
     }
@@ -450,12 +471,12 @@ export class MjvmClientDebugger {
     public stepOverRequest(): Thenable<boolean> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
-                this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, this.currentStackFrames[0].codeLength).then((value) => resolve(value));
+                this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, this.currentStackFrames[0].lineInfo.codeLength).then((value) => resolve(value));
             else this.readStackFrame(0).then((currentPoint) => {
                 if(!currentPoint)
                     resolve(false);
                 else
-                    this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, currentPoint[1].codeLength).then((value) => resolve(value));
+                    this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, currentPoint.lineInfo.codeLength).then((value) => resolve(value));
             });
         });
     }
@@ -512,16 +533,17 @@ export class MjvmClientDebugger {
         return ret;
     }
 
-    private convertToStackFrame(linesInfo: DebugLineInfo[]): StackFrame[] {
+    private convertToStackFrame(stackFrames: MjvmStackFrame[]): StackFrame[] {
         const ret: StackFrame[] = [];
-        for(let i = 0; i < linesInfo.length; i++) {
-            const src = new Source(linesInfo[i].className + ".java", linesInfo[i].sourcePath);
-            let methodName = linesInfo[i].className;
+        for(let i = 0; i < stackFrames.length; i++) {
+            const lineInfo = stackFrames[i].lineInfo;
+            const src = new Source(lineInfo.classLoader.thisClass + ".java", lineInfo.sourcePath);
+            let methodName = lineInfo.classLoader.thisClass;
             let dotIndexLastIndex = methodName.lastIndexOf('\/');
             dotIndexLastIndex = (dotIndexLastIndex < 0) ? 0 : (dotIndexLastIndex + 1);
             methodName = methodName.substring(dotIndexLastIndex, methodName.length);
-            methodName += '.' + linesInfo[i].methodName + '(';
-            const descriptor = linesInfo[i].descriptor;
+            methodName += '.' + lineInfo.methodInfo.name + '(';
+            const descriptor = lineInfo.methodInfo.descriptor;
             const names = this.getSimpleNames(descriptor.substring(1, descriptor.lastIndexOf(')')));
             for(let i = 0; i < names.length; i++) {
                 methodName += names[i];
@@ -529,8 +551,8 @@ export class MjvmClientDebugger {
                     methodName += ', ';
             }
             methodName += ')';
-            const sf = new StackFrame(i, methodName, src, linesInfo[i].line);
-            sf.instructionPointerReference = linesInfo[i].pc.toString();
+            const sf = new StackFrame(stackFrames[i].frameId, methodName, src, lineInfo.line);
+            sf.instructionPointerReference = lineInfo.pc.toString();
             ret.push(sf);
         }
         return ret;
@@ -541,22 +563,56 @@ export class MjvmClientDebugger {
             if(this.currentStackFrames)
                 resolve(this.convertToStackFrame(this.currentStackFrames));
             else {
-                const ret: DebugLineInfo[] = [];
-                const readStackFrameTask = (stackIndex: number) => this.readStackFrame(stackIndex).then((lineInfo) => {
-                    if(lineInfo && lineInfo[1].sourcePath) {
-                        ret.push(lineInfo[1]);
-                        if(lineInfo[0]) {
+                const ret: MjvmStackFrame[] = [];
+                const readStackFrameTask = (frameId: number) => this.readStackFrame(frameId).then((stackFrame) => {
+                    if(stackFrame && stackFrame.lineInfo.sourcePath) {
+                        ret.push(stackFrame);
+                        if(stackFrame.isEndFrame) {
                             this.currentStackFrames = ret;
                             resolve(this.convertToStackFrame(this.currentStackFrames));
                         }
                         else
-                            readStackFrameTask(stackIndex + 1);
+                            readStackFrameTask(frameId + 1);
                     }
                     else
                         resolve(undefined);
                 });
                 readStackFrameTask(0);
             }
+        });
+    }
+
+    private readLocal(stackFrame: MjvmStackFrame, name: string): Thenable<undefined | null | number | bigint | string | object> {
+        return new Promise((resolve) => {
+            let localVariableInfo = stackFrame.getLocalVariableInfo(name);
+            if(!localVariableInfo) {
+                resolve(undefined);
+                return;
+            }
+            const isReadU64 = localVariableInfo.descriptor === 'J' || localVariableInfo.descriptor === 'D'
+            const txBuff = Buffer.alloc(10);
+            txBuff[0] = MjvmClientDebugger.DBG_READ_LOCAL;
+            txBuff[1] = isReadU64 ? 1 : 0;
+            txBuff[2] = (stackFrame.frameId >>> 0) & 0xFF;
+            txBuff[3] = (stackFrame.frameId >>> 8) & 0xFF;
+            txBuff[4] = (stackFrame.frameId >>> 16) & 0xFF;
+            txBuff[5] = (stackFrame.frameId >>> 24) & 0xFF;
+            txBuff[6] = (localVariableInfo.index >>> 0) & 0xFF;
+            txBuff[7] = (localVariableInfo.index >>> 8) & 0xFF;
+            txBuff[8] = (localVariableInfo.index >>> 16) & 0xFF;
+            txBuff[9] = (localVariableInfo.index >>> 24) & 0xFF;
+            this.sendCmd(txBuff).then((data) => {
+                if(!(data && data[0] === MjvmClientDebugger.DBG_READ_LOCAL && data[1] === 0)) {
+                    resolve(undefined);
+                    return;
+                }
+                const isObject: boolean = (data[2] !== 0) ? true : false;
+                const value = isReadU64 ? this.readU64(data, 3) : this.readU32(data, 3);
+                if(!isObject) {
+                    resolve(value);
+                    return;
+                }
+            });
         });
     }
 
@@ -581,6 +637,18 @@ export class MjvmClientDebugger {
         ret |= data[offset + 1] << 8;
         ret |= data[offset + 2] << 16;
         ret |= data[offset + 3] << 24;
+        return ret >>> 0;
+    }
+
+    private readU64(data: Buffer, offset : number): bigint {
+        let ret = BigInt(data[offset]);
+        ret |= BigInt(data[offset + 1]) << 8n;
+        ret |= BigInt(data[offset + 2]) << 16n;
+        ret |= BigInt(data[offset + 3]) << 24n;
+        ret |= BigInt(data[offset + 4]) << 32n;
+        ret |= BigInt(data[offset + 5]) << 40n;
+        ret |= BigInt(data[offset + 6]) << 48n;
+        ret |= BigInt(data[offset + 7]) << 56n;
         return ret;
     }
 }

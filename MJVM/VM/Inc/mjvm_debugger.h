@@ -32,8 +32,8 @@ typedef enum : uint8_t {
     DBG_STEP_OVER,
     DBG_STEP_OUT,
     DBG_SET_EXCP_MODE,
-    DBG_READ_VARIABLE,
-    DBG_WRITE_VARIABLE,
+    DBG_READ_LOCAL,
+    DBG_WRITE_LOCAL,
 } DebuggerCmd;
 
 class BreakPoint {
@@ -73,6 +73,8 @@ public:
 
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
     void receivedDataHandler(uint8_t *data, uint32_t length);
+
+    bool getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEndStack) const;
 
     bool exceptionIsEnabled(void);
     void caughtException(void);
