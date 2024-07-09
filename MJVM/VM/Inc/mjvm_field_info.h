@@ -5,23 +5,23 @@
 #include "mjvm_const_pool.h"
 #include "mjvm_attribute_info.h"
 
-class ClassLoader;
+class MjvmClassLoader;
 
-class FieldInfo {
+class MjvmFieldInfo {
 public:
-    const FieldAccessFlag accessFlag;
-    ClassLoader &classLoader;
-    ConstUtf8 &name;
-    ConstUtf8 &descriptor;
+    const MjvmFieldAccessFlag accessFlag;
+    MjvmClassLoader &classLoader;
+    MjvmConstUtf8 &name;
+    MjvmConstUtf8 &descriptor;
 private:
-    FieldInfo(ClassLoader &classLoader, FieldAccessFlag accessFlag, ConstUtf8 &name, ConstUtf8 &descriptor);
+    MjvmFieldInfo(MjvmClassLoader &classLoader, MjvmFieldAccessFlag accessFlag, MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor);
 
-    FieldInfo(const FieldInfo &) = delete;
-    void operator=(const FieldInfo &) = delete;
+    MjvmFieldInfo(const MjvmFieldInfo &) = delete;
+    void operator=(const MjvmFieldInfo &) = delete;
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 public:
-    AttributeInfo &getAttribute(AttributeType type) const;
+    MjvmAttribute &getAttribute(MjvmAttributeType type) const;
 };
 
 #endif /* __MJVM_FIELD_INFO_H */

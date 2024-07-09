@@ -14,7 +14,7 @@ public:
 private:
     uint32_t prot : 2;
 public:
-    ConstUtf8 &type;
+    MjvmConstUtf8 &type;
     const uint32_t dimensions : 8;
 public:
     uint32_t monitorCount : 24;
@@ -23,7 +23,7 @@ public:
 
     static uint8_t getPrimitiveTypeSize(uint8_t atype);
     static uint8_t convertToAType(char type);
-    static uint8_t isPrimType(const ConstUtf8 &type);
+    static uint8_t isPrimType(const MjvmConstUtf8 &type);
 private:
     uint8_t parseTypeSize(void) const;
 
@@ -31,11 +31,11 @@ private:
     void clearProtected(void);
     uint8_t getProtected(void) const;
 protected:
-    MjvmObject(uint32_t size, ConstUtf8 &type, uint8_t dimensions);
+    MjvmObject(uint32_t size, MjvmConstUtf8 &type, uint8_t dimensions);
     MjvmObject(const MjvmObject &) = delete;
     void operator=(const MjvmObject &) = delete;
 
-    friend class Execution;
+    friend class MjvmExecution;
 };
 
 #endif /* __MJVM_OBJECT_H */

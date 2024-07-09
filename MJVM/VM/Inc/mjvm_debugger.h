@@ -18,7 +18,7 @@
 #define DBG_STATUS_EXCP             0x40
 #define DBG_STATUS_DONE             0x80
 
-class Execution;
+class MjvmExecution;
 
 typedef enum : uint8_t {
     DBG_READ_STATUS,
@@ -39,53 +39,53 @@ typedef enum : uint8_t {
 class BreakPoint {
 public:
     uint32_t pc;
-    MethodInfo *method;
+    MjvmMethodInfo *method;
 
     BreakPoint(void);
-    BreakPoint(uint32_t pc, MethodInfo &method);
+    BreakPoint(uint32_t pc, MjvmMethodInfo &method);
 private:
     BreakPoint(const BreakPoint &) = delete;
 };
 
-class StackTrace {
+class MjvmStackFrame {
 public:
     const uint32_t pc;
     const uint32_t baseSp;
-    MethodInfo &method;
+    MjvmMethodInfo &method;
 
-    StackTrace(void);
-    StackTrace(uint32_t pc, uint32_t baseSp, MethodInfo &method);
+    MjvmStackFrame(void);
+    MjvmStackFrame(uint32_t pc, uint32_t baseSp, MjvmMethodInfo &method);
 private:
-    StackTrace(const StackTrace &) = delete;
-    void operator=(const StackTrace &) = delete;
+    MjvmStackFrame(const MjvmStackFrame &) = delete;
+    void operator=(const MjvmStackFrame &) = delete;
 };
 
-class Debugger {
+class MjvmDebugger {
 private:
-    Execution &execution;
+    MjvmExecution &execution;
     volatile uint32_t stepCodeLength;
     volatile uint8_t status;
     volatile uint8_t breakPointCount;
-    StackTrace startPoint;
+    MjvmStackFrame startPoint;
     BreakPoint breakPoints[MAX_OF_BREAK_POINT];
 public:
-    Debugger(Execution &execution);
+    MjvmDebugger(MjvmExecution &execution);
 
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
     void receivedDataHandler(uint8_t *data, uint32_t length);
 
-    bool getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEndStack) const;
+    bool getStackTrace(uint32_t index, MjvmStackFrame *stackTrace, bool *isEndStack) const;
 
     bool exceptionIsEnabled(void);
     void caughtException(void);
     void checkBreakPoint(void);
     void done(void);
 private:
-    Debugger(const Debugger &) = delete;
-    void operator=(const Debugger &) = delete;
+    MjvmDebugger(const MjvmDebugger &) = delete;
+    void operator=(const MjvmDebugger &) = delete;
 
-    bool addBreakPoint(uint32_t pc, ConstUtf8 &className, ConstUtf8 &methodName, ConstUtf8 &descriptor);
-    bool removeBreakPoint(uint32_t pc, ConstUtf8 &className, ConstUtf8 &methodName, ConstUtf8 &descriptor);
+    bool addBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmConstUtf8 &methodName, MjvmConstUtf8 &descriptor);
+    bool removeBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmConstUtf8 &methodName, MjvmConstUtf8 &descriptor);
 };
 
 #endif /* __MJVM_DEBUGGER_H */

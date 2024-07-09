@@ -4,8 +4,8 @@
 #include "mjvm_method_info.h"
 #include "mjvm_native_class.h"
 
-static NativeMethodPtr findNativeMathod(const MethodInfo &methodInfo) {
-    ConstUtf8 &className = methodInfo.classLoader.getThisClass();
+static MjvmNativeMethodPtr findNativeMathod(const MjvmMethodInfo &methodInfo) {
+    MjvmConstUtf8 &className = methodInfo.classLoader.getThisClass();
     for(uint32_t i = 0; i < NATIVE_CLASS_COUNT; i++) {
         if(NATIVE_CLASS_LIST[i]->className == className) {
             for(uint32_t k = 0; k < NATIVE_CLASS_LIST[i]->methodCount; k++) {
@@ -22,23 +22,23 @@ static NativeMethodPtr findNativeMathod(const MethodInfo &methodInfo) {
     throw "can't find the native method";
 }
 
-MethodInfo::MethodInfo(ClassLoader &classLoader, MethodAccessFlag accessFlag, ConstUtf8 &name, ConstUtf8 &descriptor) :
+MjvmMethodInfo::MjvmMethodInfo(MjvmClassLoader &classLoader, MjvmMethodAccessFlag accessFlag, MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor) :
 accessFlag(accessFlag), classLoader(classLoader), name(name), descriptor(descriptor), attributes(0) {
 
 }
 
-void MethodInfo::addAttribute(AttributeInfo *attribute) {
+void MjvmMethodInfo::addAttribute(MjvmAttribute *attribute) {
     attribute->next = this->attributes;
     this->attributes = attribute;
 }
 
-AttributeInfo &MethodInfo::getAttribute(AttributeType type) const {
-    for(AttributeInfo *node = attributes; node != 0;) {
+MjvmAttribute &MjvmMethodInfo::getAttribute(MjvmAttributeType type) const {
+    for(MjvmAttribute *node = attributes; node != 0;) {
         if(node->attributeType == type) {
             if(type != ATTRIBUTE_NATIVE)
                 return *node;
             else {
-                AttributeNative *attrNative = (AttributeNative *)node;
+                MjvmNativeAttribute *attrNative = (MjvmNativeAttribute *)node;
                 if(attrNative->nativeMethod == 0)
                     *(void **)&attrNative->nativeMethod = (void *)findNativeMathod(*this);
                 return *attrNative;
@@ -48,30 +48,30 @@ AttributeInfo &MethodInfo::getAttribute(AttributeType type) const {
     throw "can't find the attribute";
 }
 
-AttributeCode &MethodInfo::getAttributeCode(void) const {
-    for(AttributeInfo *node = attributes; node != 0;) {
+MjvmCodeAttribute &MjvmMethodInfo::getAttributeCode(void) const {
+    for(MjvmAttribute *node = attributes; node != 0;) {
         if(node->attributeType == ATTRIBUTE_CODE)
-            return *(AttributeCode *)node;
+            return *(MjvmCodeAttribute *)node;
     }
     throw "can't find the code attribute";
 }
 
-AttributeNative &MethodInfo::getAttributeNative(void) const {
-    for(AttributeInfo *node = attributes; node != 0;) {
+MjvmNativeAttribute &MjvmMethodInfo::getAttributeNative(void) const {
+    for(MjvmAttribute *node = attributes; node != 0;) {
         if(node->attributeType == ATTRIBUTE_NATIVE) {
-            AttributeNative *attrNative = (AttributeNative *)node;
+            MjvmNativeAttribute *attrNative = (MjvmNativeAttribute *)node;
             if(attrNative->nativeMethod == 0)
                 *(void **)&attrNative->nativeMethod = (void *)findNativeMathod(*this);
-            return *(AttributeNative *)attrNative;
+            return *(MjvmNativeAttribute *)attrNative;
         }
     }
     throw "can't find the native attribute";
 }
 
-MethodInfo::~MethodInfo(void) {
-    for(AttributeInfo *node = attributes; node != 0;) {
-        AttributeInfo *next = node->next;
-        node->~AttributeInfo();
+MjvmMethodInfo::~MjvmMethodInfo(void) {
+    for(MjvmAttribute *node = attributes; node != 0;) {
+        MjvmAttribute *next = node->next;
+        node->~MjvmAttribute();
         Mjvm::free(node);
         node = next;
     }

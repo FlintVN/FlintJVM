@@ -5,7 +5,7 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_class_class.h"
 
-static bool nativeGetPrimitiveClass(Execution &execution) {
+static bool nativeGetPrimitiveClass(MjvmExecution &execution) {
     MjvmString *str = (MjvmString *)execution.stackPopObject();
     if(str->getCoder() == 0) {
         uint32_t len = str->getLength();
@@ -67,11 +67,11 @@ static bool nativeGetPrimitiveClass(Execution &execution) {
     throw "primitive type name is invalid";
 }
 
-static bool nativeForName(Execution &execution) {
+static bool nativeForName(MjvmExecution &execution) {
     throw "forName is not implemented in VM";
 }
 
-static bool nativeIsInstance(Execution &execution) {
+static bool nativeIsInstance(MjvmExecution &execution) {
     MjvmObject *obj = (MjvmObject *)execution.stackPopObject();
     MjvmClass *clsObj = (MjvmClass *)execution.stackPopObject();
     MjvmString &typeName = clsObj->getName();
@@ -82,15 +82,15 @@ static bool nativeIsInstance(Execution &execution) {
     return true;
 }
 
-static bool nativeIsAssignableFrom(Execution &execution) {
+static bool nativeIsAssignableFrom(MjvmExecution &execution) {
     throw "isAssignableFrom is not implemented in VM";
 }
 
-static bool nativeIsInterface(Execution &execution) {
+static bool nativeIsInterface(MjvmExecution &execution) {
     throw "isInterface is not implemented in VM";
 }
 
-static bool nativeIsArray(Execution &execution) {
+static bool nativeIsArray(MjvmExecution &execution) {
     MjvmClass *clsObj = (MjvmClass *)execution.stackPopObject();
     MjvmString &name = clsObj->getName();
     const char *text = name.getText();
@@ -103,7 +103,7 @@ static bool nativeIsArray(Execution &execution) {
     return true;
 }
 
-static bool nativeIsPrimitive(Execution &execution) {
+static bool nativeIsPrimitive(MjvmExecution &execution) {
     MjvmClass *clsObj = (MjvmClass *)execution.stackPopObject();
     MjvmString &name = clsObj->getName();
     uint8_t coder = name.getCoder();
@@ -151,15 +151,15 @@ static bool nativeIsPrimitive(Execution &execution) {
     return true;
 }
 
-static bool nativeGetSuperclass(Execution &execution) {
+static bool nativeGetSuperclass(MjvmExecution &execution) {
     throw "getSuperclass is not implemented in VM";
 }
 
-static bool nativeGetInterfaces(Execution &execution) {
+static bool nativeGetInterfaces(MjvmExecution &execution) {
     throw "getInterfaces is not implemented in VM";
 }
 
-static bool nativeGetComponentType(Execution &execution) {
+static bool nativeGetComponentType(MjvmExecution &execution) {
     MjvmClass *clsObj = (MjvmClass *)execution.stackPopObject();
     MjvmString &name = clsObj->getName();
     const char *text = name.getText();
@@ -207,11 +207,11 @@ static bool nativeGetComponentType(Execution &execution) {
     return true;
 }
 
-static bool nativeGetModifiers(Execution &execution) {
+static bool nativeGetModifiers(MjvmExecution &execution) {
     throw "getModifiers is not implemented in VM";
 }
 
-static bool nativeIsHidden(Execution &execution) {
+static bool nativeIsHidden(MjvmExecution &execution) {
     throw "isHidden is not implemented in VM";
 }
 

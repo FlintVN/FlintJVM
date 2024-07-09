@@ -4,7 +4,7 @@
 #include "mjvm_common.h"
 #include "mjvm_attribute_info.h"
 
-AttributeType AttributeInfo::parseAttributeType(const ConstUtf8 &name) {
+MjvmAttributeType MjvmAttribute::parseAttributeType(const MjvmConstUtf8 &name) {
     switch(name.length) {
         case 4:
             if(strncmp(name.text, "Code", name.length) == 0)
@@ -24,102 +24,90 @@ AttributeType AttributeInfo::parseAttributeType(const ConstUtf8 &name) {
     return ATTRIBUTE_UNKNOW;
 }
 
-AttributeInfo::AttributeInfo(AttributeType type) : next(0), attributeType(type) {
+MjvmAttribute::MjvmAttribute(MjvmAttributeType type) : next(0), attributeType(type) {
 
 }
 
-AttributeInfo::~AttributeInfo(void) {
+MjvmAttribute::~MjvmAttribute(void) {
 
 }
 
-AttributeRaw::AttributeRaw(AttributeType type, uint16_t length) : AttributeInfo(type), length(length) {
+MjvmNativeAttribute::MjvmNativeAttribute(MjvmNativeMethodPtr nativeMethod) : MjvmAttribute(ATTRIBUTE_NATIVE), nativeMethod(nativeMethod) {
 
 }
 
-const uint8_t *AttributeRaw::getRaw(void) const {
-    return (const uint8_t *)raw;
-}
-
-AttributeRaw::~AttributeRaw(void) {
+MjvmNativeAttribute::~MjvmNativeAttribute(void) {
 
 }
 
-AttributeNative::AttributeNative(NativeMethodPtr nativeMethod) : AttributeInfo(ATTRIBUTE_NATIVE), nativeMethod(nativeMethod) {
-
-}
-
-AttributeNative::~AttributeNative(void) {
-
-}
-
-ExceptionTable::ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
+MjvmExceptionTable::MjvmExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
 startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 }
 
-AttributeCode::AttributeCode(uint16_t maxStack, uint16_t maxLocals) :
-AttributeInfo(ATTRIBUTE_CODE), maxStack(maxStack), maxLocals(maxLocals), codeLength(0),
+MjvmCodeAttribute::MjvmCodeAttribute(uint16_t maxStack, uint16_t maxLocals) :
+MjvmAttribute(ATTRIBUTE_CODE), maxStack(maxStack), maxLocals(maxLocals), codeLength(0),
 exceptionTableLength(0), code(0), exceptionTable(0), attributes(0) {
 
 }
 
-void AttributeCode::setCode(uint8_t *code, uint32_t length) {
+void MjvmCodeAttribute::setCode(uint8_t *code, uint32_t length) {
     this->code = code;
     *(uint32_t *)&codeLength = length;
 }
 
-void AttributeCode::setExceptionTable(ExceptionTable *exceptionTable, uint16_t length) {
+void MjvmCodeAttribute::setExceptionTable(MjvmExceptionTable *exceptionTable, uint16_t length) {
     this->exceptionTable = exceptionTable;
     *(uint16_t *)&exceptionTableLength = length;
 }
 
-void AttributeCode::addAttribute(AttributeInfo *attribute) {
+void MjvmCodeAttribute::addAttribute(MjvmAttribute *attribute) {
     attribute->next = this->attributes;
     this->attributes = attribute;
 }
 
-ExceptionTable &AttributeCode::getException(uint16_t index) const {
+MjvmExceptionTable &MjvmCodeAttribute::getException(uint16_t index) const {
     if(index < exceptionTableLength)
         return exceptionTable[index];
-    throw "index for ExceptionTable is invalid";
+    throw "index for MjvmExceptionTable is invalid";
 }
 
-AttributeCode::~AttributeCode(void) {
+MjvmCodeAttribute::~MjvmCodeAttribute(void) {
     if(code)
         Mjvm::free((void *)code);
     if(exceptionTable)
         Mjvm::free((void *)exceptionTable);
-    for(AttributeInfo *node = attributes; node != 0;) {
-        AttributeInfo *next = node->next;
-        node->~AttributeInfo();
+    for(MjvmAttribute *node = attributes; node != 0;) {
+        MjvmAttribute *next = node->next;
+        node->~MjvmAttribute();
         Mjvm::free(node);
         node = next;
     }
 }
 
-BootstrapMethod::BootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments) :
+MjvmBootstrapMethod::MjvmBootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments) :
 bootstrapMethodRef(bootstrapMethodRef), numBootstrapArguments(numBootstrapArguments) {
 
 }
 
-uint16_t BootstrapMethod::getBootstrapArgument(uint16_t index) const {
+uint16_t MjvmBootstrapMethod::getBootstrapArgument(uint16_t index) const {
     if(index < numBootstrapArguments)
         return bootstrapArguments[index];
     throw "index for BootstrapArgument is invalid";
 }
 
 AttributeBootstrapMethods::AttributeBootstrapMethods(uint16_t numBootstrapMethods) :
-AttributeInfo(ATTRIBUTE_BOOTSTRAP_METHODS), numBootstrapMethods(numBootstrapMethods) {
-    bootstrapMethods = (BootstrapMethod **)Mjvm::malloc(numBootstrapMethods * sizeof(BootstrapMethod *));
+MjvmAttribute(ATTRIBUTE_BOOTSTRAP_METHODS), numBootstrapMethods(numBootstrapMethods) {
+    bootstrapMethods = (MjvmBootstrapMethod **)Mjvm::malloc(numBootstrapMethods * sizeof(MjvmBootstrapMethod *));
 }
 
-BootstrapMethod &AttributeBootstrapMethods::getBootstrapMethod(uint16_t index) {
+MjvmBootstrapMethod &AttributeBootstrapMethods::getBootstrapMethod(uint16_t index) {
     if(index < numBootstrapMethods)
         return *bootstrapMethods[index];
-    throw "index for BootstrapMethod is invalid";
+    throw "index for MjvmBootstrapMethod is invalid";
 }
 
-void AttributeBootstrapMethods::setBootstrapMethod(uint16_t index, BootstrapMethod &bootstrapMethod) {
+void AttributeBootstrapMethods::setBootstrapMethod(uint16_t index, MjvmBootstrapMethod &bootstrapMethod) {
     bootstrapMethods[index] = &bootstrapMethod;
 }
 

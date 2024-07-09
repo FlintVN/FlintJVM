@@ -1,18 +1,18 @@
 
-import { ClassLoader } from './mjvm_class_loader';
+import { MjvmClassLoader } from './mjvm_class_loader';
 import * as vscode from 'vscode';
-import { MethodInfo } from './mjvm_method_info';
-import { LineNumber } from './mjvm_attribute_info';
+import { MjvmMethodInfo } from './mjvm_method_info';
+import { MjvmLineNumber } from './mjvm_attribute_info';
 
 export class MjvmLineInfo {
     public readonly pc: number;
     public readonly line: number;
     public readonly codeLength: number;
-    public readonly methodInfo: MethodInfo;
-    public readonly classLoader: ClassLoader;
+    public readonly methodInfo: MjvmMethodInfo;
+    public readonly classLoader: MjvmClassLoader;
     public readonly sourcePath: string;
 
-    private constructor(pc: number, line: number, codeLength: number, srcPath: string, methodInfo: MethodInfo, classLoader: ClassLoader) {
+    private constructor(pc: number, line: number, codeLength: number, srcPath: string, methodInfo: MjvmMethodInfo, classLoader: MjvmClassLoader) {
         this.pc = pc;
         this.line = line;
         this.codeLength = codeLength;
@@ -36,12 +36,12 @@ export class MjvmLineInfo {
     }
 
     public static getLineInfoFromPc(pc: number, className: string, method: string, descriptor: string): MjvmLineInfo | undefined {
-        const clsPath = ClassLoader.findClassFile(className);
+        const clsPath = MjvmClassLoader.findClassFile(className);
         if(clsPath) {
-            const srcPath = ClassLoader.findSourceFile(className);
+            const srcPath = MjvmClassLoader.findSourceFile(className);
             if(!srcPath)
                 return undefined;
-            const classLoader = ClassLoader.load(clsPath);
+            const classLoader = MjvmClassLoader.load(clsPath);
             const methodInfo = classLoader.getMethodInfo(method, descriptor);
             if(methodInfo && methodInfo.attributeCode) {
                 const attrLinesNumber = methodInfo.attributeCode.getLinesNumber();
@@ -62,8 +62,8 @@ export class MjvmLineInfo {
         return undefined;
     }
 
-    private static sortByLine(linesNumber: LineNumber[]): [number, LineNumber][] {
-        const ret: [number, LineNumber][] = [];
+    private static sortByLine(linesNumber: MjvmLineNumber[]): [number, MjvmLineNumber][] {
+        const ret: [number, MjvmLineNumber][] = [];
         for(let i = 0; i < linesNumber.length; i++)
             ret.push([i, linesNumber[i]]);
         ret.sort((a, b) => a[1].line - b[1].line);
@@ -72,9 +72,9 @@ export class MjvmLineInfo {
 
     public static getLineInfoFromLine(line: number, srcPath: string): MjvmLineInfo | undefined {
         const className = this.getClassNameFormSource(srcPath);
-        const clsPath = className ? ClassLoader.findClassFile(className) : undefined;
+        const clsPath = className ? MjvmClassLoader.findClassFile(className) : undefined;
         if(className && clsPath) {
-            const classLoader = ClassLoader.load(clsPath);
+            const classLoader = MjvmClassLoader.load(clsPath);
             for(let i = 0; i < classLoader.methodsInfos.length; i++) {
                 const methodInfo = classLoader.methodsInfos[i];
                 if(methodInfo.attributeCode) {

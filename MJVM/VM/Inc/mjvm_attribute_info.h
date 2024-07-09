@@ -28,77 +28,60 @@ typedef enum : uint8_t {
     ATTRIBUTE_NEST_MEMBERS,
     ATTRIBUTE_NATIVE,
     ATTRIBUTE_UNKNOW = 0xFF
-} AttributeType;
+} MjvmAttributeType;
 
-class AttributeInfo {
+class MjvmAttribute {
 protected:
-    AttributeInfo *next;
+    MjvmAttribute *next;
 public:
-    const AttributeType attributeType;
+    const MjvmAttributeType attributeType;
 private:
-    AttributeInfo(const AttributeInfo &) = delete;
-    void operator=(const AttributeInfo &) = delete;
+    MjvmAttribute(const MjvmAttribute &) = delete;
+    void operator=(const MjvmAttribute &) = delete;
 
-    friend class ClassLoader;
-    friend class MethodInfo;
-    friend class AttributeCode;
+    friend class MjvmClassLoader;
+    friend class MjvmMethodInfo;
+    friend class MjvmCodeAttribute;
 protected:
-    AttributeInfo(AttributeType type);
+    MjvmAttribute(MjvmAttributeType type);
 public:
-    static AttributeType parseAttributeType(const ConstUtf8 &name);
+    static MjvmAttributeType parseAttributeType(const MjvmConstUtf8 &name);
 
-    virtual ~AttributeInfo(void) = 0;
+    virtual ~MjvmAttribute(void) = 0;
 };
 
-class AttributeRaw : public AttributeInfo {
+class MjvmExecution;
+
+typedef bool (*MjvmNativeMethodPtr)(MjvmExecution &execution);
+
+class MjvmNativeAttribute : public MjvmAttribute {
 public:
-    const uint32_t length;
+    MjvmNativeMethodPtr nativeMethod;
 private:
-    uint8_t raw[];
+    MjvmNativeAttribute(MjvmNativeMethodPtr nativeMethod);
+    MjvmNativeAttribute(const MjvmNativeAttribute &) = delete;
+    void operator=(const MjvmNativeAttribute &) = delete;
 
-    AttributeRaw(AttributeType type, uint16_t length);
-    AttributeRaw(const AttributeRaw &) = delete;
-    void operator=(const AttributeRaw &) = delete;
+    friend class MjvmClassLoader;
 
-    ~AttributeRaw(void);
-
-    friend class ClassLoader;
-public:
-    const uint8_t *getRaw(void) const;
+    ~MjvmNativeAttribute(void);
 };
 
-class Execution;
-
-typedef bool (*NativeMethodPtr)(Execution &execution);
-
-class AttributeNative : public AttributeInfo {
-public:
-    NativeMethodPtr nativeMethod;
-private:
-    AttributeNative(NativeMethodPtr nativeMethod);
-    AttributeNative(const AttributeNative &) = delete;
-    void operator=(const AttributeNative &) = delete;
-
-    friend class ClassLoader;
-
-    ~AttributeNative(void);
-};
-
-class ExceptionTable {
+class MjvmExceptionTable {
 public:
     const uint16_t startPc;
     const uint16_t endPc;
     const uint16_t handlerPc;
     const uint16_t catchType;
 private:
-    ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType);
-    ExceptionTable(const ExceptionTable &) = delete;
-    void operator=(const ExceptionTable &) = delete;
+    MjvmExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType);
+    MjvmExceptionTable(const MjvmExceptionTable &) = delete;
+    void operator=(const MjvmExceptionTable &) = delete;
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 };
 
-class AttributeCode : public AttributeInfo {
+class MjvmCodeAttribute : public MjvmAttribute {
 public:
     const uint16_t maxStack;
     const uint16_t maxLocals;
@@ -106,25 +89,25 @@ public:
     const uint16_t exceptionTableLength;
     const uint8_t *code;
 private:
-    ExceptionTable *exceptionTable;
-    AttributeInfo *attributes;
+    MjvmExceptionTable *exceptionTable;
+    MjvmAttribute *attributes;
 
-    AttributeCode(uint16_t maxStack, uint16_t maxLocals);
-    AttributeCode(const AttributeCode &) = delete;
-    void operator=(const AttributeCode &) = delete;
+    MjvmCodeAttribute(uint16_t maxStack, uint16_t maxLocals);
+    MjvmCodeAttribute(const MjvmCodeAttribute &) = delete;
+    void operator=(const MjvmCodeAttribute &) = delete;
 
     void setCode(uint8_t *code, uint32_t length);
-    void setExceptionTable(ExceptionTable *exceptionTable, uint16_t length);
-    void addAttribute(AttributeInfo *attribute);
+    void setExceptionTable(MjvmExceptionTable *exceptionTable, uint16_t length);
+    void addAttribute(MjvmAttribute *attribute);
 
-    ~AttributeCode(void);
+    ~MjvmCodeAttribute(void);
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 public:
-    ExceptionTable &getException(uint16_t index) const;
+    MjvmExceptionTable &getException(uint16_t index) const;
 };
 
-class BootstrapMethod {
+class MjvmBootstrapMethod {
 public:
     const uint16_t bootstrapMethodRef;
     const uint16_t numBootstrapArguments;
@@ -133,29 +116,29 @@ public:
 private:
     uint16_t bootstrapArguments[];
 
-    BootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments);
-    BootstrapMethod(const BootstrapMethod &) = delete;
-    void operator=(const BootstrapMethod &) = delete;
+    MjvmBootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments);
+    MjvmBootstrapMethod(const MjvmBootstrapMethod &) = delete;
+    void operator=(const MjvmBootstrapMethod &) = delete;
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 };
 
-class AttributeBootstrapMethods : public AttributeInfo {
+class AttributeBootstrapMethods : public MjvmAttribute {
 public:
     const uint16_t numBootstrapMethods;
 private:
-    BootstrapMethod **bootstrapMethods;
+    MjvmBootstrapMethod **bootstrapMethods;
 
     AttributeBootstrapMethods(uint16_t numBootstrapMethods);
     AttributeBootstrapMethods(const AttributeBootstrapMethods &) = delete;
     void operator=(const AttributeBootstrapMethods &) = delete;
 
-    BootstrapMethod &getBootstrapMethod(uint16_t index);
-    void setBootstrapMethod(uint16_t index, BootstrapMethod &bootstrapMethod);
+    MjvmBootstrapMethod &getBootstrapMethod(uint16_t index);
+    void setBootstrapMethod(uint16_t index, MjvmBootstrapMethod &bootstrapMethod);
 
     ~AttributeBootstrapMethods(void);
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 };
 
 #endif /* __MJVM_ATTRIBUTE_INFO_H */

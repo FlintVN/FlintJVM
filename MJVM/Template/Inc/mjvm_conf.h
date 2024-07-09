@@ -6,6 +6,8 @@
 
 #include "mjvm_common.h"
 
+#define FILE_NAME_BUFF_SIZE     256
+
 #define DEFAULT_STACK_SIZE      MEGA_BYTE(1)
 #define OBJECT_SIZE_TO_GC       MEGA_BYTE(1)
 

@@ -75,12 +75,12 @@ bool MjvmString::isLatin1(const char *utf8) {
 }
 
 const char *MjvmString::getText(void) const {
-    MjvmObject *byteArray = ((FieldsData *)data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
+    MjvmObject *byteArray = ((MjvmFieldsData *)data)->getFieldObject(*(MjvmConstNameAndType *)stringValueFieldName).object;
     return (const char *)((MjvmString *)byteArray)->data;
 }
 
 uint32_t MjvmString::getLength(void) const {
-    MjvmString *byteArray = (MjvmString *)((FieldsData *)data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
+    MjvmString *byteArray = (MjvmString *)((MjvmFieldsData *)data)->getFieldObject(*(MjvmConstNameAndType *)stringValueFieldName).object;
     if(getCoder() == 0)
         return byteArray->size / sizeof(int8_t);
     else
@@ -88,7 +88,7 @@ uint32_t MjvmString::getLength(void) const {
 }
 
 uint8_t MjvmString::getCoder(void) const {
-    return ((FieldsData *)data)->getFieldData32(*(ConstNameAndType *)stringCoderFieldName).value;
+    return ((MjvmFieldsData *)data)->getFieldData32(*(MjvmConstNameAndType *)stringCoderFieldName).value;
 }
 
 bool MjvmString::equals(const char *text, uint32_t length) const {
@@ -103,7 +103,7 @@ bool MjvmString::equals(const char *text, uint32_t length) const {
     return true;
 }
 
-bool MjvmString::equals(const ConstUtf8 &utf8) const {
+bool MjvmString::equals(const MjvmConstUtf8 &utf8) const {
     uint32_t len2 = utf8StrLen(utf8.text);
     uint8_t coder1 = getCoder();
     uint8_t coder2 = isLatin1(utf8.text) ? 0 : 1;

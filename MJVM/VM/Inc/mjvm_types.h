@@ -20,7 +20,7 @@ typedef enum : uint8_t {
     CONST_METHOD_TYPE = 16,
     CONST_INVOKE_DYNAMIC = 18,
     CONST_UNKOWN = 0xFF,
-} ConstPoolTag;
+} MjvmConstPoolTag;
 
 typedef enum : uint8_t {
     REF_GET_FIELD = 1,
@@ -32,7 +32,7 @@ typedef enum : uint8_t {
     REF_INVOKE_SPECIAL = 7,
     REF_NEW_INVOKE_SPECIAL = 8,
     REF_INVOKE_INTERFACE = 9,
-} ReferenceKind;
+} MjvmReferenceKind;
 
 typedef enum : uint16_t {
     CLASS_PUBLIC = 0x0001,
@@ -43,7 +43,7 @@ typedef enum : uint16_t {
     CLASS_SYNTHETIC = 0x1000,
     CLASS_ANNOTATION = 0x2000,
     CLASS_ENUM = 0x4000,
-} ClassAccessFlag;
+} MjvmClassAccessFlag;
 
 typedef enum : uint16_t {
     FIELD_PUBLIC = 0x0001,
@@ -56,7 +56,7 @@ typedef enum : uint16_t {
     FIELD_SYNTHETIC = 0x1000,
     FIELD_ENUM = 0x4000,
     FIELD_UNLOAD = 0x8000,
-} FieldAccessFlag;
+} MjvmFieldAccessFlag;
 
 typedef enum : uint16_t {
     METHOD_PUBLIC = 0x0001,
@@ -71,7 +71,7 @@ typedef enum : uint16_t {
     METHOD_ABSTRACT = 0x0400,
     METHOD_STRICT = 0x0800,
     METHOD_SYNTHETIC = 0x1000,
-} MethodAccessFlag;
+} MjvmMethodAccessFlag;
 
 typedef enum : uint16_t {
     INNER_CLASS_PUBLIC = 0x0001,
@@ -84,6 +84,6 @@ typedef enum : uint16_t {
     INNER_CLASS_SYNTHETIC = 0x1000,
     INNER_CLASS_ANNOTATION = 0x2000,
     INNER_CLASS_ENUM = 0x4000,
-} InnerClassAccessFlag;
+} MjvmInnerClassAccessFlag;
 
 #endif /* __MJVM_TYPE_H */

@@ -5,7 +5,7 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_object_class.h"
 
-static bool nativeGetClass(Execution &execution) {
+static bool nativeGetClass(MjvmExecution &execution) {
     uint32_t idx = 0;
     MjvmObject *obj = execution.stackPopObject();
     uint16_t length = obj->type.length;
@@ -16,7 +16,7 @@ static bool nativeGetClass(Execution &execution) {
             length += 2;
     }
     MjvmString *strObj = execution.newString(length, 0);
-    MjvmObject *byteArray = ((FieldsData *)strObj->data)->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object;
+    MjvmObject *byteArray = ((MjvmFieldsData *)strObj->data)->getFieldObject(*(MjvmConstNameAndType *)stringValueFieldName).object;
     if(obj->dimensions) {
         for(uint32_t i = 0; i < obj->dimensions; i++)
             byteArray->data[idx++] = '[';
@@ -33,13 +33,13 @@ static bool nativeGetClass(Execution &execution) {
     return true;
 }
 
-static bool nativeHashCode(Execution &execution) {
+static bool nativeHashCode(MjvmExecution &execution) {
     MjvmObject *obj = execution.stackPopObject();
     execution.stackPushInt32((int32_t)obj);
     return true;
 }
 
-static bool nativeClone(Execution &execution) {
+static bool nativeClone(MjvmExecution &execution) {
     MjvmObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
         MjvmObject *cloneObj = execution.newObject(obj->size, obj->type, obj->dimensions);

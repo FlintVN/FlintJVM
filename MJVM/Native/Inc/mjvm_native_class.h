@@ -8,29 +8,29 @@
 #include "mjvm_attribute_info.h"
 
 #define NATIVE_CLASS(_className, _methods) {                \
-    .className = *(ConstUtf8 *)&_className,                 \
+    .className = *(MjvmConstUtf8 *)&_className,                 \
     .methodCount = LENGTH(_methods),                        \
     .methods = _methods                                     \
 }
 
 #define NATIVE_METHOD(_name, _descriptor, _nativeMathod) {  \
-    .name = *(ConstUtf8 *)_name,                            \
-    .descriptor = *(ConstUtf8 *)_descriptor,                \
+    .name = *(MjvmConstUtf8 *)_name,                            \
+    .descriptor = *(MjvmConstUtf8 *)_descriptor,                \
     .nativeMathod = _nativeMathod                           \
 }
 
 class NativeMethod {
 public:
-    ConstUtf8 &name;
-    ConstUtf8 &descriptor;
-    NativeMethodPtr nativeMathod;
+    MjvmConstUtf8 &name;
+    MjvmConstUtf8 &descriptor;
+    MjvmNativeMethodPtr nativeMathod;
 private:
     void operator=(const NativeMethod &) = delete;
 };
 
 class NativeClass {
 public:
-    ConstUtf8 &className;
+    MjvmConstUtf8 &className;
     uint16_t methodCount;
     const NativeMethod *methods;
 private:

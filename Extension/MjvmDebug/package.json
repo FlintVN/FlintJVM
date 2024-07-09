@@ -1,7 +1,7 @@
 {
-    "name": "embedded-debugger",
-    "displayName": "Embedded Debugger",
-    "description": "Embedded Debugger",
+    "name": "mjvm-debugger",
+    "displayName": "MjvmDebugger",
+    "description": "MjvmDebugger",
     "version": "0.0.1",
     "author": {
         "name": "Microsoft Corporation"

@@ -4,13 +4,13 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_float_class.h"
 
-static bool nativeFloatToRawIntBits(Execution &execution) {
+static bool nativeFloatToRawIntBits(MjvmExecution &execution) {
     float value = execution.stackPopFloat();
     execution.stackPushInt32(*(int32_t *)&value);
     return true;
 }
 
-static bool nativeIntBitsToFloat(Execution &execution) {
+static bool nativeIntBitsToFloat(MjvmExecution &execution) {
     int32_t bits = execution.stackPopInt32();
     execution.stackPushFloat(*(float *)&bits);
     return true;

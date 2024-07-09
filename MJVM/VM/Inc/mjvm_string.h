@@ -10,7 +10,7 @@ public:
     uint32_t getLength(void) const;
     uint8_t getCoder(void) const;
     bool equals(const char *text, uint32_t length) const;
-    bool equals(const ConstUtf8 &utf8) const;
+    bool equals(const MjvmConstUtf8 &utf8) const;
     bool equals(MjvmString &utf8) const;
 
     static bool isLatin1(const char *utf8);
@@ -35,7 +35,7 @@ private:
     MjvmConstString(const MjvmConstString &) = delete;
     void operator=(const MjvmConstString &) = delete;
 
-    friend class Execution;
+    friend class MjvmExecution;
 };
 
 #endif /* __MJVM_STRING_H */

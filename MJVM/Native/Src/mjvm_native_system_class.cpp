@@ -5,17 +5,17 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_system_class.h"
 
-static bool nativeCurrentTimeMillis(Execution &execution) {
+static bool nativeCurrentTimeMillis(MjvmExecution &execution) {
     execution.stackPushInt64(MjvmSystem_GetNanoTime() / 1000);
     return true;
 }
 
-static bool nativeNanoTime(Execution &execution) {
+static bool nativeNanoTime(MjvmExecution &execution) {
     execution.stackPushInt64(MjvmSystem_GetNanoTime());
     return true;
 }
 
-static bool nativeArraycopy(Execution &execution) {
+static bool nativeArraycopy(MjvmExecution &execution) {
     int32_t length = execution.stackPopInt32();
     int32_t destPos = execution.stackPopInt32();
     MjvmObject *dest = execution.stackPopObject();

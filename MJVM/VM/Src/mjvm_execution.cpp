@@ -7,13 +7,18 @@
 #include "mjvm_const_name.h"
 #include "mjvm_system_api.h"
 
+#if __has_include("mjvm_conf.h")
+#include "mjvm_conf.h"
+#endif
+#include "mjvm_default_conf.h"
+
 #define FLOAT_NAN                   0x7FC00000
 #define DOUBLE_NAN                  0x7FF8000000000000
 
 #define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
 #define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
 
-Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
+MjvmExecution::MjvmExecution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     lr = -1;
     sp = -1;
     startSp = sp;
@@ -27,7 +32,7 @@ Execution::Execution(void) : stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
     objectSizeToGc = 0;
 }
 
-Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
+MjvmExecution::MjvmExecution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     lr = -1;
     sp = -1;
     startSp = sp;
@@ -41,7 +46,7 @@ Execution::Execution(uint32_t size) : stackLength(size / sizeof(int32_t)) {
     objectSizeToGc = 0;
 }
 
-MjvmObject *Execution::newObject(uint32_t size, ConstUtf8 &type, uint8_t dimensions) {
+MjvmObject *MjvmExecution::newObject(uint32_t size, MjvmConstUtf8 &type, uint8_t dimensions) {
     objectSizeToGc += size;
     if(objectSizeToGc >= OBJECT_SIZE_TO_GC)
         garbageCollection();
@@ -57,7 +62,7 @@ MjvmObject *Execution::newObject(uint32_t size, ConstUtf8 &type, uint8_t dimensi
     return newNode;
 }
 
-MjvmObject *Execution::newMultiArray(ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
+MjvmObject *MjvmExecution::newMultiArray(MjvmConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
     if(dimensions > 1) {
         MjvmObject *array = newObject(counts[0] * sizeof(MjvmObject *), typeName, dimensions);
         for(uint32_t i = 0; i < counts[0]; i++)
@@ -73,23 +78,23 @@ MjvmObject *Execution::newMultiArray(ConstUtf8 &typeName, uint8_t dimensions, in
     }
 }
 
-MjvmClass *Execution::newClass(MjvmString &typeName) {
+MjvmClass *MjvmExecution::newClass(MjvmString &typeName) {
     // TODO - Check the existence of type
 
     /* create new class object */
-    MjvmObject *classObj = newObject(sizeof(FieldsData), *(ConstUtf8 *)&classClassName);
+    MjvmObject *classObj = newObject(sizeof(MjvmFieldsData), *(MjvmConstUtf8 *)&classClassName);
 
     /* init field data */
-    FieldsData *fields = (FieldsData *)classObj->data;
-    new (fields)FieldsData(*this, load(*(ConstUtf8 *)&classClassName), false);
+    MjvmFieldsData *fields = (MjvmFieldsData *)classObj->data;
+    new (fields)MjvmFieldsData(*this, load(*(MjvmConstUtf8 *)&classClassName), false);
 
     /* set value for name field */
-    fields->getFieldObject(*(ConstNameAndType *)stringNameFieldName).object = &typeName;
+    fields->getFieldObject(*(MjvmConstNameAndType *)stringNameFieldName).object = &typeName;
 
     return (MjvmClass *)classObj;
 }
 
-MjvmClass *Execution::newClass(const char *typeName, uint16_t length) {
+MjvmClass *MjvmExecution::newClass(const char *typeName, uint16_t length) {
     /* create String object to store typeName */
     MjvmString *name = newString(typeName, length);
 
@@ -112,7 +117,7 @@ MjvmClass *Execution::newClass(const char *typeName, uint16_t length) {
     return newClass(*name);
 }
 
-MjvmClass *Execution::getConstClass(const char *typeName, uint16_t length) {
+MjvmClass *MjvmExecution::getConstClass(const char *typeName, uint16_t length) {
     for(MjvmConstClass *node = constClassList; node != 0; node = node->next) {
         if(node->mjvmClass.getName().equals(typeName, length))
             return &node->mjvmClass;
@@ -127,7 +132,7 @@ MjvmClass *Execution::getConstClass(const char *typeName, uint16_t length) {
     return classObj;
 }
 
-MjvmClass *Execution::getConstClass(MjvmString &str) {
+MjvmClass *MjvmExecution::getConstClass(MjvmString &str) {
     for(MjvmConstClass *node = constClassList; node != 0; node = node->next) {
         if(node->mjvmClass.getName().equals(str))
             return &node->mjvmClass;
@@ -142,34 +147,34 @@ MjvmClass *Execution::getConstClass(MjvmString &str) {
     return classObj;
 }
 
-MjvmString *Execution::newString(uint16_t length, uint8_t coder) {
+MjvmString *MjvmExecution::newString(uint16_t length, uint8_t coder) {
     /* create new byte array to store string */
-    MjvmObject *byteArray = newObject(length << (coder ? 1 : 0), *(ConstUtf8 *)&primTypeConstUtf8List[4], 1);
+    MjvmObject *byteArray = newObject(length << (coder ? 1 : 0), *(MjvmConstUtf8 *)&primTypeConstUtf8List[4], 1);
 
     /* create new string object */
-    MjvmObject *strObj = newObject(sizeof(FieldsData), *(ConstUtf8 *)&stringClassName);
+    MjvmObject *strObj = newObject(sizeof(MjvmFieldsData), *(MjvmConstUtf8 *)&stringClassName);
 
     /* init field data */
-    FieldsData *fields = (FieldsData *)strObj->data;
-    new (fields)FieldsData(*this, load(*(ConstUtf8 *)&stringClassName), false);
+    MjvmFieldsData *fields = (MjvmFieldsData *)strObj->data;
+    new (fields)MjvmFieldsData(*this, load(*(MjvmConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
+    fields->getFieldObject(*(MjvmConstNameAndType *)stringValueFieldName).object = byteArray;
 
     /* set value for coder field */
-    fields->getFieldData32(*(ConstNameAndType *)stringCoderFieldName).value = coder;
+    fields->getFieldData32(*(MjvmConstNameAndType *)stringCoderFieldName).value = coder;
 
     return (MjvmString *)strObj;
 }
 
-MjvmString *Execution::newString(const char *text, uint16_t size, bool isUtf8) {
+MjvmString *MjvmExecution::newString(const char *text, uint16_t size, bool isUtf8) {
     uint32_t index = 0;
     bool isLatin1 = isUtf8 ? MjvmString::isLatin1(text) : true;
     uint32_t strLen = isUtf8 ? MjvmString::utf8StrLen(text) : size;
 
     /* create new byte array to store string */
     uint32_t arrayLen = isLatin1 ? strLen : (strLen << 1);
-    MjvmObject *byteArray = newObject(arrayLen, *(ConstUtf8 *)primTypeConstUtf8List[4], 1);
+    MjvmObject *byteArray = newObject(arrayLen, *(MjvmConstUtf8 *)primTypeConstUtf8List[4], 1);
     if(!isUtf8)
         memcpy(byteArray->data, text, strLen);
     else {
@@ -193,29 +198,29 @@ MjvmString *Execution::newString(const char *text, uint16_t size, bool isUtf8) {
     }
 
     /* create new string object */
-    MjvmObject *strObj = newObject(sizeof(FieldsData), *(ConstUtf8 *)&stringClassName);
+    MjvmObject *strObj = newObject(sizeof(MjvmFieldsData), *(MjvmConstUtf8 *)&stringClassName);
 
     /* init field data */
-    FieldsData *fields = (FieldsData *)strObj->data;
-    new (fields)FieldsData(*this, load(*(ConstUtf8 *)&stringClassName), false);
+    MjvmFieldsData *fields = (MjvmFieldsData *)strObj->data;
+    new (fields)MjvmFieldsData(*this, load(*(MjvmConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
+    fields->getFieldObject(*(MjvmConstNameAndType *)stringValueFieldName).object = byteArray;
 
     /* set value for coder field */
-    fields->getFieldData32(*(ConstNameAndType *)stringCoderFieldName).value = isLatin1 ? 0 : 1;
+    fields->getFieldData32(*(MjvmConstNameAndType *)stringCoderFieldName).value = isLatin1 ? 0 : 1;
 
     return (MjvmString *)strObj;
 }
 
-MjvmString *Execution::newString(const char *latin1Str[], uint16_t count) {
+MjvmString *MjvmExecution::newString(const char *latin1Str[], uint16_t count) {
     uint16_t index = 0;
     uint16_t length = 0;
     for(uint16_t i = 0; i < count; i++)
         length += strlen(latin1Str[i]);
 
     /* create new byte array to store string */
-    MjvmObject *byteArray = newObject(length, *(ConstUtf8 *)primTypeConstUtf8List[4], 1);
+    MjvmObject *byteArray = newObject(length, *(MjvmConstUtf8 *)primTypeConstUtf8List[4], 1);
     for(uint16_t i = 0; i < count; i++) {
         const char *buff = latin1Str[i];
         while(*buff) {
@@ -227,19 +232,19 @@ MjvmString *Execution::newString(const char *latin1Str[], uint16_t count) {
     }
 
     /* create new string object */
-    MjvmObject *strObj = newObject(sizeof(FieldsData), *(ConstUtf8 *)&stringClassName);
+    MjvmObject *strObj = newObject(sizeof(MjvmFieldsData), *(MjvmConstUtf8 *)&stringClassName);
 
     /* init field data */
-    FieldsData *fields = (FieldsData *)strObj->data;
-    new (fields)FieldsData(*this, load(*(ConstUtf8 *)&stringClassName), false);
+    MjvmFieldsData *fields = (MjvmFieldsData *)strObj->data;
+    new (fields)MjvmFieldsData(*this, load(*(MjvmConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    fields->getFieldObject(*(ConstNameAndType *)stringValueFieldName).object = byteArray;
+    fields->getFieldObject(*(MjvmConstNameAndType *)stringValueFieldName).object = byteArray;
 
     return (MjvmString *)strObj;
 }
 
-MjvmString *Execution::getConstString(ConstUtf8 &utf8) {
+MjvmString *MjvmExecution::getConstString(MjvmConstUtf8 &utf8) {
     for(MjvmConstString *node = constStringList; node != 0; node = node->next) {
         if(node->mjvmString.equals(utf8))
             return &node->mjvmString;
@@ -254,7 +259,7 @@ MjvmString *Execution::getConstString(ConstUtf8 &utf8) {
     return strObj;
 }
 
-MjvmString *Execution::getConstString(MjvmString &str) {
+MjvmString *MjvmExecution::getConstString(MjvmString &str) {
     for(MjvmConstString *node = constStringList; node != 0; node = node->next) {
         if(node->mjvmString.equals(str))
             return &node->mjvmString;
@@ -268,49 +273,49 @@ MjvmString *Execution::getConstString(MjvmString &str) {
     return &str;
 }
 
-MjvmThrowable *Execution::newThrowable(MjvmString *strObj, ConstUtf8 &excpType) {
+MjvmThrowable *MjvmExecution::newThrowable(MjvmString *strObj, MjvmConstUtf8 &excpType) {
     /* create new exception object */
-    MjvmObject *obj = newObject(sizeof(FieldsData), excpType);
+    MjvmObject *obj = newObject(sizeof(MjvmFieldsData), excpType);
 
     /* init field data */
-    FieldsData *fields = (FieldsData *)obj->data;
-    new (fields)FieldsData(*this, load(excpType), false);
+    MjvmFieldsData *fields = (MjvmFieldsData *)obj->data;
+    new (fields)MjvmFieldsData(*this, load(excpType), false);
 
     /* set detailMessage value */
-    fields->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
+    fields->getFieldObject(*(MjvmConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
 
     return (MjvmThrowable *)obj;
 }
 
-MjvmThrowable *Execution::newArrayStoreException(MjvmString *strObj) {
-    return newThrowable(strObj, *(ConstUtf8 *)&arrayStoreExceptionClassName);
+MjvmThrowable *MjvmExecution::newArrayStoreException(MjvmString *strObj) {
+    return newThrowable(strObj, *(MjvmConstUtf8 *)&arrayStoreExceptionClassName);
 }
 
-MjvmThrowable *Execution::newArithmeticException(MjvmString *strObj) {
-    return newThrowable(strObj, *(ConstUtf8 *)&arithmeticExceptionClassName);
+MjvmThrowable *MjvmExecution::newArithmeticException(MjvmString *strObj) {
+    return newThrowable(strObj, *(MjvmConstUtf8 *)&arithmeticExceptionClassName);
 }
 
-MjvmThrowable *Execution::newNullPointerException(MjvmString *strObj) {
-    return newThrowable(strObj, *(ConstUtf8 *)&nullPtrExcpClassName);
+MjvmThrowable *MjvmExecution::newNullPointerException(MjvmString *strObj) {
+    return newThrowable(strObj, *(MjvmConstUtf8 *)&nullPtrExcpClassName);
 }
 
-MjvmThrowable *Execution::newClassNotFoundException(MjvmString *strObj) {
-    return newThrowable(strObj, *(ConstUtf8 *)&classNotFoundExceptionClassName);
+MjvmThrowable *MjvmExecution::newClassNotFoundException(MjvmString *strObj) {
+    return newThrowable(strObj, *(MjvmConstUtf8 *)&classNotFoundExceptionClassName);
 }
 
-MjvmThrowable *Execution::newCloneNotSupportedException(MjvmString *strObj) {
-    return newThrowable(strObj, *(ConstUtf8 *)&cloneNotSupportedExceptionClassName);
+MjvmThrowable *MjvmExecution::newCloneNotSupportedException(MjvmString *strObj) {
+    return newThrowable(strObj, *(MjvmConstUtf8 *)&cloneNotSupportedExceptionClassName);
 }
 
-MjvmThrowable *Execution::newNegativeArraySizeException(MjvmString *strObj) {
-    return newThrowable(strObj, *(ConstUtf8 *)&negativeArraySizeExceptionClassName);
+MjvmThrowable *MjvmExecution::newNegativeArraySizeException(MjvmString *strObj) {
+    return newThrowable(strObj, *(MjvmConstUtf8 *)&negativeArraySizeExceptionClassName);
 }
 
-MjvmThrowable *Execution::newArrayIndexOutOfBoundsException(MjvmString *strObj) {
-    return newThrowable(strObj, *(ConstUtf8 *)&arrayIndexOutOfBoundsExceptionClassName);
+MjvmThrowable *MjvmExecution::newArrayIndexOutOfBoundsException(MjvmString *strObj) {
+    return newThrowable(strObj, *(MjvmConstUtf8 *)&arrayIndexOutOfBoundsExceptionClassName);
 }
 
-void Execution::freeAllObject(void) {
+void MjvmExecution::freeAllObject(void) {
     for(MjvmConstClass *node = constClassList; node != 0;) {
         MjvmConstClass *next = node->next;
         Mjvm::free(node);
@@ -324,8 +329,8 @@ void Execution::freeAllObject(void) {
     for(MjvmObject *node = objectList; node != 0;) {
         MjvmObject *next = node->next;
         if(node->dimensions == 0) {
-            FieldsData *fields = (FieldsData *)node->data;
-            fields->~FieldsData();
+            MjvmFieldsData *fields = (MjvmFieldsData *)node->data;
+            fields->~MjvmFieldsData();
         }
         Mjvm::free(node);
         node = next;
@@ -333,7 +338,7 @@ void Execution::freeAllObject(void) {
     objectList = 0;
 }
 
-void Execution::clearProtectObjectNew(MjvmObject *obj) {
+void MjvmExecution::clearProtectObjectNew(MjvmObject *obj) {
     bool isPrim = MjvmObject::isPrimType(obj->type);
     if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
         uint32_t count = obj->size / 4;
@@ -344,7 +349,7 @@ void Execution::clearProtectObjectNew(MjvmObject *obj) {
         }
     }
     else if(!isPrim) {
-        FieldsData &fieldData = *(FieldsData *)obj->data;
+        MjvmFieldsData &fieldData = *(MjvmFieldsData *)obj->data;
         for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
             MjvmObject *tmp = fieldData.fieldsObject[i].object;
             if(tmp && (tmp->getProtected() & 0x02))
@@ -354,7 +359,7 @@ void Execution::clearProtectObjectNew(MjvmObject *obj) {
     obj->clearProtected();
 }
 
-void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
+void MjvmExecution::garbageCollectionProtectObject(MjvmObject *obj) {
     bool isPrim = MjvmObject::isPrimType(obj->type);
     if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
         uint32_t count = obj->size / 4;
@@ -365,7 +370,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
         }
     }
     else if(!isPrim) {
-        FieldsData &fieldData = *(FieldsData *)obj->data;
+        MjvmFieldsData &fieldData = *(MjvmFieldsData *)obj->data;
         for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
             MjvmObject *tmp = fieldData.fieldsObject[i].object;
             if(tmp && !tmp->getProtected())
@@ -375,7 +380,7 @@ void Execution::garbageCollectionProtectObject(MjvmObject *obj) {
     obj->setProtected();
 }
 
-void Execution::garbageCollection(void) {
+void MjvmExecution::garbageCollection(void) {
     Mjvm::lock();
     objectSizeToGc = 0;
     for(MjvmConstClass *node = constClassList; node != 0; node = node->next) {
@@ -387,7 +392,7 @@ void Execution::garbageCollection(void) {
             garbageCollectionProtectObject(&node->mjvmString);
     }
     for(ClassData *node = classDataList; node != 0; node = node->next) {
-        FieldsData *fieldsData = node->staticFiledsData;
+        MjvmFieldsData *fieldsData = node->staticFiledsData;
         if(fieldsData && fieldsData->fieldsObjCount) {
             for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
                 MjvmObject *obj = fieldsData->fieldsObject[i].object;
@@ -415,8 +420,8 @@ void Execution::garbageCollection(void) {
                 node->next->prev = node->prev;
 
             if(node->dimensions == 0) {
-                FieldsData *fields = (FieldsData *)node->data;
-                fields->~FieldsData();
+                MjvmFieldsData *fields = (MjvmFieldsData *)node->data;
+                fields->~MjvmFieldsData();
             }
             Mjvm::free(node);
         }
@@ -427,16 +432,16 @@ void Execution::garbageCollection(void) {
     Mjvm::unlock();
 }
 
-ClassLoader &Execution::load(const char *className, uint16_t length) {
+MjvmClassLoader &MjvmExecution::load(const char *className, uint16_t length) {
     Mjvm::lock();
     ClassData *newNode = 0;
     try {
         if(classDataList) {
             uint32_t hash;
             ((uint16_t *)&hash)[0] = length;
-            ((uint16_t *)&hash)[1] = calcCrc((uint8_t *)className, length);
+            ((uint16_t *)&hash)[1] = Mjvm_CalcCrc((uint8_t *)className, length);
             for(ClassData *node = classDataList; node != 0; node = node->next) {
-                ConstUtf8 &name = node->getThisClass();
+                MjvmConstUtf8 &name = node->getThisClass();
                 if(name.length == length && strncmp(name.text, className, length) == 0)
                     return *node;
             }
@@ -459,17 +464,17 @@ ClassLoader &Execution::load(const char *className, uint16_t length) {
     }
 }
 
-ClassLoader &Execution::load(const char *className) {
+MjvmClassLoader &MjvmExecution::load(const char *className) {
     return load(className, strlen(className));
 }
 
-ClassLoader &Execution::load(ConstUtf8 &className) {
+MjvmClassLoader &MjvmExecution::load(MjvmConstUtf8 &className) {
     Mjvm::lock();
     ClassData *newNode = 0;
     try {
         uint32_t hash = CONST_UTF8_HASH(className);
         for(ClassData *node = classDataList; node != 0; node = node->next) {
-            ConstUtf8 &name = node->getThisClass();
+            MjvmConstUtf8 &name = node->getThisClass();
             if(hash == CONST_UTF8_HASH(name) && strncmp(name.text, className.text, className.length) == 0)
                 return *node;
         }
@@ -491,33 +496,33 @@ ClassLoader &Execution::load(ConstUtf8 &className) {
     }
 }
 
-FieldsData &Execution::getStaticFields(ConstUtf8 &className) const {
+MjvmFieldsData &MjvmExecution::getStaticFields(MjvmConstUtf8 &className) const {
     for(ClassData *node = classDataList; node != 0; node = node->next) {
         if(className == node->getThisClass())
             return *node->staticFiledsData;
     }
-    return *(FieldsData *)0;
+    return *(MjvmFieldsData *)0;
 }
 
-void Execution::initStaticField(ClassData &classData) {
-    FieldsData *fieldsData = (FieldsData *)Mjvm::malloc(sizeof(FieldsData));
-    new (fieldsData)FieldsData(*this, classData, true);
+void MjvmExecution::initStaticField(ClassData &classData) {
+    MjvmFieldsData *fieldsData = (MjvmFieldsData *)Mjvm::malloc(sizeof(MjvmFieldsData));
+    new (fieldsData)MjvmFieldsData(*this, classData, true);
     classData.staticFiledsData = fieldsData;
 }
 
-Execution::StackType Execution::getStackType(uint32_t index) {
+MjvmExecution::MjvmStackType MjvmExecution::getStackType(uint32_t index) {
     return (stackType[index / 8] & (1 << (index % 8))) ? STACK_TYPE_OBJECT : STACK_TYPE_NON_OBJECT;
 }
 
-Execution::StackValue Execution::getStackValue(uint32_t index) {
-    StackValue ret = {
+MjvmExecution::MjvmStackValue MjvmExecution::getStackValue(uint32_t index) {
+    MjvmStackValue ret = {
         .type = (stackType[index / 8] & (1 << (index % 8))) ? STACK_TYPE_OBJECT : STACK_TYPE_NON_OBJECT,
         .value = stack[index],
     };
     return ret;
 }
 
-void Execution::setStackValue(uint32_t index, StackValue &value) {
+void MjvmExecution::setStackValue(uint32_t index, MjvmStackValue &value) {
     stack[index] = value.value;
     if(value.type == STACK_TYPE_OBJECT)
         stackType[index / 8] |= (1 << (index % 8));
@@ -525,7 +530,7 @@ void Execution::setStackValue(uint32_t index, StackValue &value) {
         stackType[index / 8] &= ~(1 << (index % 8));
 }
 
-void Execution::stackPush(StackValue &value) {
+void MjvmExecution::stackPush(MjvmStackValue &value) {
     sp = peakSp = sp + 1;
     stack[sp] = value.value;
     if(value.type == STACK_TYPE_OBJECT)
@@ -534,13 +539,13 @@ void Execution::stackPush(StackValue &value) {
         stackType[sp / 8] &= ~(1 << (sp % 8));
 }
 
-void Execution::stackPushInt32(int32_t value) {
+void MjvmExecution::stackPushInt32(int32_t value) {
     sp = peakSp = sp + 1;
     stack[sp] = value;
     stackType[sp / 8] &= ~(1 << (sp % 8));
 }
 
-void Execution::stackPushInt64(int64_t value) {
+void MjvmExecution::stackPushInt64(int64_t value) {
     if((sp + 2) < stackLength) {
         sp = peakSp = sp + 1;
         stack[sp] = ((uint32_t *)&value)[0];
@@ -553,13 +558,13 @@ void Execution::stackPushInt64(int64_t value) {
         throw "stack overflow";
 }
 
-void Execution::stackPushFloat(float value) {
+void MjvmExecution::stackPushFloat(float value) {
     sp = peakSp = sp + 1;
     stack[sp] = *(uint32_t *)&value;
     stackType[sp / 8] &= ~(1 << (sp % 8));
 }
 
-void Execution::stackPushDouble(double value) {
+void MjvmExecution::stackPushDouble(double value) {
     if((sp + 2) < stackLength) {
         sp = peakSp = sp + 1;
         stack[sp] = ((uint32_t *)&value)[0];
@@ -570,7 +575,7 @@ void Execution::stackPushDouble(double value) {
     }
 }
 
-void Execution::stackPushObject(MjvmObject *obj) {
+void MjvmExecution::stackPushObject(MjvmObject *obj) {
     sp = peakSp = sp + 1;
     stack[sp] = (int32_t)obj;
     stackType[sp / 8] |= (1 << (sp % 8));
@@ -578,11 +583,11 @@ void Execution::stackPushObject(MjvmObject *obj) {
         clearProtectObjectNew(obj);
 }
 
-int32_t Execution::stackPopInt32(void) {
+int32_t MjvmExecution::stackPopInt32(void) {
     return stack[sp--];
 }
 
-int64_t Execution::stackPopInt64(void) {
+int64_t MjvmExecution::stackPopInt64(void) {
     uint64_t ret;
     sp -= 2;
     ((uint32_t *)&ret)[0] = stack[sp + 1];
@@ -590,11 +595,11 @@ int64_t Execution::stackPopInt64(void) {
     return ret;
 }
 
-float Execution::stackPopFloat(void) {
+float MjvmExecution::stackPopFloat(void) {
     return *(float *)&stack[sp--];
 }
 
-double Execution::stackPopDouble(void) {
+double MjvmExecution::stackPopDouble(void) {
     uint64_t ret;
     sp -= 2;
     ((uint32_t *)&ret)[0] = stack[sp + 1];
@@ -602,13 +607,13 @@ double Execution::stackPopDouble(void) {
     return *(double *)&ret;
 }
 
-MjvmObject *Execution::stackPopObject(void) {
+MjvmObject *MjvmExecution::stackPopObject(void) {
     return (MjvmObject *)stack[sp--];
 }
 
-bool Execution::getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEndStack) const {
+bool MjvmExecution::getStackTrace(uint32_t index, MjvmStackFrame *stackTrace, bool *isEndStack) const {
     if(index == 0) {
-        new (stackTrace)StackTrace(pc, startSp, *method);
+        new (stackTrace)MjvmStackFrame(pc, startSp, *method);
         if(isEndStack)
             *isEndStack = (startSp < 4);
         return true;
@@ -623,16 +628,16 @@ bool Execution::getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEn
                 return false;
         }
         uint32_t tracePc = stack[traceSp - 2];
-        MethodInfo &traceMethod = *(MethodInfo *)stack[traceSp - 3];
-        new (stackTrace)StackTrace(tracePc, traceSp, traceMethod);
+        MjvmMethodInfo &traceMethod = *(MjvmMethodInfo *)stack[traceSp - 3];
+        new (stackTrace)MjvmStackFrame(tracePc, traceSp, traceMethod);
         if(isEndStack)
             *isEndStack = (stack[traceSp] < 4);
         return true;
     }
 }
 
-bool Execution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const {
-    StackTrace stackTrace;
+bool MjvmExecution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const {
+    MjvmStackFrame stackTrace;
     if(!getStackTrace(stackIndex, &stackTrace, 0))
         return false;
     value = stack[stackTrace.baseSp + 1 + localIndex];
@@ -641,15 +646,15 @@ bool Execution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &va
     return true;
 }
 
-bool Execution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const {
-    StackTrace stackTrace;
+bool MjvmExecution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const {
+    MjvmStackFrame stackTrace;
     if(!getStackTrace(stackIndex, &stackTrace, 0))
         return false;
     value = *(int64_t *)&stack[stackTrace.baseSp + 1 + localIndex];
     return true;
 }
 
-void Execution::stackInitExitPoint(uint32_t exitPc) {
+void MjvmExecution::stackInitExitPoint(uint32_t exitPc) {
     stack[++sp] = (int32_t)method;              /* method */
     stackType[sp / 8] &= ~(1 << (sp % 8));
     stack[++sp] = exitPc;                       /* pc */
@@ -661,7 +666,7 @@ void Execution::stackInitExitPoint(uint32_t exitPc) {
     startSp = sp;
 }
 
-void Execution::stackRestoreContext(void) {
+void MjvmExecution::stackRestoreContext(void) {
     if((method->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
         Mjvm::lock();
         if((method->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
@@ -678,13 +683,13 @@ void Execution::stackRestoreContext(void) {
     startSp = stackPopInt32();
     lr = stackPopInt32();
     pc = stackPopInt32();
-    method = (MethodInfo *)stackPopInt32();
+    method = (MjvmMethodInfo *)stackPopInt32();
     code = method->getAttributeCode().code;
     locals = &stack[startSp + 1];
 }
 
-void Execution::initNewContext(MethodInfo &methodInfo, uint16_t argc) {
-    AttributeCode &attributeCode = methodInfo.getAttributeCode();
+void MjvmExecution::initNewContext(MjvmMethodInfo &methodInfo, uint16_t argc) {
+    MjvmCodeAttribute &attributeCode = methodInfo.getAttributeCode();
     if((sp + attributeCode.maxLocals + attributeCode.maxStack) >= stackLength)
         throw "stack overflow";
     method = &methodInfo;
@@ -699,25 +704,25 @@ void Execution::initNewContext(MethodInfo &methodInfo, uint16_t argc) {
     sp += attributeCode.maxLocals;
 }
 
-MethodInfo &Execution::findMethod(ConstMethod &constMethod) {
-    ClassLoader *loader = &load(constMethod.className);
+MjvmMethodInfo &MjvmExecution::findMethod(MjvmConstMethod &constMethod) {
+    MjvmClassLoader *loader = &load(constMethod.className);
     while(loader) {
-        MethodInfo *methodInfo = &loader->getMethodInfo(constMethod.nameAndType);
+        MjvmMethodInfo *methodInfo = &loader->getMethodInfo(constMethod.nameAndType);
         if(methodInfo) {
             if((methodInfo->accessFlag & METHOD_BRIDGE) != METHOD_BRIDGE)
                 return *methodInfo;
         }
-        ConstUtf8 *superClass = &loader->getSuperClass();
-        loader = superClass ? &load(loader->getSuperClass()) : (ClassLoader *)0;
+        MjvmConstUtf8 *superClass = &loader->getSuperClass();
+        loader = superClass ? &load(loader->getSuperClass()) : (MjvmClassLoader *)0;
     }
     throw "can't find the method";
 }
 
-bool Execution::invoke(MethodInfo &methodInfo, uint8_t argc) {
+bool MjvmExecution::invoke(MjvmMethodInfo &methodInfo, uint8_t argc) {
     if((methodInfo.accessFlag & METHOD_NATIVE) != METHOD_NATIVE) {
         peakSp = sp + 4;
         for(uint32_t i = 0; i < argc; i++) {
-            StackValue stackValue = getStackValue(sp - i);
+            MjvmStackValue stackValue = getStackValue(sp - i);
             setStackValue(sp - i + 4, stackValue);
         }
         sp -= argc;
@@ -738,7 +743,7 @@ bool Execution::invoke(MethodInfo &methodInfo, uint8_t argc) {
         return true;
     }
     else {
-        AttributeNative &attrNative = methodInfo.getAttributeNative();
+        MjvmNativeAttribute &attrNative = methodInfo.getAttributeNative();
         if(attrNative.nativeMethod(*this)) {
             pc = lr;
             return true;
@@ -747,9 +752,9 @@ bool Execution::invoke(MethodInfo &methodInfo, uint8_t argc) {
     }
 }
 
-bool Execution::invokeStatic(ConstMethod &constMethod) {
+bool MjvmExecution::invokeStatic(MjvmConstMethod &constMethod) {
     uint8_t argc = constMethod.getParmInfo().argc;
-    MethodInfo &methodInfo = findMethod(constMethod);
+    MjvmMethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             ClassData &classData = *(ClassData *)&methodInfo.classLoader;
@@ -776,9 +781,9 @@ bool Execution::invokeStatic(ConstMethod &constMethod) {
         throw "invoke static to non-static method";
 }
 
-bool Execution::invokeSpecial(ConstMethod &constMethod) {
+bool MjvmExecution::invokeSpecial(MjvmConstMethod &constMethod) {
     uint8_t argc = constMethod.getParmInfo().argc + 1;
-    MethodInfo &methodInfo = findMethod(constMethod);
+    MjvmMethodInfo &methodInfo = findMethod(constMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             MjvmObject *obj = (MjvmObject *)stack[sp - argc - 1];
@@ -805,7 +810,7 @@ bool Execution::invokeSpecial(ConstMethod &constMethod) {
         throw "invoke special to static method";
 }
 
-bool Execution::invokeVirtual(ConstMethod &constMethod) {
+bool MjvmExecution::invokeVirtual(MjvmConstMethod &constMethod) {
     uint8_t argc = constMethod.getParmInfo().argc;
     MjvmObject *obj = (MjvmObject *)stack[sp - argc];
     if(obj == 0) {
@@ -815,9 +820,9 @@ bool Execution::invokeVirtual(ConstMethod &constMethod) {
         stackPushObject(excpObj);
         return false;
     }
-    ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? *(ConstUtf8 *)&objectClassName : obj->type;
-    ConstMethod virtualConstMethod(type, constMethod.nameAndType, 0, 0);
-    MethodInfo &methodInfo = findMethod(virtualConstMethod);
+    MjvmConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? *(MjvmConstUtf8 *)&objectClassName : obj->type;
+    MjvmConstMethod virtualConstMethod(type, constMethod.nameAndType, 0, 0);
+    MjvmMethodInfo &methodInfo = findMethod(virtualConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             Mjvm::lock();
@@ -844,7 +849,7 @@ bool Execution::invokeVirtual(ConstMethod &constMethod) {
         throw "invoke virtual to static method";
 }
 
-bool Execution::invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t argc) {
+bool MjvmExecution::invokeInterface(MjvmConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     MjvmObject *obj = (MjvmObject *)stack[sp - argc + 1];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
@@ -853,9 +858,9 @@ bool Execution::invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t a
         stackPushObject(excpObj);
         return false;
     }
-    ConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? *(ConstUtf8 *)&objectClassName : obj->type;
-    ConstMethod interfaceConstMethod(type, interfaceMethod.nameAndType, 0, 0);
-    MethodInfo &methodInfo = findMethod(interfaceConstMethod);
+    MjvmConstUtf8 &type = MjvmObject::isPrimType(obj->type) ? *(MjvmConstUtf8 *)&objectClassName : obj->type;
+    MjvmConstMethod interfaceConstMethod(type, interfaceMethod.nameAndType, 0, 0);
+    MjvmMethodInfo &methodInfo = findMethod(interfaceConstMethod);
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             Mjvm::lock();
@@ -881,7 +886,7 @@ bool Execution::invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t a
         throw "invoke interface to static method";
 }
 
-bool Execution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length) {
+bool MjvmExecution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length) {
     const char *text = typeName;
     while(*text == '[')
         text++;
@@ -908,7 +913,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t len
     if(dimensions != obj->dimensions)
         return false;
     else {
-        ConstUtf8 *objType = &obj->type;
+        MjvmConstUtf8 *objType = &obj->type;
         while(1) {
             if(len == objType->length) {
                 bool isEquals = true;
@@ -931,7 +936,7 @@ bool Execution::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t len
     }
 }
 
-void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
+void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
     static const void *opcodeLabels[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
         &&op_lconst_0, &&op_lconst_1, &&op_fconst_0, &&op_fconst_1, &&op_fconst_2, &&op_dconst_0, &&op_dconst_1, &&op_bipush, &&op_sipush,
@@ -1085,7 +1090,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         pc += 3;
         goto *opcodes[code[pc]];
     op_ldc: {
-        ConstPool &constPool = method->classLoader.getConstPool(code[pc + 1]);
+        MjvmConstPool &constPool = method->classLoader.getConstPool(code[pc + 1]);
         pc += 2;
         switch(constPool.tag & 0x7F) {
             case CONST_INTEGER:
@@ -1112,7 +1117,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
     }
     op_ldc_w: {
         uint16_t index = ARRAY_TO_INT16(&code[pc + 1]);
-        ConstPool &constPool = method->classLoader.getConstPool(index);
+        MjvmConstPool &constPool = method->classLoader.getConstPool(index);
         pc += 3;
         switch(constPool.tag & 0x7F) {
             case CONST_INTEGER:
@@ -1139,7 +1144,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
     }
     op_ldc2_w: {
         uint16_t index = ARRAY_TO_INT16(&code[pc + 1]);
-        ConstPool &constPool = method->classLoader.getConstPool(index);
+        MjvmConstPool &constPool = method->classLoader.getConstPool(index);
         pc += 3;
         switch(constPool.tag) {
             case CONST_LONG:
@@ -1604,14 +1609,14 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         pc++;
         goto *opcodes[code[pc]];
     op_dup: {
-        StackValue value = getStackValue(sp);
+        MjvmStackValue value = getStackValue(sp);
         stackPush(value);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup_x1: {
-        StackValue value2 = getStackValue(sp - 1);
-        StackValue value1 = getStackValue(sp - 0);
+        MjvmStackValue value2 = getStackValue(sp - 1);
+        MjvmStackValue value1 = getStackValue(sp - 0);
         stackPush(value1);
         setStackValue(sp - 1, value2);
         setStackValue(sp - 2, value1);
@@ -1619,9 +1624,9 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     }
     op_dup_x2: {
-        StackValue value3 = getStackValue(sp - 2);
-        StackValue value2 = getStackValue(sp - 1);
-        StackValue value1 = getStackValue(sp - 0);
+        MjvmStackValue value3 = getStackValue(sp - 2);
+        MjvmStackValue value2 = getStackValue(sp - 1);
+        MjvmStackValue value1 = getStackValue(sp - 0);
         stackPush(value1);
         setStackValue(sp - 1, value2);
         setStackValue(sp - 2, value3);
@@ -1630,17 +1635,17 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     }
     op_dup2: {
-        StackValue value2 = getStackValue(sp - 1);
-        StackValue value1 = getStackValue(sp - 0);
+        MjvmStackValue value2 = getStackValue(sp - 1);
+        MjvmStackValue value1 = getStackValue(sp - 0);
         stackPush(value2);
         stackPush(value1);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup2_x1: {
-        StackValue value3 = getStackValue(sp - 2);
-        StackValue value2 = getStackValue(sp - 1);
-        StackValue value1 = getStackValue(sp - 0);
+        MjvmStackValue value3 = getStackValue(sp - 2);
+        MjvmStackValue value2 = getStackValue(sp - 1);
+        MjvmStackValue value1 = getStackValue(sp - 0);
         stackPush(value2);
         stackPush(value1);
         setStackValue(sp - 2, value3);
@@ -1650,10 +1655,10 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     }
     op_dup2_x2: {
-        StackValue value4 = getStackValue(sp - 3);
-        StackValue value3 = getStackValue(sp - 2);
-        StackValue value2 = getStackValue(sp - 1);
-        StackValue value1 = getStackValue(sp - 0);
+        MjvmStackValue value4 = getStackValue(sp - 3);
+        MjvmStackValue value3 = getStackValue(sp - 2);
+        MjvmStackValue value2 = getStackValue(sp - 1);
+        MjvmStackValue value1 = getStackValue(sp - 0);
         stackPush(value2);
         stackPush(value1);
         setStackValue(sp - 2, value3);
@@ -2179,8 +2184,8 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     }
     op_getstatic: {
-        ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        FieldsData &fields = getStaticFields(constField.className);
+        MjvmConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmFieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
             try {
                 stackPushInt32((int32_t)(ClassData *)&load(constField.className));
@@ -2212,8 +2217,8 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         }
     }
     op_putstatic: {
-        ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        FieldsData &fields = getStaticFields(constField.className);
+        MjvmConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmFieldsData &fields = getStaticFields(constField.className);
         if((int32_t)&fields == 0) {
             try {
                 stackPushInt32((int32_t)(ClassData *)&load(constField.className));
@@ -2253,7 +2258,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         }
     }
     op_getfield: {
-        ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         pc += 3;
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'J':
@@ -2261,7 +2266,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                FieldsData &fields = *(FieldsData *)obj->data;
+                MjvmFieldsData &fields = *(MjvmFieldsData *)obj->data;
                 stackPushInt64(fields.getFieldData64(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
             }
@@ -2270,7 +2275,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                FieldsData &fields = *(FieldsData *)obj->data;
+                MjvmFieldsData &fields = *(MjvmFieldsData *)obj->data;
                 stackPushObject(fields.getFieldObject(constField.nameAndType).object);
                 goto *opcodes[code[pc]];
             }
@@ -2278,7 +2283,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                FieldsData &fields = *(FieldsData *)obj->data;
+                MjvmFieldsData &fields = *(MjvmFieldsData *)obj->data;
                 stackPushInt32(fields.getFieldData32(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
             }
@@ -2298,7 +2303,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         }
     }
     op_putfield: {
-        ConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         pc += 3;
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
@@ -2307,7 +2312,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FieldsData &fields = *(FieldsData *)obj->data;
+                MjvmFieldsData &fields = *(MjvmFieldsData *)obj->data;
                 fields.getFieldData32(constField.nameAndType).value = (int8_t)value;
                 goto *opcodes[code[pc]];
             }
@@ -2317,7 +2322,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FieldsData &fields = *(FieldsData *)obj->data;
+                MjvmFieldsData &fields = *(MjvmFieldsData *)obj->data;
                 fields.getFieldData32(constField.nameAndType).value = (int16_t)value;
                 goto *opcodes[code[pc]];
             }
@@ -2327,7 +2332,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FieldsData &fields = *(FieldsData *)obj->data;
+                MjvmFieldsData &fields = *(MjvmFieldsData *)obj->data;
                 fields.getFieldData64(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
             }
@@ -2337,7 +2342,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FieldsData &fields = *(FieldsData *)obj->data;
+                MjvmFieldsData &fields = *(MjvmFieldsData *)obj->data;
                 fields.getFieldObject(constField.nameAndType).object = value;
                 goto *opcodes[code[pc]];
             }
@@ -2346,7 +2351,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 MjvmObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FieldsData &fields = *(FieldsData *)obj->data;
+                MjvmFieldsData &fields = *(MjvmFieldsData *)obj->data;
                 fields.getFieldData32(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
             }
@@ -2366,7 +2371,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         }
     }
     op_invokevirtual: {
-        ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
             if(!invokeVirtual(constMethod))
@@ -2379,7 +2384,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
-        ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
             if(!invokeSpecial(constMethod))
@@ -2392,7 +2397,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     }
     op_invokestatic: {
-        ConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
             if(!invokeStatic(constMethod))
@@ -2405,7 +2410,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     }
     op_invokeinterface: {
-        ConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t count = code[pc + 3];
         lr = pc + 5;
         try {
@@ -2423,11 +2428,11 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
-        ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
-        MjvmObject *obj = newObject(sizeof(FieldsData), constClass);
+        MjvmConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
+        MjvmObject *obj = newObject(sizeof(MjvmFieldsData), constClass);
         try {
             ClassData &classData = *(ClassData *)&load(constClass.text);
-            new ((FieldsData *)obj->data)FieldsData(*this, classData, false);
+            new ((MjvmFieldsData *)obj->data)MjvmFieldsData(*this, classData, false);
             stackPushObject(obj);
             pc += 3;
             if((classData.staticFiledsData == 0) && ((int32_t)&classData.getStaticConstructor() != 0)) {
@@ -2447,7 +2452,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
             goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
         uint8_t typeSize = MjvmObject::getPrimitiveTypeSize(atype);
-        MjvmObject *obj = newObject(typeSize * count, *(ConstUtf8 *)primTypeConstUtf8List[atype - 4], 1);
+        MjvmObject *obj = newObject(typeSize * count, *(MjvmConstUtf8 *)primTypeConstUtf8List[atype - 4], 1);
         memset(obj->data, 0, obj->size);
         stackPushObject(obj);
         pc += 2;
@@ -2458,7 +2463,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         if(count < 0)
             goto negative_array_size_excp;
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
-        ConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
+        MjvmConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
         MjvmObject *obj = newObject(4 * count, constClass, 1);
         memset(obj->data, 0, obj->size);
         stackPushObject(obj);
@@ -2505,14 +2510,14 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
             dbg->caughtException();
         uint32_t tracePc = pc;
         int32_t traceStartSp = startSp;
-        MethodInfo *traceMethod = method;
+        MjvmMethodInfo *traceMethod = method;
         MjvmObject *obj = stackPopObject();
         while(1) {
-            AttributeCode &attributeCode = traceMethod->getAttributeCode();
+            MjvmCodeAttribute &attributeCode = traceMethod->getAttributeCode();
             for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
-                ExceptionTable &exceptionTable = attributeCode.getException(i);
+                MjvmExceptionTable &exceptionTable = attributeCode.getException(i);
                 if(exceptionTable.startPc <= tracePc && tracePc < exceptionTable.endPc) {
-                    ConstUtf8 &typeName = method->classLoader.getConstUtf8Class(exceptionTable.catchType);
+                    MjvmConstUtf8 &typeName = method->classLoader.getConstUtf8Class(exceptionTable.catchType);
                     if(isInstanceof(obj, typeName.text, typeName.length)) {
                         while(startSp > traceStartSp)
                             stackRestoreContext();
@@ -2528,14 +2533,14 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                     dbg->caughtException();
                 throw (MjvmThrowable *)obj;
             }
-            traceMethod = (MethodInfo *)stack[traceStartSp - 3];
+            traceMethod = (MjvmMethodInfo *)stack[traceStartSp - 3];
             tracePc = stack[traceStartSp - 2];
             traceStartSp = stack[traceStartSp];
         }
     }
     op_checkcast: {
         MjvmObject *obj = (MjvmObject *)stack[sp];
-        ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         if(obj != 0) {
             bool isInsOf;
             try {
@@ -2564,7 +2569,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
     }
     op_instanceof: {
         MjvmObject *obj = stackPopObject();
-        ConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         try {
             stackPushInt32(isInstanceof(obj, type.text, type.length));
         }
@@ -2612,7 +2617,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         goto *opcodes[code[pc]];
     }
     op_wide: {
-        switch((JvmOpCode)code[pc + 1]) {
+        switch((MjvmOpCode)code[pc + 1]) {
             case OP_IINC: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
                 locals[index] += ARRAY_TO_INT16(&code[pc + 4]);
@@ -2677,7 +2682,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         }
     }
     op_multianewarray: {
-        ConstUtf8 *typeName = &method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
+        MjvmConstUtf8 *typeName = &method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t dimensions = code[pc + 3];
         const char *typeNameText = typeName->text;
         uint32_t length = typeName->length - dimensions;
@@ -2686,7 +2691,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
                 uint8_t atype = MjvmObject::convertToAType(typeNameText[dimensions]);
                 if(atype == 0)
                     throw "invalid primative type";
-                typeName = (ConstUtf8 *)primTypeConstUtf8List[atype - 4];
+                typeName = (MjvmConstUtf8 *)primTypeConstUtf8List[atype - 4];
             }
             else
                 typeName = &load(&typeNameText[dimensions + 1], length - 2).getThisClass();
@@ -2719,7 +2724,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         }
         classDataToInit.isInitializing = 1;
         initStaticField(classDataToInit);
-        MethodInfo &ctorMethod = classDataToInit.getStaticConstructor();
+        MjvmMethodInfo &ctorMethod = classDataToInit.getStaticConstructor();
         lr = pc;
         invoke(ctorMethod, 0);
         goto *opcodes[code[pc]];
@@ -2785,7 +2790,7 @@ void Execution::run(MethodInfo &methodInfo, Debugger *dbg) {
         return;
 }
 
-void Execution::runToMain(const char *mainClass, Debugger *dbg) {
+void MjvmExecution::runToMain(const char *mainClass, MjvmDebugger *dbg) {
     try {
         run(load(mainClass).getMainMethodInfo(), dbg);
     }
@@ -2814,7 +2819,7 @@ void Execution::runToMain(const char *mainClass, Debugger *dbg) {
     }
 }
 
-Execution::~Execution(void) {
+MjvmExecution::~MjvmExecution(void) {
     Mjvm::free(stack);
     Mjvm::free(stackType);
     for(ClassData *node = classDataList; node != 0;) {

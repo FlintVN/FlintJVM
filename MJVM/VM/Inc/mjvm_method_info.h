@@ -5,31 +5,31 @@
 #include "mjvm_const_pool.h"
 #include "mjvm_attribute_info.h"
 
-class ClassLoader;
+class MjvmClassLoader;
 
-class MethodInfo {
+class MjvmMethodInfo {
 public:
-    const MethodAccessFlag accessFlag;
-    ClassLoader &classLoader;
-    ConstUtf8 &name;
-    ConstUtf8 &descriptor;
+    const MjvmMethodAccessFlag accessFlag;
+    MjvmClassLoader &classLoader;
+    MjvmConstUtf8 &name;
+    MjvmConstUtf8 &descriptor;
 private:
-    AttributeInfo *attributes;
+    MjvmAttribute *attributes;
 
-    MethodInfo(ClassLoader &classLoader, MethodAccessFlag accessFlag, ConstUtf8 &name, ConstUtf8 &descriptor);
+    MjvmMethodInfo(MjvmClassLoader &classLoader, MjvmMethodAccessFlag accessFlag, MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor);
 
-    MethodInfo(const MethodInfo &) = delete;
-    void operator=(const MethodInfo &) = delete;
+    MjvmMethodInfo(const MjvmMethodInfo &) = delete;
+    void operator=(const MjvmMethodInfo &) = delete;
 
-    void addAttribute(AttributeInfo *attribute);
+    void addAttribute(MjvmAttribute *attribute);
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 public:
-    AttributeInfo &getAttribute(AttributeType type) const;
-    AttributeCode &getAttributeCode(void) const;
-    AttributeNative &getAttributeNative(void) const;
+    MjvmAttribute &getAttribute(MjvmAttributeType type) const;
+    MjvmCodeAttribute &getAttributeCode(void) const;
+    MjvmNativeAttribute &getAttributeNative(void) const;
 
-    ~MethodInfo(void);
+    ~MjvmMethodInfo(void);
 };
 
 #endif /* __MJVM_METHOD_INFO_H */

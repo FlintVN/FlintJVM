@@ -2,6 +2,11 @@
 #ifndef __MJVM_DEFAULT_CONF_H
 #define __MJVM_DEFAULT_CONF_H
 
+#ifndef FILE_NAME_BUFF_SIZE
+#define FILE_NAME_BUFF_SIZE         256
+#warning "FILE_NAME_BUFF_SIZE is not defined. Default value will be used"
+#endif /* FILE_NAME_BUFF_SIZE */
+
 #ifndef DEFAULT_STACK_SIZE
 #define DEFAULT_STACK_SIZE          MEGA_BYTE(1)
 #warning "DEFAULT_STACK_SIZE is not defined. Default value will be used"

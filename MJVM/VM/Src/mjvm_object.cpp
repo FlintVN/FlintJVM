@@ -34,13 +34,13 @@ uint8_t MjvmObject::convertToAType(char type) {
     return 0;
 }
 
-uint8_t MjvmObject::isPrimType(const ConstUtf8 &type) {
+uint8_t MjvmObject::isPrimType(const MjvmConstUtf8 &type) {
     if(type.length == 1)
         return convertToAType(type.text[0]);
     return 0;
 }
 
-MjvmObject::MjvmObject(uint32_t size, ConstUtf8 &type, uint8_t dimensions) :
+MjvmObject::MjvmObject(uint32_t size, MjvmConstUtf8 &type, uint8_t dimensions) :
 size(size), prot(0x02), type(type), dimensions(dimensions), monitorCount(0), ownId(0) {
 
 }

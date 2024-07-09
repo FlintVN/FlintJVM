@@ -1,5 +1,5 @@
 
-export class Semaphore {
+export class MjvmSemaphore {
     private tasks: (() => void)[] = [];
     private counter: number;
 

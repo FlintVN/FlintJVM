@@ -4,5 +4,5 @@
 #include "mjvm_fields_data.h"
 
 MjvmString &MjvmThrowable::getDetailMessage(void) const {
-    return *(MjvmString *)((FieldsData *)data)->getFieldObject(*(ConstNameAndType *)exceptionDetailMessageFieldName).object;
+    return *(MjvmString *)((MjvmFieldsData *)data)->getFieldObject(*(MjvmConstNameAndType *)exceptionDetailMessageFieldName).object;
 }

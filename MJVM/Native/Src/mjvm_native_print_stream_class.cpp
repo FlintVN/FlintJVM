@@ -4,7 +4,7 @@
 #include "mjvm_system_api.h"
 #include "mjvm_native_print_stream_class.h"
 
-static bool nativeWrite(Execution &execution) {
+static bool nativeWrite(MjvmExecution &execution) {
     MjvmString *str = (MjvmString *)execution.stackPopObject();
     if(str == 0)
         MjvmSystem_Write("null", 4, 0);
@@ -13,7 +13,7 @@ static bool nativeWrite(Execution &execution) {
     return true;
 }
 
-static bool nativeWriteln(Execution &execution) {
+static bool nativeWriteln(MjvmExecution &execution) {
     if(!nativeWrite(execution))
         return false;
     MjvmSystem_Write("\n", 1, 0);

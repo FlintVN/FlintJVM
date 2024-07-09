@@ -3,9 +3,9 @@
 #include "mjvm_common.h"
 #include "mjvm_const_pool.h"
 
-static ParamInfo parseParamInfo(const ConstUtf8 &descriptor) {
+static MjvmParamInfo parseParamInfo(const MjvmConstUtf8 &descriptor) {
     const char *text = descriptor.text;
-    ParamInfo retVal = {0, 0};
+    MjvmParamInfo retVal = {0, 0};
     if(*text != '(')
         throw "the descriptor is not a description of the method";
     text++;
@@ -36,7 +36,7 @@ static ParamInfo parseParamInfo(const ConstUtf8 &descriptor) {
     throw "descriptor is invalid";
 }
 
-bool ConstUtf8::operator==(const ConstUtf8 &another) const {
+bool MjvmConstUtf8::operator==(const MjvmConstUtf8 &another) const {
     if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
         if(strncmp(text, another.text, length) == 0)
             return true;
@@ -44,7 +44,7 @@ bool ConstUtf8::operator==(const ConstUtf8 &another) const {
     return false;
 }
 
-bool ConstUtf8::operator!=(const ConstUtf8 &another) const {
+bool MjvmConstUtf8::operator!=(const MjvmConstUtf8 &another) const {
     if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
         if(strncmp(text, another.text, length) == 0)
             return false;
@@ -52,32 +52,32 @@ bool ConstUtf8::operator!=(const ConstUtf8 &another) const {
     return true;
 }
 
-ConstNameAndType::ConstNameAndType(ConstUtf8 &name, ConstUtf8 &descriptor) :
+MjvmConstNameAndType::MjvmConstNameAndType(MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor) :
 name(name), descriptor(descriptor) {
 
 }
 
-ConstField::ConstField(ConstUtf8 &className, ConstNameAndType &nameAndType) :
+MjvmConstField::MjvmConstField(MjvmConstUtf8 &className, MjvmConstNameAndType &nameAndType) :
 className(className), nameAndType(nameAndType) {
 
 }
 
-ConstMethod::ConstMethod(ConstUtf8 &className, ConstNameAndType &nameAndType) :
+MjvmConstMethod::MjvmConstMethod(MjvmConstUtf8 &className, MjvmConstNameAndType &nameAndType) :
 className(className), nameAndType(nameAndType) {
     paramInfo = parseParamInfo(nameAndType.descriptor);
 }
 
-ConstMethod::ConstMethod(ConstUtf8 &className, ConstNameAndType &nameAndType, uint8_t argc, uint8_t retType) :
+MjvmConstMethod::MjvmConstMethod(MjvmConstUtf8 &className, MjvmConstNameAndType &nameAndType, uint8_t argc, uint8_t retType) :
 className(className), nameAndType(nameAndType) {
     paramInfo.argc = argc;
     paramInfo.retType = retType;
 }
 
-const ParamInfo &ConstMethod::getParmInfo() {
+const MjvmParamInfo &MjvmConstMethod::getParmInfo() {
     return paramInfo;
 }
 
-bool ConstNameAndType::operator==(const ConstNameAndType &another) const {
+bool MjvmConstNameAndType::operator==(const MjvmConstNameAndType &another) const {
     if(
         (CONST_UTF8_HASH(name) == CONST_UTF8_HASH(another.name)) &&
         (CONST_UTF8_HASH(descriptor) == CONST_UTF8_HASH(another.descriptor)) &&
@@ -89,7 +89,7 @@ bool ConstNameAndType::operator==(const ConstNameAndType &another) const {
     return false;
 }
 
-bool ConstNameAndType::operator!=(const ConstNameAndType &another) const {
+bool MjvmConstNameAndType::operator!=(const MjvmConstNameAndType &another) const {
     if(
         (CONST_UTF8_HASH(name) == CONST_UTF8_HASH(another.name)) &&
         (CONST_UTF8_HASH(descriptor) == CONST_UTF8_HASH(another.descriptor)) &&

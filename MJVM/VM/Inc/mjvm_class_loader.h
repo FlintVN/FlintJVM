@@ -8,9 +8,9 @@
 #include "mjvm_class.h"
 #include "mjvm_string.h"
 
-class Execution;
+class MjvmExecution;
 
-class ClassLoader {
+class MjvmClassLoader {
 private:
     uint32_t magic;
     uint16_t minorVersion;
@@ -23,85 +23,85 @@ private:
     uint16_t fieldsCount;
     uint16_t methodsCount;
     uint16_t attributesCount;
-    ConstPool *poolTable;
+    MjvmConstPool *poolTable;
     uint16_t *interfaces;
-    FieldInfo *fields;
-    MethodInfo *methods;
-    AttributeInfo *attributes;
+    MjvmFieldInfo *fields;
+    MjvmMethodInfo *methods;
+    MjvmAttribute *attributes;
 
-    ClassLoader(const ClassLoader &) = delete;
-    void operator=(const ClassLoader &) = delete;
+    MjvmClassLoader(const MjvmClassLoader &) = delete;
+    void operator=(const MjvmClassLoader &) = delete;
 
-    void addAttribute(AttributeInfo *attribute);
+    void addAttribute(MjvmAttribute *attribute);
 
     void readFile(void *file);
-    AttributeInfo *readAttribute(void *file);
-    AttributeInfo *readAttributeCode(void *file);
-    AttributeInfo *readAttributeBootstrapMethods(void *file);
+    MjvmAttribute *readAttribute(void *file);
+    MjvmAttribute *readAttributeCode(void *file);
+    MjvmAttribute *readAttributeBootstrapMethods(void *file);
 protected:
-    ClassLoader(const char *fileName);
-    ClassLoader(const char *fileName, uint16_t length);
-    ClassLoader(const ConstUtf8 &fileName);
+    MjvmClassLoader(const char *fileName);
+    MjvmClassLoader(const char *fileName, uint16_t length);
+    MjvmClassLoader(const MjvmConstUtf8 &fileName);
 
-    ~ClassLoader(void);
+    ~MjvmClassLoader(void);
 public:
     uint32_t getMagic(void) const;
     uint16_t getMinorVersion(void) const;
     uint16_t getMajorversion(void) const;
 
-    ConstPool &getConstPool(uint16_t index) const;
+    MjvmConstPool &getConstPool(uint16_t index) const;
 
     int32_t getConstInteger(uint16_t poolIndex) const;
-    int32_t getConstInteger(ConstPool &constPool) const;
+    int32_t getConstInteger(MjvmConstPool &constPool) const;
     float getConstFloat(uint16_t poolIndex) const;
-    float getConstFloat(ConstPool &constPool) const;
+    float getConstFloat(MjvmConstPool &constPool) const;
     int64_t getConstLong(uint16_t poolIndex) const;
-    int64_t getConstLong(ConstPool &constPool) const;
+    int64_t getConstLong(MjvmConstPool &constPool) const;
     double getConstDouble(uint16_t poolIndex) const;
-    double getConstDouble(ConstPool &constPool) const;
+    double getConstDouble(MjvmConstPool &constPool) const;
 
-    ConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
-    ConstUtf8 &getConstUtf8(ConstPool &constPool) const;
+    MjvmConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
+    MjvmConstUtf8 &getConstUtf8(MjvmConstPool &constPool) const;
 
-    ConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
-    ConstUtf8 &getConstUtf8Class(ConstPool &constPool) const;
-    MjvmClass &getConstClass(Execution &execution, uint16_t poolIndex);
-    MjvmClass &getConstClass(Execution &execution, ConstPool &constPool);
+    MjvmConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
+    MjvmConstUtf8 &getConstUtf8Class(MjvmConstPool &constPool) const;
+    MjvmClass &getConstClass(MjvmExecution &execution, uint16_t poolIndex);
+    MjvmClass &getConstClass(MjvmExecution &execution, MjvmConstPool &constPool);
 
-    MjvmString &getConstString(Execution &execution, uint16_t poolIndex);
-    MjvmString &getConstString(Execution &execution, ConstPool &constPool);
+    MjvmString &getConstString(MjvmExecution &execution, uint16_t poolIndex);
+    MjvmString &getConstString(MjvmExecution &execution, MjvmConstPool &constPool);
 
-    ConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
-    ConstUtf8 &getConstMethodType(ConstPool &constPool) const;
+    MjvmConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
+    MjvmConstUtf8 &getConstMethodType(MjvmConstPool &constPool) const;
 
-    ConstNameAndType &getConstNameAndType(uint16_t poolIndex);
-    ConstNameAndType &getConstNameAndType(ConstPool &constPool);
-    ConstField &getConstField(uint16_t poolIndex);
-    ConstField &getConstField(ConstPool &constPool);
-    ConstMethod &getConstMethod(uint16_t poolIndex);
-    ConstMethod &getConstMethod(ConstPool &constPool);
-    ConstInterfaceMethod &getConstInterfaceMethod(uint16_t poolIndex);
-    ConstInterfaceMethod &getConstInterfaceMethod(ConstPool &constPool);
+    MjvmConstNameAndType &getConstNameAndType(uint16_t poolIndex);
+    MjvmConstNameAndType &getConstNameAndType(MjvmConstPool &constPool);
+    MjvmConstField &getConstField(uint16_t poolIndex);
+    MjvmConstField &getConstField(MjvmConstPool &constPool);
+    MjvmConstMethod &getConstMethod(uint16_t poolIndex);
+    MjvmConstMethod &getConstMethod(MjvmConstPool &constPool);
+    MjvmConstInterfaceMethod &getConstInterfaceMethod(uint16_t poolIndex);
+    MjvmConstInterfaceMethod &getConstInterfaceMethod(MjvmConstPool &constPool);
 
-    ClassAccessFlag getAccessFlag(void) const;
+    MjvmClassAccessFlag getAccessFlag(void) const;
 
-    ConstUtf8 &getThisClass(void) const;
-    ConstUtf8 &getSuperClass(void) const;
+    MjvmConstUtf8 &getThisClass(void) const;
+    MjvmConstUtf8 &getSuperClass(void) const;
 
     uint16_t getInterfacesCount(void) const;
-    ConstUtf8 &getInterface(uint8_t interfaceIndex) const;
+    MjvmConstUtf8 &getInterface(uint8_t interfaceIndex) const;
 
     uint16_t getFieldsCount(void) const;
-    FieldInfo &getFieldInfo(uint8_t fieldIndex) const;
-    FieldInfo &getFieldInfo(ConstUtf8 &name, ConstUtf8 &descriptor) const;
-    FieldInfo &getFieldInfo(ConstNameAndType &nameAndType) const;
+    MjvmFieldInfo &getFieldInfo(uint8_t fieldIndex) const;
+    MjvmFieldInfo &getFieldInfo(MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor) const;
+    MjvmFieldInfo &getFieldInfo(MjvmConstNameAndType &nameAndType) const;
 
     uint16_t getMethodsCount(void) const;
-    MethodInfo &getMethodInfo(uint8_t methodIndex) const;
-    MethodInfo &getMethodInfo(ConstUtf8 &name, ConstUtf8 &descriptor) const;
-    MethodInfo &getMethodInfo(ConstNameAndType &nameAndType) const;
-    MethodInfo &getMainMethodInfo(void) const;
-    MethodInfo &getStaticConstructor(void) const;
+    MjvmMethodInfo &getMethodInfo(uint8_t methodIndex) const;
+    MjvmMethodInfo &getMethodInfo(MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor) const;
+    MjvmMethodInfo &getMethodInfo(MjvmConstNameAndType &nameAndType) const;
+    MjvmMethodInfo &getMainMethodInfo(void) const;
+    MjvmMethodInfo &getStaticConstructor(void) const;
 };
 
 #endif /* __MJVM_CLASS_LOADER_H */

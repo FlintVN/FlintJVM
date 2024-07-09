@@ -10,17 +10,12 @@
 #include "mjvm_class_loader.h"
 #include "mjvm_fields_data.h"
 
-#if __has_include("mjvm_conf.h")
-#include "mjvm_conf.h"
-#endif
-#include "mjvm_default_conf.h"
-
 #define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 
-class Execution {
+class MjvmExecution {
 private:
     const uint32_t stackLength;
-    MethodInfo *method;
+    MjvmMethodInfo *method;
     const uint8_t *code;
     uint32_t pc;
     uint32_t lr;
@@ -39,23 +34,23 @@ private:
     typedef enum : uint8_t {
         STACK_TYPE_NON_OBJECT = 0,
         STACK_TYPE_OBJECT = 1,
-    } StackType;
+    } MjvmStackType;
 
     typedef struct {
-        StackType type;
+        MjvmStackType type;
         int32_t value;
-    } StackValue;
+    } MjvmStackValue;
 protected:
-    Execution(void);
-    Execution(uint32_t stackSize);
-    Execution(const Execution &) = delete;
-    void operator=(const Execution &) = delete;
+    MjvmExecution(void);
+    MjvmExecution(uint32_t stackSize);
+    MjvmExecution(const MjvmExecution &) = delete;
+    void operator=(const MjvmExecution &) = delete;
 
-    ~Execution(void);
+    ~MjvmExecution(void);
 public:
-    MjvmObject *newObject(uint32_t size, ConstUtf8 &type, uint8_t dimensions = 0);
+    MjvmObject *newObject(uint32_t size, MjvmConstUtf8 &type, uint8_t dimensions = 0);
 
-    MjvmObject *newMultiArray(ConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
+    MjvmObject *newMultiArray(MjvmConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
     MjvmClass *newClass(MjvmString &typeName);
     MjvmClass *newClass(const char *typeName, uint16_t length);
@@ -65,10 +60,10 @@ public:
     MjvmString *newString(uint16_t length, uint8_t coder);
     MjvmString *newString(const char *text, uint16_t size, bool isUtf8 = false);
     MjvmString *newString(const char *latin1Str[], uint16_t count);
-    MjvmString *getConstString(ConstUtf8 &utf8);
+    MjvmString *getConstString(MjvmConstUtf8 &utf8);
     MjvmString *getConstString(MjvmString &str);
 
-    MjvmThrowable *newThrowable(MjvmString *strObj, ConstUtf8 &excpType);
+    MjvmThrowable *newThrowable(MjvmString *strObj, MjvmConstUtf8 &excpType);
     MjvmThrowable *newArrayStoreException(MjvmString *strObj);
     MjvmThrowable *newArithmeticException(MjvmString *strObj);
     MjvmThrowable *newNullPointerException(MjvmString *strObj);
@@ -82,13 +77,13 @@ private:
     void garbageCollectionProtectObject(MjvmObject *obj);
 
     void initStaticField(ClassData &classData);
-    FieldsData &getStaticFields(ConstUtf8 &className) const;
+    MjvmFieldsData &getStaticFields(MjvmConstUtf8 &className) const;
 
-    StackType getStackType(uint32_t index);
-    StackValue getStackValue(uint32_t index);
-    void setStackValue(uint32_t index, StackValue &value);
+    MjvmStackType getStackType(uint32_t index);
+    MjvmStackValue getStackValue(uint32_t index);
+    void setStackValue(uint32_t index, MjvmStackValue &value);
 
-    void stackPush(StackValue &value);
+    void stackPush(MjvmStackValue &value);
 public:
     void stackPushInt32(int32_t value);
     void stackPushInt64(int64_t value);
@@ -105,33 +100,33 @@ private:
     void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
 
-    void initNewContext(MethodInfo &methodInfo, uint16_t argc = 0);
+    void initNewContext(MjvmMethodInfo &methodInfo, uint16_t argc = 0);
 
-    MethodInfo &findMethod(ConstMethod &constMethod);
-    bool invoke(MethodInfo &methodInfo, uint8_t argc);
-    bool invokeStatic(ConstMethod &constMethod);
-    bool invokeSpecial(ConstMethod &constMethod);
-    bool invokeVirtual(ConstMethod &constMethod);
-    bool invokeInterface(ConstInterfaceMethod &interfaceMethod, uint8_t argc);
+    MjvmMethodInfo &findMethod(MjvmConstMethod &constMethod);
+    bool invoke(MjvmMethodInfo &methodInfo, uint8_t argc);
+    bool invokeStatic(MjvmConstMethod &constMethod);
+    bool invokeSpecial(MjvmConstMethod &constMethod);
+    bool invokeVirtual(MjvmConstMethod &constMethod);
+    bool invokeInterface(MjvmConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
-    void run(MethodInfo &method, Debugger *dbg);
+    void run(MjvmMethodInfo &method, MjvmDebugger *dbg);
 
-    bool getStackTrace(uint32_t index, StackTrace *stackTrace, bool *isEndStack) const;
+    bool getStackTrace(uint32_t index, MjvmStackFrame *stackTrace, bool *isEndStack) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const;
 
     friend class Mjvm;
-    friend class Debugger;
+    friend class MjvmDebugger;
 public:
     bool isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length);
 
     void garbageCollection(void);
 
-    ClassLoader &load(const char *className, uint16_t length);
-    ClassLoader &load(const char *className);
-    ClassLoader &load(ConstUtf8 &className);
+    MjvmClassLoader &load(const char *className, uint16_t length);
+    MjvmClassLoader &load(const char *className);
+    MjvmClassLoader &load(MjvmConstUtf8 &className);
 
-    void runToMain(const char *mainClass, Debugger *dbg = 0);
+    void runToMain(const char *mainClass, MjvmDebugger *dbg = 0);
 };
 
 #endif /* __MJVM_EXECUTION_H */

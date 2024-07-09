@@ -23,7 +23,7 @@ private:
     MjvmConstClass(const MjvmConstClass &) = delete;
     void operator=(const MjvmConstClass &) = delete;
 
-    friend class Execution;
+    friend class MjvmExecution;
 };
 
 #endif /* __MJVM_CLASS_H */

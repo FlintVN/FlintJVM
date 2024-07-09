@@ -3,81 +3,81 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_math_class.h"
 
-static bool nativeSin(Execution &execution) {
+static bool nativeSin(MjvmExecution &execution) {
     execution.stackPushDouble(sin(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeCos(Execution &execution) {
+static bool nativeCos(MjvmExecution &execution) {
     execution.stackPushDouble(cos(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeTan(Execution &execution) {
+static bool nativeTan(MjvmExecution &execution) {
     execution.stackPushDouble(tan(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeAsin(Execution &execution) {
+static bool nativeAsin(MjvmExecution &execution) {
     execution.stackPushDouble(asin(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeAcos(Execution &execution) {
+static bool nativeAcos(MjvmExecution &execution) {
     execution.stackPushDouble(acos(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeAtan(Execution &execution) {
+static bool nativeAtan(MjvmExecution &execution) {
     execution.stackPushDouble(atan(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeLog(Execution &execution) {
+static bool nativeLog(MjvmExecution &execution) {
     execution.stackPushDouble(log(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeLog10(Execution &execution) {
+static bool nativeLog10(MjvmExecution &execution) {
     execution.stackPushDouble(log10(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeSqrt(Execution &execution) {
+static bool nativeSqrt(MjvmExecution &execution) {
     execution.stackPushDouble(sqrt(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeCbrt(Execution &execution) {
+static bool nativeCbrt(MjvmExecution &execution) {
     execution.stackPushDouble(cbrt(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeAtan2(Execution &execution) {
+static bool nativeAtan2(MjvmExecution &execution) {
     double x = execution.stackPopDouble();
     double y = execution.stackPopDouble();
     execution.stackPushDouble(atan2(y, x));
     return true;
 }
 
-static bool nativePow(Execution &execution) {
+static bool nativePow(MjvmExecution &execution) {
     double b = execution.stackPopDouble();
     double a = execution.stackPopDouble();
     execution.stackPushDouble(pow(a, b));
     return true;
 }
 
-static bool nativeSinh(Execution &execution) {
+static bool nativeSinh(MjvmExecution &execution) {
     execution.stackPushDouble(sinh(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeCosh(Execution &execution) {
+static bool nativeCosh(MjvmExecution &execution) {
     execution.stackPushDouble(cosh(execution.stackPopDouble()));
     return true;
 }
 
-static bool nativeTanh(Execution &execution) {
+static bool nativeTanh(MjvmExecution &execution) {
     execution.stackPushDouble(tanh(execution.stackPopDouble()));
     return true;
 }

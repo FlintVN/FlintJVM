@@ -23,7 +23,7 @@ private:
     void operator=(const LoadFileError &) = delete;
 };
 
-class ExecutionNode : public Execution {
+class ExecutionNode : public MjvmExecution {
 public:
     ExecutionNode *prev;
     ExecutionNode *next;
@@ -47,10 +47,10 @@ public:
     static void lock(void);
     static void unlock(void);
 
-    static void destroy(const Execution &execution);
+    static void destroy(const MjvmExecution &execution);
 
-    static Execution &newExecution(void);
-    static Execution &newExecution(uint32_t stackSize);
+    static MjvmExecution &newExecution(void);
+    static MjvmExecution &newExecution(uint32_t stackSize);
 
     static void garbageCollection(void);
 };

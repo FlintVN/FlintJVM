@@ -6,81 +6,81 @@
 
 #define CONST_UTF8_HASH(utf8)       *(uint32_t *)&(utf8)
 
-class ConstPool {
+class MjvmConstPool {
 public:
-    volatile const ConstPoolTag tag;
+    volatile const MjvmConstPoolTag tag;
     volatile const uint32_t value;
 private:
-    ConstPool(void) = delete;
-    ConstPool(const ConstPool &) = delete;
-    void operator=(const ConstPool &) = delete;
+    MjvmConstPool(void) = delete;
+    MjvmConstPool(const MjvmConstPool &) = delete;
+    void operator=(const MjvmConstPool &) = delete;
 };
 
-class ConstUtf8 {
+class MjvmConstUtf8 {
 public:
     const uint16_t length;
     const uint16_t crc;
     const char text[];
 private:
-    ConstUtf8(const ConstUtf8 &) = delete;
-    void operator=(const ConstUtf8 &) = delete;
+    MjvmConstUtf8(const MjvmConstUtf8 &) = delete;
+    void operator=(const MjvmConstUtf8 &) = delete;
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 public:
-    bool operator==(const ConstUtf8 &another) const;
-    bool operator!=(const ConstUtf8 &another) const;
+    bool operator==(const MjvmConstUtf8 &another) const;
+    bool operator!=(const MjvmConstUtf8 &another) const;
 };
 
-class ConstNameAndType {
+class MjvmConstNameAndType {
 public:
-    ConstUtf8 &name;
-    ConstUtf8 &descriptor;
+    MjvmConstUtf8 &name;
+    MjvmConstUtf8 &descriptor;
 
-    bool operator==(const ConstNameAndType &another) const;
-    bool operator!=(const ConstNameAndType &another) const;
+    bool operator==(const MjvmConstNameAndType &another) const;
+    bool operator!=(const MjvmConstNameAndType &another) const;
 private:
-    ConstNameAndType(ConstUtf8 &name, ConstUtf8 &descriptor);
-    ConstNameAndType(const ConstNameAndType &) = delete;
-    void operator=(const ConstNameAndType &) = delete;
+    MjvmConstNameAndType(MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor);
+    MjvmConstNameAndType(const MjvmConstNameAndType &) = delete;
+    void operator=(const MjvmConstNameAndType &) = delete;
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 };
 
-class ConstField {
+class MjvmConstField {
 public:
-    ConstUtf8 &className;
-    ConstNameAndType &nameAndType;
+    MjvmConstUtf8 &className;
+    MjvmConstNameAndType &nameAndType;
 private:
-    ConstField(ConstUtf8 &className, ConstNameAndType &nameAndType);
-    ConstField(const ConstField &) = delete;
-    void operator=(const ConstField &) = delete;
+    MjvmConstField(MjvmConstUtf8 &className, MjvmConstNameAndType &nameAndType);
+    MjvmConstField(const MjvmConstField &) = delete;
+    void operator=(const MjvmConstField &) = delete;
 
-    friend class ClassLoader;
+    friend class MjvmClassLoader;
 };
 
 typedef struct {
     uint8_t argc;
     uint8_t retType;
-} ParamInfo;
+} MjvmParamInfo;
 
-class ConstMethod {
+class MjvmConstMethod {
 public:
-    ConstUtf8 &className;
-    ConstNameAndType &nameAndType;
+    MjvmConstUtf8 &className;
+    MjvmConstNameAndType &nameAndType;
 private:
-    ParamInfo paramInfo;
+    MjvmParamInfo paramInfo;
 public:
-    const ParamInfo &getParmInfo(void);
+    const MjvmParamInfo &getParmInfo(void);
 private:
-    ConstMethod(ConstUtf8 &className, ConstNameAndType &nameAndType);
-    ConstMethod(ConstUtf8 &className, ConstNameAndType &nameAndType, uint8_t argc, uint8_t retType);
-    ConstMethod(const ConstMethod &) = delete;
-    void operator=(const ConstMethod &) = delete;
+    MjvmConstMethod(MjvmConstUtf8 &className, MjvmConstNameAndType &nameAndType);
+    MjvmConstMethod(MjvmConstUtf8 &className, MjvmConstNameAndType &nameAndType, uint8_t argc, uint8_t retType);
+    MjvmConstMethod(const MjvmConstMethod &) = delete;
+    void operator=(const MjvmConstMethod &) = delete;
 
-    friend class ClassLoader;
-    friend class Execution;
+    friend class MjvmClassLoader;
+    friend class MjvmExecution;
 };
 
-typedef ConstMethod ConstInterfaceMethod;
+typedef MjvmConstMethod MjvmConstInterfaceMethod;
 
 #endif /* __MJVM_CONST_POOL_H */

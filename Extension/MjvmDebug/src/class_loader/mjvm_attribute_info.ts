@@ -1,5 +1,5 @@
 
-export class AttributeInfo {
+export class MjvmAttribute {
     public static readonly ATTRIBUTE_CONSTANT_VALUE = 0;
     public static readonly ATTRIBUTE_CODE = 1;
     public static readonly ATTRIBUTE_STACK_MAP_TABLE = 2;
@@ -32,18 +32,18 @@ export class AttributeInfo {
 
     public static parseAttributeType(name: string): number {
         if(name === "Code")
-            return AttributeInfo.ATTRIBUTE_CODE;
+            return MjvmAttribute.ATTRIBUTE_CODE;
         else if(name === "LineNumberTable")
-                return AttributeInfo.ATTRIBUTE_LINE_NUMBER_TABLE;
+                return MjvmAttribute.ATTRIBUTE_LINE_NUMBER_TABLE;
         else if(name === "LocalVariableTable")
-            return AttributeInfo.ATTRIBUTE_LOCAL_VARIABLE_TABLE;
+            return MjvmAttribute.ATTRIBUTE_LOCAL_VARIABLE_TABLE;
         else if(name === "ConstantValue")
-            return AttributeInfo.ATTRIBUTE_CONSTANT_VALUE;
-        return AttributeInfo.ATTRIBUTE_UNKNOW;
+            return MjvmAttribute.ATTRIBUTE_CONSTANT_VALUE;
+        return MjvmAttribute.ATTRIBUTE_UNKNOW;
     }
 }
 
-export class LineNumber {
+export class MjvmLineNumber {
     public readonly startPc: number;
     public readonly line: number;
 
@@ -53,16 +53,16 @@ export class LineNumber {
     }
 }
 
-export class AttributeLineNumber extends AttributeInfo {
-    public linesNumber: LineNumber[];
+export class MjvmLineNumberAttribute extends MjvmAttribute {
+    public linesNumber: MjvmLineNumber[];
 
-    public constructor(linesNumber: LineNumber[]) {
-        super(AttributeInfo.ATTRIBUTE_LINE_NUMBER_TABLE);
+    public constructor(linesNumber: MjvmLineNumber[]) {
+        super(MjvmAttribute.ATTRIBUTE_LINE_NUMBER_TABLE);
         this.linesNumber = linesNumber;
     }
 }
 
-export class LocalVariable {
+export class MjvmLocalVariable {
     public readonly startPc: number;
     public readonly length: number;
     public readonly index: number;
@@ -78,44 +78,44 @@ export class LocalVariable {
     }
 };
 
-export class AttributeLocalVariable extends AttributeInfo {
-    public localVariables: LocalVariable[];
+export class MjvmLocalVariableAttribute extends MjvmAttribute {
+    public localVariables: MjvmLocalVariable[];
 
-    public constructor(localVariables: LocalVariable[]) {
-        super(AttributeInfo.ATTRIBUTE_LOCAL_VARIABLE_TABLE);
+    public constructor(localVariables: MjvmLocalVariable[]) {
+        super(MjvmAttribute.ATTRIBUTE_LOCAL_VARIABLE_TABLE);
         this.localVariables = localVariables;
     }
 }
 
-export class AttributeCode extends AttributeInfo {
+export class MjvmCodeAttribute extends MjvmAttribute {
     public readonly maxStack: number;
     public readonly maxLocals: number;
     public readonly code: Buffer;
-    public attributes: AttributeInfo[] | undefined;
+    public attributes: MjvmAttribute[] | undefined;
 
-    public constructor(maxStack: number, maxLocals: number, code: Buffer, attributes: AttributeInfo[] | undefined) {
-        super(AttributeInfo.ATTRIBUTE_CODE);
+    public constructor(maxStack: number, maxLocals: number, code: Buffer, attributes: MjvmAttribute[] | undefined) {
+        super(MjvmAttribute.ATTRIBUTE_CODE);
         this.maxStack = maxStack;
         this.maxLocals = maxLocals;
         this.code = code;
         this.attributes = attributes;
     }
 
-    public getLinesNumber(): AttributeLineNumber | undefined {
+    public getLinesNumber(): MjvmLineNumberAttribute | undefined {
         if(this.attributes) {
             for(let i = 0; i < this.attributes.length; i++) {
-                if(this.attributes[i].tag === AttributeInfo.ATTRIBUTE_LINE_NUMBER_TABLE)
-                    return this.attributes[i] as AttributeLineNumber;
+                if(this.attributes[i].tag === MjvmAttribute.ATTRIBUTE_LINE_NUMBER_TABLE)
+                    return this.attributes[i] as MjvmLineNumberAttribute;
             };
         }
         return undefined;
     }
 
-    public getLocalVariables(): AttributeLocalVariable | undefined {
+    public getLocalVariables(): MjvmLocalVariableAttribute | undefined {
         if(this.attributes) {
             for(let i = 0; i < this.attributes.length; i++) {
-                if(this.attributes[i].tag === AttributeInfo.ATTRIBUTE_LOCAL_VARIABLE_TABLE)
-                    return this.attributes[i] as AttributeLocalVariable;
+                if(this.attributes[i].tag === MjvmAttribute.ATTRIBUTE_LOCAL_VARIABLE_TABLE)
+                    return this.attributes[i] as MjvmLocalVariableAttribute;
             };
         }
         return undefined;

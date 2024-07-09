@@ -6,13 +6,18 @@
 #include "mjvm_system_api.h"
 #include "mjvm_class_loader.h"
 
+#if __has_include("mjvm_conf.h")
+#include "mjvm_conf.h"
+#endif
+#include "mjvm_default_conf.h"
+
 typedef struct {
-    ConstUtf8 *constUtf8Class;
+    MjvmConstUtf8 *constUtf8Class;
     MjvmClass *constClass;
 } ConstClassValue;
 
 static void *ClassLoader_Open(const char *fileName) {
-    char buff[256];
+    char buff[FILE_NAME_BUFF_SIZE];
     uint32_t i = 0;
     while(fileName[i]) {
         buff[i] = fileName[i];
@@ -69,19 +74,19 @@ static uint8_t ClassLoader_ReadUInt8(void *file) {
 static uint16_t ClassLoader_ReadUInt16(void *file) {
     uint16_t temp;
     ClassLoader_Read(file, &temp, sizeof(temp));
-    return swap16(temp);
+    return Mjvm_Swap16(temp);
 }
 
 static uint32_t ClassLoader_ReadUInt32(void *file) {
     uint32_t temp;
     ClassLoader_Read(file, &temp, sizeof(temp));
-    return swap32(temp);
+    return Mjvm_Swap32(temp);
 }
 
 static uint64_t ClassLoader_ReadUInt64(void *file) {
     uint64_t temp;
     ClassLoader_Read(file, &temp, sizeof(temp));
-    return swap64(temp);
+    return Mjvm_Swap64(temp);
 }
 
 static void ClassLoader_Seek(void *file, int32_t offset) {
@@ -89,7 +94,7 @@ static void ClassLoader_Seek(void *file, int32_t offset) {
         throw "read file error";
 }
 
-ClassLoader::ClassLoader(const char *fileName) {
+MjvmClassLoader::MjvmClassLoader(const char *fileName) {
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
@@ -109,7 +114,7 @@ ClassLoader::ClassLoader(const char *fileName) {
     MjvmSystem_FileClose(file);
 }
 
-ClassLoader::ClassLoader(const char *fileName, uint16_t length) {
+MjvmClassLoader::MjvmClassLoader(const char *fileName, uint16_t length) {
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
@@ -129,26 +134,26 @@ ClassLoader::ClassLoader(const char *fileName, uint16_t length) {
     MjvmSystem_FileClose(file);
 }
 
-ClassLoader::ClassLoader(const ConstUtf8 &fileName) : ClassLoader(fileName.text, fileName.length) {
+MjvmClassLoader::MjvmClassLoader(const MjvmConstUtf8 &fileName) : MjvmClassLoader(fileName.text, fileName.length) {
 
 }
 
-void ClassLoader::readFile(void *file) {
+void MjvmClassLoader::readFile(void *file) {
     magic = ClassLoader_ReadUInt32(file);
     minorVersion = ClassLoader_ReadUInt16(file);
     majorVersion = ClassLoader_ReadUInt16(file);
     poolCount = ClassLoader_ReadUInt16(file) - 1;
-    poolTable = (ConstPool *)Mjvm::malloc(poolCount * sizeof(ConstPool));
+    poolTable = (MjvmConstPool *)Mjvm::malloc(poolCount * sizeof(MjvmConstPool));
     for(uint32_t i = 0; i < poolCount; i++) {
-        *(ConstPoolTag *)&poolTable[i].tag = (ConstPoolTag)ClassLoader_ReadUInt8(file);
+        *(MjvmConstPoolTag *)&poolTable[i].tag = (MjvmConstPoolTag)ClassLoader_ReadUInt8(file);
         switch(poolTable[i].tag) {
             case CONST_UTF8: {
                 uint16_t length = ClassLoader_ReadUInt16(file);
-                *(uint32_t *)&poolTable[i].value = (uint32_t)Mjvm::malloc(sizeof(ConstUtf8) + length + 1);
-                *(uint16_t *)&((ConstUtf8 *)poolTable[i].value)->length = length;
-                char *textBuff = (char *)((ConstUtf8 *)poolTable[i].value)->text;
+                *(uint32_t *)&poolTable[i].value = (uint32_t)Mjvm::malloc(sizeof(MjvmConstUtf8) + length + 1);
+                *(uint16_t *)&((MjvmConstUtf8 *)poolTable[i].value)->length = length;
+                char *textBuff = (char *)((MjvmConstUtf8 *)poolTable[i].value)->text;
                 ClassLoader_Read(file, textBuff, length);
-                *(uint16_t *)&((ConstUtf8 *)poolTable[i].value)->crc = calcCrc((uint8_t *)textBuff, length);
+                *(uint16_t *)&((MjvmConstUtf8 *)poolTable[i].value)->crc = Mjvm_CalcCrc((uint8_t *)textBuff, length);
                 textBuff[length] = 0;
                 break;
             }
@@ -170,7 +175,7 @@ void ClassLoader::readFile(void *file) {
                 uint64_t value = ClassLoader_ReadUInt64(file);
                 *(uint32_t *)&poolTable[i + 0].value = (uint32_t)value;
                 *(uint32_t *)&poolTable[i + 1].value = (uint32_t)(value >> 32);
-                *(ConstPoolTag *)&poolTable[i + 1].tag = CONST_UNKOWN;
+                *(MjvmConstPoolTag *)&poolTable[i + 1].tag = CONST_UNKOWN;
                 i++;
                 break;
             }
@@ -200,22 +205,22 @@ void ClassLoader::readFile(void *file) {
     fieldsCount = ClassLoader_ReadUInt16(file);
     if(fieldsCount) {
         uint32_t count = 0;
-        fields = (FieldInfo *)Mjvm::malloc(fieldsCount * sizeof(FieldInfo));
+        fields = (MjvmFieldInfo *)Mjvm::malloc(fieldsCount * sizeof(MjvmFieldInfo));
         for(uint16_t i = 0; i < fieldsCount; i++) {
-            FieldAccessFlag flag = (FieldAccessFlag)ClassLoader_ReadUInt16(file);
+            MjvmFieldAccessFlag flag = (MjvmFieldAccessFlag)ClassLoader_ReadUInt16(file);
             uint16_t fieldsNameIndex = ClassLoader_ReadUInt16(file);
             uint16_t fieldsDescriptorIndex = ClassLoader_ReadUInt16(file);
             uint16_t fieldsAttributesCount = ClassLoader_ReadUInt16(file);
             while(fieldsAttributesCount--) {
                 uint16_t nameIndex = ClassLoader_ReadUInt16(file);
                 uint32_t length = ClassLoader_ReadUInt32(file);
-                AttributeType type = AttributeInfo::parseAttributeType(getConstUtf8(nameIndex));
+                MjvmAttributeType type = MjvmAttribute::parseAttributeType(getConstUtf8(nameIndex));
                 if(type == ATTRIBUTE_CONSTANT_VALUE)
-                    flag = (FieldAccessFlag)(flag | FIELD_UNLOAD);
+                    flag = (MjvmFieldAccessFlag)(flag | FIELD_UNLOAD);
                 ClassLoader_Seek(file, length);
             }
             if(!(flag & FIELD_UNLOAD)) {
-                new (&fields[count])FieldInfo(*this, flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
+                new (&fields[count])MjvmFieldInfo(*this, flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
                 count++;
             }
         }
@@ -224,26 +229,26 @@ void ClassLoader::readFile(void *file) {
             fields = 0;
         }
         else if(count != fieldsCount) {
-            fields = (FieldInfo *)Mjvm::realloc(fields, count * sizeof(FieldInfo));
+            fields = (MjvmFieldInfo *)Mjvm::realloc(fields, count * sizeof(MjvmFieldInfo));
             fieldsCount = count;
         }
     }
     methodsCount = ClassLoader_ReadUInt16(file);
     if(methodsCount) {
-        methods = (MethodInfo *)Mjvm::malloc(methodsCount * sizeof(MethodInfo));
+        methods = (MjvmMethodInfo *)Mjvm::malloc(methodsCount * sizeof(MjvmMethodInfo));
         for(uint16_t i = 0; i < methodsCount; i++) {
-            MethodAccessFlag flag = (MethodAccessFlag)ClassLoader_ReadUInt16(file);
+            MjvmMethodAccessFlag flag = (MjvmMethodAccessFlag)ClassLoader_ReadUInt16(file);
             uint16_t methodNameIndex = ClassLoader_ReadUInt16(file);
             uint16_t methodDescriptorIndex = ClassLoader_ReadUInt16(file);
             uint16_t methodAttributesCount = ClassLoader_ReadUInt16(file);
-            new (&methods[i])MethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
+            new (&methods[i])MjvmMethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
             if((flag & METHOD_NATIVE) == METHOD_NATIVE) {
-                AttributeNative *attrNative = (AttributeNative *)Mjvm::malloc(sizeof(AttributeNative));
-                new (attrNative)AttributeNative(0);
+                MjvmNativeAttribute *attrNative = (MjvmNativeAttribute *)Mjvm::malloc(sizeof(MjvmNativeAttribute));
+                new (attrNative)MjvmNativeAttribute(0);
                 methods[i].addAttribute(attrNative);
             }
             while(methodAttributesCount--) {
-                AttributeInfo *attr = readAttribute(file);
+                MjvmAttribute *attr = readAttribute(file);
                 if(attr != 0)
                     methods[i].addAttribute(attr);
             }
@@ -251,21 +256,21 @@ void ClassLoader::readFile(void *file) {
     }
     attributesCount = ClassLoader_ReadUInt16(file);
     while(attributesCount--) {
-        AttributeInfo *attr = readAttribute(file);
+        MjvmAttribute *attr = readAttribute(file);
         if(attr)
             addAttribute(attr);
     }
 }
 
-void ClassLoader::addAttribute(AttributeInfo *attribute) {
+void MjvmClassLoader::addAttribute(MjvmAttribute *attribute) {
     attribute->next = this->attributes;
     this->attributes = attribute;
 }
 
-AttributeInfo *ClassLoader::readAttribute(void *file) {
+MjvmAttribute *MjvmClassLoader::readAttribute(void *file) {
     uint16_t nameIndex = ClassLoader_ReadUInt16(file);
     uint32_t length = ClassLoader_ReadUInt32(file);
-    AttributeType type = AttributeInfo::parseAttributeType(getConstUtf8(nameIndex));
+    MjvmAttributeType type = MjvmAttribute::parseAttributeType(getConstUtf8(nameIndex));
     switch(type) {
         case ATTRIBUTE_CODE:
             return readAttributeCode(file);
@@ -277,110 +282,110 @@ AttributeInfo *ClassLoader::readAttribute(void *file) {
     }
 }
 
-AttributeInfo *ClassLoader::readAttributeCode(void *file) {
-    AttributeCode *attribute = (AttributeCode *)Mjvm::malloc(sizeof(AttributeCode));
+MjvmAttribute *MjvmClassLoader::readAttributeCode(void *file) {
+    MjvmCodeAttribute *attribute = (MjvmCodeAttribute *)Mjvm::malloc(sizeof(MjvmCodeAttribute));
     uint16_t maxStack = ClassLoader_ReadUInt16(file);
     uint16_t maxLocals = ClassLoader_ReadUInt16(file);
     uint32_t codeLength = ClassLoader_ReadUInt32(file);
     uint8_t *code = (uint8_t *)Mjvm::malloc(codeLength + 1);
-    new (attribute)AttributeCode(maxStack, maxLocals);
+    new (attribute)MjvmCodeAttribute(maxStack, maxLocals);
     ClassLoader_Read(file, code, codeLength);
     code[codeLength] = OP_EXIT;
     attribute->setCode(code, codeLength);
     uint16_t exceptionTableLength = ClassLoader_ReadUInt16(file);
     if(exceptionTableLength) {
-        ExceptionTable *exceptionTable = (ExceptionTable *)Mjvm::malloc(exceptionTableLength * sizeof(ExceptionTable));
+        MjvmExceptionTable *exceptionTable = (MjvmExceptionTable *)Mjvm::malloc(exceptionTableLength * sizeof(MjvmExceptionTable));
         attribute->setExceptionTable(exceptionTable, exceptionTableLength);
         for(uint16_t i = 0; i < exceptionTableLength; i++) {
             uint16_t startPc = ClassLoader_ReadUInt16(file);
             uint16_t endPc = ClassLoader_ReadUInt16(file);
             uint16_t handlerPc = ClassLoader_ReadUInt16(file);
             uint16_t catchType = ClassLoader_ReadUInt16(file);
-            new (&exceptionTable[i])ExceptionTable(startPc, endPc, handlerPc, catchType);
+            new (&exceptionTable[i])MjvmExceptionTable(startPc, endPc, handlerPc, catchType);
         }
     }
     uint16_t attrbutesCount = ClassLoader_ReadUInt16(file);
     while(attrbutesCount--) {
-        AttributeInfo *attr = readAttribute(file);
+        MjvmAttribute *attr = readAttribute(file);
         if(attr)
             attribute->addAttribute(attr);
     }
     return attribute;
 }
 
-AttributeInfo *ClassLoader::readAttributeBootstrapMethods(void *file) {
+MjvmAttribute *MjvmClassLoader::readAttributeBootstrapMethods(void *file) {
     uint16_t numBootstrapMethods = ClassLoader_ReadUInt16(file);
     AttributeBootstrapMethods *attribute = (AttributeBootstrapMethods *)Mjvm::malloc(sizeof(AttributeBootstrapMethods));
     new (attribute)AttributeBootstrapMethods(numBootstrapMethods);
     for(uint16_t i = 0; i < numBootstrapMethods; i++) {
         uint16_t bootstrapMethodRef = ClassLoader_ReadUInt16(file);
         uint16_t numBootstrapArguments = ClassLoader_ReadUInt16(file);
-        BootstrapMethod *bootstrapMethod = (BootstrapMethod *)Mjvm::malloc(sizeof(BootstrapMethod) + numBootstrapArguments * sizeof(uint16_t));
-        new (bootstrapMethod)BootstrapMethod(bootstrapMethodRef, numBootstrapArguments);
-        uint16_t *bootstrapArguments = (uint16_t *)(((uint8_t *)bootstrapMethod) + sizeof(BootstrapMethod));
+        MjvmBootstrapMethod *bootstrapMethod = (MjvmBootstrapMethod *)Mjvm::malloc(sizeof(MjvmBootstrapMethod) + numBootstrapArguments * sizeof(uint16_t));
+        new (bootstrapMethod)MjvmBootstrapMethod(bootstrapMethodRef, numBootstrapArguments);
+        uint16_t *bootstrapArguments = (uint16_t *)(((uint8_t *)bootstrapMethod) + sizeof(MjvmBootstrapMethod));
         ClassLoader_Read(file, bootstrapArguments, numBootstrapArguments * sizeof(uint16_t));
         attribute->setBootstrapMethod(i, *bootstrapMethod);
     }
     return attribute;
 }
 
-uint32_t ClassLoader::getMagic(void) const {
+uint32_t MjvmClassLoader::getMagic(void) const {
     return magic;
 }
 
-uint16_t ClassLoader::getMinorVersion(void) const {
+uint16_t MjvmClassLoader::getMinorVersion(void) const {
     return minorVersion;
 }
 
-uint16_t ClassLoader::getMajorversion(void) const {
+uint16_t MjvmClassLoader::getMajorversion(void) const {
     return majorVersion;
 }
 
-ConstPool &ClassLoader::getConstPool(uint16_t poolIndex) const {
+MjvmConstPool &MjvmClassLoader::getConstPool(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount)
         return poolTable[poolIndex];
     throw "index for const pool is invalid";
 }
 
-int32_t ClassLoader::getConstInteger(uint16_t poolIndex) const {
+int32_t MjvmClassLoader::getConstInteger(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_INTEGER)
         return (int32_t)poolTable[poolIndex].value;
     throw "index for const integer is invalid";
 }
 
-int32_t ClassLoader::getConstInteger(ConstPool &constPool) const {
+int32_t MjvmClassLoader::getConstInteger(MjvmConstPool &constPool) const {
     if(constPool.tag == CONST_INTEGER)
         return (int32_t)constPool.value;
     throw "const pool tag is not integer tag";
 }
 
-float ClassLoader::getConstFloat(uint16_t poolIndex) const {
+float MjvmClassLoader::getConstFloat(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_FLOAT)
         return *(float *)&poolTable[poolIndex].value;
     throw "index for const float is invalid";
 }
 
-float ClassLoader::getConstFloat(ConstPool &constPool) const {
+float MjvmClassLoader::getConstFloat(MjvmConstPool &constPool) const {
     if(constPool.tag == CONST_FLOAT)
         return *(float *)&constPool.value;
     throw "const pool tag is not float tag";
 }
 
-int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
+int64_t MjvmClassLoader::getConstLong(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_LONG)
         return ((uint64_t)poolTable[poolIndex + 1].value << 32) | poolTable[poolIndex].value;
     throw "index for const long is invalid";
 }
 
-int64_t ClassLoader::getConstLong(ConstPool &constPool) const {
+int64_t MjvmClassLoader::getConstLong(MjvmConstPool &constPool) const {
     return getConstLong((uint16_t)(&constPool - poolTable) + 1);
 }
 
-double ClassLoader::getConstDouble(uint16_t poolIndex) const {
+double MjvmClassLoader::getConstDouble(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_DOUBLE) {
         uint64_t ret = ((uint64_t)poolTable[poolIndex + 1].value << 32) | poolTable[poolIndex].value;
@@ -389,24 +394,24 @@ double ClassLoader::getConstDouble(uint16_t poolIndex) const {
     throw "index for const double is invalid";
 }
 
-double ClassLoader::getConstDouble(ConstPool &constPool) const {
+double MjvmClassLoader::getConstDouble(MjvmConstPool &constPool) const {
     return getConstDouble((uint16_t)(&constPool - poolTable) + 1);
 }
 
-ConstUtf8 &ClassLoader::getConstUtf8(uint16_t poolIndex) const {
+MjvmConstUtf8 &MjvmClassLoader::getConstUtf8(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_UTF8)
-        return *(ConstUtf8 *)poolTable[poolIndex].value;
+        return *(MjvmConstUtf8 *)poolTable[poolIndex].value;
     throw "index for const utf8 is invalid";
 }
 
-ConstUtf8 &ClassLoader::getConstUtf8(ConstPool &constPool) const {
+MjvmConstUtf8 &MjvmClassLoader::getConstUtf8(MjvmConstPool &constPool) const {
     if(constPool.tag == CONST_UTF8)
-        return *(ConstUtf8 *)constPool.value;
+        return *(MjvmConstUtf8 *)constPool.value;
     throw "const pool tag is not utf8 tag";
 }
 
-ConstUtf8 &ClassLoader::getConstUtf8Class(uint16_t poolIndex) const {
+MjvmConstUtf8 &MjvmClassLoader::getConstUtf8Class(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -423,7 +428,7 @@ ConstUtf8 &ClassLoader::getConstUtf8Class(uint16_t poolIndex) const {
     throw "index for const class is invalid";
 }
 
-ConstUtf8 &ClassLoader::getConstUtf8Class(ConstPool &constPool) const {
+MjvmConstUtf8 &MjvmClassLoader::getConstUtf8Class(MjvmConstPool &constPool) const {
     if((constPool.tag & 0x7F) == CONST_CLASS) {
         if(constPool.tag & 0x80) {
             Mjvm::lock();
@@ -439,18 +444,18 @@ ConstUtf8 &ClassLoader::getConstUtf8Class(ConstPool &constPool) const {
     throw "const pool tag is not class tag";
 }
 
-MjvmClass &ClassLoader::getConstClass(Execution &execution, uint16_t poolIndex) {
+MjvmClass &MjvmClassLoader::getConstClass(MjvmExecution &execution, uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
         if(poolTable[poolIndex].tag & 0x80) {
             Mjvm::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                ConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
+                MjvmConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
                 ConstClassValue *constClassValue = (ConstClassValue *)Mjvm::malloc(sizeof(ConstClassValue));
                 constClassValue->constUtf8Class = &constUtf8Class;
                 constClassValue->constClass = execution.getConstClass(constUtf8Class.text, constUtf8Class.length);
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)constClassValue;
-                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_CLASS;
+                *(MjvmConstPoolTag *)&poolTable[poolIndex].tag = CONST_CLASS;
             }
             Mjvm::unlock();
         }
@@ -459,17 +464,17 @@ MjvmClass &ClassLoader::getConstClass(Execution &execution, uint16_t poolIndex) 
     throw "index for const class is invalid";
 }
 
-MjvmClass &ClassLoader::getConstClass(Execution &execution, ConstPool &constPool) {
+MjvmClass &MjvmClassLoader::getConstClass(MjvmExecution &execution, MjvmConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_CLASS) {
         if(constPool.tag & 0x80) {
             Mjvm::lock();
             if(constPool.tag & 0x80) {
-                ConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
+                MjvmConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
                 ConstClassValue *constClassValue = (ConstClassValue *)Mjvm::malloc(sizeof(ConstClassValue));
                 constClassValue->constUtf8Class = &constUtf8Class;
                 constClassValue->constClass = execution.getConstClass(constUtf8Class.text, constUtf8Class.length);
                 *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
-                *(ConstPoolTag *)&constPool.tag = CONST_CLASS;
+                *(MjvmConstPoolTag *)&constPool.tag = CONST_CLASS;
             }
             Mjvm::unlock();
         }
@@ -478,16 +483,16 @@ MjvmClass &ClassLoader::getConstClass(Execution &execution, ConstPool &constPool
     throw "const pool tag is not class tag";
 }
 
-MjvmString &ClassLoader::getConstString(Execution &execution, uint16_t poolIndex) {
+MjvmString &MjvmClassLoader::getConstString(MjvmExecution &execution, uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_STRING) {
         if(poolTable[poolIndex].tag & 0x80) {
             Mjvm::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                ConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
+                MjvmConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
                 MjvmString *strObj = execution.getConstString(utf8Str);
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)strObj;
-                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
+                *(MjvmConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
             }
             Mjvm::unlock();
         }
@@ -496,15 +501,15 @@ MjvmString &ClassLoader::getConstString(Execution &execution, uint16_t poolIndex
     throw "index for const string is invalid";
 }
 
-MjvmString &ClassLoader::getConstString(Execution &execution, ConstPool &constPool) {
+MjvmString &MjvmClassLoader::getConstString(MjvmExecution &execution, MjvmConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_STRING) {
         if(constPool.tag & 0x80) {
             Mjvm::lock();
             if(constPool.tag & 0x80) {
-                ConstUtf8 &utf8Str = getConstUtf8(constPool.value);
+                MjvmConstUtf8 &utf8Str = getConstUtf8(constPool.value);
                 MjvmString *strObj = execution.getConstString(utf8Str);
                 *(uint32_t *)&constPool.value = (uint32_t)strObj;
-                *(ConstPoolTag *)&constPool.tag = CONST_STRING;
+                *(MjvmConstPoolTag *)&constPool.tag = CONST_STRING;
             }
             Mjvm::unlock();
         }
@@ -513,20 +518,20 @@ MjvmString &ClassLoader::getConstString(Execution &execution, ConstPool &constPo
     throw "const pool tag is not string tag";
 }
 
-ConstUtf8 &ClassLoader::getConstMethodType(uint16_t poolIndex) const {
+MjvmConstUtf8 &MjvmClassLoader::getConstMethodType(uint16_t poolIndex) const {
     poolIndex--;
     if(poolIndex < poolCount && poolTable[poolIndex].tag == CONST_METHOD)
         return getConstUtf8(poolTable[poolIndex].value);
     throw "index for const method type is invalid";
 }
 
-ConstUtf8 &ClassLoader::getConstMethodType(ConstPool &constPool) const {
+MjvmConstUtf8 &MjvmClassLoader::getConstMethodType(MjvmConstPool &constPool) const {
     if(constPool.tag == CONST_METHOD)
         return getConstUtf8(constPool.value);
     throw "const pool tag is not method type tag";
 }
 
-ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) {
+MjvmConstNameAndType &MjvmClassLoader::getConstNameAndType(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_NAME_AND_TYPE) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -534,22 +539,22 @@ ConstNameAndType &ClassLoader::getConstNameAndType(uint16_t poolIndex) {
             if(poolTable[poolIndex].tag & 0x80) {
                 uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
                 uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstNameAndType));
-                new ((ConstNameAndType *)poolTable[poolIndex].value)ConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
+                *(MjvmConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(MjvmConstNameAndType));
+                new ((MjvmConstNameAndType *)poolTable[poolIndex].value)MjvmConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
             }
             Mjvm::unlock();
         }
-        return *(ConstNameAndType *)poolTable[poolIndex].value;
+        return *(MjvmConstNameAndType *)poolTable[poolIndex].value;
     }
     throw "index for const name and type is invalid";
 }
 
-ConstNameAndType &ClassLoader::getConstNameAndType(ConstPool &constPool) {
+MjvmConstNameAndType &MjvmClassLoader::getConstNameAndType(MjvmConstPool &constPool) {
     return getConstNameAndType((uint16_t)(&constPool - poolTable) + 1);
 }
 
-ConstField &ClassLoader::getConstField(uint16_t poolIndex) {
+MjvmConstField &MjvmClassLoader::getConstField(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_FIELD) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -557,22 +562,22 @@ ConstField &ClassLoader::getConstField(uint16_t poolIndex) {
             if(poolTable[poolIndex].tag & 0x80) {
                 uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
                 uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstField));
-                new ((ConstField *)poolTable[poolIndex].value)ConstField(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                *(MjvmConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(MjvmConstField));
+                new ((MjvmConstField *)poolTable[poolIndex].value)MjvmConstField(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
             }
             Mjvm::unlock();
         }
-        return *(ConstField *)poolTable[poolIndex].value;
+        return *(MjvmConstField *)poolTable[poolIndex].value;
     }
     throw "index for const field is invalid";
 }
 
-ConstField &ClassLoader::getConstField(ConstPool &constPool) {
+MjvmConstField &MjvmClassLoader::getConstField(MjvmConstPool &constPool) {
     return getConstField((uint16_t)(&constPool - poolTable) + 1);
 }
 
-ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) {
+MjvmConstMethod &MjvmClassLoader::getConstMethod(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_METHOD) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -580,22 +585,22 @@ ConstMethod &ClassLoader::getConstMethod(uint16_t poolIndex) {
             if(poolTable[poolIndex].tag & 0x80) {
                 uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
                 uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstMethod));
-                new ((ConstMethod *)poolTable[poolIndex].value)ConstMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                *(MjvmConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(MjvmConstMethod));
+                new ((MjvmConstMethod *)poolTable[poolIndex].value)MjvmConstMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
             }
             Mjvm::unlock();
         }
-        return *(ConstMethod *)poolTable[poolIndex].value;
+        return *(MjvmConstMethod *)poolTable[poolIndex].value;
     }
     throw "index for const method is invalid";
 }
 
-ConstMethod &ClassLoader::getConstMethod(ConstPool &constPool) {
+MjvmConstMethod &MjvmClassLoader::getConstMethod(MjvmConstPool &constPool) {
     return getConstMethod((uint16_t)(&constPool - poolTable) + 1);
 }
 
-ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIndex) {
+MjvmConstInterfaceMethod &MjvmClassLoader::getConstInterfaceMethod(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_INTERFACE_METHOD) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -603,56 +608,56 @@ ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(uint16_t poolIndex) {
             if(poolTable[poolIndex].tag & 0x80) {
                 uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
                 uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(ConstInterfaceMethod));
-                new ((ConstInterfaceMethod *)poolTable[poolIndex].value)ConstInterfaceMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                *(MjvmConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Mjvm::malloc(sizeof(MjvmConstInterfaceMethod));
+                new ((MjvmConstInterfaceMethod *)poolTable[poolIndex].value)MjvmConstInterfaceMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
             }
             Mjvm::unlock();
         }
-        return *(ConstInterfaceMethod *)poolTable[poolIndex].value;
+        return *(MjvmConstInterfaceMethod *)poolTable[poolIndex].value;
     }
     throw "index for const interface method is invalid";
 }
 
-ConstInterfaceMethod &ClassLoader::getConstInterfaceMethod(ConstPool &constPool) {
+MjvmConstInterfaceMethod &MjvmClassLoader::getConstInterfaceMethod(MjvmConstPool &constPool) {
     return getConstInterfaceMethod((uint16_t)(&constPool - poolTable) + 1);
 }
 
-ClassAccessFlag ClassLoader::getAccessFlag(void) const {
-    return (ClassAccessFlag)accessFlags;
+MjvmClassAccessFlag MjvmClassLoader::getAccessFlag(void) const {
+    return (MjvmClassAccessFlag)accessFlags;
 }
 
-ConstUtf8 &ClassLoader::getThisClass(void) const {
+MjvmConstUtf8 &MjvmClassLoader::getThisClass(void) const {
     return getConstUtf8Class(thisClass);
 }
 
-ConstUtf8 &ClassLoader::getSuperClass(void) const {
+MjvmConstUtf8 &MjvmClassLoader::getSuperClass(void) const {
     if(superClass == 0)
-        return *(ConstUtf8 *)0;
+        return *(MjvmConstUtf8 *)0;
     return getConstUtf8Class(superClass);
 }
 
-uint16_t ClassLoader::getInterfacesCount(void) const {
+uint16_t MjvmClassLoader::getInterfacesCount(void) const {
     return interfacesCount;
 }
 
-ConstUtf8 &ClassLoader::getInterface(uint8_t interfaceIndex) const {
+MjvmConstUtf8 &MjvmClassLoader::getInterface(uint8_t interfaceIndex) const {
     if(interfaceIndex < interfacesCount)
         return getConstUtf8Class(interfaces[interfaceIndex]);
     throw "index for const interface is invalid";
 }
 
-uint16_t ClassLoader::getFieldsCount(void) const {
+uint16_t MjvmClassLoader::getFieldsCount(void) const {
     return fieldsCount;
 }
 
-FieldInfo &ClassLoader::getFieldInfo(uint8_t fieldIndex) const {
+MjvmFieldInfo &MjvmClassLoader::getFieldInfo(uint8_t fieldIndex) const {
     if(fieldIndex < fieldsCount)
         return fields[fieldIndex];
     throw "index for field info is invalid";
 }
 
-FieldInfo &ClassLoader::getFieldInfo(ConstUtf8 &name, ConstUtf8 &descriptor) const {
+MjvmFieldInfo &MjvmClassLoader::getFieldInfo(MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor) const {
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < fieldsCount; i++) {
@@ -667,24 +672,24 @@ FieldInfo &ClassLoader::getFieldInfo(ConstUtf8 &name, ConstUtf8 &descriptor) con
             }
         }
     }
-    return *(FieldInfo *)0;
+    return *(MjvmFieldInfo *)0;
 }
 
-FieldInfo &ClassLoader::getFieldInfo(ConstNameAndType &nameAndType) const {
+MjvmFieldInfo &MjvmClassLoader::getFieldInfo(MjvmConstNameAndType &nameAndType) const {
     return getFieldInfo(nameAndType.name, nameAndType.descriptor);
 }
 
-uint16_t ClassLoader::getMethodsCount(void) const {
+uint16_t MjvmClassLoader::getMethodsCount(void) const {
     return methodsCount;
 }
 
-MethodInfo &ClassLoader::getMethodInfo(uint8_t methodIndex) const {
+MjvmMethodInfo &MjvmClassLoader::getMethodInfo(uint8_t methodIndex) const {
     if(methodIndex < methodsCount)
         return methods[methodIndex];
     throw "index for method info is invalid";
 }
 
-MethodInfo &ClassLoader::getMethodInfo(ConstUtf8 &name, ConstUtf8 &descriptor) const {
+MjvmMethodInfo &MjvmClassLoader::getMethodInfo(MjvmConstUtf8 &name, MjvmConstUtf8 &descriptor) const {
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < methodsCount; i++) {
@@ -699,30 +704,30 @@ MethodInfo &ClassLoader::getMethodInfo(ConstUtf8 &name, ConstUtf8 &descriptor) c
             }
         }
     }
-    return *(MethodInfo *)0;
+    return *(MjvmMethodInfo *)0;
 }
 
-MethodInfo &ClassLoader::getMethodInfo(ConstNameAndType &nameAndType) const {
+MjvmMethodInfo &MjvmClassLoader::getMethodInfo(MjvmConstNameAndType &nameAndType) const {
     return getMethodInfo(nameAndType.name, nameAndType.descriptor);
 }
 
-MethodInfo &ClassLoader::getMainMethodInfo(void) const {
+MjvmMethodInfo &MjvmClassLoader::getMainMethodInfo(void) const {
     static const uint32_t nameAndType[] = {
         (uint32_t)"\x04\x00\xA5\x01""main",                     /* method name */
         (uint32_t)"\x16\x00\xA2\x07""([Ljava/lang/String;)V",   /* method type */
     };
-    return getMethodInfo(*(ConstNameAndType *)nameAndType);
+    return getMethodInfo(*(MjvmConstNameAndType *)nameAndType);
 }
 
-MethodInfo &ClassLoader::getStaticConstructor(void) const {
+MjvmMethodInfo &MjvmClassLoader::getStaticConstructor(void) const {
     static const uint32_t nameAndType[] = {
         (uint32_t)"\x08\x00\xFD\x02""<clinit>",                 /* method name */
         (uint32_t)"\x03\x00\xA7\x00""()V",                      /* method type */
     };
-    return getMethodInfo(*(ConstNameAndType *)nameAndType);
+    return getMethodInfo(*(MjvmConstNameAndType *)nameAndType);
 }
 
-ClassLoader::~ClassLoader(void) {
+MjvmClassLoader::~MjvmClassLoader(void) {
     if(poolCount) {
         for(uint32_t i = 0; i < poolCount; i++) {
             switch (poolTable[i].tag) {
@@ -752,17 +757,17 @@ ClassLoader::~ClassLoader(void) {
         Mjvm::free(interfaces);
     if(fieldsCount) {
         for(uint32_t i = 0; i < fieldsCount; i++)
-            fields[i].~FieldInfo();
+            fields[i].~MjvmFieldInfo();
         Mjvm::free(fields);
     }
     if(methodsCount) {
         for(uint32_t i = 0; i < methodsCount; i++)
-            methods[i].~MethodInfo();
+            methods[i].~MjvmMethodInfo();
         Mjvm::free(methods);
     }
-    for(AttributeInfo *node = attributes; node != 0;) {
-        AttributeInfo *next = node->next;
-        node->~AttributeInfo();
+    for(MjvmAttribute *node = attributes; node != 0;) {
+        MjvmAttribute *next = node->next;
+        node->~MjvmAttribute();
         Mjvm::free(node);
         node = next;
     }

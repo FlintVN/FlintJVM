@@ -3,27 +3,27 @@ import fs = require('fs');
 import path = require('path');
 import * as vscode from 'vscode';
 import {
-    ConstClass,
-    ConstSting,
-    ConstMethodType,
-    ConstField,
-    ConstMethod,
-    ConstInterfaceMethod,
-    ConstNameAndType,
-    ConstInvokeDynamic,
-    ConstMethodHandle
+    MjvmConstClass,
+    MjvmConstSting,
+    MjvmConstMethodType,
+    MjvmConstField,
+    MjvmConstMethod,
+    MjvmConstInterfaceMethod,
+    MjvmConstNameAndType,
+    MjvmConstInvokeDynamic,
+    MjvmConstMethodHandle
 } from './mjvm_const_pool';
 import {
-    AttributeCode,
-    AttributeInfo,
-    LineNumber,
-    AttributeLineNumber,
-    LocalVariable,
-    AttributeLocalVariable
+    MjvmAttribute,
+    MjvmCodeAttribute,
+    MjvmLineNumber,
+    MjvmLineNumberAttribute,
+    MjvmLocalVariable,
+    MjvmLocalVariableAttribute
 } from './mjvm_attribute_info';
-import { MethodInfo } from './mjvm_method_info';
+import { MjvmMethodInfo } from './mjvm_method_info';
 
-export class ClassLoader {
+export class MjvmClassLoader {
     public readonly magic: number;
     public readonly minorVersion: number;
     public readonly majorVersion: number;
@@ -33,21 +33,21 @@ export class ClassLoader {
     public readonly interfacesCount: number;
     public readonly classPath: string;
     
-    public methodsInfos: MethodInfo[];
+    public methodsInfos: MjvmMethodInfo[];
 
     private readonly poolTable: (
         number |
         bigint |
         string |
-        ConstClass |
-        ConstSting |
-        ConstMethodType |
-        ConstField |
-        ConstMethod |
-        ConstInterfaceMethod |
-        ConstNameAndType |
-        ConstInvokeDynamic |
-        ConstMethodHandle
+        MjvmConstClass |
+        MjvmConstSting |
+        MjvmConstMethodType |
+        MjvmConstField |
+        MjvmConstMethod |
+        MjvmConstInterfaceMethod |
+        MjvmConstNameAndType |
+        MjvmConstInvokeDynamic |
+        MjvmConstMethodHandle
     )[] = [];
 
     private static readonly CONST_UTF8 = 1;
@@ -84,7 +84,7 @@ export class ClassLoader {
     private static readonly FIELD_ENUM = 0x4000;
     private static readonly FIELD_UNLOAD = 0x8000;
 
-    private static classLoaderDictionary: Record<string, ClassLoader> = {};
+    private static classLoaderDictionary: Record<string, MjvmClassLoader> = {};
 
     public static findSourceFile(name: string): string | undefined {
         const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
@@ -102,10 +102,10 @@ export class ClassLoader {
         return undefined;
     }
 
-    public static load(classFile: string): ClassLoader {
-        if(!(classFile in ClassLoader.classLoaderDictionary))
-            ClassLoader.classLoaderDictionary[classFile] = new ClassLoader(classFile);
-        return ClassLoader.classLoaderDictionary[classFile];
+    public static load(classFile: string): MjvmClassLoader {
+        if(!(classFile in MjvmClassLoader.classLoaderDictionary))
+            MjvmClassLoader.classLoaderDictionary[classFile] = new MjvmClassLoader(classFile);
+        return MjvmClassLoader.classLoaderDictionary[classFile];
     }
 
     private constructor(filePath: string) {
@@ -126,65 +126,65 @@ export class ClassLoader {
             const tag = data[index];
             index++;
             switch(tag) {
-                case ClassLoader.CONST_UTF8: {
+                case MjvmClassLoader.CONST_UTF8: {
                     const length = this.readU16(data, index);
                     index += 2;
                     this.poolTable.push(data.toString('utf-8', index, index + length));
                     index += length;
                     break;
                 }
-                case ClassLoader.CONST_INTEGER:
-                case ClassLoader.CONST_FLOAT:
+                case MjvmClassLoader.CONST_INTEGER:
+                case MjvmClassLoader.CONST_FLOAT:
                     this.poolTable.push(this.readU32(data, index));
                     index += 4;
                     break;
-                case ClassLoader.CONST_FIELD:
-                case ClassLoader.CONST_METHOD:
-                case ClassLoader.CONST_INTERFACE_METHOD:
-                case ClassLoader.CONST_NAME_AND_TYPE:
-                case ClassLoader.CONST_INVOKE_DYNAMIC:
+                case MjvmClassLoader.CONST_FIELD:
+                case MjvmClassLoader.CONST_METHOD:
+                case MjvmClassLoader.CONST_INTERFACE_METHOD:
+                case MjvmClassLoader.CONST_NAME_AND_TYPE:
+                case MjvmClassLoader.CONST_INVOKE_DYNAMIC:
                     const index1 = this.readU16(data, index);
                     index += 2;
                     const index2 = this.readU16(data, index);
                     index += 2;
-                    if(tag === ClassLoader.CONST_FIELD)
-                        this.poolTable.push(new ConstField(index1, index2));
-                    else if(tag === ClassLoader.CONST_METHOD)
-                        this.poolTable.push(new ConstMethod(index1, index2));
-                    else if(tag === ClassLoader.CONST_INTERFACE_METHOD)
-                        this.poolTable.push(new ConstInterfaceMethod(index1, index2));
-                    else if(tag === ClassLoader.CONST_NAME_AND_TYPE)
-                        this.poolTable.push(new ConstNameAndType(index1, index2));
-                    else if(tag === ClassLoader.CONST_INVOKE_DYNAMIC)
-                        this.poolTable.push(new ConstInvokeDynamic(index1, index2));
+                    if(tag === MjvmClassLoader.CONST_FIELD)
+                        this.poolTable.push(new MjvmConstField(index1, index2));
+                    else if(tag === MjvmClassLoader.CONST_METHOD)
+                        this.poolTable.push(new MjvmConstMethod(index1, index2));
+                    else if(tag === MjvmClassLoader.CONST_INTERFACE_METHOD)
+                        this.poolTable.push(new MjvmConstInterfaceMethod(index1, index2));
+                    else if(tag === MjvmClassLoader.CONST_NAME_AND_TYPE)
+                        this.poolTable.push(new MjvmConstNameAndType(index1, index2));
+                    else if(tag === MjvmClassLoader.CONST_INVOKE_DYNAMIC)
+                        this.poolTable.push(new MjvmConstInvokeDynamic(index1, index2));
                     break;
-                case ClassLoader.CONST_LONG:
-                case ClassLoader.CONST_DOUBLE: {
+                case MjvmClassLoader.CONST_LONG:
+                case MjvmClassLoader.CONST_DOUBLE: {
                     this.poolTable.push(this.readU64(data, index));
                     index += 8;
                     i++;
                     this.poolTable.push(0);
                     break;
                 }
-                case ClassLoader.CONST_CLASS:
-                case ClassLoader.CONST_STRING:
-                case ClassLoader.CONST_METHOD_TYPE: {
+                case MjvmClassLoader.CONST_CLASS:
+                case MjvmClassLoader.CONST_STRING:
+                case MjvmClassLoader.CONST_METHOD_TYPE: {
                     const constUtf8Index = this.readU16(data, index);
                     index += 2;
-                    if(tag === ClassLoader.CONST_CLASS)
-                        this.poolTable.push(new ConstClass(constUtf8Index));
-                    else if(tag === ClassLoader.CONST_STRING)
-                        this.poolTable.push(new ConstSting(constUtf8Index));
-                    else if(tag === ClassLoader.CONST_METHOD_TYPE)
-                        this.poolTable.push(new ConstMethodType(constUtf8Index));
+                    if(tag === MjvmClassLoader.CONST_CLASS)
+                        this.poolTable.push(new MjvmConstClass(constUtf8Index));
+                    else if(tag === MjvmClassLoader.CONST_STRING)
+                        this.poolTable.push(new MjvmConstSting(constUtf8Index));
+                    else if(tag === MjvmClassLoader.CONST_METHOD_TYPE)
+                        this.poolTable.push(new MjvmConstMethodType(constUtf8Index));
                     break;
                 }
-                case ClassLoader.CONST_METHOD_HANDLE: {
+                case MjvmClassLoader.CONST_METHOD_HANDLE: {
                     const index1 = data[index];
                     index++;
                     const index2 = this.readU16(data, index);
                     index += 2;
-                    this.poolTable.push(new ConstMethodHandle(index1, index2));
+                    this.poolTable.push(new MjvmConstMethodHandle(index1, index2));
                     break;
                 }
                 default:
@@ -194,10 +194,10 @@ export class ClassLoader {
 
         this.accessFlags = this.readU16(data, index);
         index += 2;
-        const thisClass = this.poolTable[this.readU16(data, index) - 1] as ConstClass;
+        const thisClass = this.poolTable[this.readU16(data, index) - 1] as MjvmConstClass;
         this.thisClass = this.poolTable[thisClass.constUtf8Index - 1] as string;
         index += 2;
-        const superClass = this.poolTable[this.readU16(data, index) - 1] as ConstClass;
+        const superClass = this.poolTable[this.readU16(data, index) - 1] as MjvmConstClass;
         this.superClass = this.poolTable[superClass.constUtf8Index - 1] as string;
         index += 2;
         this.interfacesCount = this.readU16(data, index);
@@ -227,7 +227,7 @@ export class ClassLoader {
         }
         const methodsCount = this.readU16(data, index);
         index += 2;
-        const methodsInfos: MethodInfo[] = [];
+        const methodsInfos: MjvmMethodInfo[] = [];
         if(methodsCount) {
             for(let i = 0; i < methodsCount; i++) {
                 const flag = this.readU16(data, index);
@@ -238,36 +238,36 @@ export class ClassLoader {
                 index += 2;
                 let methodAttributesCount = this.readU16(data, index);
                 index += 2;
-                let attributeCode: AttributeCode | undefined = undefined;
+                let attributeCode: MjvmCodeAttribute | undefined = undefined;
                 while(methodAttributesCount--) {
                     const tmp = this.readAttribute(data, index);
                     index = tmp[0];
                     if(tmp[1] && !attributeCode) {
-                        if(tmp[1].tag === AttributeInfo.ATTRIBUTE_CODE)
-                            attributeCode = tmp[1] as AttributeCode;
+                        if(tmp[1].tag === MjvmAttribute.ATTRIBUTE_CODE)
+                            attributeCode = tmp[1] as MjvmCodeAttribute;
                     }
                 }
                 const methodName: string = this.poolTable[methodNameIndex - 1] as string;
                 const methodDescriptor: string = this.poolTable[methodDescriptorIndex - 1] as string;
-                if(!(flag & (MethodInfo.METHOD_NATIVE | MethodInfo.METHOD_BRIDGE)))
-                    methodsInfos.push(new MethodInfo(methodName, methodDescriptor, attributeCode));
+                if(!(flag & (MjvmMethodInfo.METHOD_NATIVE | MjvmMethodInfo.METHOD_BRIDGE)))
+                    methodsInfos.push(new MjvmMethodInfo(methodName, methodDescriptor, attributeCode));
             }
         }
         this.methodsInfos = methodsInfos;
     }
 
-    private readAttribute(data: Buffer, index: number): [number, AttributeInfo | undefined] {
+    private readAttribute(data: Buffer, index: number): [number, MjvmAttribute | undefined] {
         const nameIndex = this.readU16(data, index);
         index += 2;
         const length = this.readU32(data, index);
         index += 4;
-        const type = AttributeInfo.parseAttributeType(this.poolTable[nameIndex - 1] as string);
+        const type = MjvmAttribute.parseAttributeType(this.poolTable[nameIndex - 1] as string);
         switch(type) {
-            case AttributeInfo.ATTRIBUTE_CODE:
+            case MjvmAttribute.ATTRIBUTE_CODE:
                 return this.readAttributeCode(data, index);
-            case AttributeInfo.ATTRIBUTE_LINE_NUMBER_TABLE:
+            case MjvmAttribute.ATTRIBUTE_LINE_NUMBER_TABLE:
                 return this.readAttributeLineNumberTable(data, index);
-            case AttributeInfo.ATTRIBUTE_LOCAL_VARIABLE_TABLE:
+            case MjvmAttribute.ATTRIBUTE_LOCAL_VARIABLE_TABLE:
                 return this.readAttributeLocalVariableTable(data, index);
             default:
                 index += length;
@@ -275,7 +275,7 @@ export class ClassLoader {
         }
     }
 
-    private readAttributeCode(data: Buffer, index: number): [number, AttributeCode] {
+    private readAttributeCode(data: Buffer, index: number): [number, MjvmCodeAttribute] {
         const maxStack: number = this.readU16(data, index);
         index += 2;
         const maxLocals: number = this.readU16(data, index);
@@ -291,36 +291,36 @@ export class ClassLoader {
         let attrbutesCount = this.readU16(data, index);
         index += 2;
         if(attrbutesCount) {
-            const attr: AttributeInfo[] = [];
+            const attr: MjvmAttribute[] = [];
             while(attrbutesCount--) {
                 const tmp = this.readAttribute(data, index);
                 index = tmp[0];
                 if(tmp[1])
                     attr.push(tmp[1]);
             }
-            return [index, new AttributeCode(maxStack, maxLocals, code, attr)];
+            return [index, new MjvmCodeAttribute(maxStack, maxLocals, code, attr)];
         }
-        return [index, new AttributeCode(maxStack, maxLocals, code, undefined)];
+        return [index, new MjvmCodeAttribute(maxStack, maxLocals, code, undefined)];
     }
 
-    private readAttributeLineNumberTable(data: Buffer, index: number): [number, AttributeLineNumber] {
+    private readAttributeLineNumberTable(data: Buffer, index: number): [number, MjvmLineNumberAttribute] {
         const lineNumberTableLength = this.readU16(data, index);
         index += 2;
-        const linesNumber: LineNumber[] = [];
+        const linesNumber: MjvmLineNumber[] = [];
         for(let i = 0; i < lineNumberTableLength; i++) {
             const startPc = this.readU16(data, index);
             index += 2;
             const lineNumber = this.readU16(data, index);
             index += 2;
-            linesNumber.push(new LineNumber(startPc, lineNumber));
+            linesNumber.push(new MjvmLineNumber(startPc, lineNumber));
         }
-        return [index, new AttributeLineNumber(linesNumber)];
+        return [index, new MjvmLineNumberAttribute(linesNumber)];
     }
 
-    private readAttributeLocalVariableTable(data: Buffer, index: number): [number, AttributeLocalVariable] {
+    private readAttributeLocalVariableTable(data: Buffer, index: number): [number, MjvmLocalVariableAttribute] {
         const localVariableTableLength = this.readU16(data, index);
         index += 2;
-        const localVariables: LocalVariable[] = [];
+        const localVariables: MjvmLocalVariable[] = [];
         for(let i = 0; i < localVariableTableLength; i++) {
             const startPc = this.readU16(data, index);
             index += 2;
@@ -334,12 +334,12 @@ export class ClassLoader {
             index += 2;
             const name = this.poolTable[nameIndex - 1] as string;
             const descriptor = this.poolTable[descriptorIndex - 1] as string;
-            localVariables.push(new LocalVariable(startPc, length, variableIndex, name, descriptor));
+            localVariables.push(new MjvmLocalVariable(startPc, length, variableIndex, name, descriptor));
         }
-        return [index, new AttributeLocalVariable(localVariables)];
+        return [index, new MjvmLocalVariableAttribute(localVariables)];
     }
 
-    public getMethodInfo(name: string, descriptor: string): MethodInfo | undefined {
+    public getMethodInfo(name: string, descriptor: string): MjvmMethodInfo | undefined {
         if(!this.methodsInfos)
             return undefined;
         for(let i = 0; i < this.methodsInfos.length; i++) {

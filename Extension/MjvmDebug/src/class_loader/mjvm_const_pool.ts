@@ -1,5 +1,5 @@
 
-export class ConstClass {
+export class MjvmConstClass {
     public readonly constUtf8Index: number;
 
     public constructor(constUtf8Index: number) {
@@ -7,7 +7,7 @@ export class ConstClass {
     }
 }
 
-export class ConstSting {
+export class MjvmConstSting {
     public readonly constUtf8Index: number;
 
     public constructor(constUtf8Index: number) {
@@ -15,7 +15,7 @@ export class ConstSting {
     }
 }
 
-export class ConstMethodType {
+export class MjvmConstMethodType {
     public readonly descriptorIndex: number;
 
     public constructor(descriptorIndex: number) {
@@ -23,7 +23,7 @@ export class ConstMethodType {
     }
 }
 
-export class ConstField {
+export class MjvmConstField {
     public readonly classIndex: number;
     public readonly nameAndTypeIndex: number;
 
@@ -33,7 +33,7 @@ export class ConstField {
     }
 }
 
-export class ConstMethod {
+export class MjvmConstMethod {
     public readonly classIndex: number;
     public readonly nameAndTypeIndex: number;
 
@@ -43,7 +43,7 @@ export class ConstMethod {
     }
 }
 
-export class ConstInterfaceMethod {
+export class MjvmConstInterfaceMethod {
     public readonly classIndex: number;
     public readonly nameAndTypeIndex: number;
 
@@ -53,7 +53,7 @@ export class ConstInterfaceMethod {
     }
 }
 
-export class ConstNameAndType {
+export class MjvmConstNameAndType {
     public readonly nameIndex: number;
     public readonly descriptorIndex: number;
 
@@ -63,7 +63,7 @@ export class ConstNameAndType {
     }
 }
 
-export class ConstInvokeDynamic {
+export class MjvmConstInvokeDynamic {
     public readonly bootstrapMethodAttrIndex: number;
     public readonly nameAndTypeIndex: number;
 
@@ -73,7 +73,7 @@ export class ConstInvokeDynamic {
     }
 }
 
-export class ConstMethodHandle {
+export class MjvmConstMethodHandle {
     public readonly referenceKind: number;
     public readonly referenceIndex: number;
 

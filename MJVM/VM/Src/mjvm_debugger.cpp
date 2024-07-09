@@ -8,23 +8,23 @@ BreakPoint::BreakPoint(void) : pc(0), method(0) {
 
 }
 
-BreakPoint::BreakPoint(uint32_t pc, MethodInfo &method) : pc(pc), method(&method) {
+BreakPoint::BreakPoint(uint32_t pc, MjvmMethodInfo &method) : pc(pc), method(&method) {
 
 }
 
-StackTrace::StackTrace(void) : pc(0), baseSp(0), method(*(MethodInfo *)0) {
+MjvmStackFrame::MjvmStackFrame(void) : pc(0), baseSp(0), method(*(MjvmMethodInfo *)0) {
     
 }
 
-StackTrace::StackTrace(uint32_t pc, uint32_t baseSp, MethodInfo &method) : pc(pc), baseSp(baseSp), method(method) {
+MjvmStackFrame::MjvmStackFrame(uint32_t pc, uint32_t baseSp, MjvmMethodInfo &method) : pc(pc), baseSp(baseSp), method(method) {
 
 }
 
-Debugger::Debugger(Execution &execution) : execution(execution), stepCodeLength(0), status(DBG_STATUS_STOP), breakPointCount(0) {
+MjvmDebugger::MjvmDebugger(MjvmExecution &execution) : execution(execution), stepCodeLength(0), status(DBG_STATUS_STOP), breakPointCount(0) {
 
 }
 
-void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
+void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     static uint8_t txBuff[MAX_OF_DBG_BUFFER];
     txBuff[0] = data[0];
     switch((DebuggerCmd)data[0]) {
@@ -47,16 +47,16 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                 uint32_t index = sizeof(DebuggerCmd);
                 uint32_t stackIndex = (*(uint32_t *)&data[1]) & 0x7FFFFFFF;
 
-                StackTrace stackTrace;
+                MjvmStackFrame stackTrace;
                 bool isEndStack = false;
                 if(execution.getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
-                    MethodInfo &method = stackTrace.method;
-                    ConstUtf8 &className = method.classLoader.getThisClass();
+                    MjvmMethodInfo &method = stackTrace.method;
+                    MjvmConstUtf8 &className = method.classLoader.getThisClass();
 
                     uint32_t responseSize = 10;
-                    responseSize += sizeof(ConstUtf8) + className.length + 1;
-                    responseSize += sizeof(ConstUtf8) + method.name.length + 1;
-                    responseSize += sizeof(ConstUtf8) + method.descriptor.length + 1;
+                    responseSize += sizeof(MjvmConstUtf8) + className.length + 1;
+                    responseSize += sizeof(MjvmConstUtf8) + method.name.length + 1;
+                    responseSize += sizeof(MjvmConstUtf8) + method.descriptor.length + 1;
 
                     if(responseSize <= sizeof(txBuff)) {
                         txBuff[1] = 0;
@@ -65,11 +65,11 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                         index += sizeof(uint32_t);
                         *(uint32_t *)&txBuff[index] = stackTrace.pc;
                         index += sizeof(uint32_t);
-                        memcpy(&txBuff[index], &className, sizeof(ConstUtf8) + className.length + 1);
-                        index += sizeof(ConstUtf8) + className.length + 1;
-                        memcpy(&txBuff[index], &method.name, sizeof(ConstUtf8) + method.name.length + 1);
-                        index += sizeof(ConstUtf8) + method.name.length + 1;
-                        memcpy(&txBuff[index], &method.descriptor, sizeof(ConstUtf8) + method.descriptor.length + 1);
+                        memcpy(&txBuff[index], &className, sizeof(MjvmConstUtf8) + className.length + 1);
+                        index += sizeof(MjvmConstUtf8) + className.length + 1;
+                        memcpy(&txBuff[index], &method.name, sizeof(MjvmConstUtf8) + method.name.length + 1);
+                        index += sizeof(MjvmConstUtf8) + method.name.length + 1;
+                        memcpy(&txBuff[index], &method.descriptor, sizeof(MjvmConstUtf8) + method.descriptor.length + 1);
                         sendData(txBuff, responseSize);
                     }
                     else {
@@ -88,11 +88,11 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             uint32_t index = sizeof(DebuggerCmd);
             uint32_t pc = *(uint32_t *)&data[index];
             index += sizeof(uint32_t);
-            ConstUtf8 &className = *(ConstUtf8 *)&data[index];
-            index += sizeof(ConstUtf8) + className.length + 1;
-            ConstUtf8 &methodName = *(ConstUtf8 *)&data[index];
-            index += sizeof(ConstUtf8) + methodName.length + 1;
-            ConstUtf8 &descriptor = *(ConstUtf8 *)&data[index];
+            MjvmConstUtf8 &className = *(MjvmConstUtf8 *)&data[index];
+            index += sizeof(MjvmConstUtf8) + className.length + 1;
+            MjvmConstUtf8 &methodName = *(MjvmConstUtf8 *)&data[index];
+            index += sizeof(MjvmConstUtf8) + methodName.length + 1;
+            MjvmConstUtf8 &descriptor = *(MjvmConstUtf8 *)&data[index];
             if((DebuggerCmd)data[0] == DBG_ADD_BKP)
                 txBuff[1] = !addBreakPoint(pc, className, methodName, descriptor);
             else
@@ -191,9 +191,9 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                             *(uint32_t *)&txBuff[3] = value;
                             responseSize += 5;
                             if(isObject) {
-                                ConstUtf8 &type = ((MjvmObject *)value)->type;
-                                memcpy(&txBuff[responseSize], &type, sizeof(ConstUtf8) + type.length + 1);
-                                responseSize += sizeof(ConstUtf8) + type.length + 1;
+                                MjvmConstUtf8 &type = ((MjvmObject *)value)->type;
+                                memcpy(&txBuff[responseSize], &type, sizeof(MjvmConstUtf8) + type.length + 1);
+                                responseSize += sizeof(MjvmConstUtf8) + type.length + 1;
                             }
                         }
                         else
@@ -228,11 +228,11 @@ void Debugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     }
 }
 
-bool Debugger::addBreakPoint(uint32_t pc, ConstUtf8 &className, ConstUtf8 &methodName, ConstUtf8 &descriptor) {
+bool MjvmDebugger::addBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmConstUtf8 &methodName, MjvmConstUtf8 &descriptor) {
     try {
         if(breakPointCount < LENGTH(breakPoints)) {
-            ClassLoader &loader = execution.load(className);
-            MethodInfo *method = &loader.getMethodInfo(methodName, descriptor);
+            MjvmClassLoader &loader = execution.load(className);
+            MjvmMethodInfo *method = &loader.getMethodInfo(methodName, descriptor);
             if(method) {
                 for(uint8_t i = 0; i < breakPointCount; i++) {
                     if(method == breakPoints[i].method && pc == breakPoints[i].pc)
@@ -250,11 +250,11 @@ bool Debugger::addBreakPoint(uint32_t pc, ConstUtf8 &className, ConstUtf8 &metho
     return false;
 }
 
-bool Debugger::removeBreakPoint(uint32_t pc, ConstUtf8 &className, ConstUtf8 &methodName, ConstUtf8 &descriptor) {
+bool MjvmDebugger::removeBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmConstUtf8 &methodName, MjvmConstUtf8 &descriptor) {
     try {
         if(breakPointCount) {
-            ClassLoader &loader = execution.load(className);
-            MethodInfo *method = &loader.getMethodInfo(methodName, descriptor);
+            MjvmClassLoader &loader = execution.load(className);
+            MjvmMethodInfo *method = &loader.getMethodInfo(methodName, descriptor);
             if(method) {
                 for(uint8_t i = 0; i < breakPointCount; i++) {
                     if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
@@ -272,22 +272,22 @@ bool Debugger::removeBreakPoint(uint32_t pc, ConstUtf8 &className, ConstUtf8 &me
     return false;
 }
 
-bool Debugger::exceptionIsEnabled(void) {
+bool MjvmDebugger::exceptionIsEnabled(void) {
     return (status & DBG_STATUS_EXCP_EN) == DBG_STATUS_EXCP_EN;
 }
 
-void Debugger::caughtException(void) {
+void MjvmDebugger::caughtException(void) {
     Mjvm::lock();
     status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     Mjvm::unlock();
     checkBreakPoint();
 }
 
-void Debugger::checkBreakPoint(void) {
+void MjvmDebugger::checkBreakPoint(void) {
     if(!(status & DBG_STATUS_STOP)) {
         if(breakPointCount) {
             uint32_t pc = execution.pc;
-            MethodInfo *method = execution.method;
+            MjvmMethodInfo *method = execution.method;
             for(uint8_t i = 0; i < breakPointCount; i++) {
                 if(breakPoints[i].method == method && breakPoints[i].pc == pc) {
                     Mjvm::lock();
@@ -350,7 +350,7 @@ void Debugger::checkBreakPoint(void) {
     }
 }
 
-void Debugger::done(void) {
+void MjvmDebugger::done(void) {
     Mjvm::lock();
     status |= DBG_STATUS_DONE;
     Mjvm::unlock();

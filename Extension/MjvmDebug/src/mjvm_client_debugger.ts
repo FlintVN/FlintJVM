@@ -4,8 +4,7 @@ import {
     Variable
 } from '@vscode/debugadapter';
 import * as net from 'net';
-import { Semaphore } from './mjvm_semaphone'
-import { ClassLoader } from './class_loader/mjvm_class_loader'
+import { MjvmSemaphore } from './mjvm_semaphone'
 import { MjvmLineInfo } from './class_loader/mjvm_line_info'
 import { MjvmStackFrame } from './class_loader/mjvm_stack_frame';
 
@@ -39,7 +38,7 @@ export class MjvmClientDebugger {
     private currentStackFrames?: MjvmStackFrame[];
     private currentBreakpoints: MjvmLineInfo[] = [];
 
-    private tcpSemaphore = new Semaphore(1);
+    private tcpSemaphore = new MjvmSemaphore(1);
 
     private stopCallback?: () => void;
     private errorCallback?: () => void;

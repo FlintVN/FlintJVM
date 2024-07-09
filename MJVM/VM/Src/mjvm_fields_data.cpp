@@ -4,19 +4,19 @@
 #include "mjvm_fields_data.h"
 #include "mjvm_execution.h"
 
-FieldData32::FieldData32(const FieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
+FieldData32::FieldData32(const MjvmFieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
 
 }
 
-FieldData64::FieldData64(const FieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
+FieldData64::FieldData64(const MjvmFieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
 
 }
 
-FieldObject::FieldObject(const FieldInfo &fieldInfo) : fieldInfo(fieldInfo), object(0) {
+FieldObject::FieldObject(const MjvmFieldInfo &fieldInfo) : fieldInfo(fieldInfo), object(0) {
 
 }
 
-FieldsData::FieldsData(Execution &execution, const ClassLoader &classLoader, bool isStatic) :
+MjvmFieldsData::MjvmFieldsData(MjvmExecution &execution, const MjvmClassLoader &classLoader, bool isStatic) :
 fields32Count(0), fields64Count(0), fieldsObjCount(0) {
     if(isStatic)
         loadStatic(classLoader);
@@ -24,14 +24,14 @@ fields32Count(0), fields64Count(0), fieldsObjCount(0) {
         loadNonStatic(execution, classLoader);
 }
 
-void FieldsData::loadStatic(const ClassLoader &classLoader) {
+void MjvmFieldsData::loadStatic(const MjvmClassLoader &classLoader) {
     uint16_t fieldsCount = classLoader.getFieldsCount();
     uint16_t field32Index = 0;
     uint16_t field64Index = 0;
     uint16_t fieldObjIndex = 0;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
-        const FieldInfo &fieldInfo = classLoader.getFieldInfo(index);
+        const MjvmFieldInfo &fieldInfo = classLoader.getFieldInfo(index);
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
             switch(fieldInfo.descriptor.text[0]) {
                 case 'J':   /* Long */
@@ -54,7 +54,7 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
     fieldsObject = (fieldsObjCount) ? (FieldObject *)Mjvm::malloc(fieldsObjCount * sizeof(FieldObject)) : 0;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
-        const FieldInfo &fieldInfo = classLoader.getFieldInfo(index);
+        const MjvmFieldInfo &fieldInfo = classLoader.getFieldInfo(index);
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
             switch(fieldInfo.descriptor.text[0]) {
                 case 'J':   /* Long */
@@ -73,17 +73,17 @@ void FieldsData::loadStatic(const ClassLoader &classLoader) {
     }
 }
 
-void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoader) {
+void MjvmFieldsData::loadNonStatic(MjvmExecution &execution, const MjvmClassLoader &classLoader) {
     uint16_t field32Index = 0;
     uint16_t field64Index = 0;
     uint16_t fieldObjIndex = 0;
 
-    const ClassLoader *loader = &classLoader;
+    const MjvmClassLoader *loader = &classLoader;
 
     while(loader) {
         uint16_t fieldsCount = loader->getFieldsCount();
         for(uint16_t index = 0; index < fieldsCount; index++) {
-            const FieldInfo &fieldInfo = loader->getFieldInfo(index);
+            const MjvmFieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
                 switch(fieldInfo.descriptor.text[0]) {
                     case 'J':   /* Long */
@@ -100,7 +100,7 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
                 }
             }
         }
-        ConstUtf8 *superClass = &loader->getSuperClass();
+        MjvmConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &execution.load(*superClass) : 0;
     }
 
@@ -112,7 +112,7 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
     while(loader) {
         uint16_t fieldsCount = loader->getFieldsCount();
         for(uint16_t index = 0; index < fieldsCount; index++) {
-            const FieldInfo &fieldInfo = loader->getFieldInfo(index);
+            const MjvmFieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
                 switch(fieldInfo.descriptor.text[0]) {
                     case 'J':   /* Long */
@@ -129,15 +129,15 @@ void FieldsData::loadNonStatic(Execution &execution, const ClassLoader &classLoa
                 }
             }
         }
-        ConstUtf8 *superClass = &loader->getSuperClass();
+        MjvmConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &execution.load(*superClass) : 0;
     }
 }
 
-FieldData32 &FieldsData::getFieldData32(const ConstNameAndType &fieldName) const {
+FieldData32 &MjvmFieldsData::getFieldData32(const MjvmConstNameAndType &fieldName) const {
     if(fields32Count) {
         for(uint16_t i = 0; i < fields32Count; i++) {
-            const FieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
+            const MjvmFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
             if(fieldInfo.name == fieldName.name && fieldInfo.descriptor == fieldName.descriptor)
                 return fieldsData32[i];
         }
@@ -145,10 +145,10 @@ FieldData32 &FieldsData::getFieldData32(const ConstNameAndType &fieldName) const
     return *(FieldData32 *)0;
 }
 
-FieldData64 &FieldsData::getFieldData64(const ConstNameAndType &fieldName) const {
+FieldData64 &MjvmFieldsData::getFieldData64(const MjvmConstNameAndType &fieldName) const {
     if(fields64Count) {
         for(uint16_t i = 0; i < fields64Count; i++) {
-            const FieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
+            const MjvmFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
             if(fieldInfo.name == fieldName.name && fieldInfo.descriptor == fieldName.descriptor)
                 return fieldsData64[i];
         }
@@ -156,10 +156,10 @@ FieldData64 &FieldsData::getFieldData64(const ConstNameAndType &fieldName) const
     return *(FieldData64 *)0;
 }
 
-FieldObject &FieldsData::getFieldObject(const ConstNameAndType &fieldName) const {
+FieldObject &MjvmFieldsData::getFieldObject(const MjvmConstNameAndType &fieldName) const {
     if(fieldsObjCount) {
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
-            const FieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
+            const MjvmFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
             if(fieldInfo.name == fieldName.name && fieldInfo.descriptor == fieldName.descriptor)
                 return fieldsObject[i];
         }
@@ -167,7 +167,7 @@ FieldObject &FieldsData::getFieldObject(const ConstNameAndType &fieldName) const
     return *(FieldObject *)0;
 }
 
-FieldsData::~FieldsData(void) {
+MjvmFieldsData::~MjvmFieldsData(void) {
     if(fieldsData32)
         Mjvm::free(fieldsData32);
     if(fieldsData64)
@@ -178,12 +178,12 @@ FieldsData::~FieldsData(void) {
 
 ClassData::~ClassData() {
     if(staticFiledsData) {
-        staticFiledsData->~FieldsData();
+        staticFiledsData->~MjvmFieldsData();
         Mjvm::free(staticFiledsData);
     }
 }
 
-ClassData::ClassData(const char *fileName) : ClassLoader(fileName) {
+ClassData::ClassData(const char *fileName) : MjvmClassLoader(fileName) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;
@@ -191,7 +191,7 @@ ClassData::ClassData(const char *fileName) : ClassLoader(fileName) {
     next = 0;
 }
 
-ClassData::ClassData(const char *fileName, uint16_t length) : ClassLoader(fileName, length) {
+ClassData::ClassData(const char *fileName, uint16_t length) : MjvmClassLoader(fileName, length) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;
@@ -199,7 +199,7 @@ ClassData::ClassData(const char *fileName, uint16_t length) : ClassLoader(fileNa
     next = 0;
 }
 
-ClassData::ClassData(const ConstUtf8 &fileName) : ClassLoader(fileName) {
+ClassData::ClassData(const MjvmConstUtf8 &fileName) : MjvmClassLoader(fileName) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;

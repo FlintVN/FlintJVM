@@ -16,12 +16,12 @@ const char *LoadFileError::getFileName(void) const {
     return (const char *)this;
 }
 
-ExecutionNode::ExecutionNode(void) : Execution() {
+ExecutionNode::ExecutionNode(void) : MjvmExecution() {
     prev = 0;
     next = 0;
 }
 
-ExecutionNode::ExecutionNode(uint32_t stackSize) : Execution(stackSize) {
+ExecutionNode::ExecutionNode(uint32_t stackSize) : MjvmExecution(stackSize) {
     prev = 0;
     next = 0;
 }
@@ -62,7 +62,7 @@ void Mjvm::free(void *p) {
     MjvmSystem_Free(p);
 }
 
-Execution &Mjvm::newExecution(void) {
+MjvmExecution &Mjvm::newExecution(void) {
     ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
     lock();
     newNode->next = executionList;
@@ -73,7 +73,7 @@ Execution &Mjvm::newExecution(void) {
     return *new (newNode)ExecutionNode();
 }
 
-Execution &Mjvm::newExecution(uint32_t stackSize) {
+MjvmExecution &Mjvm::newExecution(uint32_t stackSize) {
     ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
     new (newNode)ExecutionNode(stackSize);
     lock();
@@ -85,7 +85,7 @@ Execution &Mjvm::newExecution(uint32_t stackSize) {
     return *newNode;
 }
 
-void Mjvm::destroy(const Execution &execution) {
+void Mjvm::destroy(const MjvmExecution &execution) {
     ExecutionNode *node = (ExecutionNode *)&execution;
     lock();
     if(node->prev)

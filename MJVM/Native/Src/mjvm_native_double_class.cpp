@@ -4,13 +4,13 @@
 #include "mjvm_const_name.h"
 #include "mjvm_native_double_class.h"
 
-static bool nativeDoubleToRawLongBits(Execution &execution) {
+static bool nativeDoubleToRawLongBits(MjvmExecution &execution) {
     double value = execution.stackPopDouble();
     execution.stackPushInt64(*(int64_t *)&value);
     return true;
 }
 
-static bool nativeLongBitsToDouble(Execution &execution) {
+static bool nativeLongBitsToDouble(MjvmExecution &execution) {
     int64_t bits = execution.stackPopInt64();
     execution.stackPushDouble(*(double *)&bits);
     return true;
