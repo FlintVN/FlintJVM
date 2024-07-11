@@ -13,7 +13,7 @@ BreakPoint::BreakPoint(uint32_t pc, MjvmMethodInfo &method) : pc(pc), method(&me
 }
 
 MjvmStackFrame::MjvmStackFrame(void) : pc(0), baseSp(0), method(*(MjvmMethodInfo *)0) {
-    
+
 }
 
 MjvmStackFrame::MjvmStackFrame(uint32_t pc, uint32_t baseSp, MjvmMethodInfo &method) : pc(pc), baseSp(baseSp), method(method) {
@@ -174,50 +174,69 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             sendData(txBuff, 2);
             break;
         }
-        case DBG_READ_LOCAL:
-        case DBG_WRITE_LOCAL: {
+        case DBG_READ_LOCAL: {
             uint32_t responseSize = 2;
             if(status & DBG_STATUS_STOP) {
-                uint8_t mode = data[1];
                 uint32_t stackIndex = (*(uint32_t *)&data[2]) & 0x7FFFFFFF;
                 uint32_t localIndex = (*(uint32_t *)&data[6]);
-                if((DebuggerCmd)data[0] == DBG_READ_LOCAL) {
-                    if(mode == 0) {
-                        uint32_t value;
-                        bool isObject;
-                        if(execution.readLocal(stackIndex, localIndex, value, isObject)) {
-                            txBuff[1] = 0;
-                            txBuff[2] = isObject;
-                            *(uint32_t *)&txBuff[3] = value;
-                            responseSize += 5;
-                            if(isObject) {
-                                MjvmConstUtf8 &type = ((MjvmObject *)value)->type;
-                                memcpy(&txBuff[responseSize], &type, sizeof(MjvmConstUtf8) + type.length + 1);
-                                responseSize += sizeof(MjvmConstUtf8) + type.length + 1;
+                if(data[1] == 0) {
+                    uint32_t value;
+                    bool isObject;
+                    if((responseSize + 10) <= sizeof(txBuff) && execution.readLocal(stackIndex, localIndex, value, isObject)) {
+                        txBuff[1] = 0;
+                        *(uint32_t *)&txBuff[2] = 4;
+                        *(uint32_t *)&txBuff[6] = value;
+                        responseSize += 10;
+                        if(isObject) {
+                            MjvmObject &obj = *(MjvmObject *)value;
+                            MjvmConstUtf8 &type = obj.type;
+                            uint8_t isPrim = obj.isPrimType(type);
+                            uint16_t typeLength = obj.dimensions + (isPrim ? 0 : 2) + type.length;
+                            if((responseSize + sizeof(MjvmConstUtf8) + typeLength + 1) <= sizeof(txBuff)) {
+                                *(uint32_t *)&txBuff[2] = obj.size;
+                                txBuff[10] = typeLength & 0xFF;
+                                txBuff[11] = typeLength >> 8;
+                                txBuff[12] = 0;
+                                txBuff[13] = 0;
+                                responseSize = 14;
+                                for(uint32_t i = 0; i < obj.dimensions; i++)
+                                    txBuff[responseSize++] = '[';
+                                if(!isPrim)
+                                    txBuff[responseSize++] = 'L';
+                                memcpy(&txBuff[responseSize], type.text, type.length);
+                                responseSize += type.length;
+                                if(!isPrim)
+                                    txBuff[responseSize++] = ';';
+                                txBuff[responseSize++] = 0;
                             }
+                            else
+                                txBuff[1] = 1;
                         }
-                        else
-                            txBuff[1] = 1;
                     }
-                    else {
-                        uint64_t value;
-                        if(execution.readLocal(stackIndex, localIndex, value)) {
-                            txBuff[1] = 0;
-                            txBuff[2] = 0;
-                            *(uint64_t *)&txBuff[3] = value;
-                            responseSize += 9;
-                        }
-                        else
-                            txBuff[1] = 1;
+                    else
+                        txBuff[1] = 1;
+                }
+                else if((responseSize + 12) <= sizeof(txBuff)) {
+                    uint64_t value;
+                    if(execution.readLocal(stackIndex, localIndex, value)) {
+                        txBuff[1] = 0;
+                        *(uint32_t *)&txBuff[2] = 8;
+                        *(uint64_t *)&txBuff[6] = value;
+                        responseSize = 14;
                     }
+                    else
+                        txBuff[1] = 1;
                 }
-                else {
-                    // TODO
-                }
+                else
+                    txBuff[1] = 1;
             }
             else
                 txBuff[1] = 1;
             sendData(txBuff, responseSize);
+            break;
+        }
+        case DBG_WRITE_LOCAL: {
+            // TODO
             break;
         }
         default: {

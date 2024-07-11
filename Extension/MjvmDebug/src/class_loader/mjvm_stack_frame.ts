@@ -15,11 +15,18 @@ export class MjvmStackFrame {
         this.localVariables = localVariables;
     }
 
-    public getLocalVariableInfo(name: string): MjvmLocalVariable | undefined {
+    public getLocalVariableInfo(variable: number | string): MjvmLocalVariable | undefined {
         if(this.localVariables) {
-            for(let i = 0; i < this.localVariables.length; i++) {
-                if(this.localVariables[i].name === name)
-                    return this.localVariables[i];
+            if(typeof variable === 'number') {
+                if(variable < this.localVariables.length)
+                    return this.localVariables[variable];
+                return undefined;
+            }
+            else {
+                for(let i = 0; i < this.localVariables.length; i++) {
+                    if(this.localVariables[i].name === variable)
+                        return this.localVariables[i];
+                }
             }
         }
         return undefined;

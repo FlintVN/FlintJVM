@@ -74,8 +74,6 @@ public:
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
     void receivedDataHandler(uint8_t *data, uint32_t length);
 
-    bool getStackTrace(uint32_t index, MjvmStackFrame *stackTrace, bool *isEndStack) const;
-
     bool exceptionIsEnabled(void);
     void caughtException(void);
     void checkBreakPoint(void);

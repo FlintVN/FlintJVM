@@ -4,7 +4,8 @@ import {
 	LoggingDebugSession,
 	InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent,
 	ProgressStartEvent, ProgressUpdateEvent, ProgressEndEvent, InvalidatedEvent,
-	Thread, StackFrame, Scope, Source, Handles, Breakpoint, MemoryEvent
+	Thread, StackFrame, Scope, Source, Handles, Breakpoint, MemoryEvent,
+    Variable
 } from '@vscode/debugadapter';
 import { DebugProtocol } from '@vscode/debugprotocol';
 import * as vscode from 'vscode';
@@ -171,7 +172,7 @@ export class MjvmDebugSession extends LoggingDebugSession {
 
     protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments, request?: DebugProtocol.Request): void {
         const scopes: DebugProtocol.Scope[] = [
-            new Scope("Local", 0x100000000 | args.frameId, true),
+            new Scope("Local", 0x100000000 + args.frameId, true),
             new Scope("Global", 0x200000000, true),
         ];
         response.body = {
@@ -181,14 +182,18 @@ export class MjvmDebugSession extends LoggingDebugSession {
     }
 
     protected variablesRequest(response: DebugProtocol.VariablesResponse, args: DebugProtocol.VariablesArguments, request?: DebugProtocol.Request): void {
-        const variableType = args.variablesReference >>> 32;
-        if(variableType === 1) {
-            response.body
+        const variableType: bigint = BigInt(args.variablesReference) >> 32n;
+        if(variableType === 1n) {
+            const frameId = args.variablesReference & 0xFFFFFFFF;
+            this.clientDebugger.readLocalVariable(frameId).then((result) => {
+                if(result)
+                    response.body = {variables: result};
+                this.sendResponse(response);
+            })
         }
-        else if(variableType === 2) {
-
+        else if(variableType === 2n) {
+            this.sendResponse(response);
         }
-        this.sendResponse(response);
     }
 
     protected evaluateRequest(response: DebugProtocol.EvaluateResponse, args: DebugProtocol.EvaluateArguments): void {

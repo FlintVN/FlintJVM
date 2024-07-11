@@ -5,6 +5,7 @@ import {
 } from '@vscode/debugadapter';
 import * as net from 'net';
 import { MjvmSemaphore } from './mjvm_semaphone'
+import { MjvmValueInfo } from './mjvm_value_info';
 import { MjvmLineInfo } from './class_loader/mjvm_line_info'
 import { MjvmStackFrame } from './class_loader/mjvm_stack_frame';
 
@@ -524,12 +525,18 @@ export class MjvmClientDebugger {
             }
             if(arrayCount > 0)
                 simpleName = simpleName.concat("[]".repeat(arrayCount));
-            const dotIndexLastIndex = simpleName.lastIndexOf('\/');
-            if(dotIndexLastIndex >= 0)
-                simpleName = simpleName.substring(dotIndexLastIndex + 1);
             ret.push(simpleName);
         }
         return ret;
+    }
+
+    private getShortenName(name: string): string {
+        let dotIndexLastIndex = name.lastIndexOf('\/');
+        if(dotIndexLastIndex < 0)
+            dotIndexLastIndex = name.lastIndexOf('.');
+        if(dotIndexLastIndex >= 0)
+            return name.substring(dotIndexLastIndex + 1);
+        return name;
     }
 
     private convertToStackFrame(stackFrames: MjvmStackFrame[]): StackFrame[] {
@@ -545,7 +552,7 @@ export class MjvmClientDebugger {
             const descriptor = lineInfo.methodInfo.descriptor;
             const names = this.getSimpleNames(descriptor.substring(1, descriptor.lastIndexOf(')')));
             for(let i = 0; i < names.length; i++) {
-                methodName += names[i];
+                methodName += this.getShortenName(names[i]);
                 if((i + 1) < names.length)
                     methodName += ', ';
             }
@@ -581,9 +588,86 @@ export class MjvmClientDebugger {
         });
     }
 
-    private readLocal(stackFrame: MjvmStackFrame, name: string): Thenable<undefined | null | number | bigint | string | object> {
+    private isPrimType(descriptor: string): boolean {
+        if(descriptor.length === 1) {
+            switch(descriptor) {
+                case 'Z':
+                case 'C':
+                case 'F':
+                case 'D':
+                case 'B':
+                case 'S':
+                case 'I':
+                case 'J':
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        return false;
+    }
+
+    private isBooleanType(descriptor: string): boolean {
+        if(descriptor.length === 1) {
+            switch(descriptor) {
+                case 'Z':
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        return false;
+    }
+
+    private isArrayType(descriptor: string): boolean {
+        if(descriptor.length >= 1) {
+            switch(descriptor.charAt(0)) {
+                case '[':
+                    return true;
+                default:
+                    return false;
+            }
+        }
+        return false;
+    }
+
+    private getElementTypeSize(arrayDescriptor: string): number {
+        let index = 0;
+        if(arrayDescriptor.charAt(index) === '[')
+            index++;
+        switch(arrayDescriptor.charAt(index)) {
+            case 'Z':
+            case 'B':
+                return 1;
+            case 'C':
+            case 'S':
+                return 2;
+            case 'J':
+            case 'D':
+                return 8;
+            default:
+                return 4;
+        }
+    }
+
+    private binaryToFloat32(binary: number): number {
+        const buffer = new ArrayBuffer(4);
+        const view = new DataView(buffer);
+        view.setUint32(0, binary);
+        return view.getFloat32(0);
+    }
+
+    private binaryToFloat64(binary: bigint): number {
+        const buffer = new ArrayBuffer(8);
+        const view = new DataView(buffer);
+        view.setUint32(0, Number(binary >> 32n));
+        view.setUint32(4, Number(binary >> 0xFFFFFFFFn));
+        return view.getFloat64(0);
+    }
+
+    private readLocal(stackFrame: MjvmStackFrame, variable: number | string): Thenable<undefined | MjvmValueInfo> {
         return new Promise((resolve) => {
-            let localVariableInfo = stackFrame.getLocalVariableInfo(name);
+            const localVariableInfo = stackFrame.getLocalVariableInfo(variable);
             if(!localVariableInfo) {
                 resolve(undefined);
                 return;
@@ -605,12 +689,80 @@ export class MjvmClientDebugger {
                     resolve(undefined);
                     return;
                 }
-                const isObject: boolean = (data[2] !== 0) ? true : false;
-                const value = isReadU64 ? this.readU64(data, 3) : this.readU32(data, 3);
-                if(!isObject) {
-                    resolve(value);
-                    return;
+                const size = this.readU32(data, 2);
+                let value = isReadU64 ? this.readU64(data, 6) : this.readU32(data, 6);
+                if(this.isPrimType(localVariableInfo.descriptor)) {
+                    if(localVariableInfo.descriptor === 'F')
+                        value = this.binaryToFloat32(value as number);
+                    else if(localVariableInfo.descriptor === 'D')
+                        value = this.binaryToFloat64(value as bigint);
+                    resolve(new MjvmValueInfo(value, localVariableInfo.descriptor, size));
                 }
+                else {
+                    let type: string;
+                    if(!isReadU64 && data.length > 11) {
+                        const typeLength = this.readU16(data, 6);
+                        type = data.toString('utf-8', 14, 14 + typeLength);
+                    }
+                    else
+                        type = localVariableInfo.descriptor;
+                    resolve(new MjvmValueInfo(value, type, size));
+                }
+            });
+        });
+    }
+
+    public readLocalVariable(frameId: number): Thenable<Variable[] | undefined> {
+        return new Promise((resolve) => {
+            const ret: Variable[] = [];
+            const readLocalTask = (stackFrame: MjvmStackFrame, variableIndex: number) => {
+                if(stackFrame.localVariables && variableIndex < stackFrame.localVariables.length) {
+                    const variableName = stackFrame.localVariables[variableIndex].name;
+                    const localVariablesLength = stackFrame.localVariables.length;
+                    this.readLocal(stackFrame, variableIndex).then((result) => {
+                        if(result !== undefined) {
+                            if(this.isPrimType(result.type)) {
+                                const value = result.value;
+                                if(this.isBooleanType(result.type))
+                                    ret.push({name: variableName, value: (value === 0) ? 'false' : 'true', variablesReference: 0});
+                                else if(result.type === 'C')
+                                    ret.push({name: variableName, value: '\'' + String.fromCharCode(value as number) + '\'', variablesReference: 0});
+                                else
+                                    ret.push({name: variableName, value: value.toString(), variablesReference: 0});
+                            }
+                            else {
+                                if(result.value === 0)
+                                    ret.push({name: variableName, value: 'null', variablesReference: 0});
+                                else {
+                                    let type = this.getSimpleNames(result.type)[0];
+                                    type = this.getShortenName(type);
+                                    if(this.isArrayType(result.type)) {
+                                        const arrayLength = result.size / this.getElementTypeSize(result.type);
+                                        type = type.replace('[]', '[' + arrayLength + ']');
+                                    }
+                                    ret.push({name: variableName, value: type, variablesReference: result.value as number});
+                                }
+                            }
+                            variableIndex++;
+                            if(variableIndex < localVariablesLength)
+                                readLocalTask(stackFrame, variableIndex);
+                            else
+                                resolve(ret);
+                        }
+                        else
+                            resolve(undefined);
+                    });
+                }
+                else
+                    resolve(undefined);
+            };
+            if(this.currentStackFrames && this.currentStackFrames.length > frameId)
+                readLocalTask(this.currentStackFrames[frameId], 0);
+            else this.readStackFrame(frameId).then((stackFrame) => {
+                if(stackFrame)
+                    readLocalTask(stackFrame, 0);
+                else
+                    resolve(undefined);
             });
         });
     }

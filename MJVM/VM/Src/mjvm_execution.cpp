@@ -629,9 +629,10 @@ bool MjvmExecution::getStackTrace(uint32_t index, MjvmStackFrame *stackTrace, bo
         }
         uint32_t tracePc = stack[traceSp - 2];
         MjvmMethodInfo &traceMethod = *(MjvmMethodInfo *)stack[traceSp - 3];
+        traceSp = stack[traceSp];
         new (stackTrace)MjvmStackFrame(tracePc, traceSp, traceMethod);
         if(isEndStack)
-            *isEndStack = (stack[traceSp] < 4);
+            *isEndStack = (traceSp < 4);
         return true;
     }
 }
