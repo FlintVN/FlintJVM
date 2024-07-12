@@ -1,10 +1,10 @@
 
 import {
-	Logger, logger,
-	LoggingDebugSession,
-	InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent,
-	ProgressStartEvent, ProgressUpdateEvent, ProgressEndEvent, InvalidatedEvent,
-	Thread, StackFrame, Scope, Source, Handles, Breakpoint, MemoryEvent,
+    Logger, logger,
+    LoggingDebugSession,
+    InitializedEvent, TerminatedEvent, StoppedEvent, BreakpointEvent, OutputEvent,
+    ProgressStartEvent, ProgressUpdateEvent, ProgressEndEvent, InvalidatedEvent,
+    Thread, StackFrame, Scope, Source, Handles, Breakpoint, MemoryEvent,
     Variable
 } from '@vscode/debugadapter';
 import { DebugProtocol } from '@vscode/debugprotocol';
@@ -18,8 +18,11 @@ export class MjvmDebugSession extends LoggingDebugSession {
         super('mjvm-debug.txt');
         this.clientDebugger = new MjvmClientDebugger();
 
-        this.clientDebugger.onStop(() => {
-            this.sendEvent(new StoppedEvent('stop', 1));
+        this.clientDebugger.onStop((reason?: string) => {
+            if(reason)
+                this.sendEvent(new StoppedEvent(reason, 1));
+            else
+                this.sendEvent(new StoppedEvent('stop', 1));
         });
 
         this.clientDebugger.onError(() => {
@@ -35,27 +38,27 @@ export class MjvmDebugSession extends LoggingDebugSession {
 
     protected initializeRequest(response: DebugProtocol.InitializeResponse, args: DebugProtocol.InitializeRequestArguments): void {
         response.body = response.body || {};
-		response.body.supportsConfigurationDoneRequest = true;
-		response.body.supportsEvaluateForHovers = true;
-		response.body.supportsStepBack = false;
+        response.body.supportsConfigurationDoneRequest = true;
+        response.body.supportsEvaluateForHovers = true;
+        response.body.supportsStepBack = false;
         response.body.supportsStepInTargetsRequest = true;
         response.body.supportsSteppingGranularity = true;
-		response.body.supportsDataBreakpoints = true;
-		response.body.supportsCompletionsRequest = true;
-		response.body.supportsCancelRequest = true;
-		response.body.supportsBreakpointLocationsRequest = true;
-		response.body.supportsExceptionFilterOptions = true;
-		response.body.supportsExceptionInfoRequest = true;
-		response.body.supportsSetVariable = true;
-		response.body.supportsSetExpression = true;
-		response.body.supportsDisassembleRequest = true;
-		response.body.supportsInstructionBreakpoints = true;
-		response.body.supportsReadMemoryRequest = false;
-		response.body.supportsWriteMemoryRequest = false;
-		response.body.supportSuspendDebuggee = true;
-		response.body.supportTerminateDebuggee = true;
-		response.body.supportsFunctionBreakpoints = true;
-		response.body.supportsDelayedStackTraceLoading = false;
+        response.body.supportsDataBreakpoints = true;
+        response.body.supportsCompletionsRequest = true;
+        response.body.supportsCancelRequest = true;
+        response.body.supportsBreakpointLocationsRequest = true;
+        response.body.supportsExceptionFilterOptions = true;
+        response.body.supportsExceptionInfoRequest = true;
+        response.body.supportsSetVariable = true;
+        response.body.supportsSetExpression = true;
+        response.body.supportsDisassembleRequest = true;
+        response.body.supportsInstructionBreakpoints = true;
+        response.body.supportsReadMemoryRequest = false;
+        response.body.supportsWriteMemoryRequest = false;
+        response.body.supportSuspendDebuggee = true;
+        response.body.supportTerminateDebuggee = true;
+        response.body.supportsFunctionBreakpoints = true;
+        response.body.supportsDelayedStackTraceLoading = false;
         response.body.supportsHitConditionalBreakpoints = true;
         response.body.supportsConditionalBreakpoints = true;
         response.body.supportsLogPoints = true;
@@ -117,8 +120,8 @@ export class MjvmDebugSession extends LoggingDebugSession {
     }
 
     protected setFunctionBreakPointsRequest(response: DebugProtocol.SetFunctionBreakpointsResponse, args: DebugProtocol.SetFunctionBreakpointsArguments, request?: DebugProtocol.Request): void {
-		this.sendResponse(response);
-	}
+        this.sendResponse(response);
+    }
 
     protected pauseRequest(response: DebugProtocol.PauseResponse, args: DebugProtocol.PauseArguments, request?: DebugProtocol.Request | undefined): void {
         this.clientDebugger.stop().then((value) => {
@@ -200,9 +203,9 @@ export class MjvmDebugSession extends LoggingDebugSession {
         this.sendResponse(response);
     }
     
-	protected disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments, request?: DebugProtocol.Request): void {
+    disconnectRequest(response: DebugProtocol.DisconnectResponse, args: DebugProtocol.DisconnectArguments, request?: DebugProtocol.Request): void {
         this.clientDebugger.disconnect();
-	}
+    }
 
     protected stackTraceRequest(response: DebugProtocol.StackTraceResponse, args: DebugProtocol.StackTraceArguments): void {
         const start = (args.startFrame !== null) ? args.startFrame : 0;
@@ -223,11 +226,11 @@ export class MjvmDebugSession extends LoggingDebugSession {
     }
 
     protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
-		response.body = {
-			threads: [
-				new Thread(1, 'thread 1'),
-			]
-		};
-		this.sendResponse(response);
-	}
+        response.body = {
+            threads: [
+                new Thread(1, 'thread 1'),
+            ]
+        };
+        this.sendResponse(response);
+    }
 }

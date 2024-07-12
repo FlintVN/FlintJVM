@@ -28,8 +28,11 @@ export class MjvmClientDebugger {
     private static readonly DBG_STATUS_STOP: number = 0x01;
     private static readonly DBG_STATUS_STOP_SET: number = 0x02;
     private static readonly DBG_STATUS_STEP_IN: number = 0x04;
-    private static readonly DBG_STATUS_STEP_OVER: number = 0x04;
-    private static readonly DBG_STATUS_STEP_OUT: number = 0x04;
+    private static readonly DBG_STATUS_STEP_OVER: number = 0x08;
+    private static readonly DBG_STATUS_STEP_OUT: number = 0x10;
+    private static readonly DBG_STATUS_EXCP_EN: number = 0x20;
+    private static readonly DBG_STATUS_EXCP: number = 0x40;
+    private static readonly DBG_STATUS_DONE: number = 0x80;
 
     private static TCP_RECEIVED_TIMEOUT: number = 100;
 
@@ -41,7 +44,7 @@ export class MjvmClientDebugger {
 
     private tcpSemaphore = new MjvmSemaphore(1);
 
-    private stopCallback?: () => void;
+    private stopCallback?: (reason?: string) => void;
     private errorCallback?: () => void;
     private closeCallback?: () => void;
     private receivedCallback?: (data: Buffer) => void;
@@ -60,8 +63,12 @@ export class MjvmClientDebugger {
                             this.currentStatus = data[2];
                             if((data[2] & MjvmClientDebugger.DBG_STATUS_STOP_SET) && (data[2] & MjvmClientDebugger.DBG_STATUS_STOP)) {
                                 this.currentStackFrames = undefined;
-                                if(this.stopCallback)
-                                    this.stopCallback();
+                                if(this.stopCallback) {
+                                    let reason = undefined;
+                                    if(data[2] & MjvmClientDebugger.DBG_STATUS_EXCP)
+                                        reason = 'exception';
+                                    this.stopCallback(reason);
+                                }
                             }
                             else if((tmp & MjvmClientDebugger.DBG_STATUS_STOP) !== (data[2] & MjvmClientDebugger.DBG_STATUS_STOP)) {
                                 this.currentStackFrames = undefined;
@@ -101,7 +108,7 @@ export class MjvmClientDebugger {
         this.receivedCallback = callback;
     }
 
-    public onStop(callback: () => void) {
+    public onStop(callback: (reason?: string) => void) {
         this.stopCallback = callback;
     }
 
