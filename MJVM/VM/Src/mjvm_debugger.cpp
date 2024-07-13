@@ -20,72 +20,148 @@ MjvmStackFrame::MjvmStackFrame(uint32_t pc, uint32_t baseSp, MjvmMethodInfo &met
 
 }
 
-MjvmDebugger::MjvmDebugger(MjvmExecution &execution) : execution(execution), stepCodeLength(0), status(DBG_STATUS_STOP), breakPointCount(0) {
+MjvmDebugger::MjvmDebugger(MjvmExecution &execution) : execution(execution) {
+    stepCodeLength = 0;
+    status = DBG_STATUS_STOP;
+    breakPointCount = 0;
+    txDataLength = 0;
+}
 
+void MjvmDebugger::clearTxBuffer(void) {
+    txDataLength = 0;
+}
+
+void MjvmDebugger::initDataFrame(MjvmDbgCmd cmd, MjvmDbgRespCode responseCode, uint32_t dataLength) {
+    txBuff[0] = (uint8_t)(cmd | 0x80);
+    txBuff[1] = (uint8_t)(dataLength >> 0);
+    txBuff[2] = (uint8_t)(dataLength >> 8);
+    txBuff[3] = (uint8_t)(dataLength >> 16);
+    txBuff[4] = (uint8_t)responseCode;
+    txDataLength = 5;
+}
+
+bool MjvmDebugger::dataFrameAppend(uint8_t data) {
+    if(txDataLength == sizeof(txBuff)) {
+        if(!sendData(txBuff, sizeof(txBuff)))
+            return false;
+        txDataLength = 0;
+    }
+    txBuff[txDataLength++] = data;
+    return true;
+}
+
+bool MjvmDebugger::dataFrameAppend(uint16_t data) {
+    if(!dataFrameAppend((uint8_t)data))
+        return false;
+    return dataFrameAppend((uint8_t)(data >> 8));
+}
+
+bool MjvmDebugger::dataFrameAppend(uint32_t data) {
+    if(!dataFrameAppend((uint8_t)data))
+        return false;
+    else if(!dataFrameAppend((uint8_t)(data >> 8)))
+        return false;
+    else if(!dataFrameAppend((uint8_t)(data >> 16)))
+        return false;
+    return dataFrameAppend((uint8_t)(data >> 24));
+}
+
+bool MjvmDebugger::dataFrameAppend(uint64_t data) {
+    if(!dataFrameAppend((uint8_t)data))
+        return false;
+    else if(!dataFrameAppend((uint8_t)(data >> 8)))
+        return false;
+    else if(!dataFrameAppend((uint8_t)(data >> 16)))
+        return false;
+    else if(!dataFrameAppend((uint8_t)(data >> 24)))
+        return false;
+    else if(!dataFrameAppend((uint8_t)(data >> 32)))
+        return false;
+    else if(!dataFrameAppend((uint8_t)(data >> 40)))
+        return false;
+    else if(!dataFrameAppend((uint8_t)(data >> 48)))
+        return false;
+    return dataFrameAppend((uint8_t)(data >> 56));
+}
+
+bool MjvmDebugger::dataFrameAppend(uint8_t *data, uint16_t length) {
+    for(uint16_t i = 0; i < length; i++) {
+        if(!dataFrameAppend(data[i]))
+            return false;
+    }
+    return true;
+}
+
+bool MjvmDebugger::dataFrameAppend(MjvmConstUtf8 &utf8) {
+    uint32_t size = sizeof(MjvmConstUtf8) + utf8.length + 1;
+    uint8_t *buff = (uint8_t *)&utf8;
+    for(uint32_t i = 0; i < size; i++) {
+        if(!dataFrameAppend(buff[i]))
+            return false;
+    }
+    return true;
+}
+
+bool MjvmDebugger::dataFrameFinish(void) {
+    if(txDataLength) {
+        uint32_t length = txDataLength;
+        txDataLength = 0;
+        return sendData(txBuff, length);
+    }
+    return true;
+}
+
+bool MjvmDebugger::sendRespCode(MjvmDbgCmd cmd, MjvmDbgRespCode responseCode) {
+    initDataFrame(cmd, responseCode, 0);
+    return dataFrameFinish();
 }
 
 void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
-    static uint8_t txBuff[MAX_OF_DBG_BUFFER];
-    txBuff[0] = data[0];
-    switch((DebuggerCmd)data[0]) {
+    MjvmDbgCmd cmd = (MjvmDbgCmd)data[0];
+    switch(cmd) {
         case DBG_READ_STATUS: {
-            txBuff[1] = 0;
-            txBuff[2] = status;
-            if(txBuff[2] & (DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT))
-                txBuff[2] &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-            if(sendData(txBuff, 3)) {
-                if(txBuff[2] & DBG_STATUS_STOP_SET) {
-                    Mjvm::lock();
-                    status &= ~DBG_STATUS_STOP_SET;
-                    Mjvm::unlock();
-                }
+            uint8_t tmp = status;
+            initDataFrame(cmd, DBG_RESP_OK, 1);
+            dataFrameAppend((uint8_t)tmp);
+            if(dataFrameFinish() && (tmp & DBG_STATUS_STOP_SET)) {
+                Mjvm::lock();
+                status &= ~DBG_STATUS_STOP_SET;
+                Mjvm::unlock();
             }
-            break;
+            return;
         }
         case DBG_READ_STACK_TRACE: {
             if(status & DBG_STATUS_STOP && length == 5) {
-                uint32_t index = sizeof(DebuggerCmd);
                 uint32_t stackIndex = (*(uint32_t *)&data[1]) & 0x7FFFFFFF;
-
                 MjvmStackFrame stackTrace;
                 bool isEndStack = false;
                 if(execution.getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
                     MjvmMethodInfo &method = stackTrace.method;
                     MjvmConstUtf8 &className = method.classLoader.getThisClass();
 
-                    uint32_t responseSize = 10;
+                    uint32_t responseSize = 8;
                     responseSize += sizeof(MjvmConstUtf8) + className.length + 1;
                     responseSize += sizeof(MjvmConstUtf8) + method.name.length + 1;
                     responseSize += sizeof(MjvmConstUtf8) + method.descriptor.length + 1;
 
-                    if(responseSize <= sizeof(txBuff)) {
-                        txBuff[1] = 0;
-                        index += sizeof(uint8_t);
-                        *(uint32_t *)&txBuff[index] = stackIndex | (isEndStack << 31);
-                        index += sizeof(uint32_t);
-                        *(uint32_t *)&txBuff[index] = stackTrace.pc;
-                        index += sizeof(uint32_t);
-                        memcpy(&txBuff[index], &className, sizeof(MjvmConstUtf8) + className.length + 1);
-                        index += sizeof(MjvmConstUtf8) + className.length + 1;
-                        memcpy(&txBuff[index], &method.name, sizeof(MjvmConstUtf8) + method.name.length + 1);
-                        index += sizeof(MjvmConstUtf8) + method.name.length + 1;
-                        memcpy(&txBuff[index], &method.descriptor, sizeof(MjvmConstUtf8) + method.descriptor.length + 1);
-                        sendData(txBuff, responseSize);
-                    }
-                    else {
-                        txBuff[1] = 2;
-                        sendData(txBuff, 2);
-                    }
-                    return;
+                    initDataFrame(cmd, DBG_RESP_OK, responseSize);
+                    if(!dataFrameAppend((uint32_t)(stackIndex | (isEndStack << 31)))) return;
+                    if(!dataFrameAppend((uint32_t)stackTrace.pc)) return;
+                    if(!dataFrameAppend(className)) return;
+                    if(!dataFrameAppend(method.name)) return;
+                    if(!dataFrameAppend(method.descriptor)) return;
+                    dataFrameFinish();
                 }
+                else
+                    sendRespCode(cmd, DBG_RESP_FAIL);
             }
-            txBuff[1] = 1;
-            sendData(txBuff, 2);
-            break;
+            else
+                sendRespCode(cmd, DBG_RESP_BUSY);
+            return;
         }
         case DBG_ADD_BKP:
         case DBG_REMOVE_BKP: {
-            uint32_t index = sizeof(DebuggerCmd);
+            uint32_t index = sizeof(MjvmDbgCmd);
             uint32_t pc = *(uint32_t *)&data[index];
             index += sizeof(uint32_t);
             MjvmConstUtf8 &className = *(MjvmConstUtf8 *)&data[index];
@@ -93,41 +169,37 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             MjvmConstUtf8 &methodName = *(MjvmConstUtf8 *)&data[index];
             index += sizeof(MjvmConstUtf8) + methodName.length + 1;
             MjvmConstUtf8 &descriptor = *(MjvmConstUtf8 *)&data[index];
-            if((DebuggerCmd)data[0] == DBG_ADD_BKP)
-                txBuff[1] = !addBreakPoint(pc, className, methodName, descriptor);
+            if((MjvmDbgCmd)data[0] == DBG_ADD_BKP)
+                sendRespCode(cmd, addBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
             else
-                txBuff[1] = !removeBreakPoint(pc, className, methodName, descriptor);
-            sendData(txBuff, 2);
-            break;
+                sendRespCode(cmd, removeBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
+            return;
         }
         case DBG_REMOVE_ALL_BKP: {
             breakPointCount = 0;
-            txBuff[1] = 0;
-            sendData(txBuff, 2);
-            break;
+            sendRespCode(cmd, DBG_RESP_OK);
+            return;
         }
         case DBG_RUN: {
             Mjvm::lock();
             status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP);
             Mjvm::unlock();
-            txBuff[1] = 0;
-            sendData(txBuff, 2);
-            break;
+            sendRespCode(cmd, DBG_RESP_OK);
+            return;
         }
         case DBG_STOP: {
             Mjvm::lock();
             status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STOP;
             Mjvm::unlock();
-            txBuff[1] = 0;
-            sendData(txBuff, 2);
-            break;
+            sendRespCode(cmd, DBG_RESP_OK);
+            return;
         }
         case DBG_STEP_IN:
         case DBG_STEP_OVER: {
             if(status & DBG_STATUS_STOP && length == 5 && data[1] > 0) {
                 if(execution.getStackTrace(0, &startPoint, 0)) {
                     stepCodeLength = *(uint32_t *)&data[1];
-                    if((DebuggerCmd)data[0] == DBG_STEP_IN) {
+                    if((MjvmDbgCmd)data[0] == DBG_STEP_IN) {
                         Mjvm::lock();
                         status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_IN;
                         Mjvm::unlock();
@@ -137,30 +209,28 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                         status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OVER;
                         Mjvm::unlock();
                     }
-                    txBuff[1] = 0;
+                    sendRespCode(cmd, DBG_RESP_OK);
                 }
                 else
-                    txBuff[1] = 1;
+                    sendRespCode(cmd, DBG_RESP_FAIL);
             }
             else
-                txBuff[1] = 1;
-            sendData(txBuff, 2);
-            break;
+                sendRespCode(cmd, DBG_RESP_BUSY);
+            return;
         }
         case DBG_STEP_OUT: {
-            if((status & DBG_STATUS_STOP) && execution.getStackTrace(0, &startPoint, 0)) {
+            if(status & DBG_STATUS_STOP) {
                 if(execution.getStackTrace(0, &startPoint, 0)) {
                     Mjvm::lock();
                     status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OUT;
                     Mjvm::unlock();
-                    txBuff[1] = 0;
+                    sendRespCode(cmd, DBG_RESP_OK);
                 }
                 else
-                    txBuff[1] = 1;
+                    sendRespCode(cmd, DBG_RESP_FAIL);
             }
             else
-                txBuff[1] = 1;
-            sendData(txBuff, 2);
+                sendRespCode(cmd, DBG_RESP_BUSY);
             break;
         }
         case DBG_SET_EXCP_MODE: {
@@ -170,69 +240,66 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             else
                 status &= ~DBG_STATUS_EXCP_EN;
             Mjvm::unlock();
-            txBuff[1] = 0;
-            sendData(txBuff, 2);
+            sendRespCode(cmd, DBG_RESP_OK);
             break;
         }
         case DBG_READ_LOCAL: {
-            uint32_t responseSize = 2;
             if(status & DBG_STATUS_STOP) {
+                bool isReadU64 = data[1];
                 uint32_t stackIndex = (*(uint32_t *)&data[2]) & 0x7FFFFFFF;
                 uint32_t localIndex = (*(uint32_t *)&data[6]);
-                if(data[1] == 0) {
+                if(!isReadU64) {
                     uint32_t value;
                     bool isObject;
-                    if((responseSize + 10) <= sizeof(txBuff) && execution.readLocal(stackIndex, localIndex, value, isObject)) {
-                        txBuff[1] = 0;
-                        *(uint32_t *)&txBuff[2] = 4;
-                        *(uint32_t *)&txBuff[6] = value;
-                        responseSize += 10;
+                    if(execution.readLocal(stackIndex, localIndex, value, isObject)) {
+                        uint32_t responseSize = 8;
+                        uint32_t valueSize = 4;
+                        if(isObject) {
+                            MjvmObject &obj = *(MjvmObject *)value;
+                            MjvmConstUtf8 &type = obj.type;
+                            uint8_t isPrim = obj.isPrimType(type);
+                            valueSize = obj.size;
+                            responseSize += sizeof(MjvmConstUtf8) + obj.dimensions + (isPrim ? 0 : 2) + type.length + 1;
+                        }
+                        initDataFrame(cmd, DBG_RESP_OK, responseSize);
+                        if(!dataFrameAppend((uint32_t)valueSize)) return;
+                        if(!dataFrameAppend((uint32_t)value)) return;
+
                         if(isObject) {
                             MjvmObject &obj = *(MjvmObject *)value;
                             MjvmConstUtf8 &type = obj.type;
                             uint8_t isPrim = obj.isPrimType(type);
                             uint16_t typeLength = obj.dimensions + (isPrim ? 0 : 2) + type.length;
-                            if((responseSize + sizeof(MjvmConstUtf8) + typeLength + 1) <= sizeof(txBuff)) {
-                                *(uint32_t *)&txBuff[2] = obj.size;
-                                txBuff[10] = typeLength & 0xFF;
-                                txBuff[11] = typeLength >> 8;
-                                txBuff[12] = 0;
-                                txBuff[13] = 0;
-                                responseSize = 14;
-                                for(uint32_t i = 0; i < obj.dimensions; i++)
-                                    txBuff[responseSize++] = '[';
-                                if(!isPrim)
-                                    txBuff[responseSize++] = 'L';
-                                memcpy(&txBuff[responseSize], type.text, type.length);
-                                responseSize += type.length;
-                                if(!isPrim)
-                                    txBuff[responseSize++] = ';';
-                                txBuff[responseSize++] = 0;
-                            }
-                            else
-                                txBuff[1] = 1;
+                            if(!dataFrameAppend((uint16_t)typeLength)) return;
+                            if(!dataFrameAppend((uint16_t)0)) return;
+                            for(uint32_t i = 0; i < obj.dimensions; i++)
+                                if(!dataFrameAppend((uint8_t)'[')) return;
+                            if(!isPrim)
+                                if(!dataFrameAppend((uint8_t)'L')) return;
+                            if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
+                            if(!isPrim)
+                                if(!dataFrameAppend((uint8_t)';')) return;
+                            if(!dataFrameAppend((uint8_t)0)) return;
                         }
+                        dataFrameFinish();
                     }
                     else
-                        txBuff[1] = 1;
+                        sendRespCode(cmd, DBG_RESP_FAIL);
                 }
-                else if((responseSize + 12) <= sizeof(txBuff)) {
+                else {
                     uint64_t value;
                     if(execution.readLocal(stackIndex, localIndex, value)) {
-                        txBuff[1] = 0;
-                        *(uint32_t *)&txBuff[2] = 8;
-                        *(uint64_t *)&txBuff[6] = value;
-                        responseSize = 14;
+                        initDataFrame(cmd, DBG_RESP_OK, 12);
+                        if(!dataFrameAppend((uint32_t)8)) return;
+                        if(!dataFrameAppend((uint64_t)value)) return;
+                        dataFrameFinish();
                     }
                     else
-                        txBuff[1] = 1;
+                        sendRespCode(cmd, DBG_RESP_FAIL);
                 }
-                else
-                    txBuff[1] = 1;
             }
             else
-                txBuff[1] = 1;
-            sendData(txBuff, responseSize);
+                sendRespCode(cmd, DBG_RESP_BUSY);
             break;
         }
         case DBG_WRITE_LOCAL: {
@@ -240,9 +307,8 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             break;
         }
         default: {
-            txBuff[1] = 0xFF;
-            sendData(txBuff, 2);
-            break;
+            sendRespCode(cmd, DBG_RESP_UNKNOW);
+            return;
         }
     }
 }

@@ -6,11 +6,11 @@ import {
 import * as net from 'net';
 import { MjvmSemaphore } from './mjvm_semaphone'
 import { MjvmValueInfo } from './mjvm_value_info';
+import { MjvmDataResponse } from './mjvm_data_response';
 import { MjvmLineInfo } from './class_loader/mjvm_line_info'
 import { MjvmStackFrame } from './class_loader/mjvm_stack_frame';
 
 export class MjvmClientDebugger {
-    private readonly client: net.Socket;
     private static readonly DBG_READ_STATUS: number = 0;
     private static readonly DBG_READ_STACK_TRACE: number = 1;
     private static readonly DBG_ADD_BKP: number = 2;
@@ -34,7 +34,16 @@ export class MjvmClientDebugger {
     private static readonly DBG_STATUS_EXCP: number = 0x40;
     private static readonly DBG_STATUS_DONE: number = 0x80;
 
+    private static readonly DBG_RESP_OK = 0;
+    private static readonly DBG_RESP_BUSY = 1;
+    private static readonly DBG_RESP_FAIL = 2;
+    private static readonly DBG_RESP_UNKNOW = 2;
+
     private static TCP_RECEIVED_TIMEOUT: number = 100;
+
+    private readonly client: net.Socket;
+
+    private rxResponse?: MjvmDataResponse;
 
     private requestStatusTask?: NodeJS.Timeout;
 
@@ -47,32 +56,31 @@ export class MjvmClientDebugger {
     private stopCallback?: (reason?: string) => void;
     private errorCallback?: () => void;
     private closeCallback?: () => void;
-    private receivedCallback?: (data: Buffer) => void;
+    private receivedCallback?: (response: MjvmDataResponse) => void;
 
     public constructor() {
         this.client = new net.Socket();
-
         this.requestStatusTask = undefined;
 
         this.client.on('connect', () => {
             this.requestStatusTask = setInterval(() => {
                 if(!this.client.destroyed && this.client.connecting === false) {
-                    this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_READ_STATUS])).then((data) => {
-                        if(data && data[0] === MjvmClientDebugger.DBG_READ_STATUS && data[1] === 0) {
+                    this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_READ_STATUS])).then((resp) => {
+                        if(resp && resp.cmd === MjvmClientDebugger.DBG_READ_STATUS && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
                             const tmp = this.currentStatus;
-                            this.currentStatus = data[2];
-                            if((data[2] & MjvmClientDebugger.DBG_STATUS_STOP_SET) && (data[2] & MjvmClientDebugger.DBG_STATUS_STOP)) {
+                            this.currentStatus = resp.data[0];
+                            if((this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP_SET) && (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)) {
                                 this.currentStackFrames = undefined;
                                 if(this.stopCallback) {
                                     let reason = undefined;
-                                    if(data[2] & MjvmClientDebugger.DBG_STATUS_EXCP)
+                                    if(this.currentStatus & MjvmClientDebugger.DBG_STATUS_EXCP)
                                         reason = 'exception';
                                     this.stopCallback(reason);
                                 }
                             }
-                            else if((tmp & MjvmClientDebugger.DBG_STATUS_STOP) !== (data[2] & MjvmClientDebugger.DBG_STATUS_STOP)) {
+                            else if((tmp & MjvmClientDebugger.DBG_STATUS_STOP) !== (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)) {
                                 this.currentStackFrames = undefined;
-                                if(this.stopCallback && (data[2] & MjvmClientDebugger.DBG_STATUS_STOP))
+                                if(this.stopCallback && (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP))
                                     this.stopCallback();
                             }
                         }
@@ -83,8 +91,29 @@ export class MjvmClientDebugger {
 
         this.client.on('data', (data: Buffer) => {
             if(this.receivedCallback) {
-                this.receivedCallback(data);
-                this.receivedCallback = undefined;
+                if(!this.rxResponse) {
+                    const cmd = data[0] & 0x7F;
+                    const dataLength = data[1] | (data[2] << 8) | (data[3] << 16);
+                    const responseCode = data[4];
+                    this.rxResponse = new MjvmDataResponse(cmd, responseCode, dataLength);
+                    if(cmd === MjvmClientDebugger.DBG_READ_STACK_TRACE)
+                        this.rxResponse.receivedLength = 0;
+                    let index = 0;
+                    for(let i = 0; i < (data.length - 5); i++)
+                        this.rxResponse.data[index++] = data[i + 5];
+                    this.rxResponse.receivedLength = index;
+                }
+                else {
+                    let index = this.rxResponse.receivedLength;
+                    for(let i = 0; i < data.length; i++)
+                        this.rxResponse.data[index++] = data[i];
+                    this.rxResponse.receivedLength = index;
+                }
+                if(this.rxResponse.receivedLength >= this.rxResponse.data.length) {
+                    this.receivedCallback(this.rxResponse);
+                    this.rxResponse = undefined;
+                    this.receivedCallback = undefined;
+                }
             }
         });
 
@@ -104,7 +133,7 @@ export class MjvmClientDebugger {
         });
     }
 
-    private onReceived(callback: (data: Buffer) => void) {
+    private onReceived(callback: (response: MjvmDataResponse) => void) {
         this.receivedCallback = callback;
     }
 
@@ -124,17 +153,17 @@ export class MjvmClientDebugger {
         await this.client.connect(5555, '127.0.0.1');
     }
 
-    private sendCmd(data: Buffer): Thenable<Buffer | undefined> {
+    private sendCmd(data: Buffer): Thenable<MjvmDataResponse | undefined> {
         return new Promise((resolve) => {
             this.tcpSemaphore.acquire().then(() => {
                 const timeout = setTimeout(() => {
                     this.tcpSemaphore.release();
                     resolve(undefined);
                 }, MjvmClientDebugger.TCP_RECEIVED_TIMEOUT);
-                this.onReceived((data) => {
+                this.onReceived((resp) => {
                     this.tcpSemaphore.release();
                     clearTimeout(timeout);
-                    resolve(data);
+                    resolve(resp);
                 });
                 if(!this.client.write(data)) {
                     this.tcpSemaphore.release();
@@ -150,8 +179,8 @@ export class MjvmClientDebugger {
         return new Promise((resolve) => {
             if(!(this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP))
                 resolve(true);
-            else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_RUN])).then((data) => {
-                if(data && data.length === 2 && data[0] === MjvmClientDebugger.DBG_RUN && data[1] === 0)
+            else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_RUN])).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_RUN && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
                     resolve(true);
                 else
                     resolve(false);
@@ -164,8 +193,8 @@ export class MjvmClientDebugger {
         return new Promise((resolve) => {
             if(this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)
                 resolve(true);
-            else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_STOP])).then((data) => {
-                if(!(data && data.length === 2 && data[0] === MjvmClientDebugger.DBG_STOP && data[1] === 0))
+            else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_STOP])).then((resp) => {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_STOP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK))
                     resolve(false);
                 else
                     resolve(true);
@@ -193,8 +222,8 @@ export class MjvmClientDebugger {
 
     public removeAllBreakPoints(): Thenable<boolean> {
         return new Promise((resolve) => {
-            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_REMOVE_ALL_BKP])).then((data) => {
-                if(data && data[0] === MjvmClientDebugger.DBG_REMOVE_ALL_BKP && data[1] === 0)
+            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_REMOVE_ALL_BKP])).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_REMOVE_ALL_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
                     resolve(true);
                 else
                     resolve(false);
@@ -275,8 +304,8 @@ export class MjvmClientDebugger {
                     /* descriptor */
                     index = this.putConstUtf8ToBuffer(txBuff, descriptor, index);
 
-                    this.sendCmd(txBuff).then((data) => {
-                        if(data && data[0] === MjvmClientDebugger.DBG_REMOVE_BKP && data[1] === 0) {
+                    this.sendCmd(txBuff).then((resp) => {
+                        if(resp && resp.cmd === MjvmClientDebugger.DBG_REMOVE_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
                             const index = this.currentBreakpoints.findIndex(item => item === line);
                             this.currentBreakpoints.splice(index, 1);
                             sendRemoveBkpTask();
@@ -326,8 +355,8 @@ export class MjvmClientDebugger {
                     /* descriptor */
                     index = this.putConstUtf8ToBuffer(txBuff, descriptor, index);
 
-                    this.sendCmd(txBuff).then((data) => {
-                        if(data && data[0] === MjvmClientDebugger.DBG_ADD_BKP && data[1] === 0) {
+                    this.sendCmd(txBuff).then((resp) => {
+                        if(resp && resp.cmd === MjvmClientDebugger.DBG_ADD_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
                             this.currentBreakpoints.push(line);
                             sendAddBkpTask();
                         }
@@ -344,8 +373,8 @@ export class MjvmClientDebugger {
 
     public setExceptionBreakPointsRequest(isEnabled: boolean): Thenable<boolean> {
         return new Promise((resolve) => {
-            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_SET_EXCP_MODE, isEnabled ? 1 : 0], )).then((data) => {
-                if(data && data[0] === MjvmClientDebugger.DBG_SET_EXCP_MODE && data[1] === 0)
+            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_SET_EXCP_MODE, isEnabled ? 1 : 0], )).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_SET_EXCP_MODE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
                     resolve(true);
                 else
                     resolve(false);
@@ -393,10 +422,10 @@ export class MjvmClientDebugger {
             txData[2] = (frameId >>> 8) & 0xFF;
             txData[3] = (frameId >>> 16) & 0xFF;
             txData[4] = (frameId >>> 24) & 0xFF;
-            this.sendCmd(txData).then((data) => {
-                if(data && data[0] === MjvmClientDebugger.DBG_READ_STACK_TRACE && data[1] === 0) {
-                    let index = 2;
-                    const currentStack = this.readU32(data, index);
+            this.sendCmd(txData).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_READ_STACK_TRACE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
+                    let index = 0;
+                    const currentStack = this.readU32(resp.data, index);
                     const currentStackIndex = currentStack & 0x7FFFFFFF;
                     const isEndStack = (currentStack & 0x80000000) ? true : false;
                     if(currentStackIndex !== frameId) {
@@ -404,19 +433,19 @@ export class MjvmClientDebugger {
                         return;
                     }
                     index += 4;
-                    const pc = this.readU32(data, index);
+                    const pc = this.readU32(resp.data, index);
                     index += 4;
-                    const classNameLength = this.readU16(data, index);
+                    const classNameLength = this.readU16(resp.data, index);
                     index += 2 + 2;
-                    const className = data.toString('utf-8', index, index + classNameLength);
+                    const className = resp.data.toString('utf-8', index, index + classNameLength);
                     index += classNameLength + 1;
-                    const nameLength = this.readU16(data, index);
+                    const nameLength = this.readU16(resp.data, index);
                     index += 2 + 2;
-                    const name = data.toString('utf-8', index, index + nameLength);
+                    const name = resp.data.toString('utf-8', index, index + nameLength);
                     index += nameLength + 1;
-                    const descriptorLength = this.readU16(data, index);
+                    const descriptorLength = this.readU16(resp.data, index);
                     index += 2 + 2;
-                    const descriptor = data.toString('utf-8', index, index + descriptorLength);
+                    const descriptor = resp.data.toString('utf-8', index, index + descriptorLength);
 
                     const lineInfo = MjvmLineInfo.getLineInfoFromPc(pc, className, name, descriptor);
                     if(lineInfo) {
@@ -453,8 +482,8 @@ export class MjvmClientDebugger {
             txData[2] = (stepCodeLength >>> 8) & 0xFF;
             txData[3] = (stepCodeLength >>> 16) & 0xFF;
             txData[4] = (stepCodeLength >>> 24) & 0xFF;
-            this.sendCmd(Buffer.from(txData)).then((data) => {
-                if(!(data && data[0] === stepCmd && data[1] === 0))
+            this.sendCmd(Buffer.from(txData)).then((resp) => {
+                if(!(resp && resp.cmd === stepCmd && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK))
                     resolve(false);
                 else
                     resolve(true);
@@ -691,13 +720,13 @@ export class MjvmClientDebugger {
             txBuff[7] = (localVariableInfo.index >>> 8) & 0xFF;
             txBuff[8] = (localVariableInfo.index >>> 16) & 0xFF;
             txBuff[9] = (localVariableInfo.index >>> 24) & 0xFF;
-            this.sendCmd(txBuff).then((data) => {
-                if(!(data && data[0] === MjvmClientDebugger.DBG_READ_LOCAL && data[1] === 0)) {
+            this.sendCmd(txBuff).then((resp) => {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_READ_LOCAL && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
                     resolve(undefined);
                     return;
                 }
-                const size = this.readU32(data, 2);
-                let value = isReadU64 ? this.readU64(data, 6) : this.readU32(data, 6);
+                const size = this.readU32(resp.data, 0);
+                let value = isReadU64 ? this.readU64(resp.data, 4) : this.readU32(resp.data, 4);
                 if(this.isPrimType(localVariableInfo.descriptor)) {
                     if(localVariableInfo.descriptor === 'F')
                         value = this.binaryToFloat32(value as number);
@@ -707,9 +736,9 @@ export class MjvmClientDebugger {
                 }
                 else {
                     let type: string;
-                    if(!isReadU64 && data.length > 11) {
-                        const typeLength = this.readU16(data, 6);
-                        type = data.toString('utf-8', 14, 14 + typeLength);
+                    if(!isReadU64 && resp.receivedLength > 13) {
+                        const typeLength = this.readU16(resp.data, 8);
+                        type = resp.data.toString('utf-8', 12, 12 + typeLength);
                     }
                     else
                         type = localVariableInfo.descriptor;
