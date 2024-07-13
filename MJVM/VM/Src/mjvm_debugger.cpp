@@ -21,6 +21,7 @@ MjvmStackFrame::MjvmStackFrame(uint32_t pc, uint32_t baseSp, MjvmMethodInfo &met
 }
 
 MjvmDebugger::MjvmDebugger(MjvmExecution &execution) : execution(execution) {
+    exception = 0;
     stepCodeLength = 0;
     status = DBG_STATUS_STOP;
     breakPointCount = 0;
@@ -231,7 +232,7 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             }
             else
                 sendRespCode(cmd, DBG_RESP_BUSY);
-            break;
+            return;
         }
         case DBG_SET_EXCP_MODE: {
             Mjvm::lock();
@@ -241,7 +242,46 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                 status &= ~DBG_STATUS_EXCP_EN;
             Mjvm::unlock();
             sendRespCode(cmd, DBG_RESP_OK);
-            break;
+            return;
+        }
+        case DBG_READ_EXCP_INFO: {
+            if(status & DBG_STATUS_STOP) {
+                if(
+                    exception &&
+                    (status & DBG_STATUS_EXCP) &&
+                    execution.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
+                ) {
+                    MjvmConstUtf8 &type = exception->type;
+                    MjvmString &str = exception->getDetailMessage();
+                    uint32_t responseSize = sizeof(MjvmConstUtf8) * 2 + type.length + MjvmString::getUft8BuffSize(str) + 2;
+                    uint8_t coder = str.getCoder();
+                    const char *text = str.getText();
+                    uint32_t msgLen = str.getLength();
+                    char utf8Buff[3];
+
+                    initDataFrame(cmd, DBG_RESP_OK, responseSize);
+                    if(!dataFrameAppend(type)) return;
+                    if(!dataFrameAppend((uint16_t)msgLen)) return;
+                    if(!dataFrameAppend((uint16_t)0)) return;
+                    if(coder == 0) for(uint32_t i = 0; i < msgLen; i++) {
+                        uint8_t encodeSize = MjvmString::utf8Encode(text[i], utf8Buff);
+                        for(uint8_t j = 0; j < encodeSize; j++)
+                            if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
+                    }
+                    else for(uint32_t i = 0; i < msgLen; i++) {
+                        uint8_t encodeSize = MjvmString::utf8Encode(((uint16_t *)text)[i], utf8Buff);
+                        for(uint8_t j = 0; j < encodeSize; j++)
+                            if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
+                    }
+                    if(!dataFrameAppend((uint8_t)0)) return;
+                    dataFrameFinish();
+                }
+                else
+                    sendRespCode(cmd, DBG_RESP_FAIL);
+            }
+            else
+                sendRespCode(cmd, DBG_RESP_BUSY);
+            return;
         }
         case DBG_READ_LOCAL: {
             if(status & DBG_STATUS_STOP) {
@@ -300,11 +340,11 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             }
             else
                 sendRespCode(cmd, DBG_RESP_BUSY);
-            break;
+            return;
         }
         case DBG_WRITE_LOCAL: {
             // TODO
-            break;
+            return;
         }
         default: {
             sendRespCode(cmd, DBG_RESP_UNKNOW);
@@ -361,8 +401,9 @@ bool MjvmDebugger::exceptionIsEnabled(void) {
     return (status & DBG_STATUS_EXCP_EN) == DBG_STATUS_EXCP_EN;
 }
 
-void MjvmDebugger::caughtException(void) {
+void MjvmDebugger::caughtException(MjvmThrowable *excp) {
     Mjvm::lock();
+    exception = excp;
     status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     Mjvm::unlock();
     checkBreakPoint();

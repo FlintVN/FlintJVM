@@ -19,6 +19,7 @@ public:
     static uint32_t utf8Decode(const char *c);
     static uint8_t utf8Encode(uint16_t c, char *buff);
     static uint32_t utf8StrLen(const char *utf8);
+    static uint32_t getUft8BuffSize(MjvmString &str);
 protected:
     MjvmString(void) = delete;
     MjvmString(const MjvmString &) = delete;

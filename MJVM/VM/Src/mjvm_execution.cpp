@@ -2507,12 +2507,12 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
         goto exception_handler;
     }
     exception_handler: {
-        if(dbg && dbg->exceptionIsEnabled())
-            dbg->caughtException();
         uint32_t tracePc = pc;
         int32_t traceStartSp = startSp;
         MjvmMethodInfo *traceMethod = method;
         MjvmObject *obj = stackPopObject();
+        if(dbg && dbg->exceptionIsEnabled())
+            dbg->caughtException((MjvmThrowable *)obj);
         while(1) {
             MjvmCodeAttribute &attributeCode = traceMethod->getAttributeCode();
             for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
@@ -2531,7 +2531,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             }
             if(traceStartSp < 0) {
                 if(dbg && !dbg->exceptionIsEnabled())
-                    dbg->caughtException();
+                    dbg->caughtException((MjvmThrowable *)obj);
                 throw (MjvmThrowable *)obj;
             }
             traceMethod = (MjvmMethodInfo *)stack[traceStartSp - 3];

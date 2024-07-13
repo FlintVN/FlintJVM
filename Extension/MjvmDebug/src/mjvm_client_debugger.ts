@@ -7,6 +7,7 @@ import * as net from 'net';
 import { MjvmSemaphore } from './mjvm_semaphone'
 import { MjvmValueInfo } from './mjvm_value_info';
 import { MjvmDataResponse } from './mjvm_data_response';
+import { MjvmExceptionInfo } from './mjvm_exception_info';
 import { MjvmLineInfo } from './class_loader/mjvm_line_info'
 import { MjvmStackFrame } from './class_loader/mjvm_stack_frame';
 
@@ -22,8 +23,9 @@ export class MjvmClientDebugger {
     private static readonly DBG_STEP_OVER: number = 8;
     private static readonly DBG_STEP_OUT: number = 9;
     private static readonly DBG_SET_EXCP_MODE: number = 10;
-    private static readonly DBG_READ_LOCAL: number = 11;
-    private static readonly DBG_WRITE_LOCAL: number = 12;
+    private static readonly DBG_READ_EXCP_INFO: number = 11;
+    private static readonly DBG_READ_LOCAL: number = 12;
+    private static readonly DBG_WRITE_LOCAL: number = 13;
 
     private static readonly DBG_STATUS_STOP: number = 0x01;
     private static readonly DBG_STATUS_STOP_SET: number = 0x02;
@@ -378,6 +380,26 @@ export class MjvmClientDebugger {
                     resolve(true);
                 else
                     resolve(false);
+            });
+        });
+    }
+
+    public readExceptionInfo(): Thenable<MjvmExceptionInfo | undefined> {
+        return new Promise((resolve) => {
+            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_READ_EXCP_INFO])).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_READ_EXCP_INFO && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
+                    let index = 0;
+                    const typeLength = this.readU16(resp.data, index);
+                    index += 4;
+                    const type = resp.data.toString('utf-8', index, index + typeLength);
+                    index += typeLength + 1;
+                    const messageLength = this.readU16(resp.data, index);
+                    index += 4;
+                    const message = resp.data.toString('utf-8', index, index + messageLength);
+                    resolve(new MjvmExceptionInfo(type, message));
+                }
+                else
+                    resolve(undefined);
             });
         });
     }

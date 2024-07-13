@@ -225,6 +225,26 @@ export class MjvmDebugSession extends LoggingDebugSession {
         });
     }
 
+    protected exceptionInfoRequest(response: DebugProtocol.ExceptionInfoResponse, args: DebugProtocol.ExceptionInfoArguments) {
+        this.clientDebugger.readExceptionInfo().then((excpInfo) => {
+            if(excpInfo) {
+                const typeName = excpInfo.type.replace(/\//g, '.');
+                response.body = {
+                    exceptionId: typeName,
+                    description: excpInfo.message,
+                    breakMode: 'always',
+                    details: {
+                        message: excpInfo.message,
+                        typeName: typeName,
+                    }
+                };
+                this.sendResponse(response);
+            }
+            else
+                this.sendErrorResponse(response, 1, 'Cound not read exception information');
+        });
+    }
+
     protected threadsRequest(response: DebugProtocol.ThreadsResponse): void {
         response.body = {
             threads: [

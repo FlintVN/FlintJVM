@@ -3,6 +3,8 @@
 #define __MJVM_DEBUGGER_H
 
 #include "mjvm_method_info.h"
+#include "mjvm_throwable.h"
+#include "mjvm_const_name.h"
 
 #if __has_include("mjvm_conf.h")
 #include "mjvm_conf.h"
@@ -32,6 +34,7 @@ typedef enum : uint8_t {
     DBG_STEP_OVER,
     DBG_STEP_OUT,
     DBG_SET_EXCP_MODE,
+    DBG_READ_EXCP_INFO,
     DBG_READ_LOCAL,
     DBG_WRITE_LOCAL,
 } MjvmDbgCmd;
@@ -40,7 +43,7 @@ typedef enum : uint8_t {
     DBG_RESP_OK = 0,
     DBG_RESP_BUSY = 1,
     DBG_RESP_FAIL = 2,
-    DBG_RESP_UNKNOW = 2,
+    DBG_RESP_UNKNOW = 0xFF,
 } MjvmDbgRespCode;
 
 class BreakPoint {
@@ -70,6 +73,7 @@ private:
 class MjvmDebugger {
 private:
     MjvmExecution &execution;
+    MjvmThrowable *exception;
     volatile uint32_t stepCodeLength;
     uint32_t txDataLength;
     volatile uint8_t status;
@@ -95,7 +99,7 @@ public:
     void receivedDataHandler(uint8_t *data, uint32_t length);
 
     bool exceptionIsEnabled(void);
-    void caughtException(void);
+    void caughtException(MjvmThrowable *excp);
     void checkBreakPoint(void);
     void done(void);
 private:

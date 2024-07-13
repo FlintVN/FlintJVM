@@ -18,6 +18,7 @@ extern const MjvmConstUtf8 &objectClassName;
 extern const MjvmConstUtf8 &systemClassName;
 extern const MjvmConstUtf8 &stringClassName;
 extern const MjvmConstUtf8 &characterClassName;
+extern const MjvmConstUtf8 &throwableClassName;
 extern const MjvmConstUtf8 &printStreamClassName;
 extern const MjvmConstUtf8 &nullPtrExcpClassName;
 extern const MjvmConstUtf8 &arrayStoreExceptionClassName;

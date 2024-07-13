@@ -60,6 +60,21 @@ uint32_t MjvmString::utf8StrLen(const char *utf8) {
     return len;
 }
 
+uint32_t MjvmString::getUft8BuffSize(MjvmString &str) {
+    uint32_t length = str.getLength();
+    const char *text = str.getText();
+    uint32_t ret = 0;
+    if(str.getCoder() == 0) {
+        for(uint32_t i = 0; i < length; i++)
+            ret += getUtf8EncodeSize(text[i]);
+    }
+    else {
+        for(uint32_t i = 0; i < length; i++)
+            ret += getUtf8EncodeSize(((uint16_t *)text)[i]);
+    }
+    return ret;
+}
+
 bool MjvmString::isLatin1(const char *utf8) {
     while(*utf8) {
         if((int8_t)*utf8 < 0) {

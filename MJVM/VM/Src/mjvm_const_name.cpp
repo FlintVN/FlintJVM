@@ -40,6 +40,7 @@ const MjvmConstUtf8 &objectClassName = *(const MjvmConstUtf8 *)"\x10\x00\xF9\x05
 const MjvmConstUtf8 &systemClassName = *(const MjvmConstUtf8 *)"\x10\x00\x27\x06""java/lang/System";
 const MjvmConstUtf8 &stringClassName = *(const MjvmConstUtf8 *)"\x10\x00\x19\x06""java/lang/String";
 const MjvmConstUtf8 &characterClassName = *(const MjvmConstUtf8 *)"\x13\x00\x2F\x07""java/lang/Character";
+const MjvmConstUtf8 &throwableClassName = *(const MjvmConstUtf8 *)"\x13\x00\x4A\x07""java/lang/Throwable";
 const MjvmConstUtf8 &printStreamClassName = *(const MjvmConstUtf8 *)"\x13\x00\x51\x07""java/io/PrintStream";
 const MjvmConstUtf8 &nullPtrExcpClassName = *(const MjvmConstUtf8 *)"\x1E\x00\xCD\x0B""java/lang/NullPointerException";
 const MjvmConstUtf8 &arrayStoreExceptionClassName = *(const MjvmConstUtf8 *)"\x1D\x00\x5D\x0B""java/lang/ArrayStoreException";
