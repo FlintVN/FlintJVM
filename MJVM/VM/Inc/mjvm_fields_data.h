@@ -7,38 +7,38 @@
 
 class MjvmExecution;
 
-class FieldData32 {
+class MjvmFieldData32 {
 public:
     const MjvmFieldInfo &fieldInfo;
     int32_t value;
 private:
-    FieldData32(const MjvmFieldInfo &fieldInfo);
-    FieldData32(const FieldData32 &) = delete;
-    void operator=(const FieldData32 &) = delete;
+    MjvmFieldData32(const MjvmFieldInfo &fieldInfo);
+    MjvmFieldData32(const MjvmFieldData32 &) = delete;
+    void operator=(const MjvmFieldData32 &) = delete;
 
     friend class MjvmFieldsData;
 };
 
-class FieldData64 {
+class MjvmFieldData64 {
 public:
     const MjvmFieldInfo &fieldInfo;
     int64_t value;
 private:
-    FieldData64(const MjvmFieldInfo &fieldInfo);
-    FieldData64(const FieldData64 &) = delete;
-    void operator=(const FieldData64 &) = delete;
+    MjvmFieldData64(const MjvmFieldInfo &fieldInfo);
+    MjvmFieldData64(const MjvmFieldData64 &) = delete;
+    void operator=(const MjvmFieldData64 &) = delete;
 
     friend class MjvmFieldsData;
 };
 
-class FieldObject {
+class MjvmFieldObject {
 public:
     const MjvmFieldInfo &fieldInfo;
     MjvmObject *object;
 private:
-    FieldObject(const MjvmFieldInfo &fieldInfo);
-    FieldObject(const FieldObject &) = delete;
-    void operator=(const FieldObject &) = delete;
+    MjvmFieldObject(const MjvmFieldInfo &fieldInfo);
+    MjvmFieldObject(const MjvmFieldObject &) = delete;
+    void operator=(const MjvmFieldObject &) = delete;
 
     friend class MjvmFieldsData;
 };
@@ -49,13 +49,16 @@ public:
     const uint16_t fields64Count;
     const uint16_t fieldsObjCount;
 
-    FieldData32 &getFieldData32(const MjvmConstNameAndType &fieldName) const;
-    FieldData64 &getFieldData64(const MjvmConstNameAndType &fieldName) const;
-    FieldObject &getFieldObject(const MjvmConstNameAndType &fieldName) const;
+    MjvmFieldData32 &getFieldData32(const MjvmConstUtf8 &fieldName) const;
+    MjvmFieldData32 &getFieldData32(const MjvmConstNameAndType &fieldNameAndType) const;
+    MjvmFieldData64 &getFieldData64(const MjvmConstUtf8 &fieldName) const;
+    MjvmFieldData64 &getFieldData64(const MjvmConstNameAndType &fieldNameAndType) const;
+    MjvmFieldObject &getFieldObject(const MjvmConstUtf8 &fieldName) const;
+    MjvmFieldObject &getFieldObject(const MjvmConstNameAndType &fieldNameAndType) const;
 private:
-    FieldData32 *fieldsData32;
-    FieldData64 *fieldsData64;
-    FieldObject *fieldsObject;
+    MjvmFieldData32 *fieldsData32;
+    MjvmFieldData64 *fieldsData64;
+    MjvmFieldObject *fieldsObject;
 private:
     MjvmFieldsData(MjvmExecution &execution, const MjvmClassLoader &classLoader, bool isStatic);
     MjvmFieldsData(const MjvmFieldsData &) = delete;
