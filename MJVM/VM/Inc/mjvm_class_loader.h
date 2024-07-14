@@ -35,7 +35,7 @@ private:
     void addAttribute(MjvmAttribute *attribute);
 
     void readFile(void *file);
-    MjvmAttribute *readAttribute(void *file);
+    MjvmAttribute *readAttribute(void *file, bool isDummy = false);
     MjvmAttribute *readAttributeCode(void *file);
     MjvmAttribute *readAttributeBootstrapMethods(void *file);
 protected:

@@ -204,7 +204,7 @@ void MjvmClassLoader::readFile(void *file) {
     }
     fieldsCount = ClassLoader_ReadUInt16(file);
     if(fieldsCount) {
-        uint32_t count = 0;
+        uint32_t loadedCount = 0;
         fields = (MjvmFieldInfo *)Mjvm::malloc(fieldsCount * sizeof(MjvmFieldInfo));
         for(uint16_t i = 0; i < fieldsCount; i++) {
             MjvmFieldAccessFlag flag = (MjvmFieldAccessFlag)ClassLoader_ReadUInt16(file);
@@ -220,38 +220,56 @@ void MjvmClassLoader::readFile(void *file) {
                 ClassLoader_Seek(file, length);
             }
             if(!(flag & FIELD_UNLOAD)) {
-                new (&fields[count])MjvmFieldInfo(*this, flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
-                count++;
+                new (&fields[loadedCount])MjvmFieldInfo(*this, flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
+                loadedCount++;
             }
         }
-        if(count == 0) {
+        if(loadedCount == 0) {
             Mjvm::free(fields);
             fields = 0;
+            fieldsCount = 0;
         }
-        else if(count != fieldsCount) {
-            fields = (MjvmFieldInfo *)Mjvm::realloc(fields, count * sizeof(MjvmFieldInfo));
-            fieldsCount = count;
+        else if(loadedCount != fieldsCount) {
+            fields = (MjvmFieldInfo *)Mjvm::realloc(fields, loadedCount * sizeof(MjvmFieldInfo));
+            fieldsCount = loadedCount;
         }
     }
     methodsCount = ClassLoader_ReadUInt16(file);
     if(methodsCount) {
+        uint32_t loadedCount = 0;
         methods = (MjvmMethodInfo *)Mjvm::malloc(methodsCount * sizeof(MjvmMethodInfo));
         for(uint16_t i = 0; i < methodsCount; i++) {
             MjvmMethodAccessFlag flag = (MjvmMethodAccessFlag)ClassLoader_ReadUInt16(file);
             uint16_t methodNameIndex = ClassLoader_ReadUInt16(file);
             uint16_t methodDescriptorIndex = ClassLoader_ReadUInt16(file);
             uint16_t methodAttributesCount = ClassLoader_ReadUInt16(file);
-            new (&methods[i])MjvmMethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
-            if((flag & METHOD_NATIVE) == METHOD_NATIVE) {
-                MjvmNativeAttribute *attrNative = (MjvmNativeAttribute *)Mjvm::malloc(sizeof(MjvmNativeAttribute));
-                new (attrNative)MjvmNativeAttribute(0);
-                methods[i].addAttribute(attrNative);
+            if((flag & METHOD_BRIDGE) == METHOD_BRIDGE) {
+                while(methodAttributesCount--)
+                    readAttribute(file, true);
             }
-            while(methodAttributesCount--) {
-                MjvmAttribute *attr = readAttribute(file);
-                if(attr != 0)
-                    methods[i].addAttribute(attr);
+            else {
+                new (&methods[loadedCount])MjvmMethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
+                if((flag & METHOD_NATIVE) == METHOD_NATIVE) {
+                    MjvmNativeAttribute *attrNative = (MjvmNativeAttribute *)Mjvm::malloc(sizeof(MjvmNativeAttribute));
+                    new (attrNative)MjvmNativeAttribute(0);
+                    methods[loadedCount].addAttribute(attrNative);
+                }
+                while(methodAttributesCount--) {
+                    MjvmAttribute *attr = readAttribute(file);
+                    if(attr != 0)
+                        methods[loadedCount].addAttribute(attr);
+                }
+                loadedCount++;
             }
+        }
+        if(loadedCount == 0) {
+            Mjvm::free(methods);
+            methods = 0;
+            methodsCount = 0;
+        }
+        else if(loadedCount != methodsCount) {
+            methods = (MjvmMethodInfo *)Mjvm::realloc(methods, loadedCount * sizeof(MjvmMethodInfo));
+            methodsCount = loadedCount;
         }
     }
     attributesCount = ClassLoader_ReadUInt16(file);
@@ -267,9 +285,13 @@ void MjvmClassLoader::addAttribute(MjvmAttribute *attribute) {
     this->attributes = attribute;
 }
 
-MjvmAttribute *MjvmClassLoader::readAttribute(void *file) {
+MjvmAttribute *MjvmClassLoader::readAttribute(void *file, bool isDummy) {
     uint16_t nameIndex = ClassLoader_ReadUInt16(file);
     uint32_t length = ClassLoader_ReadUInt32(file);
+    if(isDummy) {
+        ClassLoader_Seek(file, length);
+        return 0;
+    }
     MjvmAttributeType type = MjvmAttribute::parseAttributeType(getConstUtf8(nameIndex));
     switch(type) {
         case ATTRIBUTE_CODE:

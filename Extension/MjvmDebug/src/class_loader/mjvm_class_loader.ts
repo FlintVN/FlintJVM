@@ -29,7 +29,7 @@ export class MjvmClassLoader {
     public readonly majorVersion: number;
     public readonly accessFlags: number;
     public readonly thisClass: string;
-    public readonly superClass: string;
+    public readonly superClass?: string;
     public readonly interfacesCount: number;
     public readonly classPath: string;
     
@@ -197,9 +197,12 @@ export class MjvmClassLoader {
         const thisClass = this.poolTable[this.readU16(data, index) - 1] as MjvmConstClass;
         this.thisClass = this.poolTable[thisClass.constUtf8Index - 1] as string;
         index += 2;
-        const superClass = this.poolTable[this.readU16(data, index) - 1] as MjvmConstClass;
-        this.superClass = this.poolTable[superClass.constUtf8Index - 1] as string;
+        const superClassIndex = this.readU16(data, index);
         index += 2;
+        if(superClassIndex) {
+            const superClass = this.poolTable[superClassIndex - 1] as MjvmConstClass;
+            this.superClass = this.poolTable[superClass.constUtf8Index - 1] as string;
+        }
         this.interfacesCount = this.readU16(data, index);
         index += 2;
 
