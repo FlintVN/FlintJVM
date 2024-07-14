@@ -22,6 +22,7 @@ import {
     MjvmLocalVariableAttribute
 } from './mjvm_attribute_info';
 import { MjvmMethodInfo } from './mjvm_method_info';
+import { MjvmFieldInfo } from './mjvm_field_info';
 
 export class MjvmClassLoader {
     public readonly magic: number;
@@ -32,7 +33,8 @@ export class MjvmClassLoader {
     public readonly superClass?: string;
     public readonly interfacesCount: number;
     public readonly classPath: string;
-    
+
+    public fieldInfos?: MjvmFieldInfo[];
     public methodsInfos: MjvmMethodInfo[];
 
     private readonly poolTable: (
@@ -96,13 +98,14 @@ export class MjvmClassLoader {
 
     public static findClassFile(name: string): string | undefined {
         const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
-        const srcPath: string = path.join(workspace, name) + ".class";
-        if(fs.existsSync(srcPath))
-            return srcPath;
+        const clsPath: string = path.join(workspace, name) + ".class";
+        if(fs.existsSync(clsPath))
+            return clsPath;
         return undefined;
     }
 
     public static load(classFile: string): MjvmClassLoader {
+        classFile = classFile.replace(/\//g, '\\');
         if(!(classFile in MjvmClassLoader.classLoaderDictionary))
             MjvmClassLoader.classLoaderDictionary[classFile] = new MjvmClassLoader(classFile);
         return MjvmClassLoader.classLoaderDictionary[classFile];
@@ -211,8 +214,8 @@ export class MjvmClassLoader {
 
         const fieldsCount = this.readU16(data, index);
         index += 2;
-
         if(fieldsCount) {
+            const fieldInfos: MjvmFieldInfo[] = [];
             for(let i = 0; i < fieldsCount; i++) {
                 const flag = this.readU16(data, index);
                 index += 2;
@@ -226,7 +229,11 @@ export class MjvmClassLoader {
                     const tmp = this.readAttribute(data, index);
                     index = tmp[0];
                 }
+                const fieldName: string = this.poolTable[fieldsNameIndex - 1] as string;
+                const fieldDescriptor: string = this.poolTable[fieldsDescriptorIndex - 1] as string;
+                fieldInfos.push(new MjvmFieldInfo(fieldName, fieldDescriptor, flag));
             }
+            this.fieldInfos = fieldInfos;
         }
         const methodsCount = this.readU16(data, index);
         index += 2;
@@ -253,7 +260,7 @@ export class MjvmClassLoader {
                 const methodName: string = this.poolTable[methodNameIndex - 1] as string;
                 const methodDescriptor: string = this.poolTable[methodDescriptorIndex - 1] as string;
                 if(!(flag & (MjvmMethodInfo.METHOD_NATIVE | MjvmMethodInfo.METHOD_BRIDGE)))
-                    methodsInfos.push(new MjvmMethodInfo(methodName, methodDescriptor, attributeCode));
+                    methodsInfos.push(new MjvmMethodInfo(methodName, methodDescriptor, flag, attributeCode));
             }
         }
         this.methodsInfos = methodsInfos;
@@ -340,6 +347,22 @@ export class MjvmClassLoader {
             localVariables.push(new MjvmLocalVariable(startPc, length, variableIndex, name, descriptor));
         }
         return [index, new MjvmLocalVariableAttribute(localVariables)];
+    }
+
+    public getFieldInfo(name: string, descriptor?: string): MjvmFieldInfo | undefined {
+        if(!this.fieldInfos)
+            return undefined;
+        if(descriptor) {
+            for(let i = 0; i < this.fieldInfos.length; i++) {
+                if(this.fieldInfos[i].name === name && this.fieldInfos[i].descriptor === descriptor)
+                    return this.fieldInfos[i];
+            }
+        }
+        else for(let i = 0; i < this.fieldInfos.length; i++) {
+            if(this.fieldInfos[i].name === name)
+                return this.fieldInfos[i];
+        }
+        return undefined;
     }
 
     public getMethodInfo(name: string, descriptor: string): MjvmMethodInfo | undefined {

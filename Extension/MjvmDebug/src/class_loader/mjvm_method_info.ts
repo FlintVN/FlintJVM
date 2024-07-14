@@ -14,13 +14,15 @@ export class MjvmMethodInfo {
     public static readonly METHOD_STRICT = 0x0800;
     public static readonly METHOD_SYNTHETIC = 0x1000;
 
+    public readonly accessFlag: number;
     public readonly name: string;
     public readonly descriptor: string;
     public readonly attributeCode?: MjvmCodeAttribute;
 
-    public constructor(name: string, descriptor: string, code?: MjvmCodeAttribute) {
+    public constructor(name: string, descriptor: string, accessFlag: number, code?: MjvmCodeAttribute) {
         this.name = name;
         this.descriptor = descriptor;
+        this.accessFlag = accessFlag;
         this.attributeCode = code;
     }
 }
