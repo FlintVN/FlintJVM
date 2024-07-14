@@ -122,6 +122,8 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     switch(cmd) {
         case DBG_READ_STATUS: {
             uint8_t tmp = status;
+            if(tmp & (DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT))
+                tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
             initDataFrame(cmd, DBG_RESP_OK, 1);
             dataFrameAppend((uint8_t)tmp);
             if(dataFrameFinish() && (tmp & DBG_STATUS_STOP_SET)) {
@@ -404,6 +406,7 @@ bool MjvmDebugger::exceptionIsEnabled(void) {
 void MjvmDebugger::caughtException(MjvmThrowable *excp) {
     Mjvm::lock();
     exception = excp;
+    status &= ~(DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT);
     status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     Mjvm::unlock();
     checkBreakPoint();
