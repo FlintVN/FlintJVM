@@ -117,49 +117,273 @@ bool MjvmDebugger::sendRespCode(MjvmDbgCmd cmd, MjvmDbgRespCode responseCode) {
     return dataFrameFinish();
 }
 
+void MjvmDebugger::responseStatus(void) {
+    uint8_t tmp = status;
+    if(tmp & (DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT))
+        tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
+    initDataFrame(DBG_READ_STATUS, DBG_RESP_OK, 1);
+    dataFrameAppend((uint8_t)tmp);
+    if(dataFrameFinish() && (tmp & DBG_STATUS_STOP_SET)) {
+        Mjvm::lock();
+        status &= ~DBG_STATUS_STOP_SET;
+        Mjvm::unlock();
+    }
+}
+
+void MjvmDebugger::responseStackTrace(uint32_t stackIndex) {
+    if(status & DBG_STATUS_STOP) {
+        MjvmStackFrame stackTrace;
+        bool isEndStack = false;
+        if(execution.getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
+            MjvmMethodInfo &method = stackTrace.method;
+            MjvmConstUtf8 &className = method.classLoader.getThisClass();
+
+            uint32_t responseSize = 8;
+            responseSize += sizeof(MjvmConstUtf8) + className.length + 1;
+            responseSize += sizeof(MjvmConstUtf8) + method.name.length + 1;
+            responseSize += sizeof(MjvmConstUtf8) + method.descriptor.length + 1;
+
+            initDataFrame(DBG_READ_STACK_TRACE, DBG_RESP_OK, responseSize);
+            if(!dataFrameAppend((uint32_t)(stackIndex | (isEndStack << 31)))) return;
+            if(!dataFrameAppend((uint32_t)stackTrace.pc)) return;
+            if(!dataFrameAppend(className)) return;
+            if(!dataFrameAppend(method.name)) return;
+            if(!dataFrameAppend(method.descriptor)) return;
+            dataFrameFinish();
+        }
+        else
+            sendRespCode(DBG_READ_STACK_TRACE, DBG_RESP_FAIL);
+    }
+    else
+        sendRespCode(DBG_READ_STACK_TRACE, DBG_RESP_BUSY);
+}
+
+void MjvmDebugger::responseExceptionInfo(void) {
+    if(status & DBG_STATUS_STOP) {
+        if(
+            exception &&
+            (status & DBG_STATUS_EXCP) &&
+            execution.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
+        ) {
+            MjvmConstUtf8 &type = exception->type;
+            MjvmString &str = exception->getDetailMessage();
+            uint32_t responseSize = sizeof(MjvmConstUtf8) * 2 + type.length + MjvmString::getUft8BuffSize(str) + 2;
+            uint8_t coder = str.getCoder();
+            const char *text = str.getText();
+            uint32_t msgLen = str.getLength();
+            char utf8Buff[3];
+
+            initDataFrame(DBG_READ_EXCP_INFO, DBG_RESP_OK, responseSize);
+            if(!dataFrameAppend(type)) return;
+            if(!dataFrameAppend((uint16_t)msgLen)) return;
+            if(!dataFrameAppend((uint16_t)0)) return;
+            if(coder == 0) for(uint32_t i = 0; i < msgLen; i++) {
+                uint8_t encodeSize = MjvmString::utf8Encode(text[i], utf8Buff);
+                for(uint8_t j = 0; j < encodeSize; j++)
+                    if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
+            }
+            else for(uint32_t i = 0; i < msgLen; i++) {
+                uint8_t encodeSize = MjvmString::utf8Encode(((uint16_t *)text)[i], utf8Buff);
+                for(uint8_t j = 0; j < encodeSize; j++)
+                    if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
+            }
+            if(!dataFrameAppend((uint8_t)0)) return;
+            dataFrameFinish();
+        }
+        else
+            sendRespCode(DBG_READ_EXCP_INFO, DBG_RESP_FAIL);
+    }
+    else
+        sendRespCode(DBG_READ_EXCP_INFO, DBG_RESP_BUSY);
+}
+
+void MjvmDebugger::responseLocalVariable(bool isU64, uint32_t stackIndex, uint32_t localIndex) {
+    if(status & DBG_STATUS_STOP) {
+        if(!isU64) {
+            uint32_t value;
+            bool isObject;
+            if(execution.readLocal(stackIndex, localIndex, value, isObject)) {
+                uint32_t responseSize = 8;
+                uint32_t valueSize = 4;
+                if(isObject) {
+                    MjvmObject &obj = *(MjvmObject *)value;
+                    MjvmConstUtf8 &type = obj.type;
+                    uint8_t isPrim = obj.isPrimType(type);
+                    valueSize = obj.size;
+                    responseSize += sizeof(MjvmConstUtf8) + obj.dimensions + (isPrim ? 0 : 2) + type.length + 1;
+                }
+                initDataFrame(DBG_READ_LOCAL, DBG_RESP_OK, responseSize);
+                if(!dataFrameAppend((uint32_t)valueSize)) return;
+                if(!dataFrameAppend((uint32_t)value)) return;
+
+                if(isObject) {
+                    MjvmObject &obj = *(MjvmObject *)value;
+                    MjvmConstUtf8 &type = obj.type;
+                    uint8_t isPrim = obj.isPrimType(type);
+                    uint16_t typeLength = obj.dimensions + (isPrim ? 0 : 2) + type.length;
+                    if(!dataFrameAppend((uint16_t)typeLength)) return;
+                    if(!dataFrameAppend((uint16_t)0)) return;
+                    for(uint32_t i = 0; i < obj.dimensions; i++)
+                        if(!dataFrameAppend((uint8_t)'[')) return;
+                    if(!isPrim)
+                        if(!dataFrameAppend((uint8_t)'L')) return;
+                    if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
+                    if(!isPrim)
+                        if(!dataFrameAppend((uint8_t)';')) return;
+                    if(!dataFrameAppend((uint8_t)0)) return;
+                }
+                dataFrameFinish();
+            }
+            else
+                sendRespCode(DBG_READ_LOCAL, DBG_RESP_FAIL);
+        }
+        else {
+            uint64_t value;
+            if(execution.readLocal(stackIndex, localIndex, value)) {
+                initDataFrame(DBG_READ_LOCAL, DBG_RESP_OK, 12);
+                if(!dataFrameAppend((uint32_t)8)) return;
+                if(!dataFrameAppend((uint64_t)value)) return;
+                dataFrameFinish();
+            }
+            else
+                sendRespCode(DBG_READ_LOCAL, DBG_RESP_FAIL);
+        }
+    }
+    else
+        sendRespCode(DBG_READ_LOCAL, DBG_RESP_BUSY);
+}
+
+void MjvmDebugger::responseField(MjvmObject *obj, MjvmConstUtf8 &fieldName) {
+    if(status & DBG_STATUS_STOP) {
+        if(obj) {
+            MjvmFieldsData *fields = (MjvmFieldsData *)obj->data;
+            uint8_t fieldType = 0;
+            void *fieldData = (void *)&fields->getFieldData32(fieldName);
+            if(!fieldData) {
+                fieldType = 1;
+                fieldData = (void *)&fields->getFieldData64(fieldName);
+                if(!fieldData) {
+                    fieldType = 2;
+                    fieldData = (void *)&fields->getFieldObject(fieldName);
+                }
+            }
+            if(fieldData) {
+                if(fieldType == 0) {
+                    initDataFrame(DBG_READ_FIELD, DBG_RESP_OK, 8);
+                    if(!dataFrameAppend((uint32_t)4)) return;
+                    if(!dataFrameAppend((uint32_t)((MjvmFieldData32 *)fieldData)->value)) return;
+                }
+                else if(fieldType == 1) {
+                    initDataFrame(DBG_READ_FIELD, DBG_RESP_OK, 12);
+                    if(!dataFrameAppend((uint32_t)8)) return;
+                    if(!dataFrameAppend((uint64_t)((MjvmFieldData64 *)fieldData)->value)) return;
+                }
+                else {
+                    MjvmObject *subObj = ((MjvmFieldObject *)fieldData)->object;
+                    MjvmConstUtf8 &type = subObj->type;
+                    uint8_t isPrim = subObj->isPrimType(type);
+                    uint16_t typeLength = subObj->dimensions + (isPrim ? 0 : 2) + type.length;
+                    uint32_t responseSize = 8 + sizeof(MjvmConstUtf8) + typeLength + 1;
+
+                    initDataFrame(DBG_READ_FIELD, DBG_RESP_OK, responseSize);
+                    if(!dataFrameAppend((uint32_t)subObj->size)) return;
+                    if(!dataFrameAppend((uint32_t)((MjvmFieldObject *)fieldData)->object)) return;
+                    if(!dataFrameAppend((uint16_t)typeLength)) return;
+                    if(!dataFrameAppend((uint16_t)0)) return;
+                    for(uint32_t i = 0; i < subObj->dimensions; i++)
+                        if(!dataFrameAppend((uint8_t)'[')) return;
+                    if(!isPrim)
+                        if(!dataFrameAppend((uint8_t)'L')) return;
+                    if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
+                    if(!isPrim)
+                        if(!dataFrameAppend((uint8_t)';')) return;
+                    if(!dataFrameAppend((uint8_t)0)) return;
+                }
+                dataFrameFinish();
+            }
+        }
+        else
+            sendRespCode(DBG_READ_FIELD, DBG_RESP_FAIL);
+    }
+    else
+        sendRespCode(DBG_READ_FIELD, DBG_RESP_BUSY);
+}
+
+void MjvmDebugger::responseArray(MjvmObject *array, uint32_t index, uint32_t length) {
+    if(status & DBG_STATUS_STOP) {
+        if(array->dimensions > 0) {
+            uint8_t atype = MjvmObject::isPrimType(array->type);
+            uint8_t elementSize = atype ? MjvmObject::getPrimitiveTypeSize(atype) : sizeof(MjvmObject *);
+            uint32_t arrayLength = array->size / elementSize;
+            uint32_t arrayEnd = index + length;
+            arrayEnd = (arrayEnd < arrayLength) ? arrayEnd : arrayLength;
+            if(index < arrayEnd) {
+                initDataFrame(DBG_READ_ARRAY, DBG_RESP_OK, (arrayEnd - index) * elementSize);
+                switch(elementSize) {
+                    case 1:
+                        for(uint32_t i = index; i < arrayEnd; i++)
+                            dataFrameAppend(((uint8_t *)array->data)[i]);
+                        break;
+                    case 2:
+                        for(uint32_t i = index; i < arrayEnd; i++)
+                            dataFrameAppend(((uint16_t *)array->data)[i]);
+                        break;
+                    case 4:
+                        for(uint32_t i = index; i < arrayEnd; i++)
+                            dataFrameAppend(((uint32_t *)array->data)[i]);
+                        break;
+                    case 8:
+                        for(uint32_t i = index; i < arrayEnd; i++)
+                            dataFrameAppend(((uint64_t *)array->data)[i]);
+                        break;
+                }
+                dataFrameFinish();
+            }
+            else
+                sendRespCode(DBG_READ_ARRAY, DBG_RESP_FAIL);
+        }
+        else
+            sendRespCode(DBG_READ_ARRAY, DBG_RESP_FAIL);
+    }
+    else
+        sendRespCode(DBG_READ_ARRAY, DBG_RESP_BUSY);
+}
+
+void MjvmDebugger::responseObjSizeAndType(MjvmObject *obj) {
+    if(status & DBG_STATUS_STOP) {
+        MjvmConstUtf8 &type = obj->type;
+        uint8_t isPrim = obj->isPrimType(type);
+        uint16_t typeLength = obj->dimensions + (isPrim ? 0 : 2) + type.length;
+        uint32_t responseSize = 4 + sizeof(MjvmConstUtf8) + typeLength + 1;
+
+        initDataFrame(DBG_READ_SIZE_AND_TYPE, DBG_RESP_OK, responseSize);
+        if(!dataFrameAppend((uint32_t)obj->size)) return;
+        if(!dataFrameAppend((uint16_t)typeLength)) return;
+        if(!dataFrameAppend((uint16_t)0)) return;
+        for(uint32_t i = 0; i < obj->dimensions; i++)
+            if(!dataFrameAppend((uint8_t)'[')) return;
+        if(!isPrim)
+            if(!dataFrameAppend((uint8_t)'L')) return;
+        if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
+        if(!isPrim)
+            if(!dataFrameAppend((uint8_t)';')) return;
+        if(!dataFrameAppend((uint8_t)0)) return;
+        dataFrameFinish();
+    }
+    else
+        sendRespCode(DBG_READ_SIZE_AND_TYPE, DBG_RESP_BUSY);
+}
+
 void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     MjvmDbgCmd cmd = (MjvmDbgCmd)data[0];
     switch(cmd) {
         case DBG_READ_STATUS: {
-            uint8_t tmp = status;
-            if(tmp & (DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT))
-                tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
-            initDataFrame(cmd, DBG_RESP_OK, 1);
-            dataFrameAppend((uint8_t)tmp);
-            if(dataFrameFinish() && (tmp & DBG_STATUS_STOP_SET)) {
-                Mjvm::lock();
-                status &= ~DBG_STATUS_STOP_SET;
-                Mjvm::unlock();
-            }
+            responseStatus();
             return;
         }
         case DBG_READ_STACK_TRACE: {
-            if(status & DBG_STATUS_STOP && length == 5) {
-                uint32_t stackIndex = (*(uint32_t *)&data[1]) & 0x7FFFFFFF;
-                MjvmStackFrame stackTrace;
-                bool isEndStack = false;
-                if(execution.getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
-                    MjvmMethodInfo &method = stackTrace.method;
-                    MjvmConstUtf8 &className = method.classLoader.getThisClass();
-
-                    uint32_t responseSize = 8;
-                    responseSize += sizeof(MjvmConstUtf8) + className.length + 1;
-                    responseSize += sizeof(MjvmConstUtf8) + method.name.length + 1;
-                    responseSize += sizeof(MjvmConstUtf8) + method.descriptor.length + 1;
-
-                    initDataFrame(cmd, DBG_RESP_OK, responseSize);
-                    if(!dataFrameAppend((uint32_t)(stackIndex | (isEndStack << 31)))) return;
-                    if(!dataFrameAppend((uint32_t)stackTrace.pc)) return;
-                    if(!dataFrameAppend(className)) return;
-                    if(!dataFrameAppend(method.name)) return;
-                    if(!dataFrameAppend(method.descriptor)) return;
-                    dataFrameFinish();
-                }
-                else
-                    sendRespCode(cmd, DBG_RESP_FAIL);
-            }
-            else
-                sendRespCode(cmd, DBG_RESP_BUSY);
+            uint32_t stackIndex = (*(uint32_t *)&data[1]) & 0x7FFFFFFF;
+            responseStackTrace(stackIndex);
             return;
         }
         case DBG_ADD_BKP:
@@ -247,105 +471,40 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             return;
         }
         case DBG_READ_EXCP_INFO: {
-            if(status & DBG_STATUS_STOP) {
-                if(
-                    exception &&
-                    (status & DBG_STATUS_EXCP) &&
-                    execution.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
-                ) {
-                    MjvmConstUtf8 &type = exception->type;
-                    MjvmString &str = exception->getDetailMessage();
-                    uint32_t responseSize = sizeof(MjvmConstUtf8) * 2 + type.length + MjvmString::getUft8BuffSize(str) + 2;
-                    uint8_t coder = str.getCoder();
-                    const char *text = str.getText();
-                    uint32_t msgLen = str.getLength();
-                    char utf8Buff[3];
-
-                    initDataFrame(cmd, DBG_RESP_OK, responseSize);
-                    if(!dataFrameAppend(type)) return;
-                    if(!dataFrameAppend((uint16_t)msgLen)) return;
-                    if(!dataFrameAppend((uint16_t)0)) return;
-                    if(coder == 0) for(uint32_t i = 0; i < msgLen; i++) {
-                        uint8_t encodeSize = MjvmString::utf8Encode(text[i], utf8Buff);
-                        for(uint8_t j = 0; j < encodeSize; j++)
-                            if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
-                    }
-                    else for(uint32_t i = 0; i < msgLen; i++) {
-                        uint8_t encodeSize = MjvmString::utf8Encode(((uint16_t *)text)[i], utf8Buff);
-                        for(uint8_t j = 0; j < encodeSize; j++)
-                            if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
-                    }
-                    if(!dataFrameAppend((uint8_t)0)) return;
-                    dataFrameFinish();
-                }
-                else
-                    sendRespCode(cmd, DBG_RESP_FAIL);
-            }
-            else
-                sendRespCode(cmd, DBG_RESP_BUSY);
+            responseExceptionInfo();
             return;
         }
         case DBG_READ_LOCAL: {
-            if(status & DBG_STATUS_STOP) {
-                bool isReadU64 = data[1];
-                uint32_t stackIndex = (*(uint32_t *)&data[2]) & 0x7FFFFFFF;
-                uint32_t localIndex = (*(uint32_t *)&data[6]);
-                if(!isReadU64) {
-                    uint32_t value;
-                    bool isObject;
-                    if(execution.readLocal(stackIndex, localIndex, value, isObject)) {
-                        uint32_t responseSize = 8;
-                        uint32_t valueSize = 4;
-                        if(isObject) {
-                            MjvmObject &obj = *(MjvmObject *)value;
-                            MjvmConstUtf8 &type = obj.type;
-                            uint8_t isPrim = obj.isPrimType(type);
-                            valueSize = obj.size;
-                            responseSize += sizeof(MjvmConstUtf8) + obj.dimensions + (isPrim ? 0 : 2) + type.length + 1;
-                        }
-                        initDataFrame(cmd, DBG_RESP_OK, responseSize);
-                        if(!dataFrameAppend((uint32_t)valueSize)) return;
-                        if(!dataFrameAppend((uint32_t)value)) return;
-
-                        if(isObject) {
-                            MjvmObject &obj = *(MjvmObject *)value;
-                            MjvmConstUtf8 &type = obj.type;
-                            uint8_t isPrim = obj.isPrimType(type);
-                            uint16_t typeLength = obj.dimensions + (isPrim ? 0 : 2) + type.length;
-                            if(!dataFrameAppend((uint16_t)typeLength)) return;
-                            if(!dataFrameAppend((uint16_t)0)) return;
-                            for(uint32_t i = 0; i < obj.dimensions; i++)
-                                if(!dataFrameAppend((uint8_t)'[')) return;
-                            if(!isPrim)
-                                if(!dataFrameAppend((uint8_t)'L')) return;
-                            if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
-                            if(!isPrim)
-                                if(!dataFrameAppend((uint8_t)';')) return;
-                            if(!dataFrameAppend((uint8_t)0)) return;
-                        }
-                        dataFrameFinish();
-                    }
-                    else
-                        sendRespCode(cmd, DBG_RESP_FAIL);
-                }
-                else {
-                    uint64_t value;
-                    if(execution.readLocal(stackIndex, localIndex, value)) {
-                        initDataFrame(cmd, DBG_RESP_OK, 12);
-                        if(!dataFrameAppend((uint32_t)8)) return;
-                        if(!dataFrameAppend((uint64_t)value)) return;
-                        dataFrameFinish();
-                    }
-                    else
-                        sendRespCode(cmd, DBG_RESP_FAIL);
-                }
-            }
-            else
-                sendRespCode(cmd, DBG_RESP_BUSY);
+            bool isU64 = data[1];
+            uint32_t stackIndex = (*(uint32_t *)&data[2]) & 0x7FFFFFFF;
+            uint32_t localIndex = (*(uint32_t *)&data[6]);
+            responseLocalVariable(isU64, stackIndex, localIndex);
             return;
         }
         case DBG_WRITE_LOCAL: {
             // TODO
+            return;
+        }
+        case DBG_READ_FIELD: {
+            MjvmObject *obj = (MjvmObject *)*(uint32_t *)&data[1];
+            MjvmConstUtf8 &fieldName = *(MjvmConstUtf8 *)&data[5];
+            responseField(obj, fieldName);
+            return;
+        }
+        case DBG_WRITE_FIELD: {
+            // TODO
+            return;
+        }
+        case DBG_READ_ARRAY: {
+            uint32_t length = (*(uint32_t *)&data[0]) >> 8;
+            uint32_t index = *(uint32_t *)&data[4];
+            MjvmObject *array = (MjvmObject *)*(uint32_t *)&data[8];
+            responseArray(array, index, length);
+            return;
+        }
+        case DBG_READ_SIZE_AND_TYPE: {
+            MjvmObject *obj = (MjvmObject *)*(uint32_t *)&data[1];
+            responseObjSizeAndType(obj);
             return;
         }
         default: {

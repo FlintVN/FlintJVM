@@ -34,7 +34,7 @@ export class MjvmClassLoader {
     public readonly interfacesCount: number;
     public readonly classPath: string;
 
-    public fieldInfos?: MjvmFieldInfo[];
+    private fieldInfos?: MjvmFieldInfo[];
     public methodsInfos: MjvmMethodInfo[];
 
     private readonly poolTable: (
@@ -347,6 +347,31 @@ export class MjvmClassLoader {
             localVariables.push(new MjvmLocalVariable(startPc, length, variableIndex, name, descriptor));
         }
         return [index, new MjvmLocalVariableAttribute(localVariables)];
+    }
+
+    public getFieldList(includeParent: boolean): MjvmFieldInfo[] | undefined {
+        if(includeParent) {
+            const ret: MjvmFieldInfo[] = [];
+            if(this.superClass) {
+                const parentClsPath = MjvmClassLoader.findClassFile(this.superClass);
+                if(!parentClsPath)
+                    throw 'Could not load ' + this.superClass;
+                const parentFields = MjvmClassLoader.load(parentClsPath).getFieldList(true);
+                if(parentFields) {
+                    for(let i = 0; i < parentFields.length; i++)
+                        ret.push(parentFields[i]);
+                }
+            }
+            if(this.fieldInfos) {
+                for(let i = 0; i < this.fieldInfos.length; i++)
+                    ret.push(this.fieldInfos[i]);
+            }
+            if(ret.length > 0)
+                return ret;
+            return undefined;
+        }
+        else
+            return this.fieldInfos;
     }
 
     public getFieldInfo(name: string, descriptor?: string): MjvmFieldInfo | undefined {

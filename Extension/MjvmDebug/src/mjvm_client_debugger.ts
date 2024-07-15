@@ -10,6 +10,8 @@ import { MjvmDataResponse } from './mjvm_data_response';
 import { MjvmExceptionInfo } from './mjvm_exception_info';
 import { MjvmLineInfo } from './class_loader/mjvm_line_info'
 import { MjvmStackFrame } from './class_loader/mjvm_stack_frame';
+import { MjvmClassLoader } from './class_loader/mjvm_class_loader';
+import { MjvmFieldInfo } from './class_loader/mjvm_field_info';
 
 export class MjvmClientDebugger {
     private static readonly DBG_READ_STATUS: number = 0;
@@ -26,6 +28,10 @@ export class MjvmClientDebugger {
     private static readonly DBG_READ_EXCP_INFO: number = 11;
     private static readonly DBG_READ_LOCAL: number = 12;
     private static readonly DBG_WRITE_LOCAL: number = 13;
+    private static readonly DBG_READ_FIELD: number = 14;
+    private static readonly DBG_WRITE_FIELD: number = 15;
+    private static readonly DBG_READ_ARRAY: number = 16;
+    private static readonly DBG_READ_SIZE_AND_TYPE: number = 17;
 
     private static readonly DBG_STATUS_STOP: number = 0x01;
     private static readonly DBG_STATUS_STOP_SET: number = 0x02;
@@ -54,6 +60,8 @@ export class MjvmClientDebugger {
     private currentBreakpoints: MjvmLineInfo[] = [];
 
     private tcpSemaphore = new MjvmSemaphore(1);
+
+    private variableReferenceMap = new Map<number, MjvmValueInfo>;
 
     private stopCallback?: (reason?: string) => void;
     private errorCallback?: () => void;
@@ -622,6 +630,44 @@ export class MjvmClientDebugger {
         return ret;
     }
 
+    private convertToVariable(valueInfos: MjvmValueInfo[]) : Variable[] {
+        const ret: Variable[] = [];
+        for(let i = 0; i < valueInfos.length; i++) {
+            if(this.isPrimType(valueInfos[i].type))
+                ret.push({name: valueInfos[i].name, value: valueInfos[i].value.toString(), variablesReference: 0});
+            else {
+                let value;
+                if(typeof valueInfos[i].value === 'string')
+                    value = valueInfos[i].value;
+                else if(valueInfos[i].reference === 0)
+                    value = 'null';
+                else {
+                    let type = this.getSimpleNames(valueInfos[i].type)[0];
+                    type = this.getShortenName(type);
+                    if(this.isArrayType(valueInfos[i].type)) {
+                        const arrayLength = valueInfos[i].size / this.getElementTypeSize(valueInfos[i].type);
+                        type = type.replace('[]', '[' + arrayLength + ']');
+                    }
+                    value = type;
+                }
+                ret.push({name: valueInfos[i].name, value: value.toString(), variablesReference: valueInfos[i].reference});
+            }
+        }
+        return ret;
+    }
+
+    private addToRefMap(valueInfos: MjvmValueInfo[]) {
+        for(let i = 0; i < valueInfos.length; i++) {
+            if(!this.isPrimType(valueInfos[i].type)) {
+                const reference = valueInfos[i].reference;
+                if(reference !== 0) {
+                    if(!this.variableReferenceMap.has(reference))
+                        this.variableReferenceMap.set(reference, valueInfos[i]);
+                }
+            }
+        }
+    }
+
     public stackFrameRequest(): Thenable<StackFrame[] | undefined> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
@@ -657,18 +703,6 @@ export class MjvmClientDebugger {
                 case 'S':
                 case 'I':
                 case 'J':
-                    return true;
-                default:
-                    return false;
-            }
-        }
-        return false;
-    }
-
-    private isBooleanType(descriptor: string): boolean {
-        if(descriptor.length === 1) {
-            switch(descriptor) {
-                case 'Z':
                     return true;
                 default:
                     return false;
@@ -723,17 +757,94 @@ export class MjvmClientDebugger {
         return view.getFloat64(0);
     }
 
-    private readLocal(stackFrame: MjvmStackFrame, variable: number | string): Thenable<undefined | MjvmValueInfo> {
+    private readObjSizeAndType(reference: number): Thenable<[number, string] | undefined> {
+        return new Promise((resolve) => {
+            const txBuff = Buffer.alloc(5);
+            txBuff[0] = MjvmClientDebugger.DBG_READ_SIZE_AND_TYPE;
+            txBuff[1] = (reference >>> 0) & 0xFF;
+            txBuff[2] = (reference >>> 8) & 0xFF;
+            txBuff[3] = (reference >>> 16) & 0xFF;
+            txBuff[4] = (reference >>> 24) & 0xFF;
+            this.sendCmd(txBuff).then((resp) => {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_READ_SIZE_AND_TYPE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
+                    resolve(undefined);
+                    return;
+                }
+                const size = this.readU32(resp.data, 0);
+                const typeLength = this.readU16(resp.data, 4);
+                const typeName = resp.data.toString('utf-8', 8, 8 + typeLength);
+                resolve([size, typeName]);
+            });
+        });
+    }
+
+    private readStringValue(strObj: MjvmValueInfo): Thenable<string | undefined> {
+        return new Promise((resolve) => {
+            const clsName = this.getSimpleNames(strObj.type)[0];
+            const clsPath = MjvmClassLoader.findClassFile(clsName);
+            if(!clsPath) {
+                resolve(undefined);
+                return;
+            }
+            const clsLoader = MjvmClassLoader.load(clsPath);
+            const fieldInfos = clsLoader.getFieldList(true);
+            if(!fieldInfos) {
+                resolve(undefined);
+                return;
+            }
+            this.readFields(strObj.reference, fieldInfos).then((result) => {
+                if(result === undefined) {
+                    resolve(undefined);
+                    return;
+                }
+                let tmp = result.find(u => u.name === 'coder');
+                if(tmp === undefined) {
+                    resolve(undefined);
+                    return;
+                }
+                const coder = tmp.value as number;
+                tmp = result.find(u => u.name === 'value');
+                if(tmp === undefined) {
+                    resolve(undefined);
+                    return;
+                }
+                const value = tmp as MjvmValueInfo;
+                if(coder === undefined || value === undefined) {
+                    resolve(undefined);
+                    return;
+                }
+                this.readArray(value.reference, 0, value.size, value.type).then((result) => {
+                    if(result === undefined) {
+                        resolve(undefined);
+                        return;
+                    }
+                    const byteArray: number[] = [];
+                    if(coder === 0) {
+                        for(let i = 0; i < result.length; i++)
+                            byteArray.push(result[i].value as number);
+                    }
+                    else for(let i = 0; i < result.length; i++) {
+                        const low = result[i * 2 + 0].value as number;
+                        const hight = result[i * 2 + 1].value as number;
+                        byteArray.push(low | (hight << 8));
+                    }
+                    resolve(String.fromCharCode(...byteArray));
+                });
+            });
+        });
+    }
+
+    private readLocal(stackFrame: MjvmStackFrame, variable: number | string): Thenable<MjvmValueInfo | undefined> {
         return new Promise((resolve) => {
             const localVariableInfo = stackFrame.getLocalVariableInfo(variable);
             if(!localVariableInfo) {
                 resolve(undefined);
                 return;
             }
-            const isReadU64 = localVariableInfo.descriptor === 'J' || localVariableInfo.descriptor === 'D'
+            const isU64 = localVariableInfo.descriptor === 'J' || localVariableInfo.descriptor === 'D'
             const txBuff = Buffer.alloc(10);
             txBuff[0] = MjvmClientDebugger.DBG_READ_LOCAL;
-            txBuff[1] = isReadU64 ? 1 : 0;
+            txBuff[1] = isU64 ? 1 : 0;
             txBuff[2] = (stackFrame.frameId >>> 0) & 0xFF;
             txBuff[3] = (stackFrame.frameId >>> 8) & 0xFF;
             txBuff[4] = (stackFrame.frameId >>> 16) & 0xFF;
@@ -748,67 +859,270 @@ export class MjvmClientDebugger {
                     return;
                 }
                 const size = this.readU32(resp.data, 0);
-                let value = isReadU64 ? this.readU64(resp.data, 4) : this.readU32(resp.data, 4);
+                let value: number | bigint | string = isU64 ? this.readU64(resp.data, 4) : this.readU32(resp.data, 4);
+                const name = localVariableInfo.name;
                 if(this.isPrimType(localVariableInfo.descriptor)) {
                     if(localVariableInfo.descriptor === 'F')
                         value = this.binaryToFloat32(value as number);
                     else if(localVariableInfo.descriptor === 'D')
                         value = this.binaryToFloat64(value as bigint);
-                    resolve(new MjvmValueInfo(value, localVariableInfo.descriptor, size));
+                    else if(localVariableInfo.descriptor === 'C')
+                        value = '\'' + String.fromCharCode(value as number) + '\'';
+                    else if(localVariableInfo.descriptor === 'Z')
+                        value = (value === 0) ? 'false' : 'true';
+                    resolve(new MjvmValueInfo(name, localVariableInfo.descriptor, value, size, 0));
                 }
                 else {
                     let type: string;
-                    if(!isReadU64 && resp.receivedLength > 13) {
+                    if(!isU64 && resp.receivedLength > 13) {
                         const typeLength = this.readU16(resp.data, 8);
                         type = resp.data.toString('utf-8', 12, 12 + typeLength);
                     }
                     else
                         type = localVariableInfo.descriptor;
-                    resolve(new MjvmValueInfo(value, type, size));
+                    const reference = value as number;
+                    resolve(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
                 }
             });
         });
     }
 
-    public readLocalVariable(frameId: number): Thenable<Variable[] | undefined> {
+    private readField(reference: number, fieldInfo: MjvmFieldInfo): Thenable<MjvmValueInfo | undefined> {
         return new Promise((resolve) => {
-            const ret: Variable[] = [];
+            const txBuff = Buffer.alloc(5 + 4 + fieldInfo.name.length + 1);
+            txBuff[0] = MjvmClientDebugger.DBG_READ_FIELD;
+            txBuff[1] = (reference >>> 0) & 0xFF;
+            txBuff[2] = (reference >>> 8) & 0xFF;
+            txBuff[3] = (reference >>> 16) & 0xFF;
+            txBuff[4] = (reference >>> 24) & 0xFF;
+            this.putConstUtf8ToBuffer(txBuff, fieldInfo.name, 5);
+            this.sendCmd(txBuff).then((resp) => {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_READ_FIELD && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
+                    resolve(undefined);
+                    return;
+                }
+                const isU64 = fieldInfo.descriptor === 'J' || fieldInfo.descriptor === 'D';
+                const size = this.readU32(resp.data, 0);
+                let value: number | bigint | string = isU64 ? this.readU64(resp.data, 4) : this.readU32(resp.data, 4);
+                const name = fieldInfo.name;
+                if(this.isPrimType(fieldInfo.descriptor)) {
+                    if(fieldInfo.descriptor === 'F')
+                        value = this.binaryToFloat32(value as number);
+                    else if(fieldInfo.descriptor === 'D')
+                        value = this.binaryToFloat64(value as bigint);
+                    else if(fieldInfo.descriptor === 'C')
+                        value = '\'' + String.fromCharCode(value as number) + '\'';
+                    else if(fieldInfo.descriptor === 'Z')
+                        value = (value === 0) ? 'false' : 'true';
+                    resolve(new MjvmValueInfo(name, fieldInfo.descriptor, value, size, 0));
+                }
+                else {
+                    let type: string;
+                    if(!isU64 && resp.receivedLength > 13) {
+                        const typeLength = this.readU16(resp.data, 8);
+                        type = resp.data.toString('utf-8', 12, 12 + typeLength);
+                    }
+                    else
+                        type = fieldInfo.descriptor;
+                    const reference = value as number;
+                    resolve(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
+                }
+            });
+        });
+    }
+
+    private readFields(reference: number, fieldInfos: MjvmFieldInfo[]): Thenable<MjvmValueInfo[] | undefined> {
+        return new Promise((resolve) => {
+            const ret: MjvmValueInfo[] = [];
+            const readFieldTask = () => {
+                const fieldInfo = fieldInfos.shift() as MjvmFieldInfo;
+                this.readField(reference, fieldInfo).then((result) => {
+                    if(result !== undefined) {
+                        ret.push(result);
+                        if(fieldInfos.length > 0)
+                            readFieldTask();
+                        else
+                            resolve(ret);
+                    }
+                    else {
+                        resolve(undefined);
+                        return;
+                    }
+                });
+            }
+            readFieldTask();
+        });
+    }
+
+    private readArray(reference: number, index: number, length: number, arrayType: string): Thenable<MjvmValueInfo[] | undefined> {
+        return new Promise((resolve) => {
+            const txBuff = Buffer.alloc(12);
+            txBuff[0] = MjvmClientDebugger.DBG_READ_ARRAY;
+            txBuff[1] = (length >>> 0) & 0xFF;
+            txBuff[2] = (length >>> 8) & 0xFF;
+            txBuff[3] = (length >>> 16) & 0xFF;
+            txBuff[4] = (index >>> 0) & 0xFF;
+            txBuff[5] = (index >>> 8) & 0xFF;
+            txBuff[6] = (index >>> 16) & 0xFF;
+            txBuff[7] = (index >>> 24) & 0xFF;
+            txBuff[8] = (reference >>> 0) & 0xFF;
+            txBuff[9] = (reference >>> 8) & 0xFF;
+            txBuff[10] = (reference >>> 16) & 0xFF;
+            txBuff[11] = (reference >>> 24) & 0xFF;
+            this.sendCmd(txBuff).then((resp) => {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_READ_ARRAY && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
+                    resolve(undefined);
+                    return;
+                }
+                const elementSize = this.getElementTypeSize(arrayType);
+                const elementType = arrayType.substring(1);
+                const actualLength = resp.data.length / elementSize;
+                const ret: MjvmValueInfo[] = [];
+                if(elementSize === 1) {
+                    for(let i = 0; i < actualLength; i++) {
+                        const name = '[' + i + ']';
+                        const value = (elementType === 'Z') ? ((resp.data[i] === 0) ? 'false' : 'true') : resp.data[i];
+                        ret.push(new MjvmValueInfo(name, elementType, value, 1, 0));
+                    }
+                    resolve(ret);
+                }
+                else if(elementSize === 2) {
+                    let index = 0;
+                    for(let i = 0; i < actualLength; i++) {
+                        const name = '[' + i + ']';
+                        let value: number | bigint | string = this.readU16(resp.data, index);
+                        index += 2;
+                        if(elementType === 'C')
+                            value = '\'' + String.fromCharCode(value as number) + '\'';
+                        '\'' + String.fromCharCode(value as number) + '\'';
+                        ret.push(new MjvmValueInfo(name, elementType, value, 1, 0));
+                    }
+                    resolve(ret);
+                }
+                else if(elementSize === 4) {
+                    let index = 0;
+                    if(this.isPrimType(elementType)) {
+                        for(let i = 0; i < actualLength; i++) {
+                            const name = '[' + i + ']';
+                            let value: number | bigint = this.readU32(resp.data, index);
+                            if(elementType === 'F')
+                                value = this.binaryToFloat32(value as number);
+                            index += 4;
+                            ret.push(new MjvmValueInfo(name, elementType, value, 4, 0));
+                        }
+                        resolve(ret);
+                    }
+                    else {
+                        const referenceList: number[] = [];
+                        for(let i = 0; i < actualLength; i++) {
+                            referenceList.push(this.readU32(resp.data, index));
+                            index += 4;
+                        }
+                        index = 0;
+                        const readSizeAndTypeTask = () => {
+                            const reference = referenceList[index];
+                            this.readObjSizeAndType(reference).then((result) => { 
+                                if(result === undefined) {
+                                    resolve(undefined);
+                                    return;
+                                }
+                                const name = '[' + index + ']';
+                                const size = result[0];
+                                const type = result[1];
+                                ret.push(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
+                                index++;
+                                if(index < referenceList.length)
+                                    readSizeAndTypeTask();
+                                else
+                                    resolve(ret);
+                            });
+                        }
+                        readSizeAndTypeTask();
+                    }
+                }
+                else if(elementSize === 8) {
+                    let index = 0;
+                    for(let i = 0; i < actualLength; i++) {
+                        const name = '[' + i + ']';
+                        let value: number | bigint  = this.readU64(resp.data, index);
+                        if(elementType === 'D')
+                            value = this.binaryToFloat64(value as bigint);
+                        index += 8;
+                        ret.push(new MjvmValueInfo(name, elementType, value, 8, 0));
+                    }
+                    resolve(ret);
+                }
+            });
+        });
+    }
+
+    public readVariable(reference: number): Thenable<Variable[] | undefined> {
+        return new Promise((resolve) => {
+            if(!this.variableReferenceMap.has(reference)) {
+                resolve(undefined);
+                return;
+            }
+            const valueInfo = this.variableReferenceMap.get(reference) as MjvmValueInfo;
+            if(this.isPrimType(valueInfo.type)) {
+                resolve(undefined);
+                return;
+            }
+            if(!this.isArrayType(valueInfo.type)) {
+                const clsName = this.getSimpleNames(valueInfo.type)[0];
+                const clsPath = MjvmClassLoader.findClassFile(clsName);
+                if(!clsPath) {
+                    resolve(undefined);
+                    return;
+                }
+                const clsLoader = MjvmClassLoader.load(clsPath);
+                const fieldInfos = clsLoader.getFieldList(true);
+                if(!fieldInfos) {
+                    resolve(undefined);
+                    return;
+                }
+                this.readFields(reference, fieldInfos).then((result) => {
+                    if(result === undefined) {
+                        resolve(undefined);
+                        return;
+                    }
+                    this.addToRefMap(result);
+                    resolve(this.convertToVariable(result));
+                });
+            }
+            else {
+                const length = valueInfo.size / this.getElementTypeSize(valueInfo.type);
+                this.readArray(reference, 0, length, valueInfo.type).then((result) => {
+                    if(result === undefined) {
+                        resolve(undefined);
+                        return;
+                    }
+                    this.addToRefMap(result);
+                    resolve(this.convertToVariable(result));
+                });
+            }
+        });
+    }
+
+    public readLocalVariables(frameId: number): Thenable<Variable[] | undefined> {
+        return new Promise((resolve) => {
+            this.variableReferenceMap.clear();
+            const valueInfos: MjvmValueInfo[] = [];
             const readLocalTask = (stackFrame: MjvmStackFrame, variableIndex: number) => {
                 if(stackFrame.localVariables && variableIndex < stackFrame.localVariables.length) {
-                    const variableName = stackFrame.localVariables[variableIndex].name;
                     const localVariablesLength = stackFrame.localVariables.length;
                     this.readLocal(stackFrame, variableIndex).then((result) => {
-                        if(result !== undefined) {
-                            if(this.isPrimType(result.type)) {
-                                const value = result.value;
-                                if(this.isBooleanType(result.type))
-                                    ret.push({name: variableName, value: (value === 0) ? 'false' : 'true', variablesReference: 0});
-                                else if(result.type === 'C')
-                                    ret.push({name: variableName, value: '\'' + String.fromCharCode(value as number) + '\'', variablesReference: 0});
-                                else
-                                    ret.push({name: variableName, value: value.toString(), variablesReference: 0});
-                            }
-                            else {
-                                if(result.value === 0)
-                                    ret.push({name: variableName, value: 'null', variablesReference: 0});
-                                else {
-                                    let type = this.getSimpleNames(result.type)[0];
-                                    type = this.getShortenName(type);
-                                    if(this.isArrayType(result.type)) {
-                                        const arrayLength = result.size / this.getElementTypeSize(result.type);
-                                        type = type.replace('[]', '[' + arrayLength + ']');
-                                    }
-                                    ret.push({name: variableName, value: type, variablesReference: result.value as number});
-                                }
-                            }
-                            variableIndex++;
-                            if(variableIndex < localVariablesLength)
-                                readLocalTask(stackFrame, variableIndex);
-                            else
-                                resolve(ret);
-                        }
-                        else
+                        if(result === undefined) {
                             resolve(undefined);
+                            return;
+                        }
+                        valueInfos.push(result);
+                        variableIndex++;
+                        if(variableIndex < localVariablesLength)
+                            readLocalTask(stackFrame, variableIndex);
+                        else {
+                            this.addToRefMap(valueInfos);
+                            resolve(this.convertToVariable(valueInfos));
+                        }
                     });
                 }
                 else

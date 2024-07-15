@@ -188,7 +188,7 @@ export class MjvmDebugSession extends LoggingDebugSession {
         const variableType: bigint = BigInt(args.variablesReference) >> 32n;
         if(variableType === 1n) {
             const frameId = args.variablesReference & 0xFFFFFFFF;
-            this.clientDebugger.readLocalVariable(frameId).then((result) => {
+            this.clientDebugger.readLocalVariables(frameId).then((result) => {
                 if(result)
                     response.body = {variables: result};
                 this.sendResponse(response);
@@ -196,6 +196,13 @@ export class MjvmDebugSession extends LoggingDebugSession {
         }
         else if(variableType === 2n) {
             this.sendResponse(response);
+        }
+        else {
+            this.clientDebugger.readVariable(args.variablesReference).then((result) => {
+                if(result)
+                    response.body = {variables: result};
+                this.sendResponse(response);
+            });
         }
     }
 

@@ -37,6 +37,10 @@ typedef enum : uint8_t {
     DBG_READ_EXCP_INFO,
     DBG_READ_LOCAL,
     DBG_WRITE_LOCAL,
+    DBG_READ_FIELD,
+    DBG_WRITE_FIELD,
+    DBG_READ_ARRAY,
+    DBG_READ_SIZE_AND_TYPE,
 } MjvmDbgCmd;
 
 typedef enum : uint8_t {
@@ -95,6 +99,14 @@ public:
     bool dataFrameAppend(MjvmConstUtf8 &utf8);
     bool dataFrameFinish(void);
     bool sendRespCode(MjvmDbgCmd cmd, MjvmDbgRespCode responseCode);
+
+    void responseStatus(void);
+    void responseStackTrace(uint32_t stackIndex);
+    void responseExceptionInfo(void);
+    void responseLocalVariable(bool isU64, uint32_t stackIndex, uint32_t localIndex);
+    void responseField(MjvmObject *obj, MjvmConstUtf8 &fieldName);
+    void responseArray(MjvmObject *array, uint32_t index, uint32_t length);
+    void responseObjSizeAndType(MjvmObject *obj);
 
     void receivedDataHandler(uint8_t *data, uint32_t length);
 
