@@ -33,6 +33,7 @@ export class MjvmClassLoader {
     public readonly superClass?: string;
     public readonly interfacesCount: number;
     public readonly classPath: string;
+    public readonly sourcePath?: string;
 
     private fieldInfos?: MjvmFieldInfo[];
     public methodsInfos: MjvmMethodInfo[];
@@ -88,27 +89,32 @@ export class MjvmClassLoader {
 
     private static classLoaderDictionary: Record<string, MjvmClassLoader> = {};
 
-    public static findSourceFile(name: string): string | undefined {
+    private static findFile(name: string): string | undefined {
         const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
-        const srcPath: string = path.join(workspace, name) + ".java";
-        if(fs.existsSync(srcPath))
-            return srcPath;
+        const fullPath: string = path.join(workspace, name);
+        if(fs.existsSync(fullPath))
+            return fullPath;
         return undefined;
     }
 
-    public static findClassFile(name: string): string | undefined {
-        const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
-        const clsPath: string = path.join(workspace, name) + ".class";
-        if(fs.existsSync(clsPath))
-            return clsPath;
-        return undefined;
+    private static findSourceFile(name: string): string | undefined {
+        return MjvmClassLoader.findFile(name + '.java');
     }
 
-    public static load(classFile: string): MjvmClassLoader {
-        classFile = classFile.replace(/\//g, '\\');
-        if(!(classFile in MjvmClassLoader.classLoaderDictionary))
-            MjvmClassLoader.classLoaderDictionary[classFile] = new MjvmClassLoader(classFile);
-        return MjvmClassLoader.classLoaderDictionary[classFile];
+    private static findClassFile(name: string): string | undefined {
+        return MjvmClassLoader.findFile(name + '.class');
+    }
+
+    public static load(className: string): MjvmClassLoader {
+        className = className.replace(/\\/g, '\/');
+        if(!(className in MjvmClassLoader.classLoaderDictionary)) {
+            const classPath = MjvmClassLoader.findClassFile(className);
+            if(classPath)
+                MjvmClassLoader.classLoaderDictionary[className] = new MjvmClassLoader(classPath);
+            else
+                throw 'Could not find ' + '\"' + className + '\"' + 'class file';
+        }
+        return MjvmClassLoader.classLoaderDictionary[className];
     }
 
     private constructor(filePath: string) {
@@ -199,6 +205,7 @@ export class MjvmClassLoader {
         index += 2;
         const thisClass = this.poolTable[this.readU16(data, index) - 1] as MjvmConstClass;
         this.thisClass = this.poolTable[thisClass.constUtf8Index - 1] as string;
+        this.sourcePath = MjvmClassLoader.findSourceFile(this.thisClass);
         index += 2;
         const superClassIndex = this.readU16(data, index);
         index += 2;
@@ -353,10 +360,7 @@ export class MjvmClassLoader {
         if(includeParent) {
             const ret: MjvmFieldInfo[] = [];
             if(this.superClass) {
-                const parentClsPath = MjvmClassLoader.findClassFile(this.superClass);
-                if(!parentClsPath)
-                    throw 'Could not load ' + this.superClass;
-                const parentFields = MjvmClassLoader.load(parentClsPath).getFieldList(true);
+                const parentFields = MjvmClassLoader.load(this.superClass).getFieldList(true);
                 if(parentFields) {
                     for(let i = 0; i < parentFields.length; i++)
                         ret.push(parentFields[i]);

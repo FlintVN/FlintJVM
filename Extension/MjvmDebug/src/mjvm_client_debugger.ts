@@ -781,12 +781,7 @@ export class MjvmClientDebugger {
     private readStringValue(strObj: MjvmValueInfo): Thenable<string | undefined> {
         return new Promise((resolve) => {
             const clsName = this.getSimpleNames(strObj.type)[0];
-            const clsPath = MjvmClassLoader.findClassFile(clsName);
-            if(!clsPath) {
-                resolve(undefined);
-                return;
-            }
-            const clsLoader = MjvmClassLoader.load(clsPath);
+            const clsLoader = MjvmClassLoader.load(clsName);
             const fieldInfos = clsLoader.getFieldList(true);
             if(!fieldInfos) {
                 resolve(undefined);
@@ -1069,12 +1064,7 @@ export class MjvmClientDebugger {
             }
             if(!this.isArrayType(valueInfo.type)) {
                 const clsName = this.getSimpleNames(valueInfo.type)[0];
-                const clsPath = MjvmClassLoader.findClassFile(clsName);
-                if(!clsPath) {
-                    resolve(undefined);
-                    return;
-                }
-                const clsLoader = MjvmClassLoader.load(clsPath);
+                const clsLoader = MjvmClassLoader.load(clsName);
                 const fieldInfos = clsLoader.getFieldList(true);
                 if(!fieldInfos) {
                     resolve(undefined);

@@ -36,12 +36,8 @@ export class MjvmLineInfo {
     }
 
     public static getLineInfoFromPc(pc: number, className: string, method: string, descriptor: string): MjvmLineInfo | undefined {
-        const clsPath = MjvmClassLoader.findClassFile(className);
-        if(clsPath) {
-            const srcPath = MjvmClassLoader.findSourceFile(className);
-            if(!srcPath)
-                return undefined;
-            const classLoader = MjvmClassLoader.load(clsPath);
+        const classLoader = MjvmClassLoader.load(className);
+        if(classLoader.sourcePath) {
             const methodInfo = classLoader.getMethodInfo(method, descriptor);
             if(methodInfo && methodInfo.attributeCode) {
                 const attrLinesNumber = methodInfo.attributeCode.getLinesNumber();
@@ -53,11 +49,10 @@ export class MjvmLineInfo {
                     if(pc >= linesNumber[i].startPc) {
                         const line = linesNumber[i].line;
                         const codeLength = (((i + 1) < linesNumber.length) ? linesNumber[i + 1].startPc : methodInfo.attributeCode.code.length) - pc;
-                        return new MjvmLineInfo(pc, line, codeLength, srcPath, methodInfo, classLoader);
+                        return new MjvmLineInfo(pc, line, codeLength, classLoader.sourcePath, methodInfo, classLoader);
                     }
                 }
             }
-            return undefined;
         }
         return undefined;
     }
@@ -72,9 +67,8 @@ export class MjvmLineInfo {
 
     public static getLineInfoFromLine(line: number, srcPath: string): MjvmLineInfo | undefined {
         const className = this.getClassNameFormSource(srcPath);
-        const clsPath = className ? MjvmClassLoader.findClassFile(className) : undefined;
-        if(className && clsPath) {
-            const classLoader = MjvmClassLoader.load(clsPath);
+        if(className) {
+            const classLoader = MjvmClassLoader.load(className);
             for(let i = 0; i < classLoader.methodsInfos.length; i++) {
                 const methodInfo = classLoader.methodsInfos[i];
                 if(methodInfo.attributeCode) {
