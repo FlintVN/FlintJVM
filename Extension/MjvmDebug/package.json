@@ -19,11 +19,13 @@
     ],
     "main": "./dist/extension.js",
     "contributes": {
+        "breakpoints": [{
+            "language": "java"
+        }],
         "debuggers": [{
             "type": "mjvm-debug",
             "languages": [
-                "java",
-                "class"
+                "java"
             ],
             "label": "MJVM Debug",
             "program": "./out/debugAdapter.js",

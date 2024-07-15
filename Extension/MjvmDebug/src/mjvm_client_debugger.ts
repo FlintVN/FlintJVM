@@ -778,16 +778,13 @@ export class MjvmClientDebugger {
         });
     }
 
-    private readStringValue(strObj: MjvmValueInfo): Thenable<string | undefined> {
+    private readStringValue(strReference: number): Thenable<string | undefined> {
         return new Promise((resolve) => {
-            const clsName = this.getSimpleNames(strObj.type)[0];
-            const clsLoader = MjvmClassLoader.load(clsName);
-            const fieldInfos = clsLoader.getFieldList(true);
-            if(!fieldInfos) {
-                resolve(undefined);
-                return;
-            }
-            this.readFields(strObj.reference, fieldInfos).then((result) => {
+            const fieldInfos = [
+                new MjvmFieldInfo('value', '[B', 0),
+                new MjvmFieldInfo('coder', 'B', 0),
+            ];
+            this.readFields(strReference, fieldInfos).then((result) => {
                 if(result === undefined) {
                     resolve(undefined);
                     return;
@@ -804,10 +801,6 @@ export class MjvmClientDebugger {
                     return;
                 }
                 const value = tmp as MjvmValueInfo;
-                if(coder === undefined || value === undefined) {
-                    resolve(undefined);
-                    return;
-                }
                 this.readArray(value.reference, 0, value.size, value.type).then((result) => {
                     if(result === undefined) {
                         resolve(undefined);
@@ -818,14 +811,37 @@ export class MjvmClientDebugger {
                         for(let i = 0; i < result.length; i++)
                             byteArray.push(result[i].value as number);
                     }
-                    else for(let i = 0; i < result.length; i++) {
-                        const low = result[i * 2 + 0].value as number;
-                        const hight = result[i * 2 + 1].value as number;
+                    else for(let i = 0; i < result.length; i += 2) {
+                        const low = result[i + 0].value as number;
+                        const hight = result[i + 1].value as number;
                         byteArray.push(low | (hight << 8));
                     }
                     resolve(String.fromCharCode(...byteArray));
                 });
             });
+        });
+    }
+
+    private checkAndReadString(reference: number, typeName: string): Thenable<string | undefined> {
+        return new Promise((resolve) => {
+            if(reference && !this.isPrimType(typeName) && !this.isArrayType(typeName)) {
+                const className = this.getSimpleNames(typeName)[0];
+                const classLoader = MjvmClassLoader.load(className);
+                if(classLoader.isClassOf('java/lang/String')) {
+                    this.readStringValue(reference).then((str) => {
+                        if(str) {
+                            let value = str.replace(/\"/g, '\\\"');
+                            value = str.replace(/\\/g, '\\\\');
+                            value = '\"' + value + '\"';
+                            resolve(value);
+                        }
+                        else
+                            resolve(undefined);
+                    });
+                    return;
+                }
+            }
+            resolve(undefined);
         });
     }
 
@@ -876,7 +892,12 @@ export class MjvmClientDebugger {
                     else
                         type = localVariableInfo.descriptor;
                     const reference = value as number;
-                    resolve(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
+                    this.checkAndReadString(reference, type).then((str) => {
+                        if(str)
+                            resolve(new MjvmValueInfo(name, type, str, size, reference));
+                        else
+                            resolve(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
+                    });
                 }
             });
         });
@@ -920,7 +941,12 @@ export class MjvmClientDebugger {
                     else
                         type = fieldInfo.descriptor;
                     const reference = value as number;
-                    resolve(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
+                    this.checkAndReadString(reference, type).then((str) => {
+                        if(str)
+                            resolve(new MjvmValueInfo(name, type, str, size, reference));
+                        else
+                            resolve(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
+                    });
                 }
             });
         });
@@ -1024,12 +1050,17 @@ export class MjvmClientDebugger {
                                 const name = '[' + index + ']';
                                 const size = result[0];
                                 const type = result[1];
-                                ret.push(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
-                                index++;
-                                if(index < referenceList.length)
-                                    readSizeAndTypeTask();
-                                else
-                                    resolve(ret);
+                                this.checkAndReadString(reference, type).then((str) => {
+                                    if(str)
+                                        ret.push(new MjvmValueInfo(name, type, str, size, reference));
+                                    else
+                                        ret.push(new MjvmValueInfo(name, type, reference ? 0 : 'null', size, reference));
+                                    index++;
+                                    if(index < referenceList.length)
+                                        readSizeAndTypeTask();
+                                    else
+                                        resolve(ret);
+                                });
                             });
                         }
                         readSizeAndTypeTask();

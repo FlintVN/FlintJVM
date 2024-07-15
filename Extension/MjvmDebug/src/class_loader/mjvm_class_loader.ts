@@ -404,6 +404,20 @@ export class MjvmClassLoader {
         return undefined;
     }
 
+    public isClassOf(parentClassName: string): boolean {
+        let thisClass: string | undefined = this.thisClass;
+        let superClass = this.superClass;
+        while(true) {
+            if(thisClass === parentClassName)
+                return true;
+            else if(!superClass)
+                return false;
+            const classLoader = MjvmClassLoader.load(superClass);
+            thisClass = classLoader.thisClass;
+            superClass = classLoader.superClass;
+        }
+    }
+
     private readU16(data: Buffer, offset : number): number {
         let ret = data[offset + 1];
         ret |= data[offset] << 8;
