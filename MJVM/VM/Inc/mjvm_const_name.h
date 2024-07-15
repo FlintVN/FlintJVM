@@ -26,6 +26,7 @@ extern const MjvmConstUtf8 &arithmeticExceptionClassName;
 extern const MjvmConstUtf8 &classNotFoundExceptionClassName;
 extern const MjvmConstUtf8 &cloneNotSupportedExceptionClassName;
 extern const MjvmConstUtf8 &negativeArraySizeExceptionClassName;
+extern const MjvmConstUtf8 &unsupportedOperationExceptionClassName;
 extern const MjvmConstUtf8 &arrayIndexOutOfBoundsExceptionClassName;
 
 #endif /* __MJVM_CONST_NAME_H */

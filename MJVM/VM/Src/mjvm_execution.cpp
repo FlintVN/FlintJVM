@@ -149,7 +149,7 @@ MjvmClass *MjvmExecution::getConstClass(MjvmString &str) {
 
 MjvmString *MjvmExecution::newString(uint16_t length, uint8_t coder) {
     /* create new byte array to store string */
-    MjvmObject *byteArray = newObject(length << (coder ? 1 : 0), *(MjvmConstUtf8 *)&primTypeConstUtf8List[4], 1);
+    MjvmObject *byteArray = newObject(length << (coder ? 1 : 0), *(MjvmConstUtf8 *)primTypeConstUtf8List[4], 1);
 
     /* create new string object */
     MjvmObject *strObj = newObject(sizeof(MjvmFieldsData), *(MjvmConstUtf8 *)&stringClassName);
@@ -313,6 +313,10 @@ MjvmThrowable *MjvmExecution::newNegativeArraySizeException(MjvmString *strObj) 
 
 MjvmThrowable *MjvmExecution::newArrayIndexOutOfBoundsException(MjvmString *strObj) {
     return newThrowable(strObj, *(MjvmConstUtf8 *)&arrayIndexOutOfBoundsExceptionClassName);
+}
+
+MjvmThrowable *MjvmExecution::newUnsupportedOperationException(MjvmString *strObj) {
+    return newThrowable(strObj, *(MjvmConstUtf8 *)&unsupportedOperationExceptionClassName);
 }
 
 void MjvmExecution::freeAllObject(void) {
@@ -2424,9 +2428,20 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
         }
         goto *opcodes[code[pc]];
     }
-    op_invokedynamic:
+    op_invokedynamic: {
         // TODO
-        goto *opcodes[code[pc]];
+        // goto *opcodes[code[pc]];
+        MjvmString *strObj = newString(STR_AND_SIZE("Invokedynamic instructions are not supported"));
+        try {
+            MjvmThrowable *excpObj = newUnsupportedOperationException(strObj);
+            stackPushObject(excpObj);
+        }
+        catch(LoadFileError *file) {
+            fileNotFound = file;
+            goto file_not_found_excp;
+        }
+        goto exception_handler;
+    }
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         MjvmConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);

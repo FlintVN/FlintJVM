@@ -71,6 +71,7 @@ public:
     MjvmThrowable *newCloneNotSupportedException(MjvmString *strObj);
     MjvmThrowable *newNegativeArraySizeException(MjvmString *strObj);
     MjvmThrowable *newArrayIndexOutOfBoundsException(MjvmString *strObj);
+    MjvmThrowable *newUnsupportedOperationException(MjvmString *strObj);
 private:
     void freeAllObject(void);
     void clearProtectObjectNew(MjvmObject *obj);

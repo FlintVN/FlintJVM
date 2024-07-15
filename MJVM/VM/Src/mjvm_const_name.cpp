@@ -48,4 +48,5 @@ const MjvmConstUtf8 &arithmeticExceptionClassName = *(const MjvmConstUtf8 *)"\x1
 const MjvmConstUtf8 &classNotFoundExceptionClassName = *(const MjvmConstUtf8 *)"\x20\x00\x74\x0C""java/lang/ClassNotFoundException";
 const MjvmConstUtf8 &cloneNotSupportedExceptionClassName = *(const MjvmConstUtf8 *)"\x24\x00\x39\x0E""java/lang/CloneNotSupportedException";
 const MjvmConstUtf8 &negativeArraySizeExceptionClassName = *(const MjvmConstUtf8 *)"\x24\x00\x1E\x0E""java/lang/NegativeArraySizeException";
+const MjvmConstUtf8 &unsupportedOperationExceptionClassName = *(const MjvmConstUtf8 *)"\x27\x00\xAB\x0F""java/lang/UnsupportedOperationException";
 const MjvmConstUtf8 &arrayIndexOutOfBoundsExceptionClassName = *(const MjvmConstUtf8 *)"\x28\x00\xA0\x0F""java/lang/ArrayIndexOutOfBoundsException";
