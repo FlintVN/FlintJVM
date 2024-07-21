@@ -464,7 +464,7 @@ MjvmClassLoader &MjvmExecution::load(const char *className, uint16_t length) {
             newNode->~ClassData();
             Mjvm::free(newNode);
         }
-        throw (LoadFileError *)className;
+        throw (MjvmLoadFileError *)className;
     }
 }
 
@@ -496,7 +496,7 @@ MjvmClassLoader &MjvmExecution::load(MjvmConstUtf8 &className) {
             newNode->~ClassData();
             Mjvm::free(newNode);
         }
-        throw (LoadFileError *)className.text;
+        throw (MjvmLoadFileError *)className.text;
     }
 }
 
@@ -1002,7 +1002,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
 
     const register void **opcodes = dbg ? opcodeLabelsDebug : opcodeLabels;
 
-    LoadFileError *fileNotFound = 0;
+    MjvmLoadFileError *fileNotFound = 0;
 
     method = &methodInfo;
 
@@ -1014,7 +1014,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
         try {
             stackPushInt32((int32_t)(ClassData *)&method->classLoader);
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -1249,7 +1249,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -1276,7 +1276,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -1302,7 +1302,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -1328,7 +1328,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -1355,7 +1355,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -1512,7 +1512,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -1540,7 +1540,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -1567,7 +1567,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -1595,7 +1595,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newArrayIndexOutOfBoundsException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2195,7 +2195,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             try {
                 stackPushInt32((int32_t)(ClassData *)&load(constField.className));
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2228,7 +2228,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             try {
                 stackPushInt32((int32_t)(ClassData *)&load(constField.className));
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2300,7 +2300,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newNullPointerException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2368,7 +2368,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newNullPointerException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2382,7 +2382,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             if(!invokeVirtual(constMethod))
                 goto exception_handler;
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2395,7 +2395,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             if(!invokeSpecial(constMethod))
                 goto exception_handler;
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2408,7 +2408,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             if(!invokeStatic(constMethod))
                 goto exception_handler;
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2422,7 +2422,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             if(!invokeInterface(interfaceMethod, count))
                 goto exception_handler;
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2436,7 +2436,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             MjvmThrowable *excpObj = newUnsupportedOperationException(strObj);
             stackPushObject(excpObj);
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2457,7 +2457,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             }
             goto *opcodes[code[pc]];
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2494,7 +2494,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newNullPointerException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2513,7 +2513,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newNullPointerException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2562,7 +2562,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             try {
                 isInsOf = isInstanceof(obj, type.text, type.length);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2573,7 +2573,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                     MjvmThrowable *excpObj = newNullPointerException(strObj);
                     stackPushObject(excpObj);
                 }
-                catch(LoadFileError *file) {
+                catch(MjvmLoadFileError *file) {
                     fileNotFound = file;
                     goto file_not_found_excp;
                 }
@@ -2589,7 +2589,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
         try {
             stackPushInt32(isInstanceof(obj, type.text, type.length));
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2604,7 +2604,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
                 MjvmThrowable *excpObj = newNullPointerException(strObj);
                 stackPushObject(excpObj);
             }
-            catch(LoadFileError *file) {
+            catch(MjvmLoadFileError *file) {
                 fileNotFound = file;
                 goto file_not_found_excp;
             }
@@ -2719,7 +2719,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             MjvmObject *array = newMultiArray(*typeName, dimensions, &stack[sp]);
             stackPushObject(array);
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2751,7 +2751,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             MjvmThrowable *excpObj = newArithmeticException(strObj);
             stackPushObject(excpObj);
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2763,7 +2763,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             MjvmThrowable *excpObj = newNegativeArraySizeException(strObj);
             stackPushObject(excpObj);
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2775,7 +2775,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2787,7 +2787,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
             MjvmThrowable *excpObj = newNullPointerException(strObj);
             stackPushObject(excpObj);
         }
-        catch(LoadFileError *file) {
+        catch(MjvmLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
         }
@@ -2815,12 +2815,12 @@ void MjvmExecution::runToMain(const char *mainClass, MjvmDebugger *dbg) {
         MjvmSystem_Write(str.getText(), str.getLength(), str.getCoder());
         MjvmSystem_Write("\n", 1, 0);
     }
-    catch(OutOfMemoryError *err) {
+    catch(MjvmOutOfMemoryError *err) {
         const char *msg = err->getMessage();
         MjvmSystem_Write(msg, strlen(msg), 0);
         MjvmSystem_Write("\n", 1, 0);
     }
-    catch(LoadFileError *file) {
+    catch(MjvmLoadFileError *file) {
         const char *fileName = file->getFileName();
         MjvmSystem_Write("Could not find or load class ", 29, 0);
         while(*fileName) {

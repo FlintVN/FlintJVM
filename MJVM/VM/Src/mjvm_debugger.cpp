@@ -530,7 +530,7 @@ bool MjvmDebugger::addBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmCons
             }
         }
     }
-    catch(LoadFileError *file) {
+    catch(MjvmLoadFileError *file) {
 
     }
     return false;
@@ -552,7 +552,7 @@ bool MjvmDebugger::removeBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmC
             }
         }
     }
-    catch(LoadFileError *file) {
+    catch(MjvmLoadFileError *file) {
 
     }
     return false;
