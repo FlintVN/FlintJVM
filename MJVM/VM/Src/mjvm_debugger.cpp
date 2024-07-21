@@ -163,7 +163,7 @@ void MjvmDebugger::responseExceptionInfo(void) {
         if(
             exception &&
             (status & DBG_STATUS_EXCP) &&
-            execution.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
+            execution.mjvm.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
         ) {
             MjvmConstUtf8 &type = exception->type;
             MjvmString &str = exception->getDetailMessage();
@@ -517,7 +517,7 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
 bool MjvmDebugger::addBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmConstUtf8 &methodName, MjvmConstUtf8 &descriptor) {
     try {
         if(breakPointCount < LENGTH(breakPoints)) {
-            MjvmClassLoader &loader = execution.load(className);
+            MjvmClassLoader &loader = execution.mjvm.load(className);
             MjvmMethodInfo *method = &loader.getMethodInfo(methodName, descriptor);
             if(method) {
                 for(uint8_t i = 0; i < breakPointCount; i++) {
@@ -539,7 +539,7 @@ bool MjvmDebugger::addBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmCons
 bool MjvmDebugger::removeBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmConstUtf8 &methodName, MjvmConstUtf8 &descriptor) {
     try {
         if(breakPointCount) {
-            MjvmClassLoader &loader = execution.load(className);
+            MjvmClassLoader &loader = execution.mjvm.load(className);
             MjvmMethodInfo *method = &loader.getMethodInfo(methodName, descriptor);
             if(method) {
                 for(uint8_t i = 0; i < breakPointCount; i++) {

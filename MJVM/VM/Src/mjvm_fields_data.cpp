@@ -2,7 +2,6 @@
 #include <iostream>
 #include "mjvm.h"
 #include "mjvm_fields_data.h"
-#include "mjvm_execution.h"
 
 MjvmFieldData32::MjvmFieldData32(const MjvmFieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
 
@@ -16,12 +15,12 @@ MjvmFieldObject::MjvmFieldObject(const MjvmFieldInfo &fieldInfo) : fieldInfo(fie
 
 }
 
-MjvmFieldsData::MjvmFieldsData(MjvmExecution &execution, const MjvmClassLoader &classLoader, bool isStatic) :
+MjvmFieldsData::MjvmFieldsData(Mjvm &mjvm, const MjvmClassLoader &classLoader, bool isStatic) :
 fields32Count(0), fields64Count(0), fieldsObjCount(0) {
     if(isStatic)
         loadStatic(classLoader);
     else
-        loadNonStatic(execution, classLoader);
+        loadNonStatic(mjvm, classLoader);
 }
 
 void MjvmFieldsData::loadStatic(const MjvmClassLoader &classLoader) {
@@ -73,7 +72,7 @@ void MjvmFieldsData::loadStatic(const MjvmClassLoader &classLoader) {
     }
 }
 
-void MjvmFieldsData::loadNonStatic(MjvmExecution &execution, const MjvmClassLoader &classLoader) {
+void MjvmFieldsData::loadNonStatic(Mjvm &mjvm, const MjvmClassLoader &classLoader) {
     uint16_t field32Index = 0;
     uint16_t field64Index = 0;
     uint16_t fieldObjIndex = 0;
@@ -101,7 +100,7 @@ void MjvmFieldsData::loadNonStatic(MjvmExecution &execution, const MjvmClassLoad
             }
         }
         MjvmConstUtf8 *superClass = &loader->getSuperClass();
-        loader = superClass ? &execution.load(*superClass) : 0;
+        loader = superClass ? &mjvm.load(*superClass) : 0;
     }
 
     fieldsData32 = (fields32Count) ? (MjvmFieldData32 *)Mjvm::malloc(fields32Count * sizeof(MjvmFieldData32)) : 0;
@@ -130,7 +129,7 @@ void MjvmFieldsData::loadNonStatic(MjvmExecution &execution, const MjvmClassLoad
             }
         }
         MjvmConstUtf8 *superClass = &loader->getSuperClass();
-        loader = superClass ? &execution.load(*superClass) : 0;
+        loader = superClass ? &mjvm.load(*superClass) : 0;
     }
 }
 
@@ -216,7 +215,7 @@ ClassData::~ClassData() {
     }
 }
 
-ClassData::ClassData(const char *fileName) : MjvmClassLoader(fileName) {
+ClassData::ClassData( const char *fileName) : MjvmClassLoader(fileName) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;

@@ -36,7 +36,7 @@ private:
     MjvmConstString(const MjvmConstString &) = delete;
     void operator=(const MjvmConstString &) = delete;
 
-    friend class MjvmExecution;
+    friend class Mjvm;
 };
 
 #endif /* __MJVM_STRING_H */

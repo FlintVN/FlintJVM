@@ -6,7 +6,7 @@
 
 static bool nativeIntern(MjvmExecution &execution) {
     MjvmString *obj = (MjvmString *)execution.stackPopObject();
-    execution.stackPushObject(execution.getConstString(*obj));
+    execution.stackPushObject(execution.mjvm.getConstString(*obj));
     return true;
 }
 

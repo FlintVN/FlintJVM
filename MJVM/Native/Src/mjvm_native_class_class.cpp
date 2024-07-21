@@ -12,26 +12,26 @@ static bool nativeGetPrimitiveClass(MjvmExecution &execution) {
         switch(len) {
             case 3:
                 if(strncmp(str->getText(), "int", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("int", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("int", len));
                     return true;
                 }
                 break;
             case 4: {
                 const char *text = str->getText();
                 if(strncmp(text, "void", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("void", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("void", len));
                     return true;
                 }
                 else if(strncmp(text, "byte", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("byte", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("byte", len));
                     return true;
                 }
                 else if(strncmp(text, "char", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("char", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("char", len));
                     return true;
                 }
                 else if(strncmp(text, "long", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("long", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("long", len));
                     return true;
                 }
                 break;
@@ -39,24 +39,24 @@ static bool nativeGetPrimitiveClass(MjvmExecution &execution) {
             case 5: {
                 const char *text = str->getText();
                 if(strncmp(text, "float", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("float", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("float", len));
                     return true;
                 }
                 else if(strncmp(text, "short", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("short", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("short", len));
                     return true;
                 }
                 break;
             }
             case 6:
                 if(strncmp(str->getText(), "double", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("double", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("double", len));
                     return true;
                 }
                 break;
             case 7:
                 if(strncmp(str->getText(), "boolean", len) == 0) {
-                    execution.stackPushObject(execution.getConstClass("boolean", len));
+                    execution.stackPushObject(execution.mjvm.getConstClass("boolean", len));
                     return true;
                 }
                 break;
@@ -76,7 +76,7 @@ static bool nativeIsInstance(MjvmExecution &execution) {
     MjvmClass *clsObj = (MjvmClass *)execution.stackPopObject();
     MjvmString &typeName = clsObj->getName();
     if(typeName.getCoder() == 0)
-        execution.stackPushInt32(execution.isInstanceof(obj, typeName.getText(), typeName.getLength()) ? 1 : 0);
+        execution.stackPushInt32(execution.mjvm.isInstanceof(obj, typeName.getText(), typeName.getLength()) ? 1 : 0);
     else
         execution.stackPushInt32(0);
     return true;
@@ -173,33 +173,33 @@ static bool nativeGetComponentType(MjvmExecution &execution) {
         if(len == 1) {
             switch(text[start]) {
                 case 'Z':   /* boolean */
-                    ret = execution.getConstClass("boolean", 7);
+                    ret = execution.mjvm.getConstClass("boolean", 7);
                     break;
                 case 'C':   /* char */
-                    ret = execution.getConstClass("char", 4);
+                    ret = execution.mjvm.getConstClass("char", 4);
                     break;
                 case 'F':   /* float */
-                    ret = execution.getConstClass("float", 5);
+                    ret = execution.mjvm.getConstClass("float", 5);
                     break;
                 case 'D':   /* double */
-                    ret = execution.getConstClass("double", 6);
+                    ret = execution.mjvm.getConstClass("double", 6);
                     break;
                 case 'B':   /* byte */
-                    ret = execution.getConstClass("byte", 4);
+                    ret = execution.mjvm.getConstClass("byte", 4);
                     break;
                 case 'S':   /* short */
-                    ret = execution.getConstClass("short", 5);
+                    ret = execution.mjvm.getConstClass("short", 5);
                     break;
                 case 'I':   /* integer */
-                    ret = execution.getConstClass("int", 3);
+                    ret = execution.mjvm.getConstClass("int", 3);
                     break;
                 default:    /* long */
-                    ret = execution.getConstClass("long", 4);
+                    ret = execution.mjvm.getConstClass("long", 4);
                     break;
             }
         }
         else
-            ret = execution.getConstClass(&text[start], len);
+            ret = execution.mjvm.getConstClass(&text[start], len);
         execution.stackPushObject(ret);
         return true;
     }

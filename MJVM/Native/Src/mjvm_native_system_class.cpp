@@ -48,8 +48,8 @@ static bool nativeArraycopy(MjvmExecution &execution) {
         }
     }
     else {
-        MjvmString *strObj = execution.newString(STR_AND_SIZE("Type mismatch, can not copy array object"));
-        MjvmThrowable *excpObj = execution.newArrayStoreException(strObj);
+        MjvmString *strObj = execution.mjvm.newString(STR_AND_SIZE("Type mismatch, can not copy array object"));
+        MjvmThrowable *excpObj = execution.mjvm.newArrayStoreException(strObj);
         execution.stackPushObject(excpObj);
         return false;
     }

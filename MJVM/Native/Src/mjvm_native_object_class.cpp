@@ -15,7 +15,7 @@ static bool nativeGetClass(MjvmExecution &execution) {
         if(!isPrim)
             length += 2;
     }
-    MjvmString *strObj = execution.newString(length, 0);
+    MjvmString *strObj = execution.mjvm.newString(length, 0);
     MjvmObject *byteArray = ((MjvmFieldsData *)strObj->data)->getFieldObject(*(MjvmConstNameAndType *)stringValueFieldName).object;
     if(obj->dimensions) {
         for(uint32_t i = 0; i < obj->dimensions; i++)
@@ -29,7 +29,7 @@ static bool nativeGetClass(MjvmExecution &execution) {
     }
     if(obj->dimensions && !isPrim)
         byteArray->data[idx++] = ';';
-    execution.stackPushObject(execution.getConstClass(*strObj));
+    execution.stackPushObject(execution.mjvm.getConstClass(*strObj));
     return true;
 }
 
@@ -42,14 +42,14 @@ static bool nativeHashCode(MjvmExecution &execution) {
 static bool nativeClone(MjvmExecution &execution) {
     MjvmObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
-        MjvmObject *cloneObj = execution.newObject(obj->size, obj->type, obj->dimensions);
+        MjvmObject *cloneObj = execution.mjvm.newObject(obj->size, obj->type, obj->dimensions);
         memcpy(cloneObj->data, obj->data, obj->size);
         execution.stackPushObject(cloneObj);
         return true;
     }
     else {
-        MjvmString *strObj = execution.newString(STR_AND_SIZE("Clone method is not supported"));
-        MjvmThrowable *excpObj = execution.newCloneNotSupportedException(strObj);
+        MjvmString *strObj = execution.mjvm.newString(STR_AND_SIZE("Clone method is not supported"));
+        MjvmThrowable *excpObj = execution.mjvm.newCloneNotSupportedException(strObj);
         execution.stackPushObject(excpObj);
         return false;
     }

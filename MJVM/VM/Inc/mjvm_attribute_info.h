@@ -4,6 +4,8 @@
 
 #include "mjvm_const_pool.h"
 
+class Mjvm;
+
 typedef enum : uint8_t {
     ATTRIBUTE_CONSTANT_VALUE = 0,
     ATTRIBUTE_CODE,

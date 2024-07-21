@@ -77,8 +77,9 @@ private:
     MjvmConstMethod(const MjvmConstMethod &) = delete;
     void operator=(const MjvmConstMethod &) = delete;
 
-    friend class MjvmClassLoader;
+    friend class Mjvm;
     friend class MjvmExecution;
+    friend class MjvmClassLoader;
 };
 
 typedef MjvmConstMethod MjvmConstInterfaceMethod;

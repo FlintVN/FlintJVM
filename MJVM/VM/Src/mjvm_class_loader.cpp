@@ -466,7 +466,7 @@ MjvmConstUtf8 &MjvmClassLoader::getConstUtf8Class(MjvmConstPool &constPool) cons
     throw "const pool tag is not class tag";
 }
 
-MjvmClass &MjvmClassLoader::getConstClass(MjvmExecution &execution, uint16_t poolIndex) {
+MjvmClass &MjvmClassLoader::getConstClass(Mjvm &mjvm, uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -475,7 +475,7 @@ MjvmClass &MjvmClassLoader::getConstClass(MjvmExecution &execution, uint16_t poo
                 MjvmConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
                 ConstClassValue *constClassValue = (ConstClassValue *)Mjvm::malloc(sizeof(ConstClassValue));
                 constClassValue->constUtf8Class = &constUtf8Class;
-                constClassValue->constClass = execution.getConstClass(constUtf8Class.text, constUtf8Class.length);
+                constClassValue->constClass = mjvm.getConstClass(constUtf8Class.text, constUtf8Class.length);
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)constClassValue;
                 *(MjvmConstPoolTag *)&poolTable[poolIndex].tag = CONST_CLASS;
             }
@@ -486,7 +486,7 @@ MjvmClass &MjvmClassLoader::getConstClass(MjvmExecution &execution, uint16_t poo
     throw "index for const class is invalid";
 }
 
-MjvmClass &MjvmClassLoader::getConstClass(MjvmExecution &execution, MjvmConstPool &constPool) {
+MjvmClass &MjvmClassLoader::getConstClass(Mjvm &mjvm, MjvmConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_CLASS) {
         if(constPool.tag & 0x80) {
             Mjvm::lock();
@@ -494,7 +494,7 @@ MjvmClass &MjvmClassLoader::getConstClass(MjvmExecution &execution, MjvmConstPoo
                 MjvmConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
                 ConstClassValue *constClassValue = (ConstClassValue *)Mjvm::malloc(sizeof(ConstClassValue));
                 constClassValue->constUtf8Class = &constUtf8Class;
-                constClassValue->constClass = execution.getConstClass(constUtf8Class.text, constUtf8Class.length);
+                constClassValue->constClass = mjvm.getConstClass(constUtf8Class.text, constUtf8Class.length);
                 *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
                 *(MjvmConstPoolTag *)&constPool.tag = CONST_CLASS;
             }
@@ -505,14 +505,14 @@ MjvmClass &MjvmClassLoader::getConstClass(MjvmExecution &execution, MjvmConstPoo
     throw "const pool tag is not class tag";
 }
 
-MjvmString &MjvmClassLoader::getConstString(MjvmExecution &execution, uint16_t poolIndex) {
+MjvmString &MjvmClassLoader::getConstString(Mjvm &mjvm, uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_STRING) {
         if(poolTable[poolIndex].tag & 0x80) {
             Mjvm::lock();
             if(poolTable[poolIndex].tag & 0x80) {
                 MjvmConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
-                MjvmString *strObj = execution.getConstString(utf8Str);
+                MjvmString *strObj = mjvm.getConstString(utf8Str);
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)strObj;
                 *(MjvmConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
             }
@@ -523,13 +523,13 @@ MjvmString &MjvmClassLoader::getConstString(MjvmExecution &execution, uint16_t p
     throw "index for const string is invalid";
 }
 
-MjvmString &MjvmClassLoader::getConstString(MjvmExecution &execution, MjvmConstPool &constPool) {
+MjvmString &MjvmClassLoader::getConstString(Mjvm &mjvm, MjvmConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_STRING) {
         if(constPool.tag & 0x80) {
             Mjvm::lock();
             if(constPool.tag & 0x80) {
                 MjvmConstUtf8 &utf8Str = getConstUtf8(constPool.value);
-                MjvmString *strObj = execution.getConstString(utf8Str);
+                MjvmString *strObj = mjvm.getConstString(utf8Str);
                 *(uint32_t *)&constPool.value = (uint32_t)strObj;
                 *(MjvmConstPoolTag *)&constPool.tag = CONST_STRING;
             }

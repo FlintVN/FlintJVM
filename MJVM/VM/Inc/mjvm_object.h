@@ -16,7 +16,6 @@ private:
 public:
     MjvmConstUtf8 &type;
     const uint32_t dimensions : 8;
-public:
     uint32_t monitorCount : 24;
     uint32_t ownId;
     uint8_t data[];
@@ -35,6 +34,7 @@ protected:
     MjvmObject(const MjvmObject &) = delete;
     void operator=(const MjvmObject &) = delete;
 
+    friend class Mjvm;
     friend class MjvmExecution;
 };
 

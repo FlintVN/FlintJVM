@@ -5,7 +5,7 @@
 #include "mjvm_object.h"
 #include "mjvm_class_loader.h"
 
-class MjvmExecution;
+class Mjvm;
 
 class MjvmFieldData32 {
 public:
@@ -60,17 +60,18 @@ private:
     MjvmFieldData64 *fieldsData64;
     MjvmFieldObject *fieldsObject;
 private:
-    MjvmFieldsData(MjvmExecution &execution, const MjvmClassLoader &classLoader, bool isStatic);
+    MjvmFieldsData(Mjvm &mjvm, const MjvmClassLoader &classLoader, bool isStatic);
     MjvmFieldsData(const MjvmFieldsData &) = delete;
     void operator=(const MjvmFieldsData &) = delete;
 
     void loadStatic(const MjvmClassLoader &classLoader);
-    void loadNonStatic(MjvmExecution &execution, const MjvmClassLoader &classLoader);
+    void loadNonStatic(Mjvm &mjvm, const MjvmClassLoader &classLoader);
 
     ~MjvmFieldsData(void);
 
-    friend class MjvmExecution;
+    friend class Mjvm;
     friend class ClassData;
+    friend class MjvmExecution;
 };
 
 class ClassData : public MjvmClassLoader {
@@ -91,7 +92,7 @@ public:
 
     ~ClassData(void);
 
-    friend class MjvmExecution;
+    friend class Mjvm;
 };
 
 #endif /* __MJVM_FIELD_DATA_H */

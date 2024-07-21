@@ -8,7 +8,7 @@
 #include "mjvm_class.h"
 #include "mjvm_string.h"
 
-class MjvmExecution;
+class Mjvm;
 
 class MjvmClassLoader {
 private:
@@ -65,11 +65,11 @@ public:
 
     MjvmConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     MjvmConstUtf8 &getConstUtf8Class(MjvmConstPool &constPool) const;
-    MjvmClass &getConstClass(MjvmExecution &execution, uint16_t poolIndex);
-    MjvmClass &getConstClass(MjvmExecution &execution, MjvmConstPool &constPool);
+    MjvmClass &getConstClass(Mjvm &mjvm, uint16_t poolIndex);
+    MjvmClass &getConstClass(Mjvm &mjvm, MjvmConstPool &constPool);
 
-    MjvmString &getConstString(MjvmExecution &execution, uint16_t poolIndex);
-    MjvmString &getConstString(MjvmExecution &execution, MjvmConstPool &constPool);
+    MjvmString &getConstString(Mjvm &mjvm, uint16_t poolIndex);
+    MjvmString &getConstString(Mjvm &mjvm, MjvmConstPool &constPool);
 
     MjvmConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
     MjvmConstUtf8 &getConstMethodType(MjvmConstPool &constPool) const;
