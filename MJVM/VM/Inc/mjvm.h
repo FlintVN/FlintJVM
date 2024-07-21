@@ -5,15 +5,7 @@
 #include <stdint.h>
 #include "mjvm_execution.h"
 #include "mjvm_out_of_memory.h"
-
-class MjvmLoadFileError {
-public:
-    const char *getFileName(void) const;
-private:
-    MjvmLoadFileError(void) = delete;
-    MjvmLoadFileError(const MjvmLoadFileError &) = delete;
-    void operator=(const MjvmLoadFileError &) = delete;
-};
+#include "mjvm_load_file_error.h"
 
 class ExecutionNode : public MjvmExecution {
 public:

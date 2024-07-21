@@ -8,10 +8,6 @@ static uint32_t objectCount = 0;
 
 ExecutionNode *Mjvm::executionList = 0;
 
-const char *MjvmLoadFileError::getFileName(void) const {
-    return (const char *)this;
-}
-
 ExecutionNode::ExecutionNode(void) : MjvmExecution() {
     prev = 0;
     next = 0;
