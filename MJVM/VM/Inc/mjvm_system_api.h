@@ -17,6 +17,10 @@ uint32_t MjvmSystem_FileTell(void *fileHandle);
 MjvmSys_FileResult MjvmSystem_FileSeek(void *fileHandle, uint32_t offset);
 MjvmSys_FileResult MjvmSystem_FileClose(void *fileHandle);
 
+void *MjvmSystem_ThreadCreate(void (*task)(void *), void *param, uint32_t stackSize = 0);
+void MjvmSystem_ThreadTerminate(void *threadHandle);
+void MjvmSystem_ThreadSleep(uint32_t ms);
+
 void *MjvmSystem_Malloc(uint32_t size);
 void *MjvmSystem_Realloc(void *p, uint32_t size);
 void MjvmSystem_Free(void *p);

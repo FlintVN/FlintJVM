@@ -18,22 +18,28 @@
 #define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
 #define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
 
+static const void **opcodeLabelsExit = 0;
+
 MjvmExecution::MjvmExecution(Mjvm &mjvm) : mjvm(mjvm), stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
+    opcodes = 0;
     lr = -1;
     sp = -1;
     startSp = sp;
     peakSp = sp;
     stack = (int32_t *)Mjvm::malloc(DEFAULT_STACK_SIZE);
     stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
+    mainClass = 0;
 }
 
 MjvmExecution::MjvmExecution(Mjvm &mjvm, uint32_t size) : mjvm(mjvm), stackLength(size / sizeof(int32_t)) {
+    opcodes = 0;
     lr = -1;
     sp = -1;
     startSp = sp;
     peakSp = sp;
     stack = (int32_t *)Mjvm::malloc(size);
     stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
+    mainClass = 0;
 }
 
 MjvmStackType MjvmExecution::getStackType(uint32_t index) {
@@ -399,7 +405,7 @@ bool MjvmExecution::invokeInterface(MjvmConstInterfaceMethod &interfaceMethod, u
         throw "invoke interface to static method";
 }
 
-void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
+void MjvmExecution::run(MjvmMethodInfo &methodInfo) {
     static const void *opcodeLabels[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
         &&op_lconst_0, &&op_lconst_1, &&op_fconst_0, &&op_fconst_1, &&op_fconst_2, &&op_dconst_0, &&op_dconst_1, &&op_bipush, &&op_sipush,
@@ -455,10 +461,41 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
         &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow,
-        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_exit_dbg,
+        &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_exit,
     };
 
-    const register void **opcodes = dbg ? opcodeLabelsDebug : opcodeLabels;
+    static const void *opcodeLabelsExit[256] = {
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+        &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
+    };
+
+    ::opcodeLabelsExit = opcodeLabelsExit;
+    MjvmDebugger *dbg = mjvm.getDebugger();
+    opcodes = dbg ? opcodeLabelsDebug : opcodeLabels;
 
     MjvmLoadFileError *fileNotFound = 0;
 
@@ -2258,15 +2295,13 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo, MjvmDebugger *dbg) {
         stackPushObject(excpObj);
         goto exception_handler;
     }
-    op_exit_dbg:
-        dbg->done();
     op_exit:
         return;
 }
 
-void MjvmExecution::runToMain(const char *mainClass, MjvmDebugger *dbg) {
+void MjvmExecution::runToMainTask(MjvmExecution *execution) {
     try {
-        run(mjvm.load(mainClass).getMainMethodInfo(), dbg);
+        execution->run(execution->mjvm.load(execution->mainClass).getMainMethodInfo());
     }
     catch(MjvmThrowable *ex) {
         MjvmString &str = ex->getDetailMessage();
@@ -2291,6 +2326,26 @@ void MjvmExecution::runToMain(const char *mainClass, MjvmDebugger *dbg) {
         MjvmSystem_Write(msg, strlen(msg), 0);
         MjvmSystem_Write("\n", 1, 0);
     }
+    while(execution->startSp > 3)
+        execution->stackRestoreContext();
+    execution->peakSp = -1;
+    execution->opcodes = 0;
+}
+
+bool MjvmExecution::runToMain(const char *mainClass) {
+    if(!opcodes) {
+        this->mainClass = mainClass;
+        return (MjvmSystem_ThreadCreate((void (*)(void *))runToMainTask, (void *)this) != 0);
+    }
+    return false;
+}
+
+bool MjvmExecution::isRunning(void) const {
+    return opcodes != 0;
+}
+
+void MjvmExecution::terminateRequest(void) {
+    opcodes = opcodeLabelsExit;
 }
 
 MjvmExecution::~MjvmExecution(void) {

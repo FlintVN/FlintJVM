@@ -12,19 +12,24 @@
 #include "mjvm_out_of_memory.h"
 #include "mjvm_load_file_error.h"
 
-class ExecutionNode : public MjvmExecution {
+class MjvmExecutionNode : public MjvmExecution {
 public:
-    ExecutionNode *prev;
-    ExecutionNode *next;
+    MjvmExecutionNode *prev;
+    MjvmExecutionNode *next;
 
-    ExecutionNode(Mjvm &mjvm);
-    ExecutionNode(Mjvm &mjvm, uint32_t stackSize);
+    MjvmExecutionNode(Mjvm &mjvm);
+    MjvmExecutionNode(Mjvm &mjvm, uint32_t stackSize);
+private:
+    MjvmExecutionNode(void) = delete;
+    MjvmExecutionNode(const MjvmExecutionNode &) = delete;
+    void operator=(const MjvmExecutionNode &) = delete;
 };
 
 class Mjvm {
 private:
     static Mjvm mjvmInstance;
-    ExecutionNode *executionList;
+    MjvmDebugger *dbg;
+    MjvmExecutionNode *executionList;
     ClassData *classDataList;
     MjvmObject *objectList;
     MjvmConstClass *constClassList;
@@ -44,6 +49,9 @@ public:
 
     static Mjvm &getInstance(void);
 public:
+    MjvmDebugger *getDebugger(void) const;
+    void setDebugger(MjvmDebugger *dbg);
+
     MjvmExecution &newExecution(void);
     MjvmExecution &newExecution(uint32_t stackSize);
 
@@ -88,6 +96,8 @@ public:
     MjvmClassLoader &load(const char *className, uint16_t length);
     MjvmClassLoader &load(const char *className);
     MjvmClassLoader &load(MjvmConstUtf8 &className);
+
+    void terminateAll(void);
 };
 
 #endif /* __MJVM_H */

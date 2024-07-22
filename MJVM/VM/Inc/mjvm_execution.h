@@ -16,6 +16,7 @@ class MjvmExecution {
 public:
     Mjvm &mjvm;
 private:
+    const void ** volatile opcodes;
     const uint32_t stackLength;
     MjvmMethodInfo *method;
     const uint8_t *code;
@@ -27,6 +28,7 @@ private:
     int32_t *stack;
     int32_t *locals;
     uint8_t *stackType;
+    const char *mainClass;
 protected:
     MjvmExecution(Mjvm &mjvm);
     MjvmExecution(Mjvm &mjvm, uint32_t stackSize);
@@ -64,12 +66,15 @@ private:
     bool invokeVirtual(MjvmConstMethod &constMethod);
     bool invokeInterface(MjvmConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
-    void run(MjvmMethodInfo &method, MjvmDebugger *dbg);
+    void run(MjvmMethodInfo &method);
+    bool isRunning(void) const;
+    void terminateRequest(void);
+    static void runToMainTask(MjvmExecution *execution);
 
     friend class Mjvm;
     friend class MjvmDebugger;
 public:
-    void runToMain(const char *mainClass, MjvmDebugger *dbg = 0);
+    bool runToMain(const char *mainClass);
 
     bool getStackTrace(uint32_t index, MjvmStackFrame *stackTrace, bool *isEndStack) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const;

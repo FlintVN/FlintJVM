@@ -8,12 +8,12 @@ static uint32_t objectCount = 0;
 
 Mjvm Mjvm::mjvmInstance;
 
-ExecutionNode::ExecutionNode(Mjvm &mjvm) : MjvmExecution(mjvm) {
+MjvmExecutionNode::MjvmExecutionNode(Mjvm &mjvm) : MjvmExecution(mjvm) {
     prev = 0;
     next = 0;
 }
 
-ExecutionNode::ExecutionNode(Mjvm &mjvm, uint32_t stackSize) : MjvmExecution(mjvm, stackSize) {
+MjvmExecutionNode::MjvmExecutionNode(Mjvm &mjvm, uint32_t stackSize) : MjvmExecution(mjvm, stackSize) {
     prev = 0;
     next = 0;
 }
@@ -59,6 +59,7 @@ Mjvm &Mjvm::getInstance(void) {
 }
 
 Mjvm::Mjvm(void) {
+    dbg = 0;
     executionList = 0;
     classDataList = 0;
     objectList = 0;
@@ -67,20 +68,28 @@ Mjvm::Mjvm(void) {
     objectSizeToGc = 0;
 }
 
+MjvmDebugger *Mjvm::getDebugger(void) const {
+    return dbg;
+}
+
+void Mjvm::setDebugger(MjvmDebugger *dbg) {
+    this->dbg = dbg;
+}
+
 MjvmExecution &Mjvm::newExecution(void) {
-    ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
+    MjvmExecutionNode *newNode = (MjvmExecutionNode *)Mjvm::malloc(sizeof(MjvmExecutionNode));
     lock();
     newNode->next = executionList;
     if(executionList)
         executionList->prev = newNode;
     executionList = newNode;
     unlock();
-    return *new (newNode)ExecutionNode(*this);
+    return *new (newNode)MjvmExecutionNode(*this);
 }
 
 MjvmExecution &Mjvm::newExecution(uint32_t stackSize) {
-    ExecutionNode *newNode = (ExecutionNode *)Mjvm::malloc(sizeof(ExecutionNode));
-    new (newNode)ExecutionNode(*this, stackSize);
+    MjvmExecutionNode *newNode = (MjvmExecutionNode *)Mjvm::malloc(sizeof(MjvmExecutionNode));
+    new (newNode)MjvmExecutionNode(*this, stackSize);
     lock();
     newNode->next = executionList;
     if(executionList)
@@ -449,7 +458,7 @@ void Mjvm::garbageCollection(void) {
             }
         }
     }
-    for(ExecutionNode *node = executionList; node != 0; node = node->next) {
+    for(MjvmExecutionNode *node = executionList; node != 0; node = node->next) {
         for(int32_t i = 0; i <= node->peakSp; i++) {
             if(node->getStackType(i) == STACK_TYPE_OBJECT) {
                 MjvmObject *obj = (MjvmObject *)node->stack[i];
@@ -621,5 +630,17 @@ bool Mjvm::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length) 
             if(objType == 0)
                 return false;
         }
+    }
+}
+
+void Mjvm::terminateAll(void) {
+    for(MjvmExecutionNode *node = executionList; node != 0; node = node->next)
+        node->terminateRequest();
+    for(MjvmExecutionNode *node = executionList; node != 0;) {
+        MjvmExecutionNode *next = node->next;
+        while(node->isRunning());
+        node->~MjvmExecution();
+        Mjvm::free(node);
+        node = next;
     }
 }
