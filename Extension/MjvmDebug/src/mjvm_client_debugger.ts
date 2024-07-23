@@ -14,40 +14,39 @@ import { MjvmClassLoader } from './class_loader/mjvm_class_loader';
 import { MjvmFieldInfo } from './class_loader/mjvm_field_info';
 
 export class MjvmClientDebugger {
-    private static readonly DBG_READ_STATUS: number = 0;
-    private static readonly DBG_READ_STACK_TRACE: number = 1;
-    private static readonly DBG_ADD_BKP: number = 2;
-    private static readonly DBG_REMOVE_BKP: number = 3;
-    private static readonly DBG_REMOVE_ALL_BKP: number = 4;
-    private static readonly DBG_RUN: number = 5;
-    private static readonly DBG_STOP: number = 6;
-    private static readonly DBG_STEP_IN: number = 7;
-    private static readonly DBG_STEP_OVER: number = 8;
-    private static readonly DBG_STEP_OUT: number = 9;
-    private static readonly DBG_SET_EXCP_MODE: number = 10;
-    private static readonly DBG_READ_EXCP_INFO: number = 11;
-    private static readonly DBG_READ_LOCAL: number = 12;
-    private static readonly DBG_WRITE_LOCAL: number = 13;
-    private static readonly DBG_READ_FIELD: number = 14;
-    private static readonly DBG_WRITE_FIELD: number = 15;
-    private static readonly DBG_READ_ARRAY: number = 16;
-    private static readonly DBG_READ_SIZE_AND_TYPE: number = 17;
+    private static readonly DBG_CMD_READ_STATUS: number = 0;
+    private static readonly DBG_CMD_READ_STACK_TRACE: number = 1;
+    private static readonly DBG_CMD_ADD_BKP: number = 2;
+    private static readonly DBG_CMD_REMOVE_BKP: number = 3;
+    private static readonly DBG_CMD_REMOVE_ALL_BKP: number = 4;
+    private static readonly DBG_CMD_RUN: number = 5;
+    private static readonly DBG_CMD_STOP: number = 6;
+    private static readonly DBG_CMD_RESTART: number = 7;
+    private static readonly DBG_CMD_TERMINATE: number = 8;
+    private static readonly DBG_CMD_STEP_IN: number = 9;
+    private static readonly DBG_CMD_STEP_OVER: number = 10;
+    private static readonly DBG_CMD_STEP_OUT: number = 11;
+    private static readonly DBG_CMD_SET_EXCP_MODE: number = 12;
+    private static readonly DBG_CMD_READ_EXCP_INFO: number = 13;
+    private static readonly DBG_CMD_READ_LOCAL: number = 14;
+    private static readonly DBG_CMD_WRITE_LOCAL: number = 15;
+    private static readonly DBG_CMD_READ_FIELD: number = 16;
+    private static readonly DBG_CMD_WRITE_FIELD: number = 17;
+    private static readonly DBG_CMD_READ_ARRAY: number = 18;
+    private static readonly DBG_CMD_READ_SIZE_AND_TYPE: number = 19;
 
     private static readonly DBG_STATUS_STOP: number = 0x01;
     private static readonly DBG_STATUS_STOP_SET: number = 0x02;
-    private static readonly DBG_STATUS_STEP_IN: number = 0x04;
-    private static readonly DBG_STATUS_STEP_OVER: number = 0x08;
-    private static readonly DBG_STATUS_STEP_OUT: number = 0x10;
-    private static readonly DBG_STATUS_EXCP_EN: number = 0x20;
-    private static readonly DBG_STATUS_EXCP: number = 0x40;
-    private static readonly DBG_STATUS_DONE: number = 0x80;
+    private static readonly DBG_STATUS_EXCP: number = 0x04;
+    private static readonly DBG_STATUS_RESET: number = 0x80;
 
     private static readonly DBG_RESP_OK = 0;
     private static readonly DBG_RESP_BUSY = 1;
     private static readonly DBG_RESP_FAIL = 2;
     private static readonly DBG_RESP_UNKNOW = 2;
 
-    private static TCP_RECEIVED_TIMEOUT: number = 100;
+    private static TCP_TIMEOUT_DEFAULT: number = 200;
+    private static READ_STATUS_INVERVAL: number = 100;
 
     private readonly client: net.Socket;
 
@@ -72,33 +71,6 @@ export class MjvmClientDebugger {
         this.client = new net.Socket();
         this.requestStatusTask = undefined;
 
-        this.client.on('connect', () => {
-            this.requestStatusTask = setInterval(() => {
-                if(!this.client.destroyed && this.client.connecting === false) {
-                    this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_READ_STATUS])).then((resp) => {
-                        if(resp && resp.cmd === MjvmClientDebugger.DBG_READ_STATUS && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
-                            const tmp = this.currentStatus;
-                            this.currentStatus = resp.data[0];
-                            if((this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP_SET) && (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)) {
-                                this.currentStackFrames = undefined;
-                                if(this.stopCallback) {
-                                    let reason = undefined;
-                                    if(this.currentStatus & MjvmClientDebugger.DBG_STATUS_EXCP)
-                                        reason = 'exception';
-                                    this.stopCallback(reason);
-                                }
-                            }
-                            else if((tmp & MjvmClientDebugger.DBG_STATUS_STOP) !== (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)) {
-                                this.currentStackFrames = undefined;
-                                if(this.stopCallback && (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP))
-                                    this.stopCallback();
-                            }
-                        }
-                    });
-                }
-            }, 100);
-        });
-
         this.client.on('data', (data: Buffer) => {
             if(this.receivedCallback) {
                 if(!this.rxResponse) {
@@ -106,7 +78,7 @@ export class MjvmClientDebugger {
                     const dataLength = data[1] | (data[2] << 8) | (data[3] << 16);
                     const responseCode = data[4];
                     this.rxResponse = new MjvmDataResponse(cmd, responseCode, dataLength);
-                    if(cmd === MjvmClientDebugger.DBG_READ_STACK_TRACE)
+                    if(cmd === MjvmClientDebugger.DBG_CMD_READ_STACK_TRACE)
                         this.rxResponse.receivedLength = 0;
                     let index = 0;
                     for(let i = 0; i < (data.length - 5); i++)
@@ -135,12 +107,44 @@ export class MjvmClientDebugger {
         this.client.on('close', () => {
             if(this.closeCallback) {
                 if(this.requestStatusTask) {
-                    clearInterval(this.requestStatusTask);
+                    clearTimeout(this.requestStatusTask);
                     this.requestStatusTask = undefined;
                 }
                 this.closeCallback();
             }
         });
+    }
+
+    public startCheckStatus() {
+        const timeoutCallback = () => {
+            if(!this.client.destroyed && this.client.connecting === false) {
+                this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_CMD_READ_STATUS])).then((resp) => {
+                    if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_READ_STATUS && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
+                        const status = resp.data[0];
+                        if(!(status & MjvmClientDebugger.DBG_STATUS_RESET)) {
+                            const tmp = this.currentStatus;
+                            this.currentStatus = status;
+                            if((this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP_SET) && (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)) {
+                                this.currentStackFrames = undefined;
+                                if(this.stopCallback) {
+                                    let reason = undefined;
+                                    if(this.currentStatus & MjvmClientDebugger.DBG_STATUS_EXCP)
+                                        reason = 'exception';
+                                    this.stopCallback(reason);
+                                }
+                            }
+                            else if((tmp & MjvmClientDebugger.DBG_STATUS_STOP) !== (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)) {
+                                this.currentStackFrames = undefined;
+                                if(this.stopCallback && (this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP))
+                                    this.stopCallback();
+                            }
+                        }
+                    }
+                    this.requestStatusTask = setTimeout(timeoutCallback, MjvmClientDebugger.READ_STATUS_INVERVAL);
+                });
+            }
+        };
+        this.requestStatusTask = setTimeout(timeoutCallback, MjvmClientDebugger.READ_STATUS_INVERVAL);
     }
 
     private onReceived(callback: (response: MjvmDataResponse) => void) {
@@ -163,21 +167,21 @@ export class MjvmClientDebugger {
         await this.client.connect(5555, '127.0.0.1');
     }
 
-    private sendCmd(data: Buffer): Thenable<MjvmDataResponse | undefined> {
+    private sendCmd(data: Buffer, timeout: number = MjvmClientDebugger.TCP_TIMEOUT_DEFAULT): Thenable<MjvmDataResponse | undefined> {
         return new Promise((resolve) => {
             this.tcpSemaphore.acquire().then(() => {
-                const timeout = setTimeout(() => {
+                const timeoutTask = setTimeout(() => {
                     this.tcpSemaphore.release();
                     resolve(undefined);
-                }, MjvmClientDebugger.TCP_RECEIVED_TIMEOUT);
+                }, timeout);
                 this.onReceived((resp) => {
                     this.tcpSemaphore.release();
-                    clearTimeout(timeout);
+                    clearTimeout(timeoutTask);
                     resolve(resp);
                 });
                 if(!this.client.write(data)) {
                     this.tcpSemaphore.release();
-                    clearTimeout(timeout);
+                    clearTimeout(timeoutTask);
                     resolve(undefined);
                 }
             });
@@ -189,8 +193,8 @@ export class MjvmClientDebugger {
         return new Promise((resolve) => {
             if(!(this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP))
                 resolve(true);
-            else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_RUN])).then((resp) => {
-                if(resp && resp.cmd === MjvmClientDebugger.DBG_RUN && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
+            else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_CMD_RUN])).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_RUN && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
                     resolve(true);
                 else
                     resolve(false);
@@ -203,8 +207,8 @@ export class MjvmClientDebugger {
         return new Promise((resolve) => {
             if(this.currentStatus & MjvmClientDebugger.DBG_STATUS_STOP)
                 resolve(true);
-            else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_STOP])).then((resp) => {
-                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_STOP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK))
+            else this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_CMD_STOP])).then((resp) => {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_STOP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK))
                     resolve(false);
                 else
                     resolve(true);
@@ -232,8 +236,8 @@ export class MjvmClientDebugger {
 
     public removeAllBreakPoints(): Thenable<boolean> {
         return new Promise((resolve) => {
-            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_REMOVE_ALL_BKP])).then((resp) => {
-                if(resp && resp.cmd === MjvmClientDebugger.DBG_REMOVE_ALL_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
+            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_CMD_REMOVE_ALL_BKP])).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_REMOVE_ALL_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
                     resolve(true);
                 else
                     resolve(false);
@@ -297,7 +301,7 @@ export class MjvmClientDebugger {
                     let index = 0;
 
                     /* command code */
-                    txBuff[index++] = MjvmClientDebugger.DBG_REMOVE_BKP;
+                    txBuff[index++] = MjvmClientDebugger.DBG_CMD_REMOVE_BKP;
 
                     /* pc value */
                     txBuff[index++] = (line.pc >>> 0) & 0xFF;
@@ -315,7 +319,7 @@ export class MjvmClientDebugger {
                     index = this.putConstUtf8ToBuffer(txBuff, descriptor, index);
 
                     this.sendCmd(txBuff).then((resp) => {
-                        if(resp && resp.cmd === MjvmClientDebugger.DBG_REMOVE_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
+                        if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_REMOVE_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
                             const index = this.currentBreakpoints.findIndex(item => item === line);
                             this.currentBreakpoints.splice(index, 1);
                             sendRemoveBkpTask();
@@ -348,7 +352,7 @@ export class MjvmClientDebugger {
                     let index = 0;
 
                     /* command code */
-                    txBuff[index++] = MjvmClientDebugger.DBG_ADD_BKP;
+                    txBuff[index++] = MjvmClientDebugger.DBG_CMD_ADD_BKP;
 
                     /* pc value */
                     txBuff[index++] = (line.pc >>> 0) & 0xFF;
@@ -366,7 +370,7 @@ export class MjvmClientDebugger {
                     index = this.putConstUtf8ToBuffer(txBuff, descriptor, index);
 
                     this.sendCmd(txBuff).then((resp) => {
-                        if(resp && resp.cmd === MjvmClientDebugger.DBG_ADD_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
+                        if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_ADD_BKP && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
                             this.currentBreakpoints.push(line);
                             sendAddBkpTask();
                         }
@@ -383,8 +387,8 @@ export class MjvmClientDebugger {
 
     public setExceptionBreakPointsRequest(isEnabled: boolean): Thenable<boolean> {
         return new Promise((resolve) => {
-            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_SET_EXCP_MODE, isEnabled ? 1 : 0], )).then((resp) => {
-                if(resp && resp.cmd === MjvmClientDebugger.DBG_SET_EXCP_MODE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
+            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_CMD_SET_EXCP_MODE, isEnabled ? 1 : 0], )).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_SET_EXCP_MODE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
                     resolve(true);
                 else
                     resolve(false);
@@ -394,8 +398,8 @@ export class MjvmClientDebugger {
 
     public readExceptionInfo(): Thenable<MjvmExceptionInfo | undefined> {
         return new Promise((resolve) => {
-            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_READ_EXCP_INFO])).then((resp) => {
-                if(resp && resp.cmd === MjvmClientDebugger.DBG_READ_EXCP_INFO && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
+            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_CMD_READ_EXCP_INFO])).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_READ_EXCP_INFO && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
                     let index = 0;
                     const typeLength = this.readU16(resp.data, index);
                     index += 4;
@@ -447,13 +451,13 @@ export class MjvmClientDebugger {
     private readStackFrame(frameId: number): Thenable<MjvmStackFrame | undefined> {
         return new Promise((resolve) => {
             const txData: Buffer = Buffer.alloc(5);
-            txData[0] = MjvmClientDebugger.DBG_READ_STACK_TRACE;
+            txData[0] = MjvmClientDebugger.DBG_CMD_READ_STACK_TRACE;
             txData[1] = frameId & 0xFF;
             txData[2] = (frameId >>> 8) & 0xFF;
             txData[3] = (frameId >>> 16) & 0xFF;
             txData[4] = (frameId >>> 24) & 0xFF;
             this.sendCmd(txData).then((resp) => {
-                if(resp && resp.cmd === MjvmClientDebugger.DBG_READ_STACK_TRACE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_READ_STACK_TRACE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK) {
                     let index = 0;
                     const currentStack = this.readU32(resp.data, index);
                     const currentStackIndex = currentStack & 0x7FFFFFFF;
@@ -503,6 +507,31 @@ export class MjvmClientDebugger {
         });
     }
 
+    public restartRequest(mainClass: string): Thenable<boolean> {
+        return new Promise((resolve) => {
+            const txBuff = Buffer.alloc(6 + mainClass.length);
+            txBuff[0] = MjvmClientDebugger.DBG_CMD_RESTART;
+            this.putConstUtf8ToBuffer(txBuff, mainClass, 1);
+            this.sendCmd(txBuff, 5000).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_RESTART && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
+                    resolve(true);
+                else
+                    resolve(false);
+            });
+        });
+    }
+
+    public terminateRequest(): Thenable<boolean> {
+        return new Promise((resolve) => {
+            this.sendCmd(Buffer.from([MjvmClientDebugger.DBG_CMD_TERMINATE]), 5000).then((resp) => {
+                if(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_TERMINATE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)
+                    resolve(true);
+                else
+                    resolve(false);
+            });
+        });
+    }
+
     private stepRequest(stepCmd: number, stepCodeLength: number): Thenable<boolean> {
         this.currentStackFrames = undefined;
         return new Promise((resolve) => {
@@ -524,12 +553,12 @@ export class MjvmClientDebugger {
     public stepInRequest(): Thenable<boolean> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
-                this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, this.currentStackFrames[0].lineInfo.codeLength).then((value) => resolve(value));
+                this.stepRequest(MjvmClientDebugger.DBG_CMD_STEP_IN, this.currentStackFrames[0].lineInfo.codeLength).then((value) => resolve(value));
             else this.readStackFrame(0).then((currentPoint) => {
                 if(!currentPoint)
                     resolve(false);
                 else
-                    this.stepRequest(MjvmClientDebugger.DBG_STEP_IN, currentPoint.lineInfo.codeLength).then((value) => resolve(value));
+                    this.stepRequest(MjvmClientDebugger.DBG_CMD_STEP_IN, currentPoint.lineInfo.codeLength).then((value) => resolve(value));
             });
         });
     }
@@ -537,18 +566,18 @@ export class MjvmClientDebugger {
     public stepOverRequest(): Thenable<boolean> {
         return new Promise((resolve) => {
             if(this.currentStackFrames)
-                this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, this.currentStackFrames[0].lineInfo.codeLength).then((value) => resolve(value));
+                this.stepRequest(MjvmClientDebugger.DBG_CMD_STEP_OVER, this.currentStackFrames[0].lineInfo.codeLength).then((value) => resolve(value));
             else this.readStackFrame(0).then((currentPoint) => {
                 if(!currentPoint)
                     resolve(false);
                 else
-                    this.stepRequest(MjvmClientDebugger.DBG_STEP_OVER, currentPoint.lineInfo.codeLength).then((value) => resolve(value));
+                    this.stepRequest(MjvmClientDebugger.DBG_CMD_STEP_OVER, currentPoint.lineInfo.codeLength).then((value) => resolve(value));
             });
         });
     }
 
     public stepOutRequest(): Thenable<boolean> {
-        return this.stepRequest(MjvmClientDebugger.DBG_STEP_OUT, 0);
+        return this.stepRequest(MjvmClientDebugger.DBG_CMD_STEP_OUT, 0);
     }
 
     private getSimpleNames(name: string): string[] {
@@ -760,13 +789,13 @@ export class MjvmClientDebugger {
     private readObjSizeAndType(reference: number): Thenable<[number, string] | undefined> {
         return new Promise((resolve) => {
             const txBuff = Buffer.alloc(5);
-            txBuff[0] = MjvmClientDebugger.DBG_READ_SIZE_AND_TYPE;
+            txBuff[0] = MjvmClientDebugger.DBG_CMD_READ_SIZE_AND_TYPE;
             txBuff[1] = (reference >>> 0) & 0xFF;
             txBuff[2] = (reference >>> 8) & 0xFF;
             txBuff[3] = (reference >>> 16) & 0xFF;
             txBuff[4] = (reference >>> 24) & 0xFF;
             this.sendCmd(txBuff).then((resp) => {
-                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_READ_SIZE_AND_TYPE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_READ_SIZE_AND_TYPE && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
                     resolve(undefined);
                     return;
                 }
@@ -854,7 +883,7 @@ export class MjvmClientDebugger {
             }
             const isU64 = localVariableInfo.descriptor === 'J' || localVariableInfo.descriptor === 'D'
             const txBuff = Buffer.alloc(10);
-            txBuff[0] = MjvmClientDebugger.DBG_READ_LOCAL;
+            txBuff[0] = MjvmClientDebugger.DBG_CMD_READ_LOCAL;
             txBuff[1] = isU64 ? 1 : 0;
             txBuff[2] = (stackFrame.frameId >>> 0) & 0xFF;
             txBuff[3] = (stackFrame.frameId >>> 8) & 0xFF;
@@ -865,7 +894,7 @@ export class MjvmClientDebugger {
             txBuff[8] = (localVariableInfo.index >>> 16) & 0xFF;
             txBuff[9] = (localVariableInfo.index >>> 24) & 0xFF;
             this.sendCmd(txBuff).then((resp) => {
-                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_READ_LOCAL && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_READ_LOCAL && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
                     resolve(undefined);
                     return;
                 }
@@ -906,14 +935,14 @@ export class MjvmClientDebugger {
     private readField(reference: number, fieldInfo: MjvmFieldInfo): Thenable<MjvmValueInfo | undefined> {
         return new Promise((resolve) => {
             const txBuff = Buffer.alloc(5 + 4 + fieldInfo.name.length + 1);
-            txBuff[0] = MjvmClientDebugger.DBG_READ_FIELD;
+            txBuff[0] = MjvmClientDebugger.DBG_CMD_READ_FIELD;
             txBuff[1] = (reference >>> 0) & 0xFF;
             txBuff[2] = (reference >>> 8) & 0xFF;
             txBuff[3] = (reference >>> 16) & 0xFF;
             txBuff[4] = (reference >>> 24) & 0xFF;
             this.putConstUtf8ToBuffer(txBuff, fieldInfo.name, 5);
             this.sendCmd(txBuff).then((resp) => {
-                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_READ_FIELD && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_READ_FIELD && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
                     resolve(undefined);
                     return;
                 }
@@ -978,7 +1007,7 @@ export class MjvmClientDebugger {
     private readArray(reference: number, index: number, length: number, arrayType: string): Thenable<MjvmValueInfo[] | undefined> {
         return new Promise((resolve) => {
             const txBuff = Buffer.alloc(12);
-            txBuff[0] = MjvmClientDebugger.DBG_READ_ARRAY;
+            txBuff[0] = MjvmClientDebugger.DBG_CMD_READ_ARRAY;
             txBuff[1] = (length >>> 0) & 0xFF;
             txBuff[2] = (length >>> 8) & 0xFF;
             txBuff[3] = (length >>> 16) & 0xFF;
@@ -991,7 +1020,7 @@ export class MjvmClientDebugger {
             txBuff[10] = (reference >>> 16) & 0xFF;
             txBuff[11] = (reference >>> 24) & 0xFF;
             this.sendCmd(txBuff).then((resp) => {
-                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_READ_ARRAY && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
+                if(!(resp && resp.cmd === MjvmClientDebugger.DBG_CMD_READ_ARRAY && resp.responseCode === MjvmClientDebugger.DBG_RESP_OK)) {
                     resolve(undefined);
                     return;
                 }
@@ -1164,7 +1193,7 @@ export class MjvmClientDebugger {
         this.currentStackFrames = undefined;
         this.currentStatus = MjvmClientDebugger.DBG_STATUS_STOP;
         if(this.requestStatusTask) {
-            clearInterval(this.requestStatusTask);
+            clearTimeout(this.requestStatusTask);
             this.requestStatusTask = undefined;
         }
         this.client.end();

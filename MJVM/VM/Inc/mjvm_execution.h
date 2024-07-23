@@ -28,7 +28,6 @@ private:
     int32_t *stack;
     int32_t *locals;
     uint8_t *stackType;
-    const char *mainClass;
 protected:
     MjvmExecution(Mjvm &mjvm);
     MjvmExecution(Mjvm &mjvm, uint32_t stackSize);
@@ -66,19 +65,19 @@ private:
     bool invokeVirtual(MjvmConstMethod &constMethod);
     bool invokeInterface(MjvmConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
-    void run(MjvmMethodInfo &method);
+    void run(void);
     bool isRunning(void) const;
     void terminateRequest(void);
-    static void runToMainTask(MjvmExecution *execution);
-
-    friend class Mjvm;
-    friend class MjvmDebugger;
-public:
-    bool runToMain(const char *mainClass);
-
     bool getStackTrace(uint32_t index, MjvmStackFrame *stackTrace, bool *isEndStack) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const;
+
+    static void runTask(MjvmExecution *execution);
+public:
+    bool run(MjvmMethodInfo &method);
+
+    friend class Mjvm;
+    friend class MjvmDebugger;
 };
 
 #endif /* __MJVM_EXECUTION_H */

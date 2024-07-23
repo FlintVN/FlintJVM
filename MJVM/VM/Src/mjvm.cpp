@@ -633,10 +633,20 @@ bool Mjvm::isInstanceof(MjvmObject *obj, const char *typeName, uint16_t length) 
     }
 }
 
+void Mjvm::runToMain(const char *mainClass) {
+    newExecution().run(load(mainClass).getMainMethodInfo());
+}
+
+void Mjvm::runToMain(const char *mainClass, uint32_t stackSize) {
+    newExecution(stackSize).run(load(mainClass).getMainMethodInfo());
+}
+
 void Mjvm::terminateAll(void) {
-    for(MjvmExecutionNode *node = executionList; node != 0; node = node->next)
+    MjvmExecutionNode *list = executionList;
+    executionList = 0;
+    for(MjvmExecutionNode *node = list; node != 0; node = node->next)
         node->terminateRequest();
-    for(MjvmExecutionNode *node = executionList; node != 0;) {
+    for(MjvmExecutionNode *node = list; node != 0;) {
         MjvmExecutionNode *next = node->next;
         while(node->isRunning());
         node->~MjvmExecution();

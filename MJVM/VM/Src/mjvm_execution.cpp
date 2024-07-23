@@ -28,7 +28,6 @@ MjvmExecution::MjvmExecution(Mjvm &mjvm) : mjvm(mjvm), stackLength(DEFAULT_STACK
     peakSp = sp;
     stack = (int32_t *)Mjvm::malloc(DEFAULT_STACK_SIZE);
     stackType = (uint8_t *)Mjvm::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
-    mainClass = 0;
 }
 
 MjvmExecution::MjvmExecution(Mjvm &mjvm, uint32_t size) : mjvm(mjvm), stackLength(size / sizeof(int32_t)) {
@@ -39,7 +38,6 @@ MjvmExecution::MjvmExecution(Mjvm &mjvm, uint32_t size) : mjvm(mjvm), stackLengt
     peakSp = sp;
     stack = (int32_t *)Mjvm::malloc(size);
     stackType = (uint8_t *)Mjvm::malloc(size / sizeof(int32_t) / 8);
-    mainClass = 0;
 }
 
 MjvmStackType MjvmExecution::getStackType(uint32_t index) {
@@ -405,7 +403,7 @@ bool MjvmExecution::invokeInterface(MjvmConstInterfaceMethod &interfaceMethod, u
         throw "invoke interface to static method";
 }
 
-void MjvmExecution::run(MjvmMethodInfo &methodInfo) {
+void MjvmExecution::run(void) {
     static const void *opcodeLabels[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
         &&op_lconst_0, &&op_lconst_1, &&op_fconst_0, &&op_fconst_1, &&op_fconst_2, &&op_dconst_0, &&op_dconst_1, &&op_bipush, &&op_sipush,
@@ -499,8 +497,6 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo) {
 
     MjvmLoadFileError *fileNotFound = 0;
 
-    method = &methodInfo;
-
     stackInitExitPoint(method->getAttributeCode().codeLength);
 
     initNewContext(*method);
@@ -518,7 +514,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo) {
 
     goto *opcodes[code[pc]];
     check_bkp: {
-        dbg->checkBreakPoint();
+        dbg->checkBreakPoint(this);
         goto *opcodeLabels[code[pc]];
     }
     op_nop:
@@ -2022,7 +2018,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo) {
         MjvmMethodInfo *traceMethod = method;
         MjvmObject *obj = stackPopObject();
         if(dbg && dbg->exceptionIsEnabled())
-            dbg->caughtException((MjvmThrowable *)obj);
+            dbg->caughtException(this, (MjvmThrowable *)obj);
         while(1) {
             MjvmCodeAttribute &attributeCode = traceMethod->getAttributeCode();
             for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
@@ -2041,7 +2037,7 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo) {
             }
             if(traceStartSp < 0) {
                 if(dbg && !dbg->exceptionIsEnabled())
-                    dbg->caughtException((MjvmThrowable *)obj);
+                    dbg->caughtException(this, (MjvmThrowable *)obj);
                 throw (MjvmThrowable *)obj;
             }
             traceMethod = (MjvmMethodInfo *)stack[traceStartSp - 3];
@@ -2299,9 +2295,9 @@ void MjvmExecution::run(MjvmMethodInfo &methodInfo) {
         return;
 }
 
-void MjvmExecution::runToMainTask(MjvmExecution *execution) {
+void MjvmExecution::runTask(MjvmExecution *execution) {
     try {
-        execution->run(execution->mjvm.load(execution->mainClass).getMainMethodInfo());
+        execution->run();
     }
     catch(MjvmThrowable *ex) {
         MjvmString &str = ex->getDetailMessage();
@@ -2332,11 +2328,10 @@ void MjvmExecution::runToMainTask(MjvmExecution *execution) {
     execution->opcodes = 0;
 }
 
-bool MjvmExecution::runToMain(const char *mainClass) {
-    if(!opcodes) {
-        this->mainClass = mainClass;
-        return (MjvmSystem_ThreadCreate((void (*)(void *))runToMainTask, (void *)this) != 0);
-    }
+bool MjvmExecution::run(MjvmMethodInfo &method) {
+    this->method = &method;
+    if(!opcodes)
+        return (MjvmSystem_ThreadCreate((void (*)(void *))runTask, (void *)this) != 0);
     return false;
 }
 

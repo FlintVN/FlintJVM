@@ -12,6 +12,7 @@ import * as vscode from 'vscode';
 import { MjvmClientDebugger } from './mjvm_client_debugger';
 
 export class MjvmDebugSession extends LoggingDebugSession {
+    private mainClass: string = "test";
     private clientDebugger: MjvmClientDebugger;
 
     public constructor() {
@@ -63,10 +64,15 @@ export class MjvmDebugSession extends LoggingDebugSession {
         response.body.supportsConditionalBreakpoints = true;
         response.body.supportsLogPoints = true;
         response.body.supportsRestartRequest = true;
+        response.body.supportsTerminateRequest = true;
         response.body.supportsGotoTargetsRequest = false;
 
         response.body.exceptionBreakpointFilters = [{filter: 'all', label: 'Caught Exceptions', default: false}];
 
+        this.sendResponse(response);
+    }
+
+    protected launchRequest(response: DebugProtocol.LaunchResponse, args: DebugProtocol.LaunchRequestArguments, request?: DebugProtocol.Request): void {
         this.clientDebugger.removeAllBreakPoints().then((value) => {
             if(value) {
                 this.sendResponse(response);
@@ -77,20 +83,28 @@ export class MjvmDebugSession extends LoggingDebugSession {
         });
     }
 
-    protected launchRequest(response: DebugProtocol.LaunchResponse, args: DebugProtocol.LaunchRequestArguments, request?: DebugProtocol.Request): void {
-        this.sendResponse(response);
-    }
-
     protected attachRequest(response: DebugProtocol.AttachResponse, args: DebugProtocol.AttachRequestArguments, request?: DebugProtocol.Request): void {
         this.sendResponse(response);
     }
 
     protected terminateRequest(response: DebugProtocol.TerminateResponse, args: DebugProtocol.TerminateArguments, request?: DebugProtocol.Request): void {
-        this.sendResponse(response);
+        this.clientDebugger.terminateRequest().then((value) => {
+            if(value)
+                this.sendResponse(response);
+            else
+                this.sendErrorResponse(response, 1, 'Cound not terminate');
+        });
     }
 
     protected configurationDoneRequest(response: DebugProtocol.ConfigurationDoneResponse, args: DebugProtocol.ConfigurationDoneArguments, request?: DebugProtocol.Request | undefined): void {
-        this.sendEvent(new StoppedEvent('entry', 1));
+        this.clientDebugger.restartRequest(this.mainClass).then((value) => {
+            if(value) {
+                this.clientDebugger.startCheckStatus();
+                this.sendResponse(response);
+            }
+            else
+                this.sendErrorResponse(response, 1, 'Could not start ' + this.mainClass);
+        });
     }
 
     protected setExceptionBreakPointsRequest(response: DebugProtocol.SetExceptionBreakpointsResponse, args: DebugProtocol.SetExceptionBreakpointsArguments, request?: DebugProtocol.Request): void {
@@ -100,9 +114,8 @@ export class MjvmDebugSession extends LoggingDebugSession {
         this.clientDebugger.setExceptionBreakPointsRequest(isEnabled).then((value) => {
             if(value)
                 this.sendResponse(response);
-            else {
+            else
                 this.sendErrorResponse(response, 1, 'An error occurred while ' + isEnabled ? 'enabling' : 'disabling' + ' Caught Exceptions');
-            }
         });
     }
 
@@ -169,8 +182,12 @@ export class MjvmDebugSession extends LoggingDebugSession {
     }
 
     protected restartRequest(response: DebugProtocol.RestartResponse, args: DebugProtocol.RestartArguments, request?: DebugProtocol.Request | undefined): void {
-        this.sendResponse(response);
-        this.sendEvent(new StoppedEvent('entry', 1));
+        this.clientDebugger.restartRequest(this.mainClass).then((value) => {
+            if(value)
+                this.sendResponse(response);
+            else
+                this.sendErrorResponse(response, 1, 'Cound not restart');
+        });
     }
 
     protected scopesRequest(response: DebugProtocol.ScopesResponse, args: DebugProtocol.ScopesArguments, request?: DebugProtocol.Request): void {

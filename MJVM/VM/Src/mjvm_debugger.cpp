@@ -4,11 +4,11 @@
 #include "mjvm.h"
 #include "mjvm_debugger.h"
 
-BreakPoint::BreakPoint(void) : pc(0), method(0) {
+MjvmBreakPoint::MjvmBreakPoint(void) : pc(0), method(0) {
 
 }
 
-BreakPoint::BreakPoint(uint32_t pc, MjvmMethodInfo &method) : pc(pc), method(&method) {
+MjvmBreakPoint::MjvmBreakPoint(uint32_t pc, MjvmMethodInfo &method) : pc(pc), method(&method) {
 
 }
 
@@ -20,10 +20,11 @@ MjvmStackFrame::MjvmStackFrame(uint32_t pc, uint32_t baseSp, MjvmMethodInfo &met
 
 }
 
-MjvmDebugger::MjvmDebugger(MjvmExecution &execution) : execution(execution) {
+MjvmDebugger::MjvmDebugger(Mjvm &mjvm) : mjvm(mjvm) {
+    execution = 0;
     exception = 0;
     stepCodeLength = 0;
-    status = DBG_STATUS_STOP;
+    csr = DBG_STATUS_RESET;
     breakPointCount = 0;
     txDataLength = 0;
 }
@@ -118,23 +119,23 @@ bool MjvmDebugger::sendRespCode(MjvmDbgCmd cmd, MjvmDbgRespCode responseCode) {
 }
 
 void MjvmDebugger::responseStatus(void) {
-    uint8_t tmp = status;
-    if(tmp & (DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT))
+    uint16_t tmp = csr;
+    if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT))
         tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
-    initDataFrame(DBG_READ_STATUS, DBG_RESP_OK, 1);
+    initDataFrame(DBG_CMD_READ_STATUS, DBG_RESP_OK, 1);
     dataFrameAppend((uint8_t)tmp);
     if(dataFrameFinish() && (tmp & DBG_STATUS_STOP_SET)) {
         Mjvm::lock();
-        status &= ~DBG_STATUS_STOP_SET;
+        csr &= ~DBG_STATUS_STOP_SET;
         Mjvm::unlock();
     }
 }
 
 void MjvmDebugger::responseStackTrace(uint32_t stackIndex) {
-    if(status & DBG_STATUS_STOP) {
+    if(csr & DBG_STATUS_STOP) {
         MjvmStackFrame stackTrace;
         bool isEndStack = false;
-        if(execution.getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
+        if(execution->getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
             MjvmMethodInfo &method = stackTrace.method;
             MjvmConstUtf8 &className = method.classLoader.getThisClass();
 
@@ -143,7 +144,7 @@ void MjvmDebugger::responseStackTrace(uint32_t stackIndex) {
             responseSize += sizeof(MjvmConstUtf8) + method.name.length + 1;
             responseSize += sizeof(MjvmConstUtf8) + method.descriptor.length + 1;
 
-            initDataFrame(DBG_READ_STACK_TRACE, DBG_RESP_OK, responseSize);
+            initDataFrame(DBG_CMD_READ_STACK_TRACE, DBG_RESP_OK, responseSize);
             if(!dataFrameAppend((uint32_t)(stackIndex | (isEndStack << 31)))) return;
             if(!dataFrameAppend((uint32_t)stackTrace.pc)) return;
             if(!dataFrameAppend(className)) return;
@@ -152,18 +153,18 @@ void MjvmDebugger::responseStackTrace(uint32_t stackIndex) {
             dataFrameFinish();
         }
         else
-            sendRespCode(DBG_READ_STACK_TRACE, DBG_RESP_FAIL);
+            sendRespCode(DBG_CMD_READ_STACK_TRACE, DBG_RESP_FAIL);
     }
     else
-        sendRespCode(DBG_READ_STACK_TRACE, DBG_RESP_BUSY);
+        sendRespCode(DBG_CMD_READ_STACK_TRACE, DBG_RESP_BUSY);
 }
 
 void MjvmDebugger::responseExceptionInfo(void) {
-    if(status & DBG_STATUS_STOP) {
+    if(csr & DBG_STATUS_STOP) {
         if(
             exception &&
-            (status & DBG_STATUS_EXCP) &&
-            execution.mjvm.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
+            (csr & DBG_STATUS_EXCP) &&
+            mjvm.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
         ) {
             MjvmConstUtf8 &type = exception->type;
             MjvmString &str = exception->getDetailMessage();
@@ -173,7 +174,7 @@ void MjvmDebugger::responseExceptionInfo(void) {
             uint32_t msgLen = str.getLength();
             char utf8Buff[3];
 
-            initDataFrame(DBG_READ_EXCP_INFO, DBG_RESP_OK, responseSize);
+            initDataFrame(DBG_CMD_READ_EXCP_INFO, DBG_RESP_OK, responseSize);
             if(!dataFrameAppend(type)) return;
             if(!dataFrameAppend((uint16_t)msgLen)) return;
             if(!dataFrameAppend((uint16_t)0)) return;
@@ -191,18 +192,18 @@ void MjvmDebugger::responseExceptionInfo(void) {
             dataFrameFinish();
         }
         else
-            sendRespCode(DBG_READ_EXCP_INFO, DBG_RESP_FAIL);
+            sendRespCode(DBG_CMD_READ_EXCP_INFO, DBG_RESP_FAIL);
     }
     else
-        sendRespCode(DBG_READ_EXCP_INFO, DBG_RESP_BUSY);
+        sendRespCode(DBG_CMD_READ_EXCP_INFO, DBG_RESP_BUSY);
 }
 
 void MjvmDebugger::responseLocalVariable(bool isU64, uint32_t stackIndex, uint32_t localIndex) {
-    if(status & DBG_STATUS_STOP) {
+    if(csr & DBG_STATUS_STOP) {
         if(!isU64) {
             uint32_t value;
             bool isObject;
-            if(execution.readLocal(stackIndex, localIndex, value, isObject)) {
+            if(execution->readLocal(stackIndex, localIndex, value, isObject)) {
                 uint32_t responseSize = 8;
                 uint32_t valueSize = 4;
                 if(isObject) {
@@ -212,7 +213,7 @@ void MjvmDebugger::responseLocalVariable(bool isU64, uint32_t stackIndex, uint32
                     valueSize = obj.size;
                     responseSize += sizeof(MjvmConstUtf8) + obj.dimensions + (isPrim ? 0 : 2) + type.length + 1;
                 }
-                initDataFrame(DBG_READ_LOCAL, DBG_RESP_OK, responseSize);
+                initDataFrame(DBG_CMD_READ_LOCAL, DBG_RESP_OK, responseSize);
                 if(!dataFrameAppend((uint32_t)valueSize)) return;
                 if(!dataFrameAppend((uint32_t)value)) return;
 
@@ -235,26 +236,26 @@ void MjvmDebugger::responseLocalVariable(bool isU64, uint32_t stackIndex, uint32
                 dataFrameFinish();
             }
             else
-                sendRespCode(DBG_READ_LOCAL, DBG_RESP_FAIL);
+                sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_FAIL);
         }
         else {
             uint64_t value;
-            if(execution.readLocal(stackIndex, localIndex, value)) {
-                initDataFrame(DBG_READ_LOCAL, DBG_RESP_OK, 12);
+            if(execution->readLocal(stackIndex, localIndex, value)) {
+                initDataFrame(DBG_CMD_READ_LOCAL, DBG_RESP_OK, 12);
                 if(!dataFrameAppend((uint32_t)8)) return;
                 if(!dataFrameAppend((uint64_t)value)) return;
                 dataFrameFinish();
             }
             else
-                sendRespCode(DBG_READ_LOCAL, DBG_RESP_FAIL);
+                sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_FAIL);
         }
     }
     else
-        sendRespCode(DBG_READ_LOCAL, DBG_RESP_BUSY);
+        sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_BUSY);
 }
 
 void MjvmDebugger::responseField(MjvmObject *obj, MjvmConstUtf8 &fieldName) {
-    if(status & DBG_STATUS_STOP) {
+    if(csr & DBG_STATUS_STOP) {
         if(obj) {
             MjvmFieldsData *fields = (MjvmFieldsData *)obj->data;
             uint8_t fieldType = 0;
@@ -269,12 +270,12 @@ void MjvmDebugger::responseField(MjvmObject *obj, MjvmConstUtf8 &fieldName) {
             }
             if(fieldData) {
                 if(fieldType == 0) {
-                    initDataFrame(DBG_READ_FIELD, DBG_RESP_OK, 8);
+                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8);
                     if(!dataFrameAppend((uint32_t)4)) return;
                     if(!dataFrameAppend((uint32_t)((MjvmFieldData32 *)fieldData)->value)) return;
                 }
                 else if(fieldType == 1) {
-                    initDataFrame(DBG_READ_FIELD, DBG_RESP_OK, 12);
+                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 12);
                     if(!dataFrameAppend((uint32_t)8)) return;
                     if(!dataFrameAppend((uint64_t)((MjvmFieldData64 *)fieldData)->value)) return;
                 }
@@ -285,7 +286,7 @@ void MjvmDebugger::responseField(MjvmObject *obj, MjvmConstUtf8 &fieldName) {
                     uint16_t typeLength = subObj->dimensions + (isPrim ? 0 : 2) + type.length;
                     uint32_t responseSize = 8 + sizeof(MjvmConstUtf8) + typeLength + 1;
 
-                    initDataFrame(DBG_READ_FIELD, DBG_RESP_OK, responseSize);
+                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, responseSize);
                     if(!dataFrameAppend((uint32_t)subObj->size)) return;
                     if(!dataFrameAppend((uint32_t)((MjvmFieldObject *)fieldData)->object)) return;
                     if(!dataFrameAppend((uint16_t)typeLength)) return;
@@ -303,14 +304,14 @@ void MjvmDebugger::responseField(MjvmObject *obj, MjvmConstUtf8 &fieldName) {
             }
         }
         else
-            sendRespCode(DBG_READ_FIELD, DBG_RESP_FAIL);
+            sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
     }
     else
-        sendRespCode(DBG_READ_FIELD, DBG_RESP_BUSY);
+        sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_BUSY);
 }
 
 void MjvmDebugger::responseArray(MjvmObject *array, uint32_t index, uint32_t length) {
-    if(status & DBG_STATUS_STOP) {
+    if(csr & DBG_STATUS_STOP) {
         if(array->dimensions > 0) {
             uint8_t atype = MjvmObject::isPrimType(array->type);
             uint8_t elementSize = atype ? MjvmObject::getPrimitiveTypeSize(atype) : sizeof(MjvmObject *);
@@ -318,7 +319,7 @@ void MjvmDebugger::responseArray(MjvmObject *array, uint32_t index, uint32_t len
             uint32_t arrayEnd = index + length;
             arrayEnd = (arrayEnd < arrayLength) ? arrayEnd : arrayLength;
             if(index < arrayEnd) {
-                initDataFrame(DBG_READ_ARRAY, DBG_RESP_OK, (arrayEnd - index) * elementSize);
+                initDataFrame(DBG_CMD_READ_ARRAY, DBG_RESP_OK, (arrayEnd - index) * elementSize);
                 switch(elementSize) {
                     case 1:
                         for(uint32_t i = index; i < arrayEnd; i++)
@@ -340,23 +341,23 @@ void MjvmDebugger::responseArray(MjvmObject *array, uint32_t index, uint32_t len
                 dataFrameFinish();
             }
             else
-                sendRespCode(DBG_READ_ARRAY, DBG_RESP_FAIL);
+                sendRespCode(DBG_CMD_READ_ARRAY, DBG_RESP_FAIL);
         }
         else
-            sendRespCode(DBG_READ_ARRAY, DBG_RESP_FAIL);
+            sendRespCode(DBG_CMD_READ_ARRAY, DBG_RESP_FAIL);
     }
     else
-        sendRespCode(DBG_READ_ARRAY, DBG_RESP_BUSY);
+        sendRespCode(DBG_CMD_READ_ARRAY, DBG_RESP_BUSY);
 }
 
 void MjvmDebugger::responseObjSizeAndType(MjvmObject *obj) {
-    if(status & DBG_STATUS_STOP) {
+    if(csr & DBG_STATUS_STOP) {
         MjvmConstUtf8 &type = obj->type;
         uint8_t isPrim = obj->isPrimType(type);
         uint16_t typeLength = obj->dimensions + (isPrim ? 0 : 2) + type.length;
         uint32_t responseSize = 4 + sizeof(MjvmConstUtf8) + typeLength + 1;
 
-        initDataFrame(DBG_READ_SIZE_AND_TYPE, DBG_RESP_OK, responseSize);
+        initDataFrame(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_OK, responseSize);
         if(!dataFrameAppend((uint32_t)obj->size)) return;
         if(!dataFrameAppend((uint16_t)typeLength)) return;
         if(!dataFrameAppend((uint16_t)0)) return;
@@ -371,23 +372,23 @@ void MjvmDebugger::responseObjSizeAndType(MjvmObject *obj) {
         dataFrameFinish();
     }
     else
-        sendRespCode(DBG_READ_SIZE_AND_TYPE, DBG_RESP_BUSY);
+        sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_BUSY);
 }
 
 void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     MjvmDbgCmd cmd = (MjvmDbgCmd)data[0];
     switch(cmd) {
-        case DBG_READ_STATUS: {
+        case DBG_CMD_READ_STATUS: {
             responseStatus();
             return;
         }
-        case DBG_READ_STACK_TRACE: {
+        case DBG_CMD_READ_STACK_TRACE: {
             uint32_t stackIndex = (*(uint32_t *)&data[1]) & 0x7FFFFFFF;
             responseStackTrace(stackIndex);
             return;
         }
-        case DBG_ADD_BKP:
-        case DBG_REMOVE_BKP: {
+        case DBG_CMD_ADD_BKP:
+        case DBG_CMD_REMOVE_BKP: {
             uint32_t index = sizeof(MjvmDbgCmd);
             uint32_t pc = *(uint32_t *)&data[index];
             index += sizeof(uint32_t);
@@ -396,44 +397,62 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             MjvmConstUtf8 &methodName = *(MjvmConstUtf8 *)&data[index];
             index += sizeof(MjvmConstUtf8) + methodName.length + 1;
             MjvmConstUtf8 &descriptor = *(MjvmConstUtf8 *)&data[index];
-            if((MjvmDbgCmd)data[0] == DBG_ADD_BKP)
+            if((MjvmDbgCmd)data[0] == DBG_CMD_ADD_BKP)
                 sendRespCode(cmd, addBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
             else
                 sendRespCode(cmd, removeBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
             return;
         }
-        case DBG_REMOVE_ALL_BKP: {
+        case DBG_CMD_REMOVE_ALL_BKP: {
             breakPointCount = 0;
             sendRespCode(cmd, DBG_RESP_OK);
             return;
         }
-        case DBG_RUN: {
+        case DBG_CMD_RUN: {
             Mjvm::lock();
-            status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP);
+            csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
             Mjvm::unlock();
             sendRespCode(cmd, DBG_RESP_OK);
             return;
         }
-        case DBG_STOP: {
+        case DBG_CMD_STOP: {
             Mjvm::lock();
-            status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STOP;
+            csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
             Mjvm::unlock();
             sendRespCode(cmd, DBG_RESP_OK);
             return;
         }
-        case DBG_STEP_IN:
-        case DBG_STEP_OVER: {
-            if(status & DBG_STATUS_STOP && length == 5 && data[1] > 0) {
-                if(execution.getStackTrace(0, &startPoint, 0)) {
+        case DBG_CMD_RESTART: {
+            MjvmConstUtf8 *mainClass = (MjvmConstUtf8 *)&data[1];
+            Mjvm::lock();
+            csr &= DBG_CONTROL_EXCP_EN;
+            Mjvm::unlock();
+            mjvm.terminateAll();
+            mjvm.runToMain(mainClass->text);
+            sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
+            return;
+        }
+        case DBG_CMD_TERMINATE: {
+            Mjvm::lock();
+            csr = (csr & DBG_CONTROL_EXCP_EN) | DBG_STATUS_RESET;
+            Mjvm::unlock();
+            mjvm.terminateAll();
+            sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
+            return;
+        }
+        case DBG_CMD_STEP_IN:
+        case DBG_CMD_STEP_OVER: {
+            if(csr & DBG_STATUS_STOP && length == 5 && data[1] > 0) {
+                if(execution->getStackTrace(0, &startPoint, 0)) {
                     stepCodeLength = *(uint32_t *)&data[1];
-                    if((MjvmDbgCmd)data[0] == DBG_STEP_IN) {
+                    if((MjvmDbgCmd)data[0] == DBG_CMD_STEP_IN) {
                         Mjvm::lock();
-                        status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_IN;
+                        csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_IN;
                         Mjvm::unlock();
                     }
                     else {
                         Mjvm::lock();
-                        status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OVER;
+                        csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_OVER;
                         Mjvm::unlock();
                     }
                     sendRespCode(cmd, DBG_RESP_OK);
@@ -445,11 +464,11 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                 sendRespCode(cmd, DBG_RESP_BUSY);
             return;
         }
-        case DBG_STEP_OUT: {
-            if(status & DBG_STATUS_STOP) {
-                if(execution.getStackTrace(0, &startPoint, 0)) {
+        case DBG_CMD_STEP_OUT: {
+            if(csr & DBG_STATUS_STOP) {
+                if(execution->getStackTrace(0, &startPoint, 0)) {
                     Mjvm::lock();
-                    status = (status & ~(DBG_STATUS_STOP_SET | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_EXCP)) | DBG_STATUS_STEP_OUT;
+                    csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER)) | DBG_CONTROL_STEP_OUT;
                     Mjvm::unlock();
                     sendRespCode(cmd, DBG_RESP_OK);
                 }
@@ -460,49 +479,49 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                 sendRespCode(cmd, DBG_RESP_BUSY);
             return;
         }
-        case DBG_SET_EXCP_MODE: {
+        case DBG_CMD_SET_EXCP_MODE: {
             Mjvm::lock();
             if(data[1] & 0x01)
-                status |= DBG_STATUS_EXCP_EN;
+                csr |= DBG_CONTROL_EXCP_EN;
             else
-                status &= ~DBG_STATUS_EXCP_EN;
+                csr &= ~DBG_CONTROL_EXCP_EN;
             Mjvm::unlock();
             sendRespCode(cmd, DBG_RESP_OK);
             return;
         }
-        case DBG_READ_EXCP_INFO: {
+        case DBG_CMD_READ_EXCP_INFO: {
             responseExceptionInfo();
             return;
         }
-        case DBG_READ_LOCAL: {
+        case DBG_CMD_READ_LOCAL: {
             bool isU64 = data[1];
             uint32_t stackIndex = (*(uint32_t *)&data[2]) & 0x7FFFFFFF;
             uint32_t localIndex = (*(uint32_t *)&data[6]);
             responseLocalVariable(isU64, stackIndex, localIndex);
             return;
         }
-        case DBG_WRITE_LOCAL: {
+        case DBG_CMD_WRITE_LOCAL: {
             // TODO
             return;
         }
-        case DBG_READ_FIELD: {
+        case DBG_CMD_READ_FIELD: {
             MjvmObject *obj = (MjvmObject *)*(uint32_t *)&data[1];
             MjvmConstUtf8 &fieldName = *(MjvmConstUtf8 *)&data[5];
             responseField(obj, fieldName);
             return;
         }
-        case DBG_WRITE_FIELD: {
+        case DBG_CMD_WRITE_FIELD: {
             // TODO
             return;
         }
-        case DBG_READ_ARRAY: {
+        case DBG_CMD_READ_ARRAY: {
             uint32_t length = (*(uint32_t *)&data[0]) >> 8;
             uint32_t index = *(uint32_t *)&data[4];
             MjvmObject *array = (MjvmObject *)*(uint32_t *)&data[8];
             responseArray(array, index, length);
             return;
         }
-        case DBG_READ_SIZE_AND_TYPE: {
+        case DBG_CMD_READ_SIZE_AND_TYPE: {
             MjvmObject *obj = (MjvmObject *)*(uint32_t *)&data[1];
             responseObjSizeAndType(obj);
             return;
@@ -517,14 +536,14 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
 bool MjvmDebugger::addBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmConstUtf8 &methodName, MjvmConstUtf8 &descriptor) {
     try {
         if(breakPointCount < LENGTH(breakPoints)) {
-            MjvmClassLoader &loader = execution.mjvm.load(className);
+            MjvmClassLoader &loader = mjvm.load(className);
             MjvmMethodInfo *method = &loader.getMethodInfo(methodName, descriptor);
             if(method) {
                 for(uint8_t i = 0; i < breakPointCount; i++) {
                     if(method == breakPoints[i].method && pc == breakPoints[i].pc)
                         return true;
                 }
-                new (&breakPoints[breakPointCount])BreakPoint(pc, *method);
+                new (&breakPoints[breakPointCount])MjvmBreakPoint(pc, *method);
                 breakPointCount++;
                 return true;
             }
@@ -539,7 +558,7 @@ bool MjvmDebugger::addBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmCons
 bool MjvmDebugger::removeBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmConstUtf8 &methodName, MjvmConstUtf8 &descriptor) {
     try {
         if(breakPointCount) {
-            MjvmClassLoader &loader = execution.mjvm.load(className);
+            MjvmClassLoader &loader = mjvm.load(className);
             MjvmMethodInfo *method = &loader.getMethodInfo(methodName, descriptor);
             if(method) {
                 for(uint8_t i = 0; i < breakPointCount; i++) {
@@ -559,87 +578,98 @@ bool MjvmDebugger::removeBreakPoint(uint32_t pc, MjvmConstUtf8 &className, MjvmC
 }
 
 bool MjvmDebugger::exceptionIsEnabled(void) {
-    return (status & DBG_STATUS_EXCP_EN) == DBG_STATUS_EXCP_EN;
+    return (csr & DBG_CONTROL_EXCP_EN) == DBG_CONTROL_EXCP_EN;
 }
 
-void MjvmDebugger::caughtException(MjvmThrowable *excp) {
-    Mjvm::lock();
+void MjvmDebugger::caughtException(MjvmExecution *exec, MjvmThrowable *excp) {
+    execution = exec;
     exception = excp;
-    status &= ~(DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT);
-    status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
+    Mjvm::lock();
+    uint16_t tmp = csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
+    tmp |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
+    csr = tmp;
     Mjvm::unlock();
-    checkBreakPoint();
+    checkBreakPoint(exec);
 }
 
-void MjvmDebugger::checkBreakPoint(void) {
-    if(!(status & DBG_STATUS_STOP)) {
+void MjvmDebugger::checkBreakPoint(MjvmExecution *exec) {
+    if(csr & DBG_CONTROL_STOP) {
+        execution = exec;
+        Mjvm::lock();
+        csr = (csr & ~DBG_CONTROL_STOP) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+        Mjvm::unlock();
+    }
+    else if(!(csr & DBG_STATUS_STOP)) {
         if(breakPointCount) {
-            uint32_t pc = execution.pc;
-            MjvmMethodInfo *method = execution.method;
+            uint32_t pc = exec->pc;
+            MjvmMethodInfo *method = exec->method;
             for(uint8_t i = 0; i < breakPointCount; i++) {
                 if(breakPoints[i].method == method && breakPoints[i].pc == pc) {
+                    execution = exec;
                     Mjvm::lock();
-                    status |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                    csr |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     Mjvm::unlock();
                     break;
                 }
             }
         }
     }
-    while(status & (DBG_STATUS_STOP | DBG_STATUS_STEP_IN | DBG_STATUS_STEP_OVER | DBG_STATUS_STEP_OUT | DBG_STATUS_EXCP)) {
-        if(status & DBG_STATUS_STEP_IN) {
-            if(status & DBG_STATUS_STOP) {
-                Mjvm::lock();
-                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                Mjvm::unlock();
-                return;
+    while(csr & (DBG_STATUS_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT | DBG_STATUS_EXCP)) {
+        if(execution == exec) {
+            if(csr & DBG_CONTROL_STEP_IN) {
+                if(csr & DBG_STATUS_STOP) {
+                    Mjvm::lock();
+                    csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                    Mjvm::unlock();
+                    return;
+                }
+                else if(&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= startPoint.pc) {
+                    Mjvm::lock();
+                    csr = (csr & ~DBG_CONTROL_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                    Mjvm::unlock();
+                }
+                else
+                    return;
             }
-            else if(&startPoint.method != execution.method || (execution.pc - startPoint.pc) >= stepCodeLength || execution.pc <= startPoint.pc) {
-                Mjvm::lock();
-                status = (status & ~DBG_STATUS_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                Mjvm::unlock();
+            else if(csr & DBG_CONTROL_STEP_OVER) {
+                if(csr & DBG_STATUS_STOP) {
+                    Mjvm::lock();
+                    csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                    Mjvm::unlock();
+                    return;
+                }
+                else if(
+                    (exec->startSp <= startPoint.baseSp) &&
+                    (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= startPoint.pc)
+                ) {
+                    Mjvm::lock();
+                    csr = (csr & ~DBG_CONTROL_STEP_OVER) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                    Mjvm::unlock();
+                }
+                else
+                    return;
             }
-            else
-                return;
-        }
-        else if(status & DBG_STATUS_STEP_OVER) {
-            if(status & DBG_STATUS_STOP) {
-                Mjvm::lock();
-                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                Mjvm::unlock();
-                return;
+            else if(csr & DBG_CONTROL_STEP_OUT) {
+                if(csr & DBG_STATUS_STOP) {
+                    Mjvm::lock();
+                    csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+                    Mjvm::unlock();
+                    return;
+                }
+                else if(exec->startSp < startPoint.baseSp) {
+                    Mjvm::lock();
+                    csr = (csr & ~DBG_CONTROL_STEP_OUT) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                    Mjvm::unlock();
+                }
+                else
+                    return;
             }
-            else if(
-                (execution.startSp <= startPoint.baseSp) &&
-                (&startPoint.method != execution.method || (execution.pc - startPoint.pc) >= stepCodeLength || execution.pc <= startPoint.pc)
-            ) {
-                Mjvm::lock();
-                status = (status & ~DBG_STATUS_STEP_OVER) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                Mjvm::unlock();
-            }
-            else
-                return;
-        }
-        else if(status & DBG_STATUS_STEP_OUT) {
-            if(status & DBG_STATUS_STOP) {
-                Mjvm::lock();
-                status &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                Mjvm::unlock();
-                return;
-            }
-            else if(execution.startSp < startPoint.baseSp) {
-                Mjvm::lock();
-                status = (status & ~DBG_STATUS_STEP_OUT) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                Mjvm::unlock();
-            }
-            else
-                return;
         }
     }
 }
 
-void MjvmDebugger::done(void) {
+void MjvmDebugger::clearResetStatus(void) {
     Mjvm::lock();
-    status |= DBG_STATUS_DONE;
+    this->csr &= ~DBG_STATUS_RESET;
     Mjvm::unlock();
 }

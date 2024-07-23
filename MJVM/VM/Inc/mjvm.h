@@ -48,12 +48,12 @@ public:
     static void unlock(void);
 
     static Mjvm &getInstance(void);
-public:
-    MjvmDebugger *getDebugger(void) const;
-    void setDebugger(MjvmDebugger *dbg);
 
     MjvmExecution &newExecution(void);
     MjvmExecution &newExecution(uint32_t stackSize);
+public:
+    MjvmDebugger *getDebugger(void) const;
+    void setDebugger(MjvmDebugger *dbg);
 
     MjvmObject *newObject(uint32_t size, MjvmConstUtf8 &type, uint8_t dimensions = 0);
 
@@ -96,6 +96,9 @@ public:
     MjvmClassLoader &load(const char *className, uint16_t length);
     MjvmClassLoader &load(const char *className);
     MjvmClassLoader &load(MjvmConstUtf8 &className);
+
+    void runToMain(const char *mainClass);
+    void runToMain(const char *mainClass, uint32_t stackSize);
 
     void terminateAll(void);
 };
