@@ -1,10 +1,16 @@
 {
     "name": "mjvm-debugger",
-    "displayName": "MjvmDebugger",
-    "description": "MjvmDebugger",
-    "version": "0.0.1",
+    "displayName": "MJVM Debug",
+    "description": "Debug java with MJVM",
+    "version": "1.0.0",
+    "publisher": "ElectricThanhTung",
     "author": {
-        "name": "Microsoft Corporation"
+        "name": "ElectricThanhTung",
+        "email": "electricthanhtung@gmail.com"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/ElectricThanhTung/MJVM/tree/master/Extension/MjvmDebug"
     },
     "license": "MIT",
     "engines": {
