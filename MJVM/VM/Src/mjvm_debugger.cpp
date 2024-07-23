@@ -3,6 +3,7 @@
 #include <string.h>
 #include "mjvm.h"
 #include "mjvm_debugger.h"
+#include "mjvm_system_api.h"
 
 MjvmBreakPoint::MjvmBreakPoint(void) : pc(0), method(0) {
 
@@ -23,6 +24,7 @@ MjvmStackFrame::MjvmStackFrame(uint32_t pc, uint32_t baseSp, MjvmMethodInfo &met
 MjvmDebugger::MjvmDebugger(Mjvm &mjvm) : mjvm(mjvm) {
     execution = 0;
     exception = 0;
+    installClassFileHandle = 0;
     stepCodeLength = 0;
     csr = DBG_STATUS_RESET;
     breakPointCount = 0;
@@ -375,17 +377,16 @@ void MjvmDebugger::responseObjSizeAndType(MjvmObject *obj) {
         sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_BUSY);
 }
 
-void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
-    MjvmDbgCmd cmd = (MjvmDbgCmd)data[0];
-    switch(cmd) {
+bool MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
+    switch((MjvmDbgCmd)data[0]) {
         case DBG_CMD_READ_STATUS: {
             responseStatus();
-            return;
+            return true;
         }
         case DBG_CMD_READ_STACK_TRACE: {
             uint32_t stackIndex = (*(uint32_t *)&data[1]) & 0x7FFFFFFF;
             responseStackTrace(stackIndex);
-            return;
+            return true;
         }
         case DBG_CMD_ADD_BKP:
         case DBG_CMD_REMOVE_BKP: {
@@ -398,47 +399,54 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             index += sizeof(MjvmConstUtf8) + methodName.length + 1;
             MjvmConstUtf8 &descriptor = *(MjvmConstUtf8 *)&data[index];
             if((MjvmDbgCmd)data[0] == DBG_CMD_ADD_BKP)
-                sendRespCode(cmd, addBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
+                sendRespCode(DBG_CMD_ADD_BKP, addBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
             else
-                sendRespCode(cmd, removeBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
-            return;
+                sendRespCode(DBG_CMD_REMOVE_BKP, removeBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
+            return true;
         }
         case DBG_CMD_REMOVE_ALL_BKP: {
             breakPointCount = 0;
-            sendRespCode(cmd, DBG_RESP_OK);
-            return;
+            sendRespCode(DBG_CMD_REMOVE_ALL_BKP, DBG_RESP_OK);
+            return true;
         }
         case DBG_CMD_RUN: {
             Mjvm::lock();
             csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
             Mjvm::unlock();
-            sendRespCode(cmd, DBG_RESP_OK);
-            return;
+            sendRespCode(DBG_CMD_RUN, DBG_RESP_OK);
+            return true;
         }
         case DBG_CMD_STOP: {
             Mjvm::lock();
             csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
             Mjvm::unlock();
-            sendRespCode(cmd, DBG_RESP_OK);
-            return;
+            sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
+            return true;
         }
         case DBG_CMD_RESTART: {
             MjvmConstUtf8 *mainClass = (MjvmConstUtf8 *)&data[1];
             Mjvm::lock();
             csr &= DBG_CONTROL_EXCP_EN;
             Mjvm::unlock();
+            mjvm.setDebugger(this);
             mjvm.terminateAll();
-            mjvm.runToMain(mainClass->text);
-            sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
-            return;
+            try {
+                mjvm.runToMain(mainClass->text);
+                sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
+            }
+            catch(...) {
+                sendRespCode(DBG_CMD_RESTART, DBG_RESP_FAIL);
+            }
+            return true;
         }
         case DBG_CMD_TERMINATE: {
+            bool endDbg = data[1] != 0;
             Mjvm::lock();
             csr = (csr & DBG_CONTROL_EXCP_EN) | DBG_STATUS_RESET;
             Mjvm::unlock();
             mjvm.terminateAll();
             sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
-            return;
+            return !endDbg;
         }
         case DBG_CMD_STEP_IN:
         case DBG_CMD_STEP_OVER: {
@@ -455,14 +463,14 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                         csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_OVER;
                         Mjvm::unlock();
                     }
-                    sendRespCode(cmd, DBG_RESP_OK);
+                    sendRespCode((MjvmDbgCmd)data[0], DBG_RESP_OK);
                 }
                 else
-                    sendRespCode(cmd, DBG_RESP_FAIL);
+                    sendRespCode((MjvmDbgCmd)data[0], DBG_RESP_FAIL);
             }
             else
-                sendRespCode(cmd, DBG_RESP_BUSY);
-            return;
+                sendRespCode((MjvmDbgCmd)data[0], DBG_RESP_BUSY);
+            return true;
         }
         case DBG_CMD_STEP_OUT: {
             if(csr & DBG_STATUS_STOP) {
@@ -470,14 +478,14 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                     Mjvm::lock();
                     csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER)) | DBG_CONTROL_STEP_OUT;
                     Mjvm::unlock();
-                    sendRespCode(cmd, DBG_RESP_OK);
+                    sendRespCode(DBG_CMD_STEP_OUT, DBG_RESP_OK);
                 }
                 else
-                    sendRespCode(cmd, DBG_RESP_FAIL);
+                    sendRespCode(DBG_CMD_STEP_OUT, DBG_RESP_FAIL);
             }
             else
-                sendRespCode(cmd, DBG_RESP_BUSY);
-            return;
+                sendRespCode(DBG_CMD_STEP_OUT, DBG_RESP_BUSY);
+            return true;
         }
         case DBG_CMD_SET_EXCP_MODE: {
             Mjvm::lock();
@@ -486,49 +494,95 @@ void MjvmDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             else
                 csr &= ~DBG_CONTROL_EXCP_EN;
             Mjvm::unlock();
-            sendRespCode(cmd, DBG_RESP_OK);
-            return;
+            sendRespCode(DBG_CMD_SET_EXCP_MODE, DBG_RESP_OK);
+            return true;
         }
         case DBG_CMD_READ_EXCP_INFO: {
             responseExceptionInfo();
-            return;
+            return true;
         }
         case DBG_CMD_READ_LOCAL: {
             bool isU64 = data[1];
             uint32_t stackIndex = (*(uint32_t *)&data[2]) & 0x7FFFFFFF;
             uint32_t localIndex = (*(uint32_t *)&data[6]);
             responseLocalVariable(isU64, stackIndex, localIndex);
-            return;
+            return true;
         }
         case DBG_CMD_WRITE_LOCAL: {
             // TODO
-            return;
+            return true;
         }
         case DBG_CMD_READ_FIELD: {
             MjvmObject *obj = (MjvmObject *)*(uint32_t *)&data[1];
             MjvmConstUtf8 &fieldName = *(MjvmConstUtf8 *)&data[5];
             responseField(obj, fieldName);
-            return;
+            return true;
         }
         case DBG_CMD_WRITE_FIELD: {
             // TODO
-            return;
+            return true;
         }
         case DBG_CMD_READ_ARRAY: {
             uint32_t length = (*(uint32_t *)&data[0]) >> 8;
             uint32_t index = *(uint32_t *)&data[4];
             MjvmObject *array = (MjvmObject *)*(uint32_t *)&data[8];
             responseArray(array, index, length);
-            return;
+            return true;
         }
         case DBG_CMD_READ_SIZE_AND_TYPE: {
             MjvmObject *obj = (MjvmObject *)*(uint32_t *)&data[1];
             responseObjSizeAndType(obj);
-            return;
+            return true;
+        }
+        case DBG_CMD_INSTALL_FILE: {
+            if(csr & DBG_STATUS_RESET) {
+                if(installClassFileHandle)
+                    MjvmSystem_FileClose(installClassFileHandle);
+                MjvmConstUtf8 *fileName = (MjvmConstUtf8 *)&data[1];
+                installClassFileHandle = MjvmSystem_FileOpen(fileName->text, MJVM_FILE_CREATE_ALWAYS);
+                if(installClassFileHandle)
+                    sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_OK);
+                else
+                    sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_FAIL);
+            }
+            else
+                sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_BUSY);
+            return true;
+        }
+        case DBG_CMD_WRITE_FILE_DATA: {
+            if(csr & DBG_STATUS_RESET) {
+                uint32_t bw = 0;
+                if(
+                    installClassFileHandle &&
+                    MjvmSystem_FileWrite(installClassFileHandle, &data[1], length - 1, &bw) == FILE_RESULT_OK
+                ) {
+                    sendRespCode(DBG_CMD_WRITE_FILE_DATA, DBG_RESP_OK);
+                }
+                else
+                    sendRespCode(DBG_CMD_WRITE_FILE_DATA, DBG_RESP_FAIL);
+            }
+            else
+                sendRespCode(DBG_CMD_WRITE_FILE_DATA, DBG_RESP_BUSY);
+            return true;
+        }
+        case DBG_CMD_COMPLATE_INSTALL: {
+            if(csr & DBG_STATUS_RESET) {
+                if(
+                    installClassFileHandle &&
+                    MjvmSystem_FileClose(installClassFileHandle) == FILE_RESULT_OK
+                ) {
+                    sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_OK);
+                }
+                else
+                    sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_FAIL);
+            }
+            else
+                sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_BUSY);
+            return true;
         }
         default: {
-            sendRespCode(cmd, DBG_RESP_UNKNOW);
-            return;
+            sendRespCode((MjvmDbgCmd)data[0], DBG_RESP_UNKNOW);
+            return true;
         }
     }
 }

@@ -46,6 +46,9 @@ typedef enum : uint8_t {
     DBG_CMD_WRITE_FIELD,
     DBG_CMD_READ_ARRAY,
     DBG_CMD_READ_SIZE_AND_TYPE,
+    DBG_CMD_INSTALL_FILE,
+    DBG_CMD_WRITE_FILE_DATA,
+    DBG_CMD_COMPLATE_INSTALL,
 } MjvmDbgCmd;
 
 typedef enum : uint8_t {
@@ -84,6 +87,7 @@ private:
     Mjvm &mjvm;
     MjvmExecution *execution;
     MjvmThrowable *exception;
+    void *installClassFileHandle;
     volatile uint32_t stepCodeLength;
     uint32_t txDataLength;
     volatile uint16_t csr;
@@ -114,7 +118,7 @@ public:
     void responseArray(MjvmObject *array, uint32_t index, uint32_t length);
     void responseObjSizeAndType(MjvmObject *obj);
 
-    void receivedDataHandler(uint8_t *data, uint32_t length);
+    bool receivedDataHandler(uint8_t *data, uint32_t length);
 
     bool exceptionIsEnabled(void);
     void checkBreakPoint(MjvmExecution *exec);

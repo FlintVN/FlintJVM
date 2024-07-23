@@ -32,42 +32,80 @@
             "runtime": "node",
             "configurationAttributes": {
                 "launch": {
-                    "required": ["program"],
+                    "required": [
+                        "main-class",
+                        "sdk-class-path",
+                        "sdk-source-path"
+                    ],
                     "properties": {
-                        "program": {
+                        "embedded": {
+                            "type": "boolean",
+                            "description": "Command will be executed before debugging is started",
+                            "default": false
+                        },
+                        "install": {
+                            "type": "boolean",
+                            "description": "Allows installing classes on the target before executing",
+                            "default": true
+                        },
+                        "main-class": {
                             "type": "string",
-                            "description": "Absolute path to a text file.",
-                            "default": "${workspaceFolder}/build/main.class"
-                        }
-                    }
-                },
-                "attach": {
-                    "required": ["program"],
-                    "properties": {
-                        "program": {
+                            "description": "The class name contains the main method",
+                            "default": "main.class"
+                        },
+                        "sdk-class-path": {
                             "type": "string",
-                            "description": "Absolute path to a text file.",
-                            "default": "${workspaceFolder}/${command:AskForProgramName}"
+                            "description": "Path to sdk java class files",
+                            "default": "main.class"
+                        },
+                        "sdk-source-path": {
+                            "type": "string",
+                            "description": "Path to sdk java source files",
+                            "default": "main.class"
                         }
                     }
                 }
             },
             "initialConfigurations": [{
+                "label": "MJVM Debug: Launch",
                 "type": "mjvm-debug",
                 "request": "launch",
-                "name": "Ask for file name",
-                "program": "${workspaceFolder}/build/main.class"
+                "name": "MJVM Program",
+                "install": true,
+                "main-class": "main",
+                "sdk-class-path": "Please enter the path to sdk java class files",
+                "sdk-source-path": "Please enter the path to sdk java source files"
             }],
-            "configurationSnippets": [{
-                "label": "MJVM Debug: Launch",
-                "description": "A new configuration for 'debugging' a user selected markdown file.",
-                "body": {
-                    "type": "mjvm-debug",
-                    "request": "launch",
-                    "name": "Ask for file name",
-                    "program": "${workspaceFolder}/build/main.class"
+            "configurationSnippets": [
+                {
+                    "label": "MJVM Debug: Launch Embedded",
+                    "description": "A new configuration for 'debugging' MJVM on embedded device",
+                    "body": {
+                        "type": "mjvm-debug",
+                        "request": "launch",
+                        "name": "MJVM Embedded Program",
+                        "embedded": true,
+                        "install": true,
+                        "main-class": "main",
+                        "sdk-class-path": "Please enter the path to sdk java class files",
+                        "sdk-source-path": "Please enter the path to sdk java source files"
+                    }
+                },
+                {
+                    "label": "MJVM Debug: Launch Windows",
+                    "description": "A new configuration for 'debugging' MJVM on Windows OS",
+                    "body": {
+                        "type": "mjvm-debug",
+                        "request": "launch",
+                        "name": "MJVM Windows Program",
+                        "embedded": false,
+                        "install": false,
+                        "main-class": "main",
+                        "sdk-class-path": "Please enter the path to sdk java class files",
+                        "sdk-source-path": "Please enter the path to sdk java source files"
+                    }
                 }
-            }]
+            ]
         }]
     },
     "scripts": {

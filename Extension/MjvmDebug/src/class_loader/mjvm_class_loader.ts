@@ -53,6 +53,9 @@ export class MjvmClassLoader {
         MjvmConstMethodHandle
     )[] = [];
 
+    public static sdkClassPath?: string;
+    public static sdkSourcePath?: string;
+
     private static readonly CONST_UTF8 = 1;
     private static readonly CONST_INTEGER = 3;
     private static readonly CONST_FLOAT = 4;
@@ -89,20 +92,32 @@ export class MjvmClassLoader {
 
     private static classLoaderDictionary: Record<string, MjvmClassLoader> = {};
 
-    private static findFile(name: string): string | undefined {
+    private static findSourceFile(name: string): string | undefined {
+        name += '.java';
         const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
-        const fullPath: string = path.join(workspace, name);
+        let fullPath = path.join(workspace, name);
         if(fs.existsSync(fullPath))
             return fullPath;
+        else if(MjvmClassLoader.sdkSourcePath) {
+            fullPath = path.join(MjvmClassLoader.sdkSourcePath, name);
+            if(fs.existsSync(fullPath))
+                return fullPath;
+        }
         return undefined;
     }
 
-    private static findSourceFile(name: string): string | undefined {
-        return MjvmClassLoader.findFile(name + '.java');
-    }
-
     private static findClassFile(name: string): string | undefined {
-        return MjvmClassLoader.findFile(name + '.class');
+        name += '.class';
+        const workspace = vscode.workspace.workspaceFolders ? vscode.workspace.workspaceFolders[0].uri.fsPath : '';
+        let fullPath = path.join(workspace, name);
+        if(fs.existsSync(fullPath))
+            return fullPath;
+        else if(MjvmClassLoader.sdkClassPath) {
+            fullPath = path.join(MjvmClassLoader.sdkClassPath, name);
+            if(fs.existsSync(fullPath))
+                return fullPath;
+        }
+        return undefined;
     }
 
     public static load(className: string): MjvmClassLoader {
