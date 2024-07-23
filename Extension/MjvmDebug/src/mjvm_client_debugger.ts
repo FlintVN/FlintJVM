@@ -713,11 +713,26 @@ export class MjvmClientDebugger {
         }
     }
 
+    private binaryToInt32(binary: number): number {
+        const buffer = new ArrayBuffer(4);
+        const view = new DataView(buffer);
+        view.setUint32(0, binary);
+        return view.getInt32(0);
+    }
+
     private binaryToFloat32(binary: number): number {
         const buffer = new ArrayBuffer(4);
         const view = new DataView(buffer);
         view.setUint32(0, binary);
         return view.getFloat32(0);
+    }
+
+    private binaryToInt64(binary: bigint): bigint {
+        const buffer = new ArrayBuffer(8);
+        const view = new DataView(buffer);
+        view.setUint32(0, Number(binary >> 32n));
+        view.setUint32(4, Number(binary >> 0xFFFFFFFFn));
+        return view.getBigInt64(0);
     }
 
     private binaryToFloat64(binary: bigint): number {
@@ -766,11 +781,11 @@ export class MjvmClientDebugger {
         const byteArray: number[] = [];
         if(coder === 0) {
             for(let i = 0; i < array.length; i++)
-                byteArray.push(array[i].value as number);
+                byteArray.push((array[i].value as number) & 0xFF);
         }
         else for(let i = 0; i < array.length; i += 2) {
-            const low = array[i + 0].value as number;
-            const hight = array[i + 1].value as number;
+            const low = (array[i + 0].value as number) & 0xFF;
+            const hight = (array[i + 1].value as number) & 0xFF;
             byteArray.push(low | (hight << 8));
         }
         return String.fromCharCode(...byteArray);
@@ -793,6 +808,21 @@ export class MjvmClientDebugger {
             }
         }
         return undefined;
+    }
+
+    private getPrimDisplayValue(value: number | bigint, descriptor: string): number | bigint | string {
+        if(descriptor === 'F')
+            return this.binaryToFloat32(value as number);
+        else if(descriptor === 'D')
+            return this.binaryToFloat64(value as bigint);
+        else if(descriptor === 'C')
+            return '\'' + String.fromCharCode(value as number) + '\'';
+        else if(descriptor === 'Z')
+            return (value === 0) ? 'false' : 'true';
+        else if(descriptor === 'J')
+            return this.binaryToInt64(value as bigint);
+        else
+            return this.binaryToInt32(value as number);
     }
 
     private async readLocal(stackFrame: MjvmStackFrame, variable: number | string): Promise<MjvmValueInfo | undefined> {
@@ -818,14 +848,7 @@ export class MjvmClientDebugger {
         let value: number | bigint | string = isU64 ? this.readU64(resp.data, 4) : this.readU32(resp.data, 4);
         const name = localVariableInfo.name;
         if(this.isPrimType(localVariableInfo.descriptor)) {
-            if(localVariableInfo.descriptor === 'F')
-                value = this.binaryToFloat32(value as number);
-            else if(localVariableInfo.descriptor === 'D')
-                value = this.binaryToFloat64(value as bigint);
-            else if(localVariableInfo.descriptor === 'C')
-                value = '\'' + String.fromCharCode(value as number) + '\'';
-            else if(localVariableInfo.descriptor === 'Z')
-                value = (value === 0) ? 'false' : 'true';
+            value = this.getPrimDisplayValue(value as number | bigint, localVariableInfo.descriptor);
             return new MjvmValueInfo(name, localVariableInfo.descriptor, value, size, 0);
         }
         else {
@@ -861,14 +884,7 @@ export class MjvmClientDebugger {
         let value: number | bigint | string = isU64 ? this.readU64(resp.data, 4) : this.readU32(resp.data, 4);
         const name = fieldInfo.name;
         if(this.isPrimType(fieldInfo.descriptor)) {
-            if(fieldInfo.descriptor === 'F')
-                value = this.binaryToFloat32(value as number);
-            else if(fieldInfo.descriptor === 'D')
-                value = this.binaryToFloat64(value as bigint);
-            else if(fieldInfo.descriptor === 'C')
-                value = '\'' + String.fromCharCode(value as number) + '\'';
-            else if(fieldInfo.descriptor === 'Z')
-                value = (value === 0) ? 'false' : 'true';
+            value = this.getPrimDisplayValue(value as number | bigint, fieldInfo.descriptor);
             return new MjvmValueInfo(name, fieldInfo.descriptor, value, size, 0);
         }
         else {
@@ -925,7 +941,13 @@ export class MjvmClientDebugger {
         if(elementSize === 1) {
             for(let i = 0; i < actualLength; i++) {
                 const name = '[' + i + ']';
-                const value = (elementType === 'Z') ? ((resp.data[i] === 0) ? 'false' : 'true') : resp.data[i];
+                let value;
+                if(elementType === 'Z')
+                    value = ((resp.data[i] === 0) ? 'false' : 'true');
+                else if(resp.data[i] & 0x80)
+                    value = -(0x80 - (resp.data[i] & 0x7F))
+                else
+                    value = resp.data[i];
                 ret.push(new MjvmValueInfo(name, elementType, value, 1, 0));
             }
             return ret;
@@ -938,7 +960,8 @@ export class MjvmClientDebugger {
                 index += 2;
                 if(elementType === 'C')
                     value = '\'' + String.fromCharCode(value as number) + '\'';
-                '\'' + String.fromCharCode(value as number) + '\'';
+                else if(value & 0x8000)
+                    value = -(0x8000 - (value & 0x7FFF));
                 ret.push(new MjvmValueInfo(name, elementType, value, 1, 0));
             }
             return ret;
