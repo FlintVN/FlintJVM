@@ -766,26 +766,15 @@ export class MjvmClientDebugger {
     }
 
     private async readStringValue(strReference: number): Promise<string | undefined> {
-        const fieldInfos = [
-            new MjvmFieldInfo('value', '[B', 0),
-            new MjvmFieldInfo('coder', 'B', 0),
-        ];
-        const fields = await this.readFields(strReference, fieldInfos);
-        if(fields === undefined)
+        const coder = await this.readField(strReference, new MjvmFieldInfo('coder', 'B', 0));
+        const value = await this.readField(strReference, new MjvmFieldInfo('value', '[B', 0));
+        if(coder === undefined || value === undefined)
             return undefined;
-        let tmp = fields.find(u => u.name === 'coder');
-        if(tmp === undefined)
-            return undefined;
-        const coder = tmp.value as number;
-        tmp = fields.find(u => u.name === 'value');
-        if(tmp === undefined)
-            return undefined;
-        const value = tmp as MjvmValueInfo;
         const array = await this.readArray(value.reference, 0, value.size, value.type);
         if(array === undefined)
             return undefined;
         const byteArray: number[] = [];
-        if(coder === 0) {
+        if(coder.value === 0) {
             for(let i = 0; i < array.length; i++)
                 byteArray.push((array[i].value as number) & 0xFF);
         }
@@ -910,19 +899,6 @@ export class MjvmClientDebugger {
         }
     }
 
-    private async readFields(reference: number, fieldInfos: MjvmFieldInfo[]): Promise<MjvmValueInfo[] | undefined> {
-        const ret: MjvmValueInfo[] = [];
-        for(let i = 0; i < fieldInfos.length; i++) {
-            const fieldInfo = fieldInfos[i];
-            const result = await this.readField(reference, fieldInfo);
-            if(result !== undefined)
-                ret.push(result);
-            else
-                return undefined;
-        }
-        return ret;
-    }
-
     private async readArray(reference: number, index: number, length: number, arrayType: string): Promise<MjvmValueInfo[] | undefined> {
         const txBuff = Buffer.alloc(12);
         txBuff[0] = MjvmClientDebugger.DBG_CMD_READ_ARRAY;
@@ -1033,11 +1009,19 @@ export class MjvmClientDebugger {
             const fieldInfos = clsLoader.getFieldList(true);
             if(!fieldInfos)
                 return undefined;
-            const result = await this.readFields(reference, fieldInfos);
-            if(result === undefined)
-                return undefined;
-            this.addToRefMap(result);
-            return this.convertToVariable(result);
+            const filedValues: MjvmValueInfo[] = [];
+            for(let i = 0; i < fieldInfos.length; i++) {
+                const result = await this.readField(reference, fieldInfos[i]);
+                if(result === undefined) {
+                    const name = fieldInfos[i].name;
+                    const descriptor = fieldInfos[i].descriptor;
+                    filedValues.push(new MjvmValueInfo(name, descriptor, 'not available', 0, 0));
+                }
+                else
+                    filedValues.push(result);
+            }
+            this.addToRefMap(filedValues);
+            return this.convertToVariable(filedValues);
         }
         else {
             const length = valueInfo.size / this.getElementTypeSize(valueInfo.type);
@@ -1067,9 +1051,13 @@ export class MjvmClientDebugger {
         const valueInfos: MjvmValueInfo[] = [];
         for(let i = 0; i < stackFrame.localVariables.length; i++) {
             const result = await this.readLocal(stackFrame, i);
-            if(result === undefined)
-                return undefined;
-            valueInfos.push(result);
+            if(result === undefined) {
+                const name = stackFrame.localVariables[i].name;
+                const descriptor = stackFrame.localVariables[i].descriptor;
+                valueInfos.push(new MjvmValueInfo(name, descriptor, 'not available', 0, 0));
+            }
+            else
+                valueInfos.push(result);
         }
         this.addToRefMap(valueInfos);
         return this.convertToVariable(valueInfos);

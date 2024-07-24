@@ -283,24 +283,30 @@ void MjvmDebugger::responseField(MjvmObject *obj, MjvmConstUtf8 &fieldName) {
                 }
                 else {
                     MjvmObject *subObj = ((MjvmFieldObject *)fieldData)->object;
-                    MjvmConstUtf8 &type = subObj->type;
-                    uint8_t isPrim = subObj->isPrimType(type);
-                    uint16_t typeLength = subObj->dimensions + (isPrim ? 0 : 2) + type.length;
-                    uint32_t responseSize = 8 + sizeof(MjvmConstUtf8) + typeLength + 1;
+                    if(subObj) {
+                        MjvmConstUtf8 &type = subObj->type;
+                        uint8_t isPrim = subObj->isPrimType(type);
+                        uint16_t typeLength = subObj->dimensions + (isPrim ? 0 : 2) + type.length;
+                        uint32_t responseSize = 8 + sizeof(MjvmConstUtf8) + typeLength + 1;
 
-                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, responseSize);
-                    if(!dataFrameAppend((uint32_t)subObj->size)) return;
-                    if(!dataFrameAppend((uint32_t)((MjvmFieldObject *)fieldData)->object)) return;
-                    if(!dataFrameAppend((uint16_t)typeLength)) return;
-                    if(!dataFrameAppend((uint16_t)0)) return;
-                    for(uint32_t i = 0; i < subObj->dimensions; i++)
-                        if(!dataFrameAppend((uint8_t)'[')) return;
-                    if(!isPrim)
-                        if(!dataFrameAppend((uint8_t)'L')) return;
-                    if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
-                    if(!isPrim)
-                        if(!dataFrameAppend((uint8_t)';')) return;
-                    if(!dataFrameAppend((uint8_t)0)) return;
+                        initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, responseSize);
+                        if(!dataFrameAppend((uint32_t)subObj->size)) return;
+                        if(!dataFrameAppend((uint32_t)((MjvmFieldObject *)fieldData)->object)) return;
+                        if(!dataFrameAppend((uint16_t)typeLength)) return;
+                        if(!dataFrameAppend((uint16_t)0)) return;
+                        for(uint32_t i = 0; i < subObj->dimensions; i++)
+                            if(!dataFrameAppend((uint8_t)'[')) return;
+                        if(!isPrim)
+                            if(!dataFrameAppend((uint8_t)'L')) return;
+                        if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
+                        if(!isPrim)
+                            if(!dataFrameAppend((uint8_t)';')) return;
+                        if(!dataFrameAppend((uint8_t)0)) return;
+                    }
+                    else {
+                        initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 4);
+                        if(!dataFrameAppend((uint32_t)0)) return;
+                    }
                 }
                 dataFrameFinish();
             }
