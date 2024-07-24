@@ -166,6 +166,12 @@ export class MjvmClientDebugger {
         this.closeCallback = callback;
     }
 
+    public removeAllListeners() {
+        this.stopCallback = undefined;
+        this.errorCallback = undefined;
+        this.closeCallback = undefined;
+    }
+
     public async connect() {
         await this.client.connect(5555, '127.0.0.1');
     }

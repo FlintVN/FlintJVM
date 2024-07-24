@@ -128,6 +128,7 @@ export class MjvmDebugSession extends LoggingDebugSession {
             this.sendResponse(response);
         else
             this.sendErrorResponse(response, 1, 'Cound not terminate');
+        this.clientDebugger.removeAllListeners();
         this.sendEvent(new TerminatedEvent());
     }
 
@@ -370,10 +371,11 @@ export class MjvmDebugSession extends LoggingDebugSession {
                 return;
             }
             this.mjvm.stdout.on('data', (data) => {
-                console.log(data);
+                const str = data.toString();
+                this.sendEvent(new OutputEvent(str, 'console'));
                 this.mjvm?.stdout?.removeAllListeners();
                 this.mjvm?.removeAllListeners();
-                if(data.toString().includes('MJVM is started')) {
+                if(str.includes('MJVM debug server is started')) {
                     clearTimeout(timeoutTask);
                     resolve(true);
                 }
@@ -387,6 +389,7 @@ export class MjvmDebugSession extends LoggingDebugSession {
             });
             this.mjvm.on('error', (err) => {
                 clearTimeout(timeoutTask);
+                this.sendEvent(new OutputEvent(err.message, 'stderr'));
                 this.killMjvm();
                 resolve(false);
             });
