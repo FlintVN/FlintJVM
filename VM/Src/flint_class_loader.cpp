@@ -215,8 +215,12 @@ void FlintClassLoader::readFile(void *file) {
                 uint16_t nameIndex = ClassLoader_ReadUInt16(file);
                 uint32_t length = ClassLoader_ReadUInt32(file);
                 FlintAttributeType type = FlintAttribute::parseAttributeType(getConstUtf8(nameIndex));
-                if(type == ATTRIBUTE_CONSTANT_VALUE)
+                if(
+                    type == ATTRIBUTE_CONSTANT_VALUE &&
+                    (FlintFieldAccessFlag)(flag & (FIELD_STATIC | FIELD_FINAL)) == (FIELD_STATIC | FIELD_FINAL)
+                ) {
                     flag = (FlintFieldAccessFlag)(flag | FIELD_UNLOAD);
+                }
                 ClassLoader_Seek(file, length);
             }
             if(!(flag & FIELD_UNLOAD)) {
