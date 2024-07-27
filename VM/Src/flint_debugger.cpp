@@ -258,61 +258,61 @@ void FlintDebugger::responseLocalVariable(bool isU64, uint32_t stackIndex, uint3
 
 void FlintDebugger::responseField(FlintObject *obj, FlintConstUtf8 &fieldName) {
     if(csr & DBG_STATUS_STOP) {
-        if(obj) {
-            FlintFieldsData *fields = (FlintFieldsData *)obj->data;
-            uint8_t fieldType = 0;
-            void *fieldData = (void *)&fields->getFieldData32(fieldName);
+        if(!obj) {
+            sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
+            return;
+        }
+        FlintFieldsData *fields = (FlintFieldsData *)obj->data;
+        uint8_t fieldType = 0;
+        void *fieldData = (void *)&fields->getFieldData32(fieldName);
+        if(!fieldData) {
+            fieldType = 1;
+            fieldData = (void *)&fields->getFieldData64(fieldName);
             if(!fieldData) {
-                fieldType = 1;
-                fieldData = (void *)&fields->getFieldData64(fieldName);
-                if(!fieldData) {
-                    fieldType = 2;
-                    fieldData = (void *)&fields->getFieldObject(fieldName);
-                }
-            }
-            if(fieldData) {
-                if(fieldType == 0) {
-                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8);
-                    if(!dataFrameAppend((uint32_t)4)) return;
-                    if(!dataFrameAppend((uint32_t)((FlintFieldData32 *)fieldData)->value)) return;
-                }
-                else if(fieldType == 1) {
-                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 12);
-                    if(!dataFrameAppend((uint32_t)8)) return;
-                    if(!dataFrameAppend((uint64_t)((FlintFieldData64 *)fieldData)->value)) return;
-                }
-                else {
-                    FlintObject *subObj = ((FlintFieldObject *)fieldData)->object;
-                    if(subObj) {
-                        FlintConstUtf8 &type = subObj->type;
-                        uint8_t isPrim = subObj->isPrimType(type);
-                        uint16_t typeLength = subObj->dimensions + (isPrim ? 0 : 2) + type.length;
-                        uint32_t responseSize = 8 + sizeof(FlintConstUtf8) + typeLength + 1;
-
-                        initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, responseSize);
-                        if(!dataFrameAppend((uint32_t)subObj->size)) return;
-                        if(!dataFrameAppend((uint32_t)((FlintFieldObject *)fieldData)->object)) return;
-                        if(!dataFrameAppend((uint16_t)typeLength)) return;
-                        if(!dataFrameAppend((uint16_t)0)) return;
-                        for(uint32_t i = 0; i < subObj->dimensions; i++)
-                            if(!dataFrameAppend((uint8_t)'[')) return;
-                        if(!isPrim)
-                            if(!dataFrameAppend((uint8_t)'L')) return;
-                        if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
-                        if(!isPrim)
-                            if(!dataFrameAppend((uint8_t)';')) return;
-                        if(!dataFrameAppend((uint8_t)0)) return;
-                    }
-                    else {
-                        initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 4);
-                        if(!dataFrameAppend((uint32_t)0)) return;
-                    }
-                }
-                dataFrameFinish();
+                fieldType = 2;
+                fieldData = (void *)&fields->getFieldObject(fieldName);
             }
         }
-        else
-            sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
+        if(fieldData) {
+            if(fieldType == 0) {
+                initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8);
+                if(!dataFrameAppend((uint32_t)4)) return;
+                if(!dataFrameAppend((uint32_t)((FlintFieldData32 *)fieldData)->value)) return;
+            }
+            else if(fieldType == 1) {
+                initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 12);
+                if(!dataFrameAppend((uint32_t)8)) return;
+                if(!dataFrameAppend((uint64_t)((FlintFieldData64 *)fieldData)->value)) return;
+            }
+            else {
+                FlintObject *subObj = ((FlintFieldObject *)fieldData)->object;
+                if(subObj) {
+                    FlintConstUtf8 &type = subObj->type;
+                    uint8_t isPrim = subObj->isPrimType(type);
+                    uint16_t typeLength = subObj->dimensions + (isPrim ? 0 : 2) + type.length;
+                    uint32_t responseSize = 8 + sizeof(FlintConstUtf8) + typeLength + 1;
+
+                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, responseSize);
+                    if(!dataFrameAppend((uint32_t)subObj->size)) return;
+                    if(!dataFrameAppend((uint32_t)((FlintFieldObject *)fieldData)->object)) return;
+                    if(!dataFrameAppend((uint16_t)typeLength)) return;
+                    if(!dataFrameAppend((uint16_t)0)) return;
+                    for(uint32_t i = 0; i < subObj->dimensions; i++)
+                        if(!dataFrameAppend((uint8_t)'[')) return;
+                    if(!isPrim)
+                        if(!dataFrameAppend((uint8_t)'L')) return;
+                    if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
+                    if(!isPrim)
+                        if(!dataFrameAppend((uint8_t)';')) return;
+                    if(!dataFrameAppend((uint8_t)0)) return;
+                }
+                else {
+                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 4);
+                    if(!dataFrameAppend((uint32_t)0)) return;
+                }
+            }
+            dataFrameFinish();
+        }
     }
     else
         sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_BUSY);
@@ -320,7 +320,7 @@ void FlintDebugger::responseField(FlintObject *obj, FlintConstUtf8 &fieldName) {
 
 void FlintDebugger::responseArray(FlintObject *array, uint32_t index, uint32_t length) {
     if(csr & DBG_STATUS_STOP) {
-        if(array->dimensions > 0) {
+        if(array && array->dimensions > 0) {
             uint8_t atype = FlintObject::isPrimType(array->type);
             uint8_t elementSize = atype ? FlintObject::getPrimitiveTypeSize(atype) : sizeof(FlintObject *);
             uint32_t arrayLength = array->size / elementSize;
@@ -360,6 +360,10 @@ void FlintDebugger::responseArray(FlintObject *array, uint32_t index, uint32_t l
 
 void FlintDebugger::responseObjSizeAndType(FlintObject *obj) {
     if(csr & DBG_STATUS_STOP) {
+        if(!obj) {
+            sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_FAIL);
+            return;
+        }
         FlintConstUtf8 &type = obj->type;
         uint8_t isPrim = obj->isPrimType(type);
         uint16_t typeLength = obj->dimensions + (isPrim ? 0 : 2) + type.length;
