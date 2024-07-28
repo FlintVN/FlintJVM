@@ -2326,6 +2326,7 @@ void FlintExecution::runTask(FlintExecution *execution) {
         execution->stackRestoreContext();
     execution->peakSp = -1;
     execution->opcodes = 0;
+    FlintSystem_ThreadTerminate(0);
 }
 
 bool FlintExecution::run(FlintMethodInfo &method) {

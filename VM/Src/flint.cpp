@@ -649,7 +649,7 @@ void Flint::terminateAll(void) {
     for(FlintExecutionNode *node = list; node != 0;) {
         FlintExecutionNode *next = node->next;
         while(node->isRunning());
-        node->~FlintExecution();
+        node->~FlintExecutionNode();
         Flint::free(node);
         node = next;
     }
