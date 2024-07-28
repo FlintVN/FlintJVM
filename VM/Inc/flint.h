@@ -100,6 +100,8 @@ public:
     void runToMain(const char *mainClass);
     void runToMain(const char *mainClass, uint32_t stackSize);
 
+    bool isRunning(void) const;
+    void terminateRequest(void);
     void terminateAll(void);
 };
 
