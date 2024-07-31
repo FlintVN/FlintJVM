@@ -55,6 +55,8 @@ typedef enum : uint8_t {
     DBG_RESP_OK = 0,
     DBG_RESP_BUSY = 1,
     DBG_RESP_FAIL = 2,
+    DBG_RESP_CRC_FAIL = 3,
+    DBG_RESP_LENGTH_INVAILD = 4,
     DBG_RESP_UNKNOW = 0xFF,
 } FlintDbgRespCode;
 
@@ -90,6 +92,7 @@ private:
     void *installClassFileHandle;
     volatile uint32_t stepCodeLength;
     uint32_t txDataLength;
+    uint16_t txDataCrc;
     volatile uint16_t csr;
     volatile uint8_t breakPointCount;
     FlintStackFrame startPoint;
