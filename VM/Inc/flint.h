@@ -51,6 +51,10 @@ public:
 
     FlintExecution &newExecution(void);
     FlintExecution &newExecution(uint32_t stackSize);
+
+    void freeAllObject(void);
+    void freeAllExecution(void);
+    void freeAllClassLoader(void);
 public:
     FlintDebugger *getDebugger(void) const;
     void setDebugger(FlintDebugger *dbg);
@@ -80,7 +84,6 @@ public:
     FlintThrowable *newArrayIndexOutOfBoundsException(FlintString *strObj);
     FlintThrowable *newUnsupportedOperationException(FlintString *strObj);
 
-    void freeAllObject(void);
     void clearProtectObjectNew(FlintObject *obj);
     void garbageCollectionProtectObject(FlintObject *obj);
 
