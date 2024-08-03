@@ -6,12 +6,12 @@
 #include "flint_native_system_class.h"
 
 static bool nativeCurrentTimeMillis(FlintExecution &execution) {
-    execution.stackPushInt64(FlintSystem_GetNanoTime() / 1000);
+    execution.stackPushInt64(FlintAPI::System::getNanoTime() / 1000);
     return true;
 }
 
 static bool nativeNanoTime(FlintExecution &execution) {
-    execution.stackPushInt64(FlintSystem_GetNanoTime());
+    execution.stackPushInt64(FlintAPI::System::getNanoTime());
     return true;
 }
 
@@ -56,10 +56,10 @@ static bool nativeArraycopy(FlintExecution &execution) {
     return true;
 }
 
-static const NativeMethod methods[] = {
+static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x11\x00\xFC\x06""currentTimeMillis", "\x03\x00\x9B\x00""()J",                                        nativeCurrentTimeMillis),
     NATIVE_METHOD("\x08\x00\x3B\x03""nanoTime",          "\x03\x00\x9B\x00""()J",                                        nativeNanoTime),
     NATIVE_METHOD("\x09\x00\xDA\x03""arraycopy",         "\x2A\x00\x82\x0E""(Ljava/lang/Object;ILjava/lang/Object;II)V", nativeArraycopy),
 };
 
-const NativeClass SYSTEM_CLASS = NATIVE_CLASS(systemClassName, methods);
+const FlintNativeClass SYSTEM_CLASS = NATIVE_CLASS(systemClassName, methods);

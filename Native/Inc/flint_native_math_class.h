@@ -4,6 +4,6 @@
 
 #include "flint_native_class.h"
 
-extern const NativeClass MATH_CLASS;
+extern const FlintNativeClass MATH_CLASS;
 
 #endif /* __FLINT_NATIVE_MATH_CLASS_H */

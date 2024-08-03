@@ -27,10 +27,10 @@ void Flint::unlock(void) {
 }
 
 void *Flint::malloc(uint32_t size) {
-    void *ret = FlintSystem_Malloc(size);
+    void *ret = FlintAPI::System::malloc(size);
     if(ret == 0) {
         flintInstance.garbageCollection();
-        ret = FlintSystem_Malloc(size);
+        ret = FlintAPI::System::malloc(size);
         if(ret == 0)
             throw (FlintOutOfMemoryError *)"not enough memory to allocate";
     }
@@ -39,10 +39,10 @@ void *Flint::malloc(uint32_t size) {
 }
 
 void *Flint::realloc(void *p, uint32_t size) {
-    void *ret = FlintSystem_Realloc(p, size);
+    void *ret = FlintAPI::System::realloc(p, size);
     if(ret == 0) {
         flintInstance.garbageCollection();
-        ret = FlintSystem_Realloc(p, size);
+        ret = FlintAPI::System::realloc(p, size);
         if(ret == 0)
             throw (FlintOutOfMemoryError *)"not enough memory to allocate";
     }
@@ -51,7 +51,7 @@ void *Flint::realloc(void *p, uint32_t size) {
 
 void Flint::free(void *p) {
     objectCount--;
-    FlintSystem_Free(p);
+    FlintAPI::System::free(p);
 }
 
 Flint &Flint::getInstance(void) {
@@ -680,7 +680,7 @@ void Flint::terminateRequest(void) {
 void Flint::terminateAll(void) {
     terminateRequest();
     while(isRunning())
-        FlintSystem_ThreadSleep(1);
+        FlintAPI::Thread::sleep(1);
     freeAllObject();
     freeAllExecution();
     freeAllClassLoader();

@@ -4,6 +4,6 @@
 
 #include "flint_native_class.h"
 
-extern const NativeClass PRINT_STREAM_CLASS;
+extern const FlintNativeClass PRINT_STREAM_CLASS;
 
 #endif /* __FLINT_NATIVE_PRINT_STREAM_CLASS_H */

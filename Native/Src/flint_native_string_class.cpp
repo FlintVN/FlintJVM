@@ -10,8 +10,8 @@ static bool nativeIntern(FlintExecution &execution) {
     return true;
 }
 
-static const NativeMethod methods[] = {
+static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x06\x00\x90\x02""intern", "\x14\x00\xF1\x06""()Ljava/lang/String;", nativeIntern),
 };
 
-const NativeClass STRING_CLASS = NATIVE_CLASS(stringClassName, methods);
+const FlintNativeClass STRING_CLASS = NATIVE_CLASS(stringClassName, methods);

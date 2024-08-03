@@ -4,6 +4,6 @@
 
 #include "flint_native_class.h"
 
-extern const NativeClass DOUBLE_CLASS;
+extern const FlintNativeClass DOUBLE_CLASS;
 
 #endif /* __FLINT_NATIVE_DOUBLE_CLASS_H */

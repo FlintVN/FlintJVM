@@ -2301,38 +2301,38 @@ void FlintExecution::runTask(FlintExecution *execution) {
     }
     catch(FlintThrowable *ex) {
         FlintString &str = ex->getDetailMessage();
-        FlintSystem_Write(str.getText(), str.getLength(), str.getCoder());
-        FlintSystem_Write("\n", 1, 0);
+        FlintAPI::System::print(str.getText(), str.getLength(), str.getCoder());
+        FlintAPI::System::print("\n", 1, 0);
     }
     catch(FlintOutOfMemoryError *err) {
         const char *msg = err->getMessage();
-        FlintSystem_Write(msg, strlen(msg), 0);
-        FlintSystem_Write("\n", 1, 0);
+        FlintAPI::System::print(msg, strlen(msg), 0);
+        FlintAPI::System::print("\n", 1, 0);
     }
     catch(FlintLoadFileError *file) {
         const char *fileName = file->getFileName();
-        FlintSystem_Write("Could not find or load class ", 29, 0);
+        FlintAPI::System::print("Could not find or load class ", 29, 0);
         while(*fileName) {
-            FlintSystem_Write((*fileName == '/') ? "." : fileName, 1, 0);
+            FlintAPI::System::print((*fileName == '/') ? "." : fileName, 1, 0);
             fileName++;
         }
-        FlintSystem_Write("\n", 1, 0);
+        FlintAPI::System::print("\n", 1, 0);
     }
     catch(const char *msg) {
-        FlintSystem_Write(msg, strlen(msg), 0);
-        FlintSystem_Write("\n", 1, 0);
+        FlintAPI::System::print(msg, strlen(msg), 0);
+        FlintAPI::System::print("\n", 1, 0);
     }
     while(execution->startSp > 3)
         execution->stackRestoreContext();
     execution->peakSp = -1;
     execution->opcodes = 0;
-    FlintSystem_ThreadTerminate(0);
+    FlintAPI::Thread::terminate(0);
 }
 
 bool FlintExecution::run(FlintMethodInfo &method) {
     this->method = &method;
     if(!opcodes)
-        return (FlintSystem_ThreadCreate((void (*)(void *))runTask, (void *)this) != 0);
+        return (FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this) != 0);
     return false;
 }
 

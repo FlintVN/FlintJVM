@@ -215,7 +215,7 @@ static bool nativeIsHidden(FlintExecution &execution) {
     throw "isHidden is not implemented in VM";
 }
 
-static const NativeMethod methods[] = {
+static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x11\x00\xEF\x06""getPrimitiveClass", "\x25\x00\x10\x0D""(Ljava/lang/String;)Ljava/lang/Class;", nativeGetPrimitiveClass),
     NATIVE_METHOD("\x07\x00\xC8\x02""forName",           "\x25\x00\x10\x0D""(Ljava/lang/String;)Ljava/lang/Class;", nativeForName),
     NATIVE_METHOD("\x0A\x00\x11\x04""isInstance",        "\x15\x00\x2B\x07""(Ljava/lang/Object;)Z",                 nativeIsInstance),
@@ -230,4 +230,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x08\x00\x28\x03""isHidden",          "\x03\x00\xAB\x00""()Z",                                   nativeIsHidden),
 };
 
-const NativeClass CLASS_CLASS = NATIVE_CLASS(classClassName, methods);
+const FlintNativeClass CLASS_CLASS = NATIVE_CLASS(classClassName, methods);

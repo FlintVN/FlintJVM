@@ -16,9 +16,9 @@ static bool nativeLongBitsToDouble(FlintExecution &execution) {
     return true;
 }
 
-static const NativeMethod methods[] = {
+static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x13\x00\x8A\x07""doubleToRawLongBits", "\x04\x00\xDF\x00""(D)J", nativeDoubleToRawLongBits),
     NATIVE_METHOD("\x10\x00\x60\x06""longBitsToDouble",    "\x04\x00\xDF\x00""(J)D", nativeLongBitsToDouble),
 };
 
-const NativeClass DOUBLE_CLASS = NATIVE_CLASS(doubleClassName, methods);
+const FlintNativeClass DOUBLE_CLASS = NATIVE_CLASS(doubleClassName, methods);

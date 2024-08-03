@@ -4,16 +4,16 @@
 #include "flint_method_info.h"
 #include "flint_native_class.h"
 
-static FlintNativeMethodPtr findNativeMathod(const FlintMethodInfo &methodInfo) {
+static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) {
     FlintConstUtf8 &className = methodInfo.classLoader.getThisClass();
-    for(uint32_t i = 0; i < NATIVE_CLASS_COUNT; i++) {
-        if(NATIVE_CLASS_LIST[i]->className == className) {
-            for(uint32_t k = 0; k < NATIVE_CLASS_LIST[i]->methodCount; k++) {
+    for(uint32_t i = 0; i < LENGTH(BASE_NATIVE_CLASS_LIST); i++) {
+        if(BASE_NATIVE_CLASS_LIST[i]->className == className) {
+            for(uint32_t k = 0; k < BASE_NATIVE_CLASS_LIST[i]->methodCount; k++) {
                 if(
-                    NATIVE_CLASS_LIST[i]->methods[k].name == methodInfo.name &&
-                    NATIVE_CLASS_LIST[i]->methods[k].descriptor == methodInfo.descriptor
+                    BASE_NATIVE_CLASS_LIST[i]->methods[k].name == methodInfo.name &&
+                    BASE_NATIVE_CLASS_LIST[i]->methods[k].descriptor == methodInfo.descriptor
                 ) {
-                    return NATIVE_CLASS_LIST[i]->methods[k].nativeMathod;
+                    return BASE_NATIVE_CLASS_LIST[i]->methods[k].nativeMathod;
                 }
             }
             break;
@@ -40,7 +40,7 @@ FlintAttribute &FlintMethodInfo::getAttribute(FlintAttributeType type) const {
             else {
                 FlintNativeAttribute *attrNative = (FlintNativeAttribute *)node;
                 if(attrNative->nativeMethod == 0)
-                    *(void **)&attrNative->nativeMethod = (void *)findNativeMathod(*this);
+                    *(void **)&attrNative->nativeMethod = (void *)findNativeMethod(*this);
                 return *attrNative;
             }
         }
@@ -61,7 +61,7 @@ FlintNativeAttribute &FlintMethodInfo::getAttributeNative(void) const {
         if(node->attributeType == ATTRIBUTE_NATIVE) {
             FlintNativeAttribute *attrNative = (FlintNativeAttribute *)node;
             if(attrNative->nativeMethod == 0)
-                *(void **)&attrNative->nativeMethod = (void *)findNativeMathod(*this);
+                *(void **)&attrNative->nativeMethod = (void *)findNativeMethod(*this);
             return *(FlintNativeAttribute *)attrNative;
         }
     }

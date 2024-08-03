@@ -577,9 +577,9 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_INSTALL_FILE: {
             if(csr & DBG_STATUS_RESET) {
                 if(installClassFileHandle)
-                    FlintSystem_FileClose(installClassFileHandle);
+                    FlintAPI::File::close(installClassFileHandle);
                 FlintConstUtf8 *fileName = (FlintConstUtf8 *)&data[4];
-                installClassFileHandle = FlintSystem_FileOpen(fileName->text, FLINT_FILE_CREATE_ALWAYS);
+                installClassFileHandle = FlintAPI::File::open(fileName->text, FLINT_FILE_CREATE_ALWAYS);
                 if(installClassFileHandle)
                     sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_OK);
                 else
@@ -594,7 +594,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                 uint32_t bw = 0;
                 if(
                     installClassFileHandle &&
-                    FlintSystem_FileWrite(installClassFileHandle, &data[4], length - 6, &bw) == FILE_RESULT_OK
+                    FlintAPI::File::write(installClassFileHandle, &data[4], length - 6, &bw) == FILE_RESULT_OK
                 ) {
                     sendRespCode(DBG_CMD_WRITE_FILE_DATA, DBG_RESP_OK);
                 }
@@ -609,7 +609,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             if(csr & DBG_STATUS_RESET) {
                 if(
                     installClassFileHandle &&
-                    FlintSystem_FileClose(installClassFileHandle) == FILE_RESULT_OK
+                    FlintAPI::File::close(installClassFileHandle) == FILE_RESULT_OK
                 ) {
                     sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_OK);
                 }

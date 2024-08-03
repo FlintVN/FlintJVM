@@ -9,7 +9,7 @@
 #include "flint_native_character_class.h"
 #include "flint_native_print_stream_class.h"
 
-const NativeClass *NATIVE_CLASS_LIST[] = {
+const FlintNativeClass *BASE_NATIVE_CLASS_LIST[9] = {
     &MATH_CLASS,
     &CLASS_CLASS,
     &FLOAT_CLASS,
@@ -20,5 +20,3 @@ const NativeClass *NATIVE_CLASS_LIST[] = {
     &CHARACTER_CLASS,
     &PRINT_STREAM_CLASS,
 };
-
-const uint32_t NATIVE_CLASS_COUNT = LENGTH(NATIVE_CLASS_LIST);

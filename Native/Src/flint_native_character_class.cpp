@@ -129,9 +129,9 @@ static bool nativeToUpper(FlintExecution &execution) {
     return true;
 }
 
-static const NativeMethod methods[] = {
+static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x07\x00\xEC\x02""toLower", "\x04\x00\xD7\x00""(C)C", nativeToLower),
     NATIVE_METHOD("\x07\x00\xEF\x02""toUpper", "\x04\x00\xD7\x00""(C)C", nativeToUpper),
 };
 
-const NativeClass CHARACTER_CLASS = NATIVE_CLASS(characterClassName, methods);
+const FlintNativeClass CHARACTER_CLASS = NATIVE_CLASS(characterClassName, methods);

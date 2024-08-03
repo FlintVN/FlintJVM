@@ -3,30 +3,30 @@
 
 #include "flint_system_api.h"
 
-void *FlintSystem_FileOpen(const char *fileName, FlintSys_FileMode mode) {
-    throw "FlintSystem_FileOpen is not implemented in VM";
+void *FlintAPI::File::open(const char *fileName, FlintFileMode mode) {
+    throw "FlintAPI::File::open is not implemented in VM";
 }
 
-FlintSys_FileResult FlintSystem_FileRead(void *fileHandle, void *buff, uint32_t btr, uint32_t *br) {
-    throw "FlintSystem_FileRead is not implemented in VM";
+FlintFileResult FlintAPI::File::read(void *fileHandle, void *buff, uint32_t btr, uint32_t *br) {
+    throw "FlintAPI::File::read is not implemented in VM";
 }
 
-FlintSys_FileResult FlintSystem_FileWrite(void *fileHandle, void *buff, uint32_t btw, uint32_t *bw) {
-    throw "FlintSystem_FileWrite is not implemented in VM";
+FlintFileResult FlintAPI::File::write(void *fileHandle, void *buff, uint32_t btw, uint32_t *bw) {
+    throw "FlintAPI::File::write is not implemented in VM";
 }
 
-uint32_t FlintSystem_FileSize(void *fileHandle) {
-    throw "FlintSystem_FileSize is not implemented in VM";
+uint32_t FlintAPI::File::size(void *fileHandle) {
+    throw "FlintAPI::File::size is not implemented in VM";
 }
 
-uint32_t FlintSystem_FileTell(void *fileHandle) {
-    throw "FlintSystem_FileTell is not implemented in VM";
+uint32_t FlintAPI::File::tell(void *fileHandle) {
+    throw "FlintAPI::File::tell is not implemented in VM";
 }
 
-FlintSys_FileResult FlintSystem_FileSeek(void *fileHandle, uint32_t offset) {
-    throw "FlintSystem_FileSeek is not implemented in VM";
+FlintFileResult FlintAPI::File::seek(void *fileHandle, uint32_t offset) {
+    throw "FlintAPI::File::seek is not implemented in VM";
 }
 
-FlintSys_FileResult FlintSystem_FileClose(void *fileHandle) {
-    throw "FlintSystem_FileClose is not implemented in VM";
+FlintFileResult FlintAPI::File::close(void *fileHandle) {
+    throw "FlintAPI::File::close is not implemented in VM";
 }

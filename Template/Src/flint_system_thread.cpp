@@ -3,14 +3,14 @@
 
 #include "flint_system_api.h"
 
-void *FlintSystem_ThreadCreate(void (*task)(void *), void *param, uint32_t stackSize) {
-    throw "FlintSystem_ThreadCreate is not implemented in VM";
+void *FlintAPI::Thread::create(void (*task)(void *), void *param, uint32_t stackSize) {
+    throw "FlintAPI::Thread::create is not implemented in VM";
 }
 
-void FlintSystem_ThreadTerminate(void *threadHandle) {
-    throw "FlintSystem_ThreadTerminate is not implemented in VM";
+void FlintAPI::Thread::terminate(void *threadHandle) {
+    throw "FlintAPI::Thread::terminate is not implemented in VM";
 }
 
-void FlintSystem_ThreadSleep(uint32_t ms) {
-    throw "FlintSystem_ThreadSleep is not implemented in VM";
+void FlintAPI::Thread::sleep(uint32_t ms) {
+    throw "FlintAPI::Thread::sleep is not implemented in VM";
 }

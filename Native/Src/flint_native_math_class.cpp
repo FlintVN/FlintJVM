@@ -82,7 +82,7 @@ static bool nativeTanh(FlintExecution &execution) {
     return true;
 }
 
-static const NativeMethod methods[] = {
+static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x03\x00\x4A\x01""sin",   "\x04\x00\xD9\x00""(D)D",  nativeSin),
     NATIVE_METHOD("\x03\x00\x45\x01""cos",   "\x04\x00\xD9\x00""(D)D",  nativeCos),
     NATIVE_METHOD("\x03\x00\x43\x01""tan",   "\x04\x00\xD9\x00""(D)D",  nativeTan),
@@ -100,4 +100,4 @@ static const NativeMethod methods[] = {
     NATIVE_METHOD("\x04\x00\xAB\x01""tanh",  "\x04\x00\xD9\x00""(D)D",  nativeTanh),
 };
 
-const NativeClass MATH_CLASS = NATIVE_CLASS(mathClassName, methods);
+const FlintNativeClass MATH_CLASS = NATIVE_CLASS(mathClassName, methods);

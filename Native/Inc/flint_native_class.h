@@ -8,36 +8,35 @@
 #include "flint_attribute_info.h"
 
 #define NATIVE_CLASS(_className, _methods) {                \
-    .className = *(FlintConstUtf8 *)&_className,                 \
+    .className = *(FlintConstUtf8 *)&_className,            \
     .methodCount = LENGTH(_methods),                        \
     .methods = _methods                                     \
 }
 
 #define NATIVE_METHOD(_name, _descriptor, _nativeMathod) {  \
-    .name = *(FlintConstUtf8 *)_name,                            \
-    .descriptor = *(FlintConstUtf8 *)_descriptor,                \
+    .name = *(FlintConstUtf8 *)_name,                       \
+    .descriptor = *(FlintConstUtf8 *)_descriptor,           \
     .nativeMathod = _nativeMathod                           \
 }
 
-class NativeMethod {
+class FlintNativeMethod {
 public:
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
     FlintNativeMethodPtr nativeMathod;
 private:
-    void operator=(const NativeMethod &) = delete;
+    void operator=(const FlintNativeMethod &) = delete;
 };
 
-class NativeClass {
+class FlintNativeClass {
 public:
     FlintConstUtf8 &className;
     uint16_t methodCount;
-    const NativeMethod *methods;
+    const FlintNativeMethod *methods;
 private:
-    void operator=(const NativeClass &) = delete;
+    void operator=(const FlintNativeClass &) = delete;
 };
 
-extern const NativeClass *NATIVE_CLASS_LIST[];
-extern const uint32_t NATIVE_CLASS_COUNT;
+extern const FlintNativeClass *BASE_NATIVE_CLASS_LIST[9];
 
 #endif /* __FLINT_NATIVE_METHOD_H */

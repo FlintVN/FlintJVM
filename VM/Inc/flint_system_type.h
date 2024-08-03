@@ -11,7 +11,7 @@ typedef enum : uint8_t {
     FLINT_FILE_CREATE_NEW = 0x04,
     FLINT_FILE_CREATE_ALWAYS = 0x08,
     FLINT_FILE_OPEN_ALWAYS = 0x10
-} FlintSys_FileMode;
+} FlintFileMode;
 
 typedef enum : uint8_t {
     FILE_RESULT_OK = 0,
@@ -19,6 +19,6 @@ typedef enum : uint8_t {
     FILE_RESULT_NO_PATH,
     FILE_RESULT_DENIED,
     FILE_RESULT_WRITE_PROTECTED
-} FlintSys_FileResult;
+} FlintFileResult;
 
 #endif /* __FLINT_SYSTEM_TYPE_H */

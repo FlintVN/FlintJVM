@@ -31,7 +31,7 @@ static void *ClassLoader_Open(const char *fileName) {
     buff[i++] = 's';
     buff[i++] = 0;
 
-    void *file = FlintSystem_FileOpen(buff, FLINT_FILE_READ);
+    void *file = FlintAPI::File::open(buff, FLINT_FILE_READ);
     if(file == 0)
         throw "can not open file";
     return file;
@@ -52,7 +52,7 @@ static void *ClassLoader_Open(const char *fileName, uint32_t length) {
     buff[i++] = 's';
     buff[i++] = 0;
 
-    void *file = FlintSystem_FileOpen(buff, FLINT_FILE_READ);
+    void *file = FlintAPI::File::open(buff, FLINT_FILE_READ);
     if(file == 0)
         throw "can not open file";
     return file;
@@ -60,7 +60,7 @@ static void *ClassLoader_Open(const char *fileName, uint32_t length) {
 
 static void ClassLoader_Read(void *file, void *buff, uint32_t size) {
     uint32_t temp;
-    FlintSys_FileResult ret = FlintSystem_FileRead(file, buff, size, &temp);
+    FlintFileResult ret = FlintAPI::File::read(file, buff, size, &temp);
     if((ret != FILE_RESULT_OK) || (temp != size))
         throw "read file error";
 }
@@ -90,7 +90,7 @@ static uint64_t ClassLoader_ReadUInt64(void *file) {
 }
 
 static void ClassLoader_Seek(void *file, int32_t offset) {
-    if(FlintSystem_FileSeek(file, FlintSystem_FileTell(file) + offset) != FILE_RESULT_OK)
+    if(FlintAPI::File::seek(file, FlintAPI::File::tell(file) + offset) != FILE_RESULT_OK)
         throw "read file error";
 }
 
@@ -107,11 +107,11 @@ FlintClassLoader::FlintClassLoader(const char *fileName) {
         readFile(file);
     }
     catch(const char *excp) {
-        FlintSystem_FileClose(file);
+        FlintAPI::File::close(file);
         throw excp;
     }
 
-    FlintSystem_FileClose(file);
+    FlintAPI::File::close(file);
 }
 
 FlintClassLoader::FlintClassLoader(const char *fileName, uint16_t length) {
@@ -127,11 +127,11 @@ FlintClassLoader::FlintClassLoader(const char *fileName, uint16_t length) {
         readFile(file);
     }
     catch(const char *excp) {
-        FlintSystem_FileClose(file);
+        FlintAPI::File::close(file);
         throw excp;
     }
 
-    FlintSystem_FileClose(file);
+    FlintAPI::File::close(file);
 }
 
 FlintClassLoader::FlintClassLoader(const FlintConstUtf8 &fileName) : FlintClassLoader(fileName.text, fileName.length) {

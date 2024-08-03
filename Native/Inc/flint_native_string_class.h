@@ -4,6 +4,6 @@
 
 #include "flint_native_class.h"
 
-extern const NativeClass STRING_CLASS;
+extern const FlintNativeClass STRING_CLASS;
 
 #endif /* __FLINT_NATIVE_STRING_CLASS_H */

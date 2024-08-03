@@ -16,9 +16,9 @@ static bool nativeIntBitsToFloat(FlintExecution &execution) {
     return true;
 }
 
-static const NativeMethod methods[] = {
+static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x11\x00\xC0\x06""floatToRawIntBits", "\x04\x00\xE0\x00""(F)I", nativeFloatToRawIntBits),
     NATIVE_METHOD("\x0E\x00\x96\x05""intBitsToFloat",    "\x04\x00\xE0\x00""(I)F", nativeIntBitsToFloat),
 };
 
-const NativeClass FLOAT_CLASS = NATIVE_CLASS(floatClassName, methods);
+const FlintNativeClass FLOAT_CLASS = NATIVE_CLASS(floatClassName, methods);
