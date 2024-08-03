@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include "flint.h"
+#include "flint_system_api.h"
 #include "flint_method_info.h"
 #include "flint_native_class.h"
 
@@ -19,6 +20,9 @@ static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) 
             break;
         }
     }
+    FlintNativeMethodPtr nativeMethod = FlintAPI::System::findNativeMethod(methodInfo);
+    if(nativeMethod)
+        return nativeMethod;
     throw "can't find the native method";
 }
 

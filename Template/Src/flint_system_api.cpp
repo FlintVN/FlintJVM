@@ -22,3 +22,7 @@ void FlintAPI::System::print(const char *text, uint32_t length, uint8_t coder) {
 int64_t FlintAPI::System::getNanoTime(void) {
     throw "FlintAPI::System::getNanoTime is not implemented in VM";
 }
+
+FlintNativeMethodPtr FlintAPI::System::findNativeMethod(const FlintMethodInfo &methodInfo) {
+    throw "FlintAPI::System::findNativeMethod is not implemented in VM";
+}
