@@ -105,7 +105,8 @@ public:
 
     bool isRunning(void) const;
     void terminateRequest(void);
-    void terminateAll(void);
+    void terminate(void);
+    void terminateAndFree(void);
 };
 
 #endif /* __FLINT_H */

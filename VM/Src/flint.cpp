@@ -677,7 +677,13 @@ void Flint::terminateRequest(void) {
         node->terminateRequest();
 }
 
-void Flint::terminateAll(void) {
+void Flint::terminate(void) {
+    terminateRequest();
+    while(isRunning())
+        FlintAPI::Thread::sleep(1);
+}
+
+void Flint::terminateAndFree(void) {
     terminateRequest();
     while(isRunning())
         FlintAPI::Thread::sleep(1);

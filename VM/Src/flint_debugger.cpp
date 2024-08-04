@@ -457,7 +457,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             csr &= DBG_CONTROL_EXCP_EN;
             Flint::unlock();
             flint.setDebugger(this);
-            flint.terminateAll();
+            flint.terminate();
             try {
                 flint.runToMain(mainClass->text);
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
@@ -472,7 +472,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             Flint::lock();
             csr = (csr & DBG_CONTROL_EXCP_EN) | DBG_STATUS_RESET;
             Flint::unlock();
-            flint.terminateAll();
+            flint.terminateAndFree();
             sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
             return !endDbg;
         }
@@ -517,7 +517,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_SET_EXCP_MODE: {
             Flint::lock();
-            if(data[1] & 0x01)
+            if(data[4] & 0x01)
                 csr |= DBG_CONTROL_EXCP_EN;
             else
                 csr &= ~DBG_CONTROL_EXCP_EN;
