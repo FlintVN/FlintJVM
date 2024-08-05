@@ -76,16 +76,12 @@ void FlintExecution::stackPushInt32(int32_t value) {
 }
 
 void FlintExecution::stackPushInt64(int64_t value) {
-    if((sp + 2) < stackLength) {
-        sp = peakSp = sp + 1;
-        stack[sp] = ((uint32_t *)&value)[0];
-        stackType[sp / 8] &= ~(1 << (sp % 8));
-        sp = peakSp = sp + 1;
-        stack[sp] = ((uint32_t *)&value)[1];
-        stackType[sp / 8] &= ~(1 << (sp % 8));
-    }
-    else
-        throw "stack overflow";
+    sp = peakSp = sp + 1;
+    stack[sp] = ((uint32_t *)&value)[0];
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    sp = peakSp = sp + 1;
+    stack[sp] = ((uint32_t *)&value)[1];
+    stackType[sp / 8] &= ~(1 << (sp % 8));
 }
 
 void FlintExecution::stackPushFloat(float value) {
@@ -95,14 +91,12 @@ void FlintExecution::stackPushFloat(float value) {
 }
 
 void FlintExecution::stackPushDouble(double value) {
-    if((sp + 2) < stackLength) {
-        sp = peakSp = sp + 1;
-        stack[sp] = ((uint32_t *)&value)[0];
-        stackType[sp / 8] &= ~(1 << (sp % 8));
-        sp = peakSp = sp + 1;
-        stack[sp] = ((uint32_t *)&value)[1];
-        stackType[sp / 8] &= ~(1 << (sp % 8));
-    }
+    sp = peakSp = sp + 1;
+    stack[sp] = ((uint32_t *)&value)[0];
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    sp = peakSp = sp + 1;
+    stack[sp] = ((uint32_t *)&value)[1];
+    stackType[sp / 8] &= ~(1 << (sp % 8));
 }
 
 void FlintExecution::stackPushObject(FlintObject *obj) {
