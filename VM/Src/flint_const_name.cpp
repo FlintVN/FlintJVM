@@ -12,11 +12,6 @@ const FlintConstUtf8 * const primTypeConstUtf8List[] = {
     (FlintConstUtf8 *)"\x01\x00\x4A\x00""J",                 /* long */
 };
 
-const uint32_t stringNameFieldName[] = {
-    (uint32_t)"\x04\x00\xA1\x01""name",                 /* field name */
-    (uint32_t)"\x12\x00\xA0\x06""Ljava/lang/String;"    /* field type */
-};
-
 const FlintConstUtf8 &mathClassName = *(const FlintConstUtf8 *)"\x0E\x00\x2C\x05""java/lang/Math";
 const FlintConstUtf8 &classClassName = *(const FlintConstUtf8 *)"\x0F\x00\x98\x05""java/lang/Class";
 const FlintConstUtf8 &floatClassName = *(const FlintConstUtf8 *)"\x0F\x00\x98\x05""java/lang/Float";

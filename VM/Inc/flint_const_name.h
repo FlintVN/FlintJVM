@@ -5,7 +5,6 @@
 #include "flint_const_pool.h"
 
 extern const FlintConstUtf8 * const primTypeConstUtf8List[];
-extern const uint32_t stringNameFieldName[];
 
 extern const FlintConstUtf8 &mathClassName;
 extern const FlintConstUtf8 &classClassName;

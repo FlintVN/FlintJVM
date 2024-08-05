@@ -181,14 +181,14 @@ FlintClass *Flint::newClass(FlintString &typeName) {
     // TODO - Check the existence of type
 
     /* create new class object */
-    FlintObject *classObj = newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&classClassName);
+    FlintClass *classObj = (FlintClass *)newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&classClassName);
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)classObj->data;
     new (fields)FlintFieldsData(*this, load(*(FlintConstUtf8 *)&classClassName), false);
 
     /* set value for name field */
-    fields->getFieldObject(*(FlintConstNameAndType *)stringNameFieldName).object = &typeName;
+    classObj->setName(&typeName);
 
     return (FlintClass *)classObj;
 }

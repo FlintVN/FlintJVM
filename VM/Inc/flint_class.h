@@ -7,6 +7,7 @@
 class FlintClass : public FlintObject {
 public:
     FlintString &getName(void) const;
+    void setName(FlintString *name);
 protected:
     FlintClass(void) = delete;
     FlintClass(const FlintClass &) = delete;
