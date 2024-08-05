@@ -14,3 +14,7 @@ void FlintAPI::Thread::terminate(void *threadHandle) {
 void FlintAPI::Thread::sleep(uint32_t ms) {
     throw "FlintAPI::Thread::sleep is not implemented in VM";
 }
+
+void FlintAPI::Thread::yield(void) {
+    throw "FlintAPI::Thread::yield is not implemented in VM";
+}

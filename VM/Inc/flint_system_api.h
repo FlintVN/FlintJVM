@@ -47,6 +47,7 @@ namespace FlintAPI {
         void *create(void (*task)(void *), void *param, uint32_t stackSize = 0);
         void terminate(void *threadHandle);
         void sleep(uint32_t ms);
+        void yield(void);
     };
 };
 

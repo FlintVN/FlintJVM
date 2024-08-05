@@ -680,13 +680,11 @@ void Flint::terminateRequest(void) {
 void Flint::terminate(void) {
     terminateRequest();
     while(isRunning())
-        FlintAPI::Thread::sleep(1);
+        FlintAPI::Thread::yield();
 }
 
 void Flint::terminateAndFree(void) {
-    terminateRequest();
-    while(isRunning())
-        FlintAPI::Thread::sleep(1);
+    terminate();
     freeAllObject();
     freeAllExecution();
     freeAllClassLoader();
