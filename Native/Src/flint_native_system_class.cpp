@@ -48,9 +48,9 @@ static bool nativeArraycopy(FlintExecution &execution) {
         }
     }
     else {
-        FlintString *strObj = execution.flint.newString(STR_AND_SIZE("Type mismatch, can not copy array object"));
-        FlintThrowable *excpObj = execution.flint.newArrayStoreException(strObj);
-        execution.stackPushObject(excpObj);
+        FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Type mismatch, can not copy array object"));
+        FlintThrowable &excpObj = execution.flint.newArrayStoreException(strObj);
+        execution.stackPushObject(&excpObj);
         return false;
     }
     return true;

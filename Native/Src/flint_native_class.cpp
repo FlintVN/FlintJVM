@@ -6,10 +6,11 @@
 #include "flint_native_object_class.h"
 #include "flint_native_string_class.h"
 #include "flint_native_system_class.h"
+#include "flint_native_thread_class.h"
 #include "flint_native_character_class.h"
 #include "flint_native_print_stream_class.h"
 
-const FlintNativeClass *BASE_NATIVE_CLASS_LIST[9] = {
+const FlintNativeClass *BASE_NATIVE_CLASS_LIST[10] = {
     &MATH_CLASS,
     &CLASS_CLASS,
     &FLOAT_CLASS,
@@ -17,6 +18,7 @@ const FlintNativeClass *BASE_NATIVE_CLASS_LIST[9] = {
     &OBJECT_CLASS,
     &STRING_CLASS,
     &SYSTEM_CLASS,
+    &THREAD_CLASS,
     &CHARACTER_CLASS,
     &PRINT_STREAM_CLASS,
 };

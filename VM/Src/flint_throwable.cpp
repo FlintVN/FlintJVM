@@ -8,10 +8,10 @@ static const uint32_t exceptionDetailMessageFieldName[] = {
     (uint32_t)"\x12\x00\xA0\x06""Ljava/lang/String;"    /* field type */
 };
 
-FlintString &FlintThrowable::getDetailMessage(void) const {
-    return *(FlintString *)((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object;
+FlintString *FlintThrowable::getDetailMessage(void) const {
+    return (FlintString *)((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object;
 }
 
-void FlintThrowable::setDetailMessage(FlintString *strObj) {
-    ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
+void FlintThrowable::setDetailMessage(FlintString &strObj) {
+    ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object = &strObj;
 }

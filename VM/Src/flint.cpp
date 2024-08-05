@@ -145,7 +145,7 @@ void Flint::freeAllClassLoader(void) {
     classDataList = 0;
 }
 
-FlintObject *Flint::newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions) {
+FlintObject &Flint::newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions) {
     objectSizeToGc += size;
     if(objectSizeToGc >= OBJECT_SIZE_TO_GC)
         garbageCollection();
@@ -158,48 +158,48 @@ FlintObject *Flint::newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimen
         objectList->prev = newNode;
     objectList = newNode;
 
-    return newNode;
+    return *newNode;
 }
 
-FlintObject *Flint::newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
+FlintObject &Flint::newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
     if(dimensions > 1) {
-        FlintObject *array = newObject(counts[0] * sizeof(FlintObject *), typeName, dimensions);
+        FlintObject &array = newObject(counts[0] * sizeof(FlintObject *), typeName, dimensions);
         for(uint32_t i = 0; i < counts[0]; i++)
-            ((FlintObject **)(array->data))[i] = newMultiArray(typeName, dimensions - 1, &counts[1]);
+            ((FlintObject **)(array.data))[i] = &newMultiArray(typeName, dimensions - 1, &counts[1]);
         return array;
     }
     else {
         uint8_t atype = FlintObject::isPrimType(typeName);
         uint8_t typeSize = atype ? FlintObject::getPrimitiveTypeSize(atype) : sizeof(FlintObject *);
-        FlintObject *array = newObject(typeSize * counts[0], typeName, 1);
-        memset(array->data, 0, array->size);
+        FlintObject &array = newObject(typeSize * counts[0], typeName, 1);
+        memset(array.data, 0, array.size);
         return array;
     }
 }
 
-FlintClass *Flint::newClass(FlintString &typeName) {
+FlintClass &Flint::newClass(FlintString &typeName) {
     // TODO - Check the existence of type
 
     /* create new class object */
-    FlintClass *classObj = (FlintClass *)newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&classClassName);
+    FlintClass &classObj = *(FlintClass *)&newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&classClassName);
 
     /* init field data */
-    FlintFieldsData *fields = (FlintFieldsData *)classObj->data;
+    FlintFieldsData *fields = (FlintFieldsData *)classObj.data;
     new (fields)FlintFieldsData(*this, load(*(FlintConstUtf8 *)&classClassName), false);
 
     /* set value for name field */
-    classObj->setName(&typeName);
+    classObj.setName(&typeName);
 
-    return (FlintClass *)classObj;
+    return classObj;
 }
 
-FlintClass *Flint::newClass(const char *typeName, uint16_t length) {
+FlintClass &Flint::newClass(const char *typeName, uint16_t length) {
     /* create String object to store typeName */
-    FlintString *name = newString(typeName, length);
+    FlintString &name = newString(typeName, length);
 
     /* replace '/' to '.' */
-    char *text = (char *)name->getText();
-    uint8_t coder = name->getCoder();
+    char *text = (char *)name.getText();
+    uint8_t coder = name.getCoder();
     if(coder == 0) {
         for(uint32_t i = 0; i < length; i++) {
             if(text[i] == '/')
@@ -213,17 +213,17 @@ FlintClass *Flint::newClass(const char *typeName, uint16_t length) {
                 buff[i] = '.';
         }
     }
-    return newClass(*name);
+    return newClass(name);
 }
 
-FlintClass *Flint::getConstClass(const char *typeName, uint16_t length) {
+FlintClass &Flint::getConstClass(const char *typeName, uint16_t length) {
     for(FlintConstClass *node = constClassList; node != 0; node = node->next) {
         if(node->flintClass.getName().equals(typeName, length))
-            return &node->flintClass;
+            return node->flintClass;
     }
-    FlintClass *classObj = newClass(typeName, length);
+    FlintClass &classObj = newClass(typeName, length);
     FlintConstClass *newNode = (FlintConstClass *)Flint::malloc(sizeof(FlintConstClass));
-    new (newNode)FlintConstClass(*classObj);
+    new (newNode)FlintConstClass(classObj);
 
     newNode->next = constClassList;
     constClassList = newNode;
@@ -231,14 +231,14 @@ FlintClass *Flint::getConstClass(const char *typeName, uint16_t length) {
     return classObj;
 }
 
-FlintClass *Flint::getConstClass(FlintString &str) {
+FlintClass &Flint::getConstClass(FlintString &str) {
     for(FlintConstClass *node = constClassList; node != 0; node = node->next) {
         if(node->flintClass.getName().equals(str))
-            return &node->flintClass;
+            return node->flintClass;
     }
-    FlintClass *classObj = newClass(str);
+    FlintClass &classObj = newClass(str);
     FlintConstClass *newNode = (FlintConstClass *)Flint::malloc(sizeof(FlintConstClass));
-    new (newNode)FlintConstClass(*classObj);
+    new (newNode)FlintConstClass(classObj);
 
     newNode->next = constClassList;
     constClassList = newNode;
@@ -246,41 +246,41 @@ FlintClass *Flint::getConstClass(FlintString &str) {
     return classObj;
 }
 
-FlintString *Flint::newString(uint16_t length, uint8_t coder) {
+FlintString &Flint::newString(uint16_t length, uint8_t coder) {
     /* create new byte array to store string */
-    FlintObject *byteArray = newObject(length << (coder ? 1 : 0), *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
+    FlintObject &byteArray = newObject(length << (coder ? 1 : 0), *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
 
     /* create new string object */
-    FlintString *strObj = (FlintString *)newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    FlintString &strObj = *(FlintString *)&newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
 
     /* init field data */
-    FlintFieldsData *fields = (FlintFieldsData *)strObj->data;
+    FlintFieldsData *fields = (FlintFieldsData *)strObj.data;
     new (fields)FlintFieldsData(*this, load(*(FlintConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    strObj->setValue(byteArray);
+    strObj.setValue(byteArray);
 
     /* set value for coder field */
-    strObj->setCoder(coder);
+    strObj.setCoder(coder);
 
     return strObj;
 }
 
-FlintString *Flint::newString(const char *text, uint16_t size, bool isUtf8) {
+FlintString &Flint::newString(const char *text, uint16_t size, bool isUtf8) {
     uint32_t index = 0;
     bool isLatin1 = isUtf8 ? FlintString::isLatin1(text) : true;
     uint32_t strLen = isUtf8 ? FlintString::utf8StrLen(text) : size;
 
     /* create new byte array to store string */
     uint32_t arrayLen = isLatin1 ? strLen : (strLen << 1);
-    FlintObject *byteArray = newObject(arrayLen, *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
+    FlintObject &byteArray = newObject(arrayLen, *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
     if(!isUtf8)
-        memcpy(byteArray->data, text, strLen);
+        memcpy(byteArray.data, text, strLen);
     else {
         if(isLatin1) {
             while(*text) {
                 uint32_t c = FlintString::utf8Decode(text);
-                byteArray->data[index] = c;
+                byteArray.data[index] = c;
                 text += FlintString::getUtf8DecodeSize(*text);
                 index++;
             }
@@ -288,7 +288,7 @@ FlintString *Flint::newString(const char *text, uint16_t size, bool isUtf8) {
         else while(*text) {
             uint32_t c = FlintString::utf8Decode(text);
             if(c <= 0xFFFFFF)
-                ((uint16_t *)byteArray->data)[index] = c;
+                ((uint16_t *)byteArray.data)[index] = c;
             else
                 throw "Characters are not supported";
             text += FlintString::getUtf8DecodeSize(*text);
@@ -297,60 +297,60 @@ FlintString *Flint::newString(const char *text, uint16_t size, bool isUtf8) {
     }
 
     /* create new string object */
-    FlintString *strObj = (FlintString *)newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    FlintString &strObj = *(FlintString *)&newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
 
     /* init field data */
-    FlintFieldsData *fields = (FlintFieldsData *)strObj->data;
+    FlintFieldsData *fields = (FlintFieldsData *)strObj.data;
     new (fields)FlintFieldsData(*this, load(*(FlintConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    strObj->setValue(byteArray);
+    strObj.setValue(byteArray);
 
     /* set value for coder field */
-    strObj->setCoder(isLatin1 ? 0 : 1);
+    strObj.setCoder(isLatin1 ? 0 : 1);
 
     return strObj;
 }
 
-FlintString *Flint::newString(const char *latin1Str[], uint16_t count) {
+FlintString &Flint::newString(const char *latin1Str[], uint16_t count) {
     uint16_t index = 0;
     uint16_t length = 0;
     for(uint16_t i = 0; i < count; i++)
         length += strlen(latin1Str[i]);
 
     /* create new byte array to store string */
-    FlintObject *byteArray = newObject(length, *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
+    FlintObject &byteArray = newObject(length, *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
     for(uint16_t i = 0; i < count; i++) {
         const char *buff = latin1Str[i];
         while(*buff) {
             uint32_t c = FlintString::utf8Decode(buff);
-            byteArray->data[index] = c;
+            byteArray.data[index] = c;
             buff += FlintString::getUtf8DecodeSize(*buff);
             index++;
         }
     }
 
     /* create new string object */
-    FlintString *strObj = (FlintString *)newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    FlintString &strObj = *(FlintString *)&newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
 
     /* init field data */
-    FlintFieldsData *fields = (FlintFieldsData *)strObj->data;
+    FlintFieldsData *fields = (FlintFieldsData *)strObj.data;
     new (fields)FlintFieldsData(*this, load(*(FlintConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    strObj->setValue(byteArray);
+    strObj.setValue(byteArray);
 
-    return (FlintString *)strObj;
+    return strObj;
 }
 
-FlintString *Flint::getConstString(FlintConstUtf8 &utf8) {
+FlintString &Flint::getConstString(FlintConstUtf8 &utf8) {
     for(FlintConstString *node = constStringList; node != 0; node = node->next) {
         if(node->flintString.equals(utf8))
-            return &node->flintString;
+            return node->flintString;
     }
-    FlintString *strObj = newString(utf8.text, utf8.length, true);
+    FlintString &strObj = newString(utf8.text, utf8.length, true);
     FlintConstString *newNode = (FlintConstString *)Flint::malloc(sizeof(FlintConstString));
-    new (newNode)FlintConstString(*strObj);
+    new (newNode)FlintConstString(strObj);
 
     newNode->next = constStringList;
     constStringList = newNode;
@@ -358,10 +358,10 @@ FlintString *Flint::getConstString(FlintConstUtf8 &utf8) {
     return strObj;
 }
 
-FlintString *Flint::getConstString(FlintString &str) {
+FlintString &Flint::getConstString(FlintString &str) {
     for(FlintConstString *node = constStringList; node != 0; node = node->next) {
         if(node->flintString.equals(str))
-            return &node->flintString;
+            return node->flintString;
     }
     FlintConstString *newNode = (FlintConstString *)Flint::malloc(sizeof(FlintConstString));
     new (newNode)FlintConstString(str);
@@ -369,95 +369,95 @@ FlintString *Flint::getConstString(FlintString &str) {
     newNode->next = constStringList;
     constStringList = newNode;
 
-    return &str;
+    return str;
 }
 
-FlintThrowable *Flint::newThrowable(FlintString *strObj, FlintConstUtf8 &excpType) {
+FlintThrowable &Flint::newThrowable(FlintString &strObj, FlintConstUtf8 &excpType) {
     /* create new exception object */
-    FlintThrowable *obj = (FlintThrowable *)newObject(sizeof(FlintFieldsData), excpType);
+    FlintThrowable &obj = *(FlintThrowable *)&newObject(sizeof(FlintFieldsData), excpType);
 
     /* init field data */
-    FlintFieldsData *fields = (FlintFieldsData *)obj->data;
+    FlintFieldsData *fields = (FlintFieldsData *)obj.data;
     new (fields)FlintFieldsData(*this, load(excpType), false);
 
     /* set detailMessage value */
-    obj->setDetailMessage(strObj);
+    obj.setDetailMessage(strObj);
 
     return obj;
 }
 
-FlintThrowable *Flint::newArrayStoreException(FlintString *strObj) {
+FlintThrowable &Flint::newArrayStoreException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&arrayStoreExceptionClassName);
 }
 
-FlintThrowable *Flint::newArithmeticException(FlintString *strObj) {
+FlintThrowable &Flint::newArithmeticException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&arithmeticExceptionClassName);
 }
 
-FlintThrowable *Flint::newNullPointerException(FlintString *strObj) {
+FlintThrowable &Flint::newNullPointerException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&nullPtrExcpClassName);
 }
 
-FlintThrowable *Flint::newClassNotFoundException(FlintString *strObj) {
+FlintThrowable &Flint::newClassNotFoundException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&classNotFoundExceptionClassName);
 }
 
-FlintThrowable *Flint::newCloneNotSupportedException(FlintString *strObj) {
+FlintThrowable &Flint::newCloneNotSupportedException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&cloneNotSupportedExceptionClassName);
 }
 
-FlintThrowable *Flint::newNegativeArraySizeException(FlintString *strObj) {
+FlintThrowable &Flint::newNegativeArraySizeException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&negativeArraySizeExceptionClassName);
 }
 
-FlintThrowable *Flint::newArrayIndexOutOfBoundsException(FlintString *strObj) {
+FlintThrowable &Flint::newArrayIndexOutOfBoundsException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&arrayIndexOutOfBoundsExceptionClassName);
 }
 
-FlintThrowable *Flint::newUnsupportedOperationException(FlintString *strObj) {
+FlintThrowable &Flint::newUnsupportedOperationException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&unsupportedOperationExceptionClassName);
 }
 
-void Flint::clearProtectObjectNew(FlintObject *obj) {
-    bool isPrim = FlintObject::isPrimType(obj->type);
-    if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
-        uint32_t count = obj->size / 4;
+void Flint::clearProtectObjectNew(FlintObject &obj) {
+    bool isPrim = FlintObject::isPrimType(obj.type);
+    if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {
+        uint32_t count = obj.size / 4;
         for(uint32_t i = 0; i < count; i++) {
-            FlintObject *tmp = ((FlintObject **)obj->data)[i];
+            FlintObject *tmp = ((FlintObject **)obj.data)[i];
             if(tmp && (tmp->getProtected() & 0x02))
-                clearProtectObjectNew(tmp);
+                clearProtectObjectNew(*tmp);
         }
     }
     else if(!isPrim) {
-        FlintFieldsData &fieldData = *(FlintFieldsData *)obj->data;
+        FlintFieldsData &fieldData = *(FlintFieldsData *)obj.data;
         for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
             FlintObject *tmp = fieldData.fieldsObject[i].object;
             if(tmp && (tmp->getProtected() & 0x02))
-                clearProtectObjectNew(tmp);
+                clearProtectObjectNew(*tmp);
         }
     }
-    obj->clearProtected();
+    obj.clearProtected();
 }
 
-void Flint::garbageCollectionProtectObject(FlintObject *obj) {
-    bool isPrim = FlintObject::isPrimType(obj->type);
-    if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
-        uint32_t count = obj->size / 4;
+void Flint::garbageCollectionProtectObject(FlintObject &obj) {
+    bool isPrim = FlintObject::isPrimType(obj.type);
+    if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {
+        uint32_t count = obj.size / 4;
         for(uint32_t i = 0; i < count; i++) {
-            FlintObject *tmp = ((FlintObject **)obj->data)[i];
+            FlintObject *tmp = ((FlintObject **)obj.data)[i];
             if(tmp && !tmp->getProtected())
-                garbageCollectionProtectObject(tmp);
+                garbageCollectionProtectObject(*tmp);
         }
     }
     else if(!isPrim) {
-        FlintFieldsData &fieldData = *(FlintFieldsData *)obj->data;
+        FlintFieldsData &fieldData = *(FlintFieldsData *)obj.data;
         for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
             FlintObject *tmp = fieldData.fieldsObject[i].object;
             if(tmp && !tmp->getProtected())
-                garbageCollectionProtectObject(tmp);
+                garbageCollectionProtectObject(*tmp);
         }
     }
-    obj->setProtected();
+    obj.setProtected();
 }
 
 void Flint::garbageCollection(void) {
@@ -465,11 +465,11 @@ void Flint::garbageCollection(void) {
     objectSizeToGc = 0;
     for(FlintConstClass *node = constClassList; node != 0; node = node->next) {
         if(!node->flintClass.getProtected())
-            garbageCollectionProtectObject(&node->flintClass);
+            garbageCollectionProtectObject(node->flintClass);
     }
     for(FlintConstString *node = constStringList; node != 0; node = node->next) {
         if(!node->flintString.getProtected())
-            garbageCollectionProtectObject(&node->flintString);
+            garbageCollectionProtectObject(node->flintString);
     }
     for(ClassData *node = classDataList; node != 0; node = node->next) {
         FlintFieldsData *fieldsData = node->staticFiledsData;
@@ -477,7 +477,7 @@ void Flint::garbageCollection(void) {
             for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
                 FlintObject *obj = fieldsData->fieldsObject[i].object;
                 if(obj && !obj->getProtected())
-                    garbageCollectionProtectObject(obj);
+                    garbageCollectionProtectObject(*obj);
             }
         }
     }
@@ -486,7 +486,7 @@ void Flint::garbageCollection(void) {
             if(node->getStackType(i) == STACK_TYPE_OBJECT) {
                 FlintObject *obj = (FlintObject *)node->stack[i];
                 if(obj && !obj->getProtected())
-                    garbageCollectionProtectObject(obj);
+                    garbageCollectionProtectObject(*obj);
             }
         }
     }

@@ -103,13 +103,13 @@ FlintObject *FlintString::getValue(void) const {
     return ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object;
 }
 
-void FlintString::setValue(FlintObject *byteArray) {
-    ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = byteArray;
+void FlintString::setValue(FlintObject &byteArray) {
+    ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = &byteArray;
 }
 
 const char *FlintString::getText(void) const {
     FlintObject *byteArray = getValue();
-    return (const char *)((FlintString *)byteArray)->data;
+    return (const char *)byteArray->data;
 }
 
 uint32_t FlintString::getLength(void) const {

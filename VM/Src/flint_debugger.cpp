@@ -173,11 +173,11 @@ void FlintDebugger::responseExceptionInfo(void) {
             flint.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
         ) {
             FlintConstUtf8 &type = exception->type;
-            FlintString &str = exception->getDetailMessage();
-            uint32_t responseSize = sizeof(FlintConstUtf8) * 2 + type.length + FlintString::getUft8BuffSize(str) + 2;
-            uint8_t coder = str.getCoder();
-            const char *text = str.getText();
-            uint32_t msgLen = str.getLength();
+            FlintString *str = exception->getDetailMessage();
+            uint32_t responseSize = sizeof(FlintConstUtf8) * 2 + type.length + FlintString::getUft8BuffSize(*str) + 2;
+            uint8_t coder = str->getCoder();
+            const char *text = str->getText();
+            uint32_t msgLen = str->getLength();
             char utf8Buff[3];
 
             initDataFrame(DBG_CMD_READ_EXCP_INFO, DBG_RESP_OK, responseSize);

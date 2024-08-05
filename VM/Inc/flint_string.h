@@ -7,7 +7,7 @@
 class FlintString : public FlintObject {
 public:
     FlintObject *getValue(void) const;
-    void setValue(FlintObject *byteArray);
+    void setValue(FlintObject &byteArray);
     const char *getText(void) const;
     uint32_t getLength(void) const;
     uint8_t getCoder(void) const;

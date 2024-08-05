@@ -6,8 +6,8 @@
 
 class FlintThrowable : public FlintObject {
 public:
-    FlintString &getDetailMessage(void) const;
-    void setDetailMessage(FlintString *strObj);
+    FlintString *getDetailMessage(void) const;
+    void setDetailMessage(FlintString &strObj);
 protected:
     FlintThrowable(void) = delete;
     FlintThrowable(const FlintThrowable &) = delete;

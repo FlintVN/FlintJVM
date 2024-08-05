@@ -15,8 +15,8 @@ static bool nativeGetClass(FlintExecution &execution) {
         if(!isPrim)
             length += 2;
     }
-    FlintString *strObj = execution.flint.newString(length, 0);
-    FlintObject *byteArray = strObj->getValue();
+    FlintString &strObj = execution.flint.newString(length, 0);
+    FlintObject *byteArray = strObj.getValue();
     if(obj->dimensions) {
         for(uint32_t i = 0; i < obj->dimensions; i++)
             byteArray->data[idx++] = '[';
@@ -29,7 +29,7 @@ static bool nativeGetClass(FlintExecution &execution) {
     }
     if(obj->dimensions && !isPrim)
         byteArray->data[idx++] = ';';
-    execution.stackPushObject(execution.flint.getConstClass(*strObj));
+    execution.stackPushObject(&execution.flint.getConstClass(strObj));
     return true;
 }
 
@@ -42,15 +42,15 @@ static bool nativeHashCode(FlintExecution &execution) {
 static bool nativeClone(FlintExecution &execution) {
     FlintObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
-        FlintObject *cloneObj = execution.flint.newObject(obj->size, obj->type, obj->dimensions);
-        memcpy(cloneObj->data, obj->data, obj->size);
-        execution.stackPushObject(cloneObj);
+        FlintObject &cloneObj = execution.flint.newObject(obj->size, obj->type, obj->dimensions);
+        memcpy(cloneObj.data, obj->data, obj->size);
+        execution.stackPushObject(&cloneObj);
         return true;
     }
     else {
-        FlintString *strObj = execution.flint.newString(STR_AND_SIZE("Clone method is not supported"));
-        FlintThrowable *excpObj = execution.flint.newCloneNotSupportedException(strObj);
-        execution.stackPushObject(excpObj);
+        FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Clone method is not supported"));
+        FlintThrowable &excpObj = execution.flint.newCloneNotSupportedException(strObj);
+        execution.stackPushObject(&excpObj);
         return false;
     }
 }

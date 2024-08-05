@@ -479,7 +479,7 @@ FlintClass &FlintClassLoader::getConstClass(Flint &flint, uint16_t poolIndex) {
                 FlintConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
                 ConstClassValue *constClassValue = (ConstClassValue *)Flint::malloc(sizeof(ConstClassValue));
                 constClassValue->constUtf8Class = &constUtf8Class;
-                constClassValue->constClass = flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
+                constClassValue->constClass = &flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)constClassValue;
                 *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_CLASS;
             }
@@ -498,7 +498,7 @@ FlintClass &FlintClassLoader::getConstClass(Flint &flint, FlintConstPool &constP
                 FlintConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
                 ConstClassValue *constClassValue = (ConstClassValue *)Flint::malloc(sizeof(ConstClassValue));
                 constClassValue->constUtf8Class = &constUtf8Class;
-                constClassValue->constClass = flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
+                constClassValue->constClass = &flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
                 *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
                 *(FlintConstPoolTag *)&constPool.tag = CONST_CLASS;
             }
@@ -516,8 +516,8 @@ FlintString &FlintClassLoader::getConstString(Flint &flint, uint16_t poolIndex) 
             Flint::lock();
             if(poolTable[poolIndex].tag & 0x80) {
                 FlintConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
-                FlintString *strObj = flint.getConstString(utf8Str);
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)strObj;
+                FlintString &strObj = flint.getConstString(utf8Str);
+                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)&strObj;
                 *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
             }
             Flint::unlock();
@@ -533,8 +533,8 @@ FlintString &FlintClassLoader::getConstString(Flint &flint, FlintConstPool &cons
             Flint::lock();
             if(constPool.tag & 0x80) {
                 FlintConstUtf8 &utf8Str = getConstUtf8(constPool.value);
-                FlintString *strObj = flint.getConstString(utf8Str);
-                *(uint32_t *)&constPool.value = (uint32_t)strObj;
+                FlintString &strObj = flint.getConstString(utf8Str);
+                *(uint32_t *)&constPool.value = (uint32_t)&strObj;
                 *(FlintConstPoolTag *)&constPool.tag = CONST_STRING;
             }
             Flint::unlock();

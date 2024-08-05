@@ -6,7 +6,7 @@
 
 static bool nativeIntern(FlintExecution &execution) {
     FlintString *obj = (FlintString *)execution.stackPopObject();
-    execution.stackPushObject(execution.flint.getConstString(*obj));
+    execution.stackPushObject(&execution.flint.getConstString(*obj));
     return true;
 }
 

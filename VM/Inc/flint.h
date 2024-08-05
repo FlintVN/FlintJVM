@@ -59,33 +59,33 @@ public:
     FlintDebugger *getDebugger(void) const;
     void setDebugger(FlintDebugger *dbg);
 
-    FlintObject *newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);
+    FlintObject &newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);
 
-    FlintObject *newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
+    FlintObject &newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
-    FlintClass *newClass(FlintString &typeName);
-    FlintClass *newClass(const char *typeName, uint16_t length);
-    FlintClass *getConstClass(const char *text, uint16_t length);
-    FlintClass *getConstClass(FlintString &str);
+    FlintClass &newClass(FlintString &typeName);
+    FlintClass &newClass(const char *typeName, uint16_t length);
+    FlintClass &getConstClass(const char *text, uint16_t length);
+    FlintClass &getConstClass(FlintString &str);
 
-    FlintString *newString(uint16_t length, uint8_t coder);
-    FlintString *newString(const char *text, uint16_t size, bool isUtf8 = false);
-    FlintString *newString(const char *latin1Str[], uint16_t count);
-    FlintString *getConstString(FlintConstUtf8 &utf8);
-    FlintString *getConstString(FlintString &str);
+    FlintString &newString(uint16_t length, uint8_t coder);
+    FlintString &newString(const char *text, uint16_t size, bool isUtf8 = false);
+    FlintString &newString(const char *latin1Str[], uint16_t count);
+    FlintString &getConstString(FlintConstUtf8 &utf8);
+    FlintString &getConstString(FlintString &str);
 
-    FlintThrowable *newThrowable(FlintString *strObj, FlintConstUtf8 &excpType);
-    FlintThrowable *newArrayStoreException(FlintString *strObj);
-    FlintThrowable *newArithmeticException(FlintString *strObj);
-    FlintThrowable *newNullPointerException(FlintString *strObj);
-    FlintThrowable *newClassNotFoundException(FlintString *strObj);
-    FlintThrowable *newCloneNotSupportedException(FlintString *strObj);
-    FlintThrowable *newNegativeArraySizeException(FlintString *strObj);
-    FlintThrowable *newArrayIndexOutOfBoundsException(FlintString *strObj);
-    FlintThrowable *newUnsupportedOperationException(FlintString *strObj);
+    FlintThrowable &newThrowable(FlintString &strObj, FlintConstUtf8 &excpType);
+    FlintThrowable &newArrayStoreException(FlintString &strObj);
+    FlintThrowable &newArithmeticException(FlintString &strObj);
+    FlintThrowable &newNullPointerException(FlintString &strObj);
+    FlintThrowable &newClassNotFoundException(FlintString &strObj);
+    FlintThrowable &newCloneNotSupportedException(FlintString &strObj);
+    FlintThrowable &newNegativeArraySizeException(FlintString &strObj);
+    FlintThrowable &newArrayIndexOutOfBoundsException(FlintString &strObj);
+    FlintThrowable &newUnsupportedOperationException(FlintString &strObj);
 
-    void clearProtectObjectNew(FlintObject *obj);
-    void garbageCollectionProtectObject(FlintObject *obj);
+    void clearProtectObjectNew(FlintObject &obj);
+    void garbageCollectionProtectObject(FlintObject &obj);
 
     void initStaticField(ClassData &classData);
     FlintFieldsData &getStaticFields(FlintConstUtf8 &className) const;

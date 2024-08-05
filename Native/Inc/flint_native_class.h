@@ -37,6 +37,6 @@ private:
     void operator=(const FlintNativeClass &) = delete;
 };
 
-extern const FlintNativeClass *BASE_NATIVE_CLASS_LIST[9];
+extern const FlintNativeClass *BASE_NATIVE_CLASS_LIST[10];
 
 #endif /* __FLINT_NATIVE_METHOD_H */

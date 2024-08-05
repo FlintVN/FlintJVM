@@ -12,26 +12,26 @@ static bool nativeGetPrimitiveClass(FlintExecution &execution) {
         switch(len) {
             case 3:
                 if(strncmp(str->getText(), "int", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("int", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("int", len));
                     return true;
                 }
                 break;
             case 4: {
                 const char *text = str->getText();
                 if(strncmp(text, "void", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("void", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("void", len));
                     return true;
                 }
                 else if(strncmp(text, "byte", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("byte", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("byte", len));
                     return true;
                 }
                 else if(strncmp(text, "char", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("char", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("char", len));
                     return true;
                 }
                 else if(strncmp(text, "long", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("long", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("long", len));
                     return true;
                 }
                 break;
@@ -39,24 +39,24 @@ static bool nativeGetPrimitiveClass(FlintExecution &execution) {
             case 5: {
                 const char *text = str->getText();
                 if(strncmp(text, "float", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("float", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("float", len));
                     return true;
                 }
                 else if(strncmp(text, "short", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("short", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("short", len));
                     return true;
                 }
                 break;
             }
             case 6:
                 if(strncmp(str->getText(), "double", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("double", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("double", len));
                     return true;
                 }
                 break;
             case 7:
                 if(strncmp(str->getText(), "boolean", len) == 0) {
-                    execution.stackPushObject(execution.flint.getConstClass("boolean", len));
+                    execution.stackPushObject(&execution.flint.getConstClass("boolean", len));
                     return true;
                 }
                 break;
@@ -173,33 +173,33 @@ static bool nativeGetComponentType(FlintExecution &execution) {
         if(len == 1) {
             switch(text[start]) {
                 case 'Z':   /* boolean */
-                    ret = execution.flint.getConstClass("boolean", 7);
+                    ret = &execution.flint.getConstClass("boolean", 7);
                     break;
                 case 'C':   /* char */
-                    ret = execution.flint.getConstClass("char", 4);
+                    ret = &execution.flint.getConstClass("char", 4);
                     break;
                 case 'F':   /* float */
-                    ret = execution.flint.getConstClass("float", 5);
+                    ret = &execution.flint.getConstClass("float", 5);
                     break;
                 case 'D':   /* double */
-                    ret = execution.flint.getConstClass("double", 6);
+                    ret = &execution.flint.getConstClass("double", 6);
                     break;
                 case 'B':   /* byte */
-                    ret = execution.flint.getConstClass("byte", 4);
+                    ret = &execution.flint.getConstClass("byte", 4);
                     break;
                 case 'S':   /* short */
-                    ret = execution.flint.getConstClass("short", 5);
+                    ret = &execution.flint.getConstClass("short", 5);
                     break;
                 case 'I':   /* integer */
-                    ret = execution.flint.getConstClass("int", 3);
+                    ret = &execution.flint.getConstClass("int", 3);
                     break;
                 default:    /* long */
-                    ret = execution.flint.getConstClass("long", 4);
+                    ret = &execution.flint.getConstClass("long", 4);
                     break;
             }
         }
         else
-            ret = execution.flint.getConstClass(&text[start], len);
+            ret = &execution.flint.getConstClass(&text[start], len);
         execution.stackPushObject(ret);
         return true;
     }
