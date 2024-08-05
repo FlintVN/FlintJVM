@@ -10,6 +10,16 @@ static const uint8_t utf8ByteCount[] = {
     4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6
 };
 
+static const uint32_t stringValueFieldName[] = {
+    (uint32_t)"\x05\x00\x1D\x02""value",                /* field name */
+    (uint32_t)"\x02\x00\x9D\x00""[B"                    /* field type */
+};
+
+static const uint32_t stringCoderFieldName[] = {
+    (uint32_t)"\x05\x00\x0D\x02""coder",                /* field name */
+    (uint32_t)"\x01\x00\x42\x00""B"                     /* field type */
+};
+
 uint8_t FlintString::getUtf8DecodeSize(char c) {
     return (c & 0x80) ? utf8ByteCount[((uint8_t)c - 0xC0) & 0xFC] : 1;
 }
@@ -89,13 +99,21 @@ bool FlintString::isLatin1(const char *utf8) {
     return true;
 }
 
+FlintObject *FlintString::getValue(void) const {
+    return ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object;
+}
+
+void FlintString::setValue(FlintObject *byteArray) {
+    ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = byteArray;
+}
+
 const char *FlintString::getText(void) const {
-    FlintObject *byteArray = ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object;
+    FlintObject *byteArray = getValue();
     return (const char *)((FlintString *)byteArray)->data;
 }
 
 uint32_t FlintString::getLength(void) const {
-    FlintString *byteArray = (FlintString *)((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object;
+    FlintObject *byteArray = getValue();
     if(getCoder() == 0)
         return byteArray->size / sizeof(int8_t);
     else
@@ -104,6 +122,10 @@ uint32_t FlintString::getLength(void) const {
 
 uint8_t FlintString::getCoder(void) const {
     return ((FlintFieldsData *)data)->getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value;
+}
+
+void FlintString::setCoder(uint8_t coder) {
+    ((FlintFieldsData *)data)->getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value = coder;
 }
 
 bool FlintString::equals(const char *text, uint32_t length) const {

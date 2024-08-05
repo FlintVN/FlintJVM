@@ -6,9 +6,12 @@
 
 class FlintString : public FlintObject {
 public:
+    FlintObject *getValue(void) const;
+    void setValue(FlintObject *byteArray);
     const char *getText(void) const;
     uint32_t getLength(void) const;
     uint8_t getCoder(void) const;
+    void setCoder(uint8_t coder);
     bool equals(const char *text, uint32_t length) const;
     bool equals(const FlintConstUtf8 &utf8) const;
     bool equals(FlintString &utf8) const;

@@ -16,7 +16,7 @@ static bool nativeGetClass(FlintExecution &execution) {
             length += 2;
     }
     FlintString *strObj = execution.flint.newString(length, 0);
-    FlintObject *byteArray = ((FlintFieldsData *)strObj->data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object;
+    FlintObject *byteArray = strObj->getValue();
     if(obj->dimensions) {
         for(uint32_t i = 0; i < obj->dimensions; i++)
             byteArray->data[idx++] = '[';

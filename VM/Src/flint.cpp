@@ -251,19 +251,19 @@ FlintString *Flint::newString(uint16_t length, uint8_t coder) {
     FlintObject *byteArray = newObject(length << (coder ? 1 : 0), *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
 
     /* create new string object */
-    FlintObject *strObj = newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    FlintString *strObj = (FlintString *)newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)strObj->data;
     new (fields)FlintFieldsData(*this, load(*(FlintConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    fields->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = byteArray;
+    strObj->setValue(byteArray);
 
     /* set value for coder field */
-    fields->getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value = coder;
+    strObj->setCoder(coder);
 
-    return (FlintString *)strObj;
+    return strObj;
 }
 
 FlintString *Flint::newString(const char *text, uint16_t size, bool isUtf8) {
@@ -297,19 +297,19 @@ FlintString *Flint::newString(const char *text, uint16_t size, bool isUtf8) {
     }
 
     /* create new string object */
-    FlintObject *strObj = newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    FlintString *strObj = (FlintString *)newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)strObj->data;
     new (fields)FlintFieldsData(*this, load(*(FlintConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    fields->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = byteArray;
+    strObj->setValue(byteArray);
 
     /* set value for coder field */
-    fields->getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value = isLatin1 ? 0 : 1;
+    strObj->setCoder(isLatin1 ? 0 : 1);
 
-    return (FlintString *)strObj;
+    return strObj;
 }
 
 FlintString *Flint::newString(const char *latin1Str[], uint16_t count) {
@@ -331,14 +331,14 @@ FlintString *Flint::newString(const char *latin1Str[], uint16_t count) {
     }
 
     /* create new string object */
-    FlintObject *strObj = newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    FlintString *strObj = (FlintString *)newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)strObj->data;
     new (fields)FlintFieldsData(*this, load(*(FlintConstUtf8 *)&stringClassName), false);
 
     /* set value for value field */
-    fields->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = byteArray;
+    strObj->setValue(byteArray);
 
     return (FlintString *)strObj;
 }

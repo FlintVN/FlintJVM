@@ -6,8 +6,6 @@
 
 extern const FlintConstUtf8 * const primTypeConstUtf8List[];
 extern const uint32_t stringNameFieldName[];
-extern const uint32_t stringValueFieldName[];
-extern const uint32_t stringCoderFieldName[];
 extern const uint32_t exceptionDetailMessageFieldName[];
 
 extern const FlintConstUtf8 &mathClassName;
