@@ -17,11 +17,6 @@ const uint32_t stringNameFieldName[] = {
     (uint32_t)"\x12\x00\xA0\x06""Ljava/lang/String;"    /* field type */
 };
 
-const uint32_t exceptionDetailMessageFieldName[] = {
-    (uint32_t)"\x0D\x00\x38\x05""detailMessage",        /* field name */
-    (uint32_t)"\x12\x00\xA0\x06""Ljava/lang/String;"    /* field type */
-};
-
 const FlintConstUtf8 &mathClassName = *(const FlintConstUtf8 *)"\x0E\x00\x2C\x05""java/lang/Math";
 const FlintConstUtf8 &classClassName = *(const FlintConstUtf8 *)"\x0F\x00\x98\x05""java/lang/Class";
 const FlintConstUtf8 &floatClassName = *(const FlintConstUtf8 *)"\x0F\x00\x98\x05""java/lang/Float";

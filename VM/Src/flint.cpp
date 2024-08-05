@@ -374,16 +374,16 @@ FlintString *Flint::getConstString(FlintString &str) {
 
 FlintThrowable *Flint::newThrowable(FlintString *strObj, FlintConstUtf8 &excpType) {
     /* create new exception object */
-    FlintObject *obj = newObject(sizeof(FlintFieldsData), excpType);
+    FlintThrowable *obj = (FlintThrowable *)newObject(sizeof(FlintFieldsData), excpType);
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)obj->data;
     new (fields)FlintFieldsData(*this, load(excpType), false);
 
     /* set detailMessage value */
-    fields->getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object = strObj;
+    obj->setDetailMessage(strObj);
 
-    return (FlintThrowable *)obj;
+    return obj;
 }
 
 FlintThrowable *Flint::newArrayStoreException(FlintString *strObj) {
