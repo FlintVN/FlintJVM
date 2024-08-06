@@ -13,6 +13,7 @@ extern const FlintConstUtf8 &doubleClassName;
 extern const FlintConstUtf8 &objectClassName;
 extern const FlintConstUtf8 &systemClassName;
 extern const FlintConstUtf8 &stringClassName;
+extern const FlintConstUtf8 &threadClassName;
 extern const FlintConstUtf8 &characterClassName;
 extern const FlintConstUtf8 &throwableClassName;
 extern const FlintConstUtf8 &printStreamClassName;

@@ -19,6 +19,7 @@ const FlintConstUtf8 &doubleClassName = *(const FlintConstUtf8 *)"\x10\x00\xFD\x
 const FlintConstUtf8 &objectClassName = *(const FlintConstUtf8 *)"\x10\x00\xF9\x05""java/lang/Object";
 const FlintConstUtf8 &systemClassName = *(const FlintConstUtf8 *)"\x10\x00\x27\x06""java/lang/System";
 const FlintConstUtf8 &stringClassName = *(const FlintConstUtf8 *)"\x10\x00\x19\x06""java/lang/String";
+const FlintConstUtf8 &threadClassName = *(const FlintConstUtf8 *)"\x10\x00\xFA\x05""java/lang/Thread";
 const FlintConstUtf8 &characterClassName = *(const FlintConstUtf8 *)"\x13\x00\x2F\x07""java/lang/Character";
 const FlintConstUtf8 &throwableClassName = *(const FlintConstUtf8 *)"\x13\x00\x4A\x07""java/lang/Throwable";
 const FlintConstUtf8 &printStreamClassName = *(const FlintConstUtf8 *)"\x13\x00\x51\x07""java/io/PrintStream";
