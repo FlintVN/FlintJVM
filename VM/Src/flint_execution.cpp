@@ -292,6 +292,7 @@ bool FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
             }
             else {
                 Flint::unlock();
+                FlintAPI::Thread::yield();
                 return true;
             }
         }
@@ -321,6 +322,7 @@ bool FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
             }
             else {
                 Flint::unlock();
+                FlintAPI::Thread::yield();
                 return true;
             }
         }
@@ -359,6 +361,7 @@ bool FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
             }
             else {
                 Flint::unlock();
+                FlintAPI::Thread::yield();
                 return true;
             }
         }
@@ -397,6 +400,7 @@ bool FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
             }
             else {
                 Flint::unlock();
+                FlintAPI::Thread::yield();
                 return true;
             }
         }
@@ -2112,8 +2116,12 @@ void FlintExecution::run(void) {
                 throw "monitorCount limit has been reached";
             }
             pc++;
+            Flint::unlock();
         }
-        Flint::unlock();
+        else {
+            Flint::unlock();
+            FlintAPI::Thread::yield();
+        }
         goto *opcodes[code[pc]];
     }
     op_monitorexit: {
