@@ -100,6 +100,7 @@ FlintClassLoader::FlintClassLoader(const char *fileName) {
     fieldsCount = 0;
     methodsCount = 0;
     attributesCount = 0;
+    attributes = 0;
 
     void *file = ClassLoader_Open(fileName);
 
@@ -120,6 +121,7 @@ FlintClassLoader::FlintClassLoader(const char *fileName, uint16_t length) {
     fieldsCount = 0;
     methodsCount = 0;
     attributesCount = 0;
+    attributes = 0;
 
     void *file = ClassLoader_Open(fileName, length);
 
@@ -565,9 +567,9 @@ FlintConstNameAndType &FlintClassLoader::getConstNameAndType(uint16_t poolIndex)
             if(poolTable[poolIndex].tag & 0x80) {
                 uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
                 uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstNameAndType));
                 new ((FlintConstNameAndType *)poolTable[poolIndex].value)FlintConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
+                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
             }
             Flint::unlock();
         }
@@ -588,9 +590,9 @@ FlintConstField &FlintClassLoader::getConstField(uint16_t poolIndex) {
             if(poolTable[poolIndex].tag & 0x80) {
                 uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
                 uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstField));
                 new ((FlintConstField *)poolTable[poolIndex].value)FlintConstField(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
             }
             Flint::unlock();
         }
@@ -611,9 +613,9 @@ FlintConstMethod &FlintClassLoader::getConstMethod(uint16_t poolIndex) {
             if(poolTable[poolIndex].tag & 0x80) {
                 uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
                 uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstMethod));
                 new ((FlintConstMethod *)poolTable[poolIndex].value)FlintConstMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
             }
             Flint::unlock();
         }
@@ -634,9 +636,9 @@ FlintConstInterfaceMethod &FlintClassLoader::getConstInterfaceMethod(uint16_t po
             if(poolTable[poolIndex].tag & 0x80) {
                 uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
                 uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
                 *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstInterfaceMethod));
                 new ((FlintConstInterfaceMethod *)poolTable[poolIndex].value)FlintConstInterfaceMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
             }
             Flint::unlock();
         }
