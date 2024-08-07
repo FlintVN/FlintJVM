@@ -19,11 +19,11 @@ FlintExecutionNode::FlintExecutionNode(Flint &flint, uint32_t stackSize) : Flint
 }
 
 void Flint::lock(void) {
-
+    FlintAPI::Thread::lock();
 }
 
 void Flint::unlock(void) {
-
+    FlintAPI::Thread::unlock();
 }
 
 void *Flint::malloc(uint32_t size) {
@@ -78,13 +78,14 @@ void Flint::setDebugger(FlintDebugger *dbg) {
 
 FlintExecution &Flint::newExecution(void) {
     FlintExecutionNode *newNode = (FlintExecutionNode *)Flint::malloc(sizeof(FlintExecutionNode));
+    new (newNode)FlintExecutionNode(*this);
     lock();
     newNode->next = executionList;
     if(executionList)
         executionList->prev = newNode;
     executionList = newNode;
     unlock();
-    return *new (newNode)FlintExecutionNode(*this);
+    return *newNode;
 }
 
 FlintExecution &Flint::newExecution(uint32_t stackSize) {
@@ -524,12 +525,13 @@ FlintClassLoader &Flint::load(const char *className, uint16_t length) {
             ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)className, length);
             for(ClassData *node = classDataList; node != 0; node = node->next) {
                 FlintConstUtf8 &name = node->getThisClass();
-                if(name.length == length && strncmp(name.text, className, length) == 0)
+                if(hash == CONST_UTF8_HASH(name) && strncmp(name.text, className, length) == 0) {
+                    Flint::unlock();
                     return *node;
+                }
             }
         }
         newNode = (ClassData *)Flint::malloc(sizeof(ClassData));
-        memset((void *)newNode, 0, sizeof(ClassData));
         new (newNode)ClassData(className, length);
         newNode->next = classDataList;
         classDataList = newNode;
@@ -557,11 +559,12 @@ FlintClassLoader &Flint::load(FlintConstUtf8 &className) {
         uint32_t hash = CONST_UTF8_HASH(className);
         for(ClassData *node = classDataList; node != 0; node = node->next) {
             FlintConstUtf8 &name = node->getThisClass();
-            if(hash == CONST_UTF8_HASH(name) && strncmp(name.text, className.text, className.length) == 0)
+            if(hash == CONST_UTF8_HASH(name) && strncmp(name.text, className.text, className.length) == 0) {
+                Flint::unlock();
                 return *node;
+            }
         }
         newNode = (ClassData *)Flint::malloc(sizeof(ClassData));
-        memset((void *)newNode, 0, sizeof(ClassData));
         new (newNode)ClassData(className.text, className.length);
         newNode->next = classDataList;
         classDataList = newNode;

@@ -3,6 +3,14 @@
 
 #include "flint_system_api.h"
 
+void FlintAPI::Thread::lock(void) {
+    throw "FlintAPI::System::lock is not implemented in VM";
+}
+
+void FlintAPI::Thread::unlock(void) {
+    throw "FlintAPI::System::unlock is not implemented in VM";
+}
+
 void *FlintAPI::Thread::create(void (*task)(void *), void *param, uint32_t stackSize) {
     throw "FlintAPI::Thread::create is not implemented in VM";
 }

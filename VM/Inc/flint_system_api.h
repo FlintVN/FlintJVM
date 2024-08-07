@@ -44,6 +44,8 @@ namespace FlintAPI {
     };
 
     namespace Thread {
+        void lock(void);
+        void unlock(void);
         void *create(void (*task)(void *), void *param, uint32_t stackSize = 0);
         void terminate(void *threadHandle);
         void sleep(uint32_t ms);
