@@ -16,6 +16,8 @@ static bool nativeStart0(FlintExecution &execution) {
     FlintThread *threadObj = (FlintThread *)execution.stackPopObject();
     FlintObject *task = threadObj->getTask();
     FlintExecution &threadExecution = flint.newExecution();
+    if(task == 0)
+        task = threadObj;
     threadExecution.stackPushObject(task);
     threadExecution.run(flint.load(task->type).getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName));
     return true;
