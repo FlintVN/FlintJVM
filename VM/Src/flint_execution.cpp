@@ -1947,7 +1947,7 @@ void FlintExecution::run(void) {
             new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);
             stackPushObject(&obj);
             pc += 3;
-            if((classData.staticFiledsData == 0) && ((int32_t)&classData.getStaticConstructor() != 0)) {
+            if((classData.staticFieldsData == 0) && ((int32_t)&classData.getStaticConstructor() != 0)) {
                 stackPushInt32((int32_t)&classData);
                 goto init_static_field;
             }
@@ -2234,7 +2234,7 @@ void FlintExecution::run(void) {
     init_static_field: {
         ClassData &classDataToInit = *(ClassData *)stackPopInt32();
         Flint::lock();
-        if(classDataToInit.staticFiledsData) {
+        if(classDataToInit.staticFieldsData) {
             Flint::unlock();
             goto *opcodes[code[pc]];
         }

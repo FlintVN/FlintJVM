@@ -81,14 +81,16 @@ public:
     uint32_t ownId;
     uint32_t monitorCount : 31;
     uint32_t isInitializing : 1;
-    FlintFieldsData *staticFiledsData;
-
+    FlintFieldsData *staticFieldsData;
+private:
     ClassData(const char *fileName);
     ClassData(const char *fileName, uint16_t length);
     ClassData(const FlintConstUtf8 &fileName);
 
     ClassData(const ClassData &) = delete;
     void operator=(const ClassData &) = delete;
+
+    void clearStaticFields(void);
 
     ~ClassData(void);
 

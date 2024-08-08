@@ -100,52 +100,6 @@ FlintExecution &Flint::newExecution(uint32_t stackSize) {
     return *newNode;
 }
 
-void Flint::freeAllObject(void) {
-    for(FlintConstClass *node = constClassList; node != 0;) {
-        FlintConstClass *next = node->next;
-        Flint::free(node);
-        node = next;
-    }
-    for(FlintConstString *node = constStringList; node != 0;) {
-        FlintConstString *next = node->next;
-        Flint::free(node);
-        node = next;
-    }
-    for(FlintObject *node = objectList; node != 0;) {
-        FlintObject *next = node->next;
-        if(node->dimensions == 0) {
-            FlintFieldsData *fields = (FlintFieldsData *)node->data;
-            fields->~FlintFieldsData();
-        }
-        Flint::free(node);
-        node = next;
-    }
-    constClassList = 0;
-    constStringList = 0;
-    objectList = 0;
-    objectSizeToGc = 0;
-}
-
-void Flint::freeAllExecution(void) {
-    for(FlintExecutionNode *node = executionList; node != 0;) {
-        FlintExecutionNode *next = node->next;
-        node->~FlintExecutionNode();
-        Flint::free(node);
-        node = next;
-    }
-    executionList = 0;
-}
-
-void Flint::freeAllClassLoader(void) {
-    for(ClassData *node = classDataList; node != 0;) {
-        ClassData *next = node->next;
-        node->~ClassData();
-        Flint::free(node);
-        node = next;
-    }
-    classDataList = 0;
-}
-
 FlintObject &Flint::newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions) {
     objectSizeToGc += size;
     if(objectSizeToGc >= OBJECT_SIZE_TO_GC)
@@ -473,7 +427,7 @@ void Flint::garbageCollection(void) {
             garbageCollectionProtectObject(node->flintString);
     }
     for(ClassData *node = classDataList; node != 0; node = node->next) {
-        FlintFieldsData *fieldsData = node->staticFiledsData;
+        FlintFieldsData *fieldsData = node->staticFieldsData;
         if(fieldsData && fieldsData->fieldsObjCount) {
             for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
                 FlintObject *obj = fieldsData->fieldsObject[i].object;
@@ -584,7 +538,7 @@ FlintClassLoader &Flint::load(FlintConstUtf8 &className) {
 FlintFieldsData &Flint::getStaticFields(FlintConstUtf8 &className) const {
     for(ClassData *node = classDataList; node != 0; node = node->next) {
         if(className == node->getThisClass())
-            return *node->staticFiledsData;
+            return *node->staticFieldsData;
     }
     return *(FlintFieldsData *)0;
 }
@@ -592,7 +546,7 @@ FlintFieldsData &Flint::getStaticFields(FlintConstUtf8 &className) const {
 void Flint::initStaticField(ClassData &classData) {
     FlintFieldsData *fieldsData = (FlintFieldsData *)Flint::malloc(sizeof(FlintFieldsData));
     new (fieldsData)FlintFieldsData(*this, classData, true);
-    classData.staticFiledsData = fieldsData;
+    classData.staticFieldsData = fieldsData;
 }
 
 FlintMethodInfo &Flint::findMethod(FlintConstMethod &constMethod) {
@@ -686,8 +640,58 @@ void Flint::terminate(void) {
         FlintAPI::Thread::yield();
 }
 
-void Flint::terminateAndFree(void) {
-    terminate();
+void Flint::clearAllStaticFields(void) {
+    for(ClassData *node = classDataList; node != 0; node = node->next)
+        node->clearStaticFields();
+}
+
+void Flint::freeAllObject(void) {
+    for(FlintConstClass *node = constClassList; node != 0;) {
+        FlintConstClass *next = node->next;
+        Flint::free(node);
+        node = next;
+    }
+    for(FlintConstString *node = constStringList; node != 0;) {
+        FlintConstString *next = node->next;
+        Flint::free(node);
+        node = next;
+    }
+    for(FlintObject *node = objectList; node != 0;) {
+        FlintObject *next = node->next;
+        if(node->dimensions == 0) {
+            FlintFieldsData *fields = (FlintFieldsData *)node->data;
+            fields->~FlintFieldsData();
+        }
+        Flint::free(node);
+        node = next;
+    }
+    constClassList = 0;
+    constStringList = 0;
+    objectList = 0;
+    objectSizeToGc = 0;
+}
+
+void Flint::freeAllExecution(void) {
+    for(FlintExecutionNode *node = executionList; node != 0;) {
+        FlintExecutionNode *next = node->next;
+        node->~FlintExecutionNode();
+        Flint::free(node);
+        node = next;
+    }
+    executionList = 0;
+}
+
+void Flint::freeAllClassLoader(void) {
+    for(ClassData *node = classDataList; node != 0;) {
+        ClassData *next = node->next;
+        node->~ClassData();
+        Flint::free(node);
+        node = next;
+    }
+    classDataList = 0;
+}
+
+void Flint::freeAll(void) {
     freeAllObject();
     freeAllExecution();
     freeAllClassLoader();

@@ -52,10 +52,6 @@ public:
     FlintExecution &newExecution(void);
     FlintExecution &newExecution(uint32_t stackSize);
 
-    void freeAllObject(void);
-    void freeAllExecution(void);
-    void freeAllClassLoader(void);
-public:
     FlintDebugger *getDebugger(void) const;
     void setDebugger(FlintDebugger *dbg);
 
@@ -106,7 +102,11 @@ public:
     bool isRunning(void) const;
     void terminateRequest(void);
     void terminate(void);
-    void terminateAndFree(void);
+    void clearAllStaticFields(void);
+    void freeAllObject(void);
+    void freeAllExecution(void);
+    void freeAllClassLoader(void);
+    void freeAll(void);
 };
 
 #endif /* __FLINT_H */

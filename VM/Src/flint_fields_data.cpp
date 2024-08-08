@@ -208,18 +208,23 @@ FlintFieldsData::~FlintFieldsData(void) {
         Flint::free(fieldsObject);
 }
 
-ClassData::~ClassData() {
-    if(staticFiledsData) {
-        staticFiledsData->~FlintFieldsData();
-        Flint::free(staticFiledsData);
+void ClassData::clearStaticFields(void) {
+    if(staticFieldsData) {
+        staticFieldsData->~FlintFieldsData();
+        Flint::free(staticFieldsData);
+        staticFieldsData = 0;
     }
+}
+
+ClassData::~ClassData() {
+    clearStaticFields();
 }
 
 ClassData::ClassData( const char *fileName) : FlintClassLoader(fileName) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;
-    staticFiledsData = 0;
+    staticFieldsData = 0;
     next = 0;
 }
 
@@ -227,7 +232,7 @@ ClassData::ClassData(const char *fileName, uint16_t length) : FlintClassLoader(f
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;
-    staticFiledsData = 0;
+    staticFieldsData = 0;
     next = 0;
 }
 
@@ -235,6 +240,6 @@ ClassData::ClassData(const FlintConstUtf8 &fileName) : FlintClassLoader(fileName
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;
-    staticFiledsData = 0;
+    staticFieldsData = 0;
     next = 0;
 }
