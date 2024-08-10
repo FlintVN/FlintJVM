@@ -131,6 +131,7 @@ private:
     void responseField(FlintObject *obj, FlintConstUtf8 &fieldName);
     void responseArray(FlintObject *array, uint32_t index, uint32_t length);
     void responseObjSizeAndType(FlintObject *obj);
+    void responseConsoleBuffer(void);
 public:
     bool receivedDataHandler(uint8_t *data, uint32_t length);
     bool exceptionIsEnabled(void);

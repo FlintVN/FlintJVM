@@ -431,6 +431,24 @@ void FlintDebugger::responseObjSizeAndType(FlintObject *obj) {
         sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_BUSY);
 }
 
+void FlintDebugger::responseConsoleBuffer(void) {
+    Flint::lock();
+    if(consoleLength) {
+        initDataFrame(DBG_CMD_READ_CONSOLE, DBG_RESP_OK, consoleLength);
+        uint32_t index = (consoleOffset + sizeof(consoleBuff) - consoleLength) % sizeof(consoleBuff);
+        uint32_t endIndex = consoleOffset;
+        while(index != endIndex) {
+            dataFrameAppend(consoleBuff[index]);
+            index = (index + 1) % sizeof(consoleBuff);
+        }
+        dataFrameFinish();
+        consoleClear();
+    }
+    else
+        sendRespCode(DBG_CMD_READ_CONSOLE, DBG_RESP_OK);
+    Flint::unlock();
+}
+
 bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     FlintDbgCmd cmd = (FlintDbgCmd)data[0];
     uint32_t rxLength = data[1] | (data[2] << 8) | (data[3] << 16);
@@ -659,6 +677,10 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             }
             else
                 sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_BUSY);
+            return true;
+        }
+        case DBG_CMD_READ_CONSOLE: {
+            responseConsoleBuffer();
             return true;
         }
         default: {
