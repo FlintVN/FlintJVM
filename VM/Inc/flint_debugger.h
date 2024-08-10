@@ -14,6 +14,7 @@
 #define DBG_STATUS_STOP             0x0001
 #define DBG_STATUS_STOP_SET         0x0002
 #define DBG_STATUS_EXCP             0x0004
+#define DBG_STATUS_CONSOLE          0x0008
 #define DBG_STATUS_RESET            0x0080
 
 #define DBG_CONTROL_STOP            0x0100
@@ -49,6 +50,7 @@ typedef enum : uint8_t {
     DBG_CMD_INSTALL_FILE,
     DBG_CMD_WRITE_FILE_DATA,
     DBG_CMD_COMPLATE_INSTALL,
+    DBG_CMD_READ_CONSOLE,
 } FlintDbgCmd;
 
 typedef enum : uint8_t {
@@ -91,17 +93,26 @@ private:
     FlintThrowable *exception;
     void *installClassFileHandle;
     volatile uint32_t stepCodeLength;
+    volatile uint32_t consoleOffset;
+    volatile uint32_t consoleLength;
     uint32_t txDataLength;
     uint16_t txDataCrc;
     volatile uint16_t csr;
     volatile uint8_t breakPointCount;
     FlintStackFrame startPoint;
-    FlintBreakPoint breakPoints[MAX_OF_BREAK_POINT];
-    uint8_t txBuff[MAX_OF_DBG_BUFFER];
+    FlintBreakPoint breakPoints[MAX_OF_BREAK_POINT];private:
+    uint8_t consoleBuff[DBG_CONSOLE_BUFFER_SIZE];
+    uint8_t txBuff[DBG_TX_BUFFER_SIZE];
 public:
     FlintDebugger(Flint &flint);
 
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
+
+    void print(const char *text, uint32_t length, uint8_t coder);
+private:
+    void consolePut(uint16_t ch);
+    void consoleClear(void);
+
     void clearTxBuffer(void);
     void initDataFrame(FlintDbgCmd cmd, FlintDbgRespCode responseCode, uint32_t dataLength);
     bool dataFrameAppend(uint8_t data);
@@ -120,15 +131,14 @@ public:
     void responseField(FlintObject *obj, FlintConstUtf8 &fieldName);
     void responseArray(FlintObject *array, uint32_t index, uint32_t length);
     void responseObjSizeAndType(FlintObject *obj);
-
+public:
     bool receivedDataHandler(uint8_t *data, uint32_t length);
-
     bool exceptionIsEnabled(void);
     void checkBreakPoint(FlintExecution *exec);
     void caughtException(FlintExecution *exec, FlintThrowable *excp);
-
-    void clearResetStatus(void);
 private:
+    void clearResetStatus(void);
+
     FlintDebugger(const FlintDebugger &) = delete;
     void operator=(const FlintDebugger &) = delete;
 

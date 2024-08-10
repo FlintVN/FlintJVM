@@ -22,15 +22,20 @@
     #warning "MAX_OF_BREAK_POINT is not defined. Default value will be used"
 #endif /* MAX_OF_BREAK_POINT */
 
-#ifdef MAX_OF_DBG_BUFFER
-    #if(MAX_OF_DBG_BUFFER < 16)
-        #error "MAX_OF_DBG_BUFFER is at least 16 bytes"
+#ifdef DBG_TX_BUFFER_SIZE
+    #if(DBG_TX_BUFFER_SIZE < 16)
+        #error "DBG_TX_BUFFER_SIZE is at least 16 bytes"
     #endif
 #else
-    #ifndef MAX_OF_DBG_BUFFER
-        #define MAX_OF_DBG_BUFFER          KILO_BYTE(1)
-        #warning "MAX_OF_DBG_BUFFER is not defined. Default value will be used"
+    #ifndef DBG_TX_BUFFER_SIZE
+        #define DBG_TX_BUFFER_SIZE      KILO_BYTE(1)
+        #warning "DBG_TX_BUFFER_SIZE is not defined. Default value will be used"
     #endif
-#endif /* MAX_OF_DBG_BUFFER */
+#endif /* DBG_TX_BUFFER_SIZE */
+
+#ifndef DBG_CONSOLE_BUFFER_SIZE
+    #define DBG_CONSOLE_BUFFER_SIZE     KILO_BYTE(1)
+    #warning "DBG_CONSOLE_BUFFER_SIZE is not defined. Default value will be used"
+#endif /* DBG_CONSOLE_BUFFER_SIZE */
 
 #endif /* __FLINT_DEFAULT_CONF_H */

@@ -76,6 +76,13 @@ void Flint::setDebugger(FlintDebugger *dbg) {
     this->dbg = dbg;
 }
 
+void Flint::print(const char *text, uint32_t length, uint8_t coder) {
+    if(dbg)
+        dbg->print(text, length, coder);
+    else
+        FlintAPI::System::print(text, length, coder);
+}
+
 FlintExecution &Flint::newExecution(void) {
     FlintExecutionNode *newNode = (FlintExecutionNode *)Flint::malloc(sizeof(FlintExecutionNode));
     new (newNode)FlintExecutionNode(*this);

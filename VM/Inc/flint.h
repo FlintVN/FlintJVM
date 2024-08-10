@@ -49,11 +49,13 @@ public:
 
     static Flint &getInstance(void);
 
-    FlintExecution &newExecution(void);
-    FlintExecution &newExecution(uint32_t stackSize);
-
     FlintDebugger *getDebugger(void) const;
     void setDebugger(FlintDebugger *dbg);
+
+    void print(const char *text, uint32_t length, uint8_t coder);
+
+    FlintExecution &newExecution(void);
+    FlintExecution &newExecution(uint32_t stackSize);
 
     FlintObject &newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);
 

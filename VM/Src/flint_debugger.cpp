@@ -26,9 +26,49 @@ FlintDebugger::FlintDebugger(Flint &flint) : flint(flint) {
     exception = 0;
     installClassFileHandle = 0;
     stepCodeLength = 0;
+    consoleOffset = 0;
+    consoleLength = 0;
     csr = DBG_STATUS_RESET;
     breakPointCount = 0;
     txDataLength = 0;
+}
+
+void FlintDebugger::print(const char *text, uint32_t length, uint8_t coder) {
+    Flint::lock();
+    if(coder == 0) {
+        while(length) {
+            consolePut((uint8_t)*text);
+            text++;
+            length--;
+        }
+    }
+    else {
+        while(length) {
+            consolePut(*(uint16_t *)text);
+            text += 2;
+            length--;
+        }
+    }
+    Flint::unlock();
+}
+
+void FlintDebugger::consolePut(uint16_t ch) {
+    char buff[3];
+    uint8_t count = FlintString::utf8Encode(ch, buff);
+    for(uint8_t i = 0; i < count; i++) {
+        uint32_t nextOffset = (consoleOffset + 1) % sizeof(consoleBuff);
+        if(consoleLength == sizeof(consoleBuff))
+            consoleLength -= FlintString::getUtf8EncodeSize(consoleBuff[nextOffset]);
+        consoleBuff[consoleOffset] = buff[i];
+        consoleOffset = nextOffset;
+        if(consoleLength < sizeof(consoleBuff))
+            consoleLength++;
+    }
+}
+
+void FlintDebugger::consoleClear(void) {
+    consoleOffset = 0;
+    consoleLength = 0;
 }
 
 void FlintDebugger::clearTxBuffer(void) {
@@ -125,7 +165,7 @@ bool FlintDebugger::sendRespCode(FlintDbgCmd cmd, FlintDbgRespCode responseCode)
 }
 
 void FlintDebugger::responseStatus(void) {
-    uint16_t tmp = csr;
+    uint16_t tmp = csr | (consoleLength ? DBG_STATUS_CONSOLE : 0);
     if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT))
         tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
     initDataFrame(DBG_CMD_READ_STATUS, DBG_RESP_OK, 1);
@@ -398,11 +438,8 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         sendRespCode(cmd, DBG_RESP_LENGTH_INVAILD);
         return true;
     }
-    uint16_t crc1 = data[rxLength - 2] | (data[rxLength - 1] << 8);
-    uint16_t crc2 = 0;
-    for(uint16_t i = 0; i < (rxLength - 2); i++)
-        crc2 += data[i];
-    if(crc1 != crc2) {
+    uint16_t crc = data[rxLength - 2] | (data[rxLength - 1] << 8);
+    if(crc != Flint_CalcCrc(data, rxLength - 2)) {
         sendRespCode(cmd, DBG_RESP_CRC_FAIL);
         return true;
     }
