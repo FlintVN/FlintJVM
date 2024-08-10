@@ -2310,26 +2310,26 @@ void FlintExecution::runTask(FlintExecution *execution) {
     }
     catch(FlintThrowable *ex) {
         FlintString *str = ex->getDetailMessage();
-        FlintAPI::System::print(str->getText(), str->getLength(), str->getCoder());
-        FlintAPI::System::print("\n", 1, 0);
+        execution->flint.print(str->getText(), str->getLength(), str->getCoder());
+        execution->flint.print("\n", 1, 0);
     }
     catch(FlintOutOfMemoryError *err) {
         const char *msg = err->getMessage();
-        FlintAPI::System::print(msg, strlen(msg), 0);
-        FlintAPI::System::print("\n", 1, 0);
+        execution->flint.print(msg, strlen(msg), 0);
+        execution->flint.print("\n", 1, 0);
     }
     catch(FlintLoadFileError *file) {
         const char *fileName = file->getFileName();
-        FlintAPI::System::print("Could not find or load class ", 29, 0);
+        execution->flint.print("Could not find or load class ", 29, 0);
         while(*fileName) {
-            FlintAPI::System::print((*fileName == '/') ? "." : fileName, 1, 0);
+            execution->flint.print((*fileName == '/') ? "." : fileName, 1, 0);
             fileName++;
         }
-        FlintAPI::System::print("\n", 1, 0);
+        execution->flint.print("\n", 1, 0);
     }
     catch(const char *msg) {
-        FlintAPI::System::print(msg, strlen(msg), 0);
-        FlintAPI::System::print("\n", 1, 0);
+        execution->flint.print(msg, strlen(msg), 0);
+        execution->flint.print("\n", 1, 0);
     }
     while(execution->startSp > 3)
         execution->stackRestoreContext();

@@ -1,22 +1,21 @@
 
-#include "flint_string.h"
-#include "flint_const_name.h"
+#include "flint.h"
 #include "flint_system_api.h"
 #include "flint_native_print_stream_class.h"
 
 static bool nativeWrite(FlintExecution &execution) {
     FlintString *str = (FlintString *)execution.stackPopObject();
     if(str == 0)
-        FlintAPI::System::print("null", 4, 0);
+        execution.flint.print("null", 4, 0);
     else
-        FlintAPI::System::print(str->getText(), str->getLength(), str->getCoder());
+        execution.flint.print(str->getText(), str->getLength(), str->getCoder());
     return true;
 }
 
 static bool nativeWriteln(FlintExecution &execution) {
     if(!nativeWrite(execution))
         return false;
-    FlintAPI::System::print("\n", 1, 0);
+    execution.flint.print("\n", 1, 0);
     return true;
 }
 
