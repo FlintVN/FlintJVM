@@ -592,7 +592,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             if(length == 14) {
                 uint32_t stackIndex = (*(uint32_t *)&data[4]) & 0x7FFFFFFF;
                 uint32_t localIndex = (*(uint32_t *)&data[8]);
-                bool isU64 = (data[4] & 0x80000000) ? true : false;
+                bool isU64 = (data[7] & 0x80) ? true : false;
                 responseLocalVariable(isU64, stackIndex, localIndex);
             }
             else
