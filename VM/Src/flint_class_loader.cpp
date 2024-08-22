@@ -197,8 +197,9 @@ void FlintClassLoader::readFile(void *file) {
         }
     }
     accessFlags = ClassLoader_ReadUInt16(file);
-    thisClass = ClassLoader_ReadUInt16(file);
-    superClass = ClassLoader_ReadUInt16(file);
+    thisClass = &getConstUtf8Class(ClassLoader_ReadUInt16(file));
+    uint16_t superClassIndex = ClassLoader_ReadUInt16(file);
+    superClass = (superClassIndex != 0) ? &getConstUtf8Class(superClassIndex) : 0;
     interfacesCount = ClassLoader_ReadUInt16(file);
     if(interfacesCount) {
         interfaces = (uint16_t *)Flint::malloc(interfacesCount * sizeof(uint16_t));
@@ -656,13 +657,11 @@ FlintClassAccessFlag FlintClassLoader::getAccessFlag(void) const {
 }
 
 FlintConstUtf8 &FlintClassLoader::getThisClass(void) const {
-    return getConstUtf8Class(thisClass);
+    return *thisClass;
 }
 
 FlintConstUtf8 &FlintClassLoader::getSuperClass(void) const {
-    if(superClass == 0)
-        return *(FlintConstUtf8 *)0;
-    return getConstUtf8Class(superClass);
+    return *superClass;
 }
 
 uint16_t FlintClassLoader::getInterfacesCount(void) const {
