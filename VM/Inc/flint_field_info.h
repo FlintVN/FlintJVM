@@ -5,12 +5,10 @@
 #include "flint_const_pool.h"
 #include "flint_attribute_info.h"
 
-class FlintClassLoader;
-
 class FlintFieldInfo {
 public:
     const FlintFieldAccessFlag accessFlag;
-    FlintClassLoader &classLoader;
+    class FlintClassLoader &classLoader;
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
 private:

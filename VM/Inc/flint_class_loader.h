@@ -8,8 +8,6 @@
 #include "flint_class.h"
 #include "flint_string.h"
 
-class Flint;
-
 class FlintClassLoader {
 private:
     uint32_t magic;
@@ -65,11 +63,11 @@ public:
 
     FlintConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstUtf8Class(FlintConstPool &constPool) const;
-    FlintClass &getConstClass(Flint &flint, uint16_t poolIndex);
-    FlintClass &getConstClass(Flint &flint, FlintConstPool &constPool);
+    FlintClass &getConstClass(class Flint &flint, uint16_t poolIndex);
+    FlintClass &getConstClass(class Flint &flint, FlintConstPool &constPool);
 
-    FlintString &getConstString(Flint &flint, uint16_t poolIndex);
-    FlintString &getConstString(Flint &flint, FlintConstPool &constPool);
+    FlintString &getConstString(class Flint &flint, uint16_t poolIndex);
+    FlintString &getConstString(class Flint &flint, FlintConstPool &constPool);
 
     FlintConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstMethodType(FlintConstPool &constPool) const;

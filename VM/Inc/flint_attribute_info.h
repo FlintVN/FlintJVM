@@ -4,8 +4,6 @@
 
 #include "flint_const_pool.h"
 
-class Flint;
-
 typedef enum : uint8_t {
     ATTRIBUTE_CONSTANT_VALUE = 0,
     ATTRIBUTE_CODE,
@@ -52,9 +50,7 @@ public:
     virtual ~FlintAttribute(void) = 0;
 };
 
-class FlintExecution;
-
-typedef bool (*FlintNativeMethodPtr)(FlintExecution &execution);
+typedef bool (*FlintNativeMethodPtr)(class FlintExecution &execution);
 
 class FlintNativeAttribute : public FlintAttribute {
 public:

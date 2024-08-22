@@ -10,11 +10,9 @@
 
 #define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 
-class Flint;
-
 class FlintExecution {
 public:
-    Flint &flint;
+    class Flint &flint;
 private:
     const void ** volatile opcodes;
     const uint32_t stackLength;

@@ -23,9 +23,6 @@
 #define DBG_CONTROL_STEP_OUT        0x0800
 #define DBG_CONTROL_EXCP_EN         0x1000
 
-class Flint;
-class FlintExecution;
-
 typedef enum : uint8_t {
     DBG_CMD_READ_STATUS,
     DBG_CMD_READ_STACK_TRACE,
@@ -88,8 +85,8 @@ private:
 
 class FlintDebugger {
 private:
-    Flint &flint;
-    FlintExecution *execution;
+    class Flint &flint;
+    class FlintExecution *execution;
     FlintThrowable *exception;
     void *installClassFileHandle;
     volatile uint32_t stepCodeLength;

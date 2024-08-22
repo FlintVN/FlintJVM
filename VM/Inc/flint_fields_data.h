@@ -5,8 +5,6 @@
 #include "flint_object.h"
 #include "flint_class_loader.h"
 
-class Flint;
-
 class FlintFieldData32 {
 public:
     const FlintFieldInfo &fieldInfo;
