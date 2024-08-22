@@ -68,6 +68,7 @@ public:
     FlintConstUtf8 &className;
     FlintConstNameAndType &nameAndType;
 private:
+    class FlintMethodInfo *methodInfo;
     FlintParamInfo paramInfo;
 public:
     const FlintParamInfo &getParmInfo(void);

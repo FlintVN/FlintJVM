@@ -274,7 +274,9 @@ bool FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
 
 bool FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getParmInfo().argc;
-    FlintMethodInfo &methodInfo = flint.findMethod(constMethod);
+    if(constMethod.methodInfo == 0)
+        constMethod.methodInfo = &flint.findMethod(constMethod);
+    FlintMethodInfo &methodInfo = *constMethod.methodInfo;
     if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             ClassData &classData = *(ClassData *)&methodInfo.classLoader;
@@ -304,7 +306,9 @@ bool FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
 
 bool FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getParmInfo().argc + 1;
-    FlintMethodInfo &methodInfo = flint.findMethod(constMethod);
+    if(constMethod.methodInfo == 0)
+        constMethod.methodInfo = &flint.findMethod(constMethod);
+    FlintMethodInfo &methodInfo = *constMethod.methodInfo;
     if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             FlintObject *obj = (FlintObject *)stack[sp - argc - 1];
@@ -343,10 +347,18 @@ bool FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         return false;
     }
     FlintConstUtf8 &type = FlintObject::isPrimType(obj->type) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
-    FlintConstMethod virtualConstMethod(type, constMethod.nameAndType, 0, 0);
-    FlintMethodInfo &methodInfo = flint.findMethod(virtualConstMethod);
-    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
-        if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
+    FlintMethodInfo *methodInfo;
+    if(constMethod.className == type) {
+        if(constMethod.methodInfo == 0)
+            constMethod.methodInfo = &flint.findMethod(constMethod);
+        methodInfo = constMethod.methodInfo;
+    }
+    else {
+        FlintConstMethod virtualConstMethod(type, constMethod.nameAndType, 0, 0);
+        methodInfo = &flint.findMethod(virtualConstMethod);
+    }
+    if((methodInfo->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+        if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             Flint::lock();
             if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
                 obj->ownId = (int32_t)this;
@@ -366,7 +378,7 @@ bool FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
             }
         }
         argc++;
-        return invoke(methodInfo, argc);
+        return invoke(*methodInfo, argc);
     }
     else
         throw "invoke virtual to static method";
@@ -382,10 +394,18 @@ bool FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
         return false;
     }
     FlintConstUtf8 &type = FlintObject::isPrimType(obj->type) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
-    FlintConstMethod interfaceConstMethod(type, interfaceMethod.nameAndType, 0, 0);
-    FlintMethodInfo &methodInfo = flint.findMethod(interfaceConstMethod);
-    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
-        if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
+    FlintMethodInfo *methodInfo;
+    if(interfaceMethod.className == type) {
+        if(interfaceMethod.methodInfo == 0)
+            interfaceMethod.methodInfo = &flint.findMethod(interfaceMethod);
+        methodInfo = interfaceMethod.methodInfo;
+    }
+    else {
+        FlintConstMethod interfaceConstMethod(type, interfaceMethod.nameAndType, 0, 0);
+        methodInfo = &flint.findMethod(interfaceConstMethod);
+    }
+    if((methodInfo->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+        if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
             Flint::lock();
             if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
                 obj->ownId = (int32_t)this;
@@ -404,7 +424,7 @@ bool FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
                 return true;
             }
         }
-        return invoke(methodInfo, argc);
+        return invoke(*methodInfo, argc);
     }
     else
         throw "invoke interface to static method";

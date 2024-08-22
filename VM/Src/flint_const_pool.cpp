@@ -67,12 +67,12 @@ className(className), nameAndType(nameAndType) {
 }
 
 FlintConstMethod::FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
-className(className), nameAndType(nameAndType) {
+className(className), nameAndType(nameAndType), methodInfo(0) {
     paramInfo = parseParamInfo(nameAndType.descriptor);
 }
 
 FlintConstMethod::FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, uint8_t argc, uint8_t retType) :
-className(className), nameAndType(nameAndType) {
+className(className), nameAndType(nameAndType), methodInfo(0) {
     paramInfo.argc = argc;
     paramInfo.retType = retType;
 }
