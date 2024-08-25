@@ -6,7 +6,9 @@
 
 static bool nativeIntern(FlintExecution &execution) {
     FlintString *obj = (FlintString *)execution.stackPopObject();
+    Flint::lock();
     execution.stackPushObject(&execution.flint.getConstString(*obj));
+    Flint::unlock();
     return true;
 }
 
