@@ -37,7 +37,9 @@ static FlintParamInfo parseParamInfo(const FlintConstUtf8 &descriptor) {
 }
 
 bool FlintConstUtf8::operator==(const FlintConstUtf8 &another) const {
-    if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
+    if(this == &another)
+        return true;
+    else if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
         if(strncmp(text, another.text, length) == 0)
             return true;
     }
@@ -45,7 +47,9 @@ bool FlintConstUtf8::operator==(const FlintConstUtf8 &another) const {
 }
 
 bool FlintConstUtf8::operator!=(const FlintConstUtf8 &another) const {
-    if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
+    if(this == &another)
+        return false;
+    else if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
         if(strncmp(text, another.text, length) == 0)
             return false;
     }
@@ -78,25 +82,13 @@ const FlintParamInfo &FlintConstMethod::getParmInfo() {
 }
 
 bool FlintConstNameAndType::operator==(const FlintConstNameAndType &another) const {
-    if(
-        (CONST_UTF8_HASH(name) == CONST_UTF8_HASH(another.name)) &&
-        (CONST_UTF8_HASH(descriptor) == CONST_UTF8_HASH(another.descriptor)) &&
-        (strncmp(name.text, another.name.text, name.length) == 0) &&
-        (strncmp(descriptor.text, another.descriptor.text, descriptor.length) == 0)
-    ) {
+    if((name == another.name) &&  (descriptor == another.descriptor))
         return true;
-    }
     return false;
 }
 
 bool FlintConstNameAndType::operator!=(const FlintConstNameAndType &another) const {
-    if(
-        (CONST_UTF8_HASH(name) == CONST_UTF8_HASH(another.name)) &&
-        (CONST_UTF8_HASH(descriptor) == CONST_UTF8_HASH(another.descriptor)) &&
-        (strncmp(name.text, another.name.text, name.length) == 0) &&
-        (strncmp(descriptor.text, another.descriptor.text, descriptor.length) == 0)
-    ) {
+    if((name == another.name) && (descriptor == another.descriptor))
         return false;
-    }
     return true;
 }

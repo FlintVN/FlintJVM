@@ -25,6 +25,16 @@ private:
     void operator=(const FlintExecutionNode &) = delete;
 };
 
+class FlintConstUtf8Node {
+public:
+    FlintConstUtf8Node *next;
+    FlintConstUtf8 value;
+private:
+    FlintConstUtf8Node(void) = delete;
+    FlintConstUtf8Node(const FlintConstUtf8Node &) = delete;
+    void operator=(const FlintConstUtf8Node &) = delete;
+};
+
 class Flint {
 private:
     static Flint flintInstance;
@@ -34,6 +44,7 @@ private:
     FlintObject *objectList;
     FlintConstClass *constClassList;
     FlintConstString *constStringList;
+    FlintConstUtf8Node *constUtf8List;
     uint32_t objectSizeToGc;
 
     Flint(void);
@@ -72,6 +83,8 @@ public:
     FlintString &getConstString(FlintConstUtf8 &utf8);
     FlintString &getConstString(FlintString &str);
 
+    FlintConstUtf8 &getConstUtf8(const char *text, uint16_t length);
+
     FlintThrowable &newThrowable(FlintString &strObj, FlintConstUtf8 &excpType);
     FlintThrowable &newArrayStoreException(FlintString &strObj);
     FlintThrowable &newArithmeticException(FlintString &strObj);
@@ -108,6 +121,7 @@ public:
     void freeAllObject(void);
     void freeAllExecution(void);
     void freeAllClassLoader(void);
+    void freeAllConstUtf8(void);
     void freeAll(void);
 };
 

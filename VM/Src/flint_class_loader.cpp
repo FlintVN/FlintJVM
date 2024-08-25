@@ -94,7 +94,7 @@ static void ClassLoader_Seek(void *file, int32_t offset) {
         throw "read file error";
 }
 
-FlintClassLoader::FlintClassLoader(const char *fileName) {
+FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName) {
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
@@ -105,7 +105,7 @@ FlintClassLoader::FlintClassLoader(const char *fileName) {
     void *file = ClassLoader_Open(fileName);
 
     try {
-        readFile(file);
+        readFile(flint, file);
     }
     catch(const char *excp) {
         FlintAPI::File::close(file);
@@ -115,7 +115,7 @@ FlintClassLoader::FlintClassLoader(const char *fileName) {
     FlintAPI::File::close(file);
 }
 
-FlintClassLoader::FlintClassLoader(const char *fileName, uint16_t length) {
+FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) {
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
@@ -126,7 +126,7 @@ FlintClassLoader::FlintClassLoader(const char *fileName, uint16_t length) {
     void *file = ClassLoader_Open(fileName, length);
 
     try {
-        readFile(file);
+        readFile(flint, file);
     }
     catch(const char *excp) {
         FlintAPI::File::close(file);
@@ -136,11 +136,11 @@ FlintClassLoader::FlintClassLoader(const char *fileName, uint16_t length) {
     FlintAPI::File::close(file);
 }
 
-FlintClassLoader::FlintClassLoader(const FlintConstUtf8 &fileName) : FlintClassLoader(fileName.text, fileName.length) {
+FlintClassLoader::FlintClassLoader(Flint &flint, const FlintConstUtf8 &fileName) : FlintClassLoader(flint, fileName.text, fileName.length) {
 
 }
 
-void FlintClassLoader::readFile(void *file) {
+void FlintClassLoader::readFile(Flint &flint, void *file) {
     magic = ClassLoader_ReadUInt32(file);
     minorVersion = ClassLoader_ReadUInt16(file);
     majorVersion = ClassLoader_ReadUInt16(file);
@@ -151,12 +151,10 @@ void FlintClassLoader::readFile(void *file) {
         switch(poolTable[i].tag) {
             case CONST_UTF8: {
                 uint16_t length = ClassLoader_ReadUInt16(file);
-                *(uint32_t *)&poolTable[i].value = (uint32_t)Flint::malloc(sizeof(FlintConstUtf8) + length + 1);
-                *(uint16_t *)&((FlintConstUtf8 *)poolTable[i].value)->length = length;
-                char *textBuff = (char *)((FlintConstUtf8 *)poolTable[i].value)->text;
-                ClassLoader_Read(file, textBuff, length);
-                *(uint16_t *)&((FlintConstUtf8 *)poolTable[i].value)->crc = Flint_CalcCrc((uint8_t *)textBuff, length);
-                textBuff[length] = 0;
+                char *text = (char *)Flint::malloc(length);
+                ClassLoader_Read(file, text, length);
+                *(uint32_t *)&poolTable[i].value = (uint32_t)&flint.getConstUtf8(text, length);
+                Flint::free(text);
                 break;
             }
             case CONST_INTEGER:
@@ -759,6 +757,7 @@ FlintClassLoader::~FlintClassLoader(void) {
         for(uint32_t i = 0; i < poolCount; i++) {
             switch (poolTable[i].tag) {
                 case CONST_UTF8:
+                    break;
                 case CONST_FIELD:
                 case CONST_METHOD:
                 case CONST_INTERFACE_METHOD:

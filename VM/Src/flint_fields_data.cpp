@@ -220,7 +220,7 @@ ClassData::~ClassData() {
     clearStaticFields();
 }
 
-ClassData::ClassData( const char *fileName) : FlintClassLoader(fileName) {
+ClassData::ClassData(Flint &flint, const char *fileName) : FlintClassLoader(flint, fileName) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;
@@ -228,7 +228,7 @@ ClassData::ClassData( const char *fileName) : FlintClassLoader(fileName) {
     next = 0;
 }
 
-ClassData::ClassData(const char *fileName, uint16_t length) : FlintClassLoader(fileName, length) {
+ClassData::ClassData(Flint &flint, const char *fileName, uint16_t length) : FlintClassLoader(flint, fileName, length) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;
@@ -236,7 +236,7 @@ ClassData::ClassData(const char *fileName, uint16_t length) : FlintClassLoader(f
     next = 0;
 }
 
-ClassData::ClassData(const FlintConstUtf8 &fileName) : FlintClassLoader(fileName) {
+ClassData::ClassData(Flint &flint, const FlintConstUtf8 &fileName) : FlintClassLoader(flint, fileName) {
     ownId = 0;
     monitorCount = 0;
     isInitializing = 0;

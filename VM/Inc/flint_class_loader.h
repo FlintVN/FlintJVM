@@ -32,14 +32,14 @@ private:
 
     void addAttribute(FlintAttribute *attribute);
 
-    void readFile(void *file);
+    void readFile(class Flint &flint, void *file);
     FlintAttribute *readAttribute(void *file, bool isDummy = false);
     FlintAttribute *readAttributeCode(void *file);
     FlintAttribute *readAttributeBootstrapMethods(void *file);
 protected:
-    FlintClassLoader(const char *fileName);
-    FlintClassLoader(const char *fileName, uint16_t length);
-    FlintClassLoader(const FlintConstUtf8 &fileName);
+    FlintClassLoader(class Flint &flint, const char *fileName);
+    FlintClassLoader(class Flint &flint, const char *fileName, uint16_t length);
+    FlintClassLoader(class Flint &flint, const FlintConstUtf8 &fileName);
 
     ~FlintClassLoader(void);
 public:

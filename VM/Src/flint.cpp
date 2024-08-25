@@ -66,6 +66,7 @@ Flint::Flint(void) {
     constClassList = 0;
     constStringList = 0;
     objectSizeToGc = 0;
+    constUtf8List = 0;
 }
 
 FlintDebugger *Flint::getDebugger(void) const {
@@ -334,6 +335,32 @@ FlintString &Flint::getConstString(FlintString &str) {
     return str;
 }
 
+FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
+    uint32_t hash;
+    ((uint16_t *)&hash)[0] = length;
+    ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)text, length);
+    for(FlintConstUtf8Node *node = constUtf8List; node != 0; node = node->next) {
+        if(CONST_UTF8_HASH(node->value) == hash) {
+            if(strncmp(node->value.text, text, length) == 0)
+                return node->value;
+        }
+    }
+
+    FlintConstUtf8Node *newNode = (FlintConstUtf8Node *)Flint::malloc(sizeof(FlintConstUtf8Node) + length + 1);
+    *(uint16_t *)&newNode->value.length = length;
+    *(uint16_t *)&newNode->value.crc = ((uint16_t *)&hash)[1];
+    char *textBuff = (char *)newNode->value.text;
+    strncpy(textBuff, text, length);
+    textBuff[length] = 0;
+
+    Flint::lock();
+    newNode->next = constUtf8List;
+    constUtf8List = newNode;
+    Flint::unlock();
+
+    return newNode->value;
+}
+
 FlintThrowable &Flint::newThrowable(FlintString &strObj, FlintConstUtf8 &excpType) {
     /* create new exception object */
     FlintThrowable &obj = *(FlintThrowable *)&newObject(sizeof(FlintFieldsData), excpType);
@@ -493,7 +520,7 @@ FlintClassLoader &Flint::load(const char *className, uint16_t length) {
             }
         }
         newNode = (ClassData *)Flint::malloc(sizeof(ClassData));
-        new (newNode)ClassData(className, length);
+        new (newNode)ClassData(*this, className, length);
         newNode->next = classDataList;
         classDataList = newNode;
         Flint::unlock();
@@ -526,7 +553,7 @@ FlintClassLoader &Flint::load(FlintConstUtf8 &className) {
             }
         }
         newNode = (ClassData *)Flint::malloc(sizeof(ClassData));
-        new (newNode)ClassData(className.text, className.length);
+        new (newNode)ClassData(*this, className.text, className.length);
         newNode->next = classDataList;
         classDataList = newNode;
         Flint::unlock();
@@ -698,8 +725,18 @@ void Flint::freeAllClassLoader(void) {
     classDataList = 0;
 }
 
+void Flint::freeAllConstUtf8(void) {
+    for(FlintConstUtf8Node *node = constUtf8List; node != 0;) {
+        FlintConstUtf8Node *next = node->next;
+        Flint::free(node);
+        node = next;
+    }
+    constUtf8List = 0;
+}
+
 void Flint::freeAll(void) {
     freeAllObject();
     freeAllExecution();
     freeAllClassLoader();
+    freeAllConstUtf8();
 }
