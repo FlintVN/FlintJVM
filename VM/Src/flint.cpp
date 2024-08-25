@@ -339,10 +339,13 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
     uint32_t hash;
     ((uint16_t *)&hash)[0] = length;
     ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)text, length);
+    Flint::lock();
     for(FlintConstUtf8Node *node = constUtf8List; node != 0; node = node->next) {
         if(CONST_UTF8_HASH(node->value) == hash) {
-            if(strncmp(node->value.text, text, length) == 0)
+            if(strncmp(node->value.text, text, length) == 0) {
+                Flint::unlock();
                 return node->value;
+            }
         }
     }
 
@@ -353,9 +356,9 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
     strncpy(textBuff, text, length);
     textBuff[length] = 0;
 
-    Flint::lock();
     newNode->next = constUtf8List;
     constUtf8List = newNode;
+
     Flint::unlock();
 
     return newNode->value;

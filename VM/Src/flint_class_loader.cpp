@@ -141,6 +141,8 @@ FlintClassLoader::FlintClassLoader(Flint &flint, const FlintConstUtf8 &fileName)
 }
 
 void FlintClassLoader::readFile(Flint &flint, void *file) {
+    char *utf8Buff = 0;
+    uint16_t utf8Length = 0;
     magic = ClassLoader_ReadUInt32(file);
     minorVersion = ClassLoader_ReadUInt16(file);
     majorVersion = ClassLoader_ReadUInt16(file);
@@ -151,10 +153,12 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
         switch(poolTable[i].tag) {
             case CONST_UTF8: {
                 uint16_t length = ClassLoader_ReadUInt16(file);
-                char *text = (char *)Flint::malloc(length);
-                ClassLoader_Read(file, text, length);
-                *(uint32_t *)&poolTable[i].value = (uint32_t)&flint.getConstUtf8(text, length);
-                Flint::free(text);
+                if(length > utf8Length) {
+                    utf8Buff = (char *)Flint::realloc(utf8Buff, length);
+                    utf8Length = length;
+                }
+                ClassLoader_Read(file, utf8Buff, length);
+                *(uint32_t *)&poolTable[i].value = (uint32_t)&flint.getConstUtf8(utf8Buff, length);
                 break;
             }
             case CONST_INTEGER:
@@ -194,6 +198,8 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
                 throw "uknow pool type";
         }
     }
+    if(utf8Buff)
+        Flint::free(utf8Buff);
     accessFlags = ClassLoader_ReadUInt16(file);
     thisClass = &getConstUtf8Class(ClassLoader_ReadUInt16(file));
     uint16_t superClassIndex = ClassLoader_ReadUInt16(file);
