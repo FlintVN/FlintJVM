@@ -520,6 +520,7 @@ FlintClassLoader &Flint::load(const char *className, uint16_t length) {
             }
         }
         newNode = (ClassData *)Flint::malloc(sizeof(ClassData));
+        newNode->staticFieldsData = 0;
         new (newNode)ClassData(*this, className, length);
         newNode->next = classDataList;
         classDataList = newNode;
