@@ -15,6 +15,7 @@
 #define DBG_STATUS_STOP_SET         0x0002
 #define DBG_STATUS_EXCP             0x0004
 #define DBG_STATUS_CONSOLE          0x0008
+#define DBG_STATUS_DONE             0x0040
 #define DBG_STATUS_RESET            0x0080
 
 #define DBG_CONTROL_STOP            0x0100
@@ -135,8 +136,6 @@ public:
     void checkBreakPoint(FlintExecution *exec);
     void caughtException(FlintExecution *exec, FlintThrowable *excp);
 private:
-    void clearResetStatus(void);
-
     FlintDebugger(const FlintDebugger &) = delete;
     void operator=(const FlintDebugger &) = delete;
 

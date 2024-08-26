@@ -168,6 +168,8 @@ void FlintDebugger::responseStatus(void) {
     uint16_t tmp = csr | (consoleLength ? DBG_STATUS_CONSOLE : 0);
     if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT))
         tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
+    if(!flint.isRunning())
+        tmp |= DBG_STATUS_DONE;
     initDataFrame(DBG_CMD_READ_STATUS, DBG_RESP_OK, 1);
     dataFrameAppend((uint8_t)tmp);
     if(dataFrameFinish() && (tmp & DBG_STATUS_STOP_SET)) {
@@ -823,10 +825,4 @@ void FlintDebugger::checkBreakPoint(FlintExecution *exec) {
             }
         }
     }
-}
-
-void FlintDebugger::clearResetStatus(void) {
-    Flint::lock();
-    this->csr &= ~DBG_STATUS_RESET;
-    Flint::unlock();
 }
