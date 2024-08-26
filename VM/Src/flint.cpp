@@ -2,9 +2,10 @@
 #include <new>
 #include <string.h>
 #include "flint.h"
-#include "flint_system_api.h"
 
 static uint32_t objectCount = 0;
+
+FlintAPI::Thread::LockHandle *Flint::flintLockHandle = FlintAPI::Thread::createLockHandle();
 
 Flint Flint::flintInstance;
 
@@ -19,11 +20,11 @@ FlintExecutionNode::FlintExecutionNode(Flint &flint, uint32_t stackSize) : Flint
 }
 
 void Flint::lock(void) {
-    FlintAPI::Thread::lock();
+    FlintAPI::Thread::lock(flintLockHandle);
 }
 
 void Flint::unlock(void) {
-    FlintAPI::Thread::unlock();
+    FlintAPI::Thread::unlock(flintLockHandle);
 }
 
 void *Flint::malloc(uint32_t size) {

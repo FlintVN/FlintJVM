@@ -5,6 +5,7 @@
 #include "flint_method_info.h"
 #include "flint_throwable.h"
 #include "flint_const_name.h"
+#include "flint_system_api.h"
 
 #if __has_include("flint_conf.h")
 #include "flint_conf.h"
@@ -87,6 +88,7 @@ private:
 
 class FlintDebugger {
 private:
+    FlintAPI::Thread::LockHandle *dbgLockHandle;
     class Flint &flint;
     class FlintExecution *execution;
     FlintThrowable *exception;
@@ -142,6 +144,9 @@ private:
 
     bool addBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor);
     bool removeBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor);
+
+    void lock(void);
+    void unlock(void);
 };
 
 #endif /* __FLINT_DEBUGGER_H */

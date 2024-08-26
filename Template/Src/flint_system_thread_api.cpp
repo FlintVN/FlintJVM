@@ -3,11 +3,15 @@
 
 #include "flint_system_api.h"
 
-void FlintAPI::Thread::lock(void) {
+FlintAPI::Thread::LockHandle *FlintAPI::Thread::createLockHandle(void) {
+    throw "FlintAPI::System::createLockHandle is not implemented in VM";
+}
+
+void FlintAPI::Thread::lock(FlintAPI::Thread::LockHandle *lockHandle) {
     throw "FlintAPI::System::lock is not implemented in VM";
 }
 
-void FlintAPI::Thread::unlock(void) {
+void FlintAPI::Thread::unlock(FlintAPI::Thread::LockHandle *lockHandle) {
     throw "FlintAPI::System::unlock is not implemented in VM";
 }
 

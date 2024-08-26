@@ -11,6 +11,7 @@
 #include "flint_fields_data.h"
 #include "flint_out_of_memory.h"
 #include "flint_load_file_error.h"
+#include "flint_system_api.h"
 
 class FlintExecutionNode : public FlintExecution {
 public:
@@ -37,6 +38,7 @@ private:
 
 class Flint {
 private:
+    static FlintAPI::Thread::LockHandle *flintLockHandle;
     static Flint flintInstance;
     FlintDebugger *dbg;
     FlintExecutionNode *executionList;
