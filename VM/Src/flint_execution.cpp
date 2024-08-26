@@ -2351,8 +2351,16 @@ void FlintExecution::runTask(FlintExecution *execution) {
         execution->flint.print(msg, strlen(msg), 0);
         execution->flint.print("\n", 1, 0);
     }
-    while(execution->startSp > 3)
+    while(execution->startSp > 3) {
+        if((execution->method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
+            ClassData &classData = *(ClassData *)&execution->method->classLoader;
+            if(classData.isInitializing) {
+                classData.isInitializing = 0;
+                Flint::unlock();
+            }
+        }
         execution->stackRestoreContext();
+    }
     execution->peakSp = -1;
     execution->flint.freeExecution(*execution);
     FlintAPI::Thread::terminate(0);
