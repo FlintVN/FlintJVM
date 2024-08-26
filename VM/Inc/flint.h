@@ -68,6 +68,8 @@ public:
     FlintExecution &newExecution(void);
     FlintExecution &newExecution(uint32_t stackSize);
 
+    void freeExecution(FlintExecution &execution);
+
     FlintObject &newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);
 
     FlintObject &newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);

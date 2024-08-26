@@ -108,6 +108,21 @@ FlintExecution &Flint::newExecution(uint32_t stackSize) {
     return *newNode;
 }
 
+void Flint::freeExecution(FlintExecution &execution) {
+    Flint::lock();
+    FlintExecutionNode *prev = ((FlintExecutionNode *)&execution)->prev;
+    FlintExecutionNode *next = ((FlintExecutionNode *)&execution)->next;
+    ((FlintExecutionNode *)&execution)->~FlintExecutionNode();
+    Flint::free(&execution);
+    if(prev)
+        prev->next = next;
+    else
+        executionList = next;
+    if(next)
+        next->prev = prev;
+    Flint::unlock();
+}
+
 FlintObject &Flint::newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions) {
     objectSizeToGc += size;
     if(objectSizeToGc >= OBJECT_SIZE_TO_GC)
@@ -660,11 +675,7 @@ void Flint::runToMain(const char *mainClass, uint32_t stackSize) {
 }
 
 bool Flint::isRunning(void) const {
-    for(FlintExecutionNode *node = executionList; node != 0; node = node->next) {
-        if(node->isRunning())
-            return true;
-    }
-    return false;
+    return executionList ? true : false;
 }
 
 void Flint::terminateRequest(void) {
@@ -684,6 +695,7 @@ void Flint::clearAllStaticFields(void) {
 }
 
 void Flint::freeAllObject(void) {
+    Flint::lock();
     for(FlintConstClass *node = constClassList; node != 0;) {
         FlintConstClass *next = node->next;
         Flint::free(node);
@@ -707,9 +719,11 @@ void Flint::freeAllObject(void) {
     constStringList = 0;
     objectList = 0;
     objectSizeToGc = 0;
+    Flint::unlock();
 }
 
 void Flint::freeAllExecution(void) {
+    Flint::lock();
     for(FlintExecutionNode *node = executionList; node != 0;) {
         FlintExecutionNode *next = node->next;
         node->~FlintExecutionNode();
@@ -717,9 +731,11 @@ void Flint::freeAllExecution(void) {
         node = next;
     }
     executionList = 0;
+    Flint::unlock();
 }
 
 void Flint::freeAllClassLoader(void) {
+    Flint::lock();
     for(ClassData *node = classDataList; node != 0;) {
         ClassData *next = node->next;
         node->~ClassData();
@@ -727,15 +743,18 @@ void Flint::freeAllClassLoader(void) {
         node = next;
     }
     classDataList = 0;
+    Flint::unlock();
 }
 
 void Flint::freeAllConstUtf8(void) {
+    Flint::lock();
     for(FlintConstUtf8Node *node = constUtf8List; node != 0;) {
         FlintConstUtf8Node *next = node->next;
         Flint::free(node);
         node = next;
     }
     constUtf8List = 0;
+    Flint::unlock();
 }
 
 void Flint::freeAll(void) {

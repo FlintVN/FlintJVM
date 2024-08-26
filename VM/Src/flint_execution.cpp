@@ -21,7 +21,7 @@
 static const void **opcodeLabelsExit = 0;
 
 FlintExecution::FlintExecution(Flint &flint) : flint(flint), stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
-    opcodes = (const void **)0xFFFFFFFF;
+    opcodes = 0;
     lr = -1;
     sp = -1;
     startSp = sp;
@@ -31,7 +31,7 @@ FlintExecution::FlintExecution(Flint &flint) : flint(flint), stackLength(DEFAULT
 }
 
 FlintExecution::FlintExecution(Flint &flint, uint32_t size) : flint(flint), stackLength(size / sizeof(int32_t)) {
-    opcodes = (const void **)0xFFFFFFFF;
+    opcodes = 0;
     lr = -1;
     sp = -1;
     startSp = sp;
@@ -2354,19 +2354,15 @@ void FlintExecution::runTask(FlintExecution *execution) {
     while(execution->startSp > 3)
         execution->stackRestoreContext();
     execution->peakSp = -1;
-    execution->opcodes = 0;
+    execution->flint.freeExecution(*execution);
     FlintAPI::Thread::terminate(0);
 }
 
 bool FlintExecution::run(FlintMethodInfo &method) {
     this->method = &method;
-    if(!opcodes || (opcodes == (const void **)0xFFFFFFFF))
+    if(!opcodes)
         return (FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this) != 0);
     return false;
-}
-
-bool FlintExecution::isRunning(void) const {
-    return opcodes != 0;
 }
 
 void FlintExecution::terminateRequest(void) {
