@@ -464,6 +464,11 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         return true;
     }
     switch(cmd) {
+        case DBG_CMD_ENTER_DEBUG: {
+            flint.setDebugger(this);
+            sendRespCode(DBG_CMD_ENTER_DEBUG, DBG_RESP_OK);
+            return true;
+        }
         case DBG_CMD_READ_STATUS: {
             responseStatus();
             return true;

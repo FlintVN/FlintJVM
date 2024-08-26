@@ -25,6 +25,7 @@
 #define DBG_CONTROL_EXCP_EN         0x1000
 
 typedef enum : uint8_t {
+    DBG_CMD_ENTER_DEBUG,
     DBG_CMD_READ_STATUS,
     DBG_CMD_READ_STACK_TRACE,
     DBG_CMD_ADD_BKP,
