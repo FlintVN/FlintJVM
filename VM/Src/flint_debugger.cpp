@@ -677,6 +677,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                     installClassFileHandle &&
                     FlintAPI::File::close(installClassFileHandle) == FILE_RESULT_OK
                 ) {
+                    installClassFileHandle = 0;
                     sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_OK);
                 }
                 else
