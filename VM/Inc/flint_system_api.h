@@ -45,6 +45,12 @@ namespace FlintAPI {
         FlintFileResult remove(const char *fileName);
     };
 
+    namespace Directory {
+        FlintFileResult exists(const char *path);
+        FlintFileResult create(const char *path);
+        FlintFileResult remove(const char *path);
+    };
+
     namespace Thread {
         typedef struct {
             void *mutexHandle;
