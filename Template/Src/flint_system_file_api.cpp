@@ -3,6 +3,10 @@
 
 #include "flint_system_api.h"
 
+FlintFileResult FlintAPI::File::exists(const char *fileName) {
+    throw "FlintAPI::File::exists is not implemented in VM";
+}
+
 void *FlintAPI::File::open(const char *fileName, FlintFileMode mode) {
     throw "FlintAPI::File::open is not implemented in VM";
 }
@@ -29,4 +33,8 @@ FlintFileResult FlintAPI::File::seek(void *fileHandle, uint32_t offset) {
 
 FlintFileResult FlintAPI::File::close(void *fileHandle) {
     throw "FlintAPI::File::close is not implemented in VM";
+}
+
+FlintFileResult FlintAPI::File::remove(const char *fileName) {
+    throw "FlintAPI::File::remove is not implemented in VM";
 }

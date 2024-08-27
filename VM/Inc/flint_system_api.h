@@ -34,6 +34,7 @@ namespace FlintAPI {
     };
 
     namespace File {
+        FlintFileResult exists(const char *fileName);
         void *open(const char *fileName, FlintFileMode mode);
         FlintFileResult read(void *fileHandle, void *buff, uint32_t btr, uint32_t *br);
         FlintFileResult write(void *fileHandle, void *buff, uint32_t btw, uint32_t *bw);
@@ -41,6 +42,7 @@ namespace FlintAPI {
         uint32_t tell(void *fileHandle);
         FlintFileResult seek(void *fileHandle, uint32_t offset);
         FlintFileResult close(void *fileHandle);
+        FlintFileResult remove(const char *fileName);
     };
 
     namespace Thread {
