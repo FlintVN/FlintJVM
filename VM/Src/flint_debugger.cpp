@@ -644,8 +644,20 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             if(csr & DBG_STATUS_RESET) {
                 if(installClassFileHandle)
                     FlintAPI::File::close(installClassFileHandle);
-                FlintConstUtf8 *fileName = (FlintConstUtf8 *)&data[4];
-                installClassFileHandle = FlintAPI::File::open(fileName->text, FLINT_FILE_CREATE_ALWAYS);
+                char *fileName = (char *)((FlintConstUtf8 *)&data[4])->text;
+                for(uint16_t i = 0; fileName[i]; i++) {
+                    if((fileName[i] == '/') || (fileName[i] == '\\')) {
+                        fileName[i] = 0;
+                        if(FlintAPI::Directory::exists(fileName) != FILE_RESULT_OK) {
+                            if(FlintAPI::Directory::create(fileName) != FILE_RESULT_OK) {
+                                sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_FAIL);
+                                return true;
+                            }
+                        }
+                        fileName[i] = '/';
+                    }
+                }
+                installClassFileHandle = FlintAPI::File::open(fileName, FLINT_FILE_CREATE_ALWAYS);
                 if(installClassFileHandle)
                     sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_OK);
                 else
