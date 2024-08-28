@@ -47,9 +47,11 @@ typedef enum : uint8_t {
     DBG_CMD_WRITE_FIELD,
     DBG_CMD_READ_ARRAY,
     DBG_CMD_READ_SIZE_AND_TYPE,
-    DBG_CMD_INSTALL_FILE,
-    DBG_CMD_WRITE_FILE_DATA,
-    DBG_CMD_COMPLATE_INSTALL,
+    DBG_CMD_OPEN_FILE,
+    DBG_CMD_READ_FILE,
+    DBG_CMD_WRITE_FILE,
+    DBG_CMD_CLOSE_FILE,
+    DBG_CMD_DELETE_FILE,
     DBG_CMD_READ_CONSOLE,
 } FlintDbgCmd;
 
@@ -92,7 +94,7 @@ private:
     class Flint &flint;
     class FlintExecution *execution;
     FlintThrowable *exception;
-    void *installClassFileHandle;
+    void *fileHandle;
     volatile uint32_t stepCodeLength;
     volatile uint32_t consoleOffset;
     volatile uint32_t consoleLength;
@@ -101,9 +103,10 @@ private:
     volatile uint16_t csr;
     volatile uint8_t breakPointCount;
     FlintStackFrame startPoint;
-    FlintBreakPoint breakPoints[MAX_OF_BREAK_POINT];private:
+    FlintBreakPoint breakPoints[MAX_OF_BREAK_POINT];
     uint8_t consoleBuff[DBG_CONSOLE_BUFFER_SIZE];
     uint8_t txBuff[DBG_TX_BUFFER_SIZE];
+    uint8_t fileBuff[256];
 public:
     FlintDebugger(Flint &flint);
 

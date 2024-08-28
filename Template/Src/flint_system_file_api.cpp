@@ -11,27 +11,27 @@ void *FlintAPI::File::open(const char *fileName, FlintFileMode mode) {
     throw "FlintAPI::File::open is not implemented in VM";
 }
 
-FlintFileResult FlintAPI::File::read(void *fileHandle, void *buff, uint32_t btr, uint32_t *br) {
+FlintFileResult FlintAPI::File::read(void *handle, void *buff, uint32_t btr, uint32_t *br) {
     throw "FlintAPI::File::read is not implemented in VM";
 }
 
-FlintFileResult FlintAPI::File::write(void *fileHandle, void *buff, uint32_t btw, uint32_t *bw) {
+FlintFileResult FlintAPI::File::write(void *handle, void *buff, uint32_t btw, uint32_t *bw) {
     throw "FlintAPI::File::write is not implemented in VM";
 }
 
-uint32_t FlintAPI::File::size(void *fileHandle) {
+uint32_t FlintAPI::File::size(void *handle) {
     throw "FlintAPI::File::size is not implemented in VM";
 }
 
-uint32_t FlintAPI::File::tell(void *fileHandle) {
+uint32_t FlintAPI::File::tell(void *handle) {
     throw "FlintAPI::File::tell is not implemented in VM";
 }
 
-FlintFileResult FlintAPI::File::seek(void *fileHandle, uint32_t offset) {
+FlintFileResult FlintAPI::File::seek(void *handle, uint32_t offset) {
     throw "FlintAPI::File::seek is not implemented in VM";
 }
 
-FlintFileResult FlintAPI::File::close(void *fileHandle) {
+FlintFileResult FlintAPI::File::close(void *handle) {
     throw "FlintAPI::File::close is not implemented in VM";
 }
 

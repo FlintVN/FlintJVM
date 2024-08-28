@@ -24,7 +24,7 @@ FlintDebugger::FlintDebugger(Flint &flint) : flint(flint) {
     dbgLockHandle = FlintAPI::Thread::createLockHandle();
     execution = 0;
     exception = 0;
-    installClassFileHandle = 0;
+    fileHandle = 0;
     stepCodeLength = 0;
     consoleOffset = 0;
     consoleLength = 0;
@@ -640,63 +640,93 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
                 sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_FAIL);
             return true;
         }
-        case DBG_CMD_INSTALL_FILE: {
+        case DBG_CMD_OPEN_FILE: {
             if(csr & DBG_STATUS_RESET) {
-                if(installClassFileHandle)
-                    FlintAPI::File::close(installClassFileHandle);
-                char *fileName = (char *)((FlintConstUtf8 *)&data[4])->text;
+                if(fileHandle)
+                    FlintAPI::File::close(fileHandle);
+                FlintFileMode fileMode = (FlintFileMode)data[4];
+                char *fileName = (char *)((FlintConstUtf8 *)&data[5])->text;
                 for(uint16_t i = 0; fileName[i]; i++) {
                     if((fileName[i] == '/') || (fileName[i] == '\\')) {
                         fileName[i] = 0;
                         if(FlintAPI::Directory::exists(fileName) != FILE_RESULT_OK) {
                             if(FlintAPI::Directory::create(fileName) != FILE_RESULT_OK) {
-                                sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_FAIL);
+                                sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_FAIL);
                                 return true;
                             }
                         }
                         fileName[i] = '/';
                     }
                 }
-                installClassFileHandle = FlintAPI::File::open(fileName, FLINT_FILE_CREATE_ALWAYS);
-                if(installClassFileHandle)
-                    sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_OK);
+                fileHandle = FlintAPI::File::open(fileName, fileMode);
+                if(fileHandle)
+                    sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_OK);
                 else
-                    sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_FAIL);
+                    sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_FAIL);
             }
             else
-                sendRespCode(DBG_CMD_INSTALL_FILE, DBG_RESP_BUSY);
+                sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_BUSY);
             return true;
         }
-        case DBG_CMD_WRITE_FILE_DATA: {
+        case DBG_CMD_READ_FILE: {
+            if(csr & DBG_STATUS_RESET) {
+                if(fileHandle) {
+                    uint32_t size;
+                    if(FlintAPI::File::read(fileHandle, fileBuff, sizeof(fileBuff), &size) == FILE_RESULT_OK) {
+                        initDataFrame(DBG_CMD_READ_FILE, DBG_RESP_OK, size);
+                        if(!dataFrameAppend(fileBuff, size)) return true;
+                        dataFrameFinish();
+                    }
+                    return true;
+                }
+                sendRespCode(DBG_CMD_READ_FILE, DBG_RESP_FAIL);
+            }
+            else
+                sendRespCode(DBG_CMD_READ_FILE, DBG_RESP_BUSY);
+            return true;
+        }
+        case DBG_CMD_WRITE_FILE: {
             if(csr & DBG_STATUS_RESET) {
                 uint32_t bw = 0;
                 if(
-                    installClassFileHandle &&
-                    FlintAPI::File::write(installClassFileHandle, &data[4], length - 6, &bw) == FILE_RESULT_OK
+                    fileHandle &&
+                    FlintAPI::File::write(fileHandle, &data[4], length - 6, &bw) == FILE_RESULT_OK
                 ) {
-                    sendRespCode(DBG_CMD_WRITE_FILE_DATA, DBG_RESP_OK);
+                    sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_OK);
                 }
                 else
-                    sendRespCode(DBG_CMD_WRITE_FILE_DATA, DBG_RESP_FAIL);
+                    sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_FAIL);
             }
             else
-                sendRespCode(DBG_CMD_WRITE_FILE_DATA, DBG_RESP_BUSY);
+                sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_BUSY);
             return true;
         }
-        case DBG_CMD_COMPLATE_INSTALL: {
+        case DBG_CMD_CLOSE_FILE: {
             if(csr & DBG_STATUS_RESET) {
                 if(
-                    installClassFileHandle &&
-                    FlintAPI::File::close(installClassFileHandle) == FILE_RESULT_OK
+                    fileHandle &&
+                    FlintAPI::File::close(fileHandle) == FILE_RESULT_OK
                 ) {
-                    installClassFileHandle = 0;
-                    sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_OK);
+                    fileHandle = 0;
+                    sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_OK);
                 }
                 else
-                    sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_FAIL);
+                    sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_FAIL);
             }
             else
-                sendRespCode(DBG_CMD_COMPLATE_INSTALL, DBG_RESP_BUSY);
+                sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_BUSY);
+            return true;
+        }
+        case DBG_CMD_DELETE_FILE: {
+            if(csr & DBG_STATUS_RESET) {
+                char *fileName = (char *)((FlintConstUtf8 *)&data[4])->text;
+                if(FlintAPI::File::remove(fileName) == FILE_RESULT_OK)
+                    sendRespCode(DBG_CMD_DELETE_FILE, DBG_RESP_OK);
+                else
+                    sendRespCode(DBG_CMD_DELETE_FILE, DBG_RESP_FAIL);
+            }
+            else
+                sendRespCode(DBG_CMD_DELETE_FILE, DBG_RESP_BUSY);
             return true;
         }
         case DBG_CMD_READ_CONSOLE: {

@@ -36,12 +36,12 @@ namespace FlintAPI {
     namespace File {
         FlintFileResult exists(const char *fileName);
         void *open(const char *fileName, FlintFileMode mode);
-        FlintFileResult read(void *fileHandle, void *buff, uint32_t btr, uint32_t *br);
-        FlintFileResult write(void *fileHandle, void *buff, uint32_t btw, uint32_t *bw);
-        uint32_t size(void *fileHandle);
-        uint32_t tell(void *fileHandle);
-        FlintFileResult seek(void *fileHandle, uint32_t offset);
-        FlintFileResult close(void *fileHandle);
+        FlintFileResult read(void *handle, void *buff, uint32_t btr, uint32_t *br);
+        FlintFileResult write(void *handle, void *buff, uint32_t btw, uint32_t *bw);
+        uint32_t size(void *handle);
+        uint32_t tell(void *handle);
+        FlintFileResult seek(void *handle, uint32_t offset);
+        FlintFileResult close(void *handle);
         FlintFileResult remove(const char *fileName);
     };
 
