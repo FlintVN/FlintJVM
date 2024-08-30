@@ -52,6 +52,11 @@ typedef enum : uint8_t {
     DBG_CMD_WRITE_FILE,
     DBG_CMD_CLOSE_FILE,
     DBG_CMD_DELETE_FILE,
+    DBG_CMD_OPEN_DIR,
+    DBG_CMD_READ_DIR,
+    DBG_CMD_CREATE_DIR,
+    DBG_CMD_CLOSE_DIR,
+    DBG_CMD_DELETE_DIR,
     DBG_CMD_READ_CONSOLE,
 } FlintDbgCmd;
 
@@ -94,6 +99,7 @@ private:
     class Flint &flint;
     class FlintExecution *execution;
     FlintThrowable *exception;
+    void *dirHandle;
     void *fileHandle;
     volatile uint32_t stepCodeLength;
     volatile uint32_t consoleOffset;
@@ -135,6 +141,14 @@ private:
     void responseField(FlintObject *obj, FlintConstUtf8 &fieldName);
     void responseArray(FlintObject *array, uint32_t index, uint32_t length);
     void responseObjSizeAndType(FlintObject *obj);
+    void responseOpenFile(char *fileName, FlintFileMode mode);
+    void responseReadFile(void);
+    void responseWriteFile(uint8_t *data, int32_t size);
+    void responseCloseFile(void);
+    void responseCreateDelete(FlintDbgCmd cmd, const char *path);
+    void responseOpenDir(const char *path);
+    void responseReadDir(void);
+    void responseCloseDir(void);
     void responseConsoleBuffer(void);
 public:
     bool receivedDataHandler(uint8_t *data, uint32_t length);

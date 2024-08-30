@@ -46,6 +46,9 @@ namespace FlintAPI {
     };
 
     namespace Directory {
+        void *open(const char *dirName);
+        FlintFileResult read(void *handle, bool *isFile, char *nameBuff, uint32_t buffSize);
+        FlintFileResult close(void *handle);
         FlintFileResult exists(const char *path);
         FlintFileResult create(const char *path);
         FlintFileResult remove(const char *path);
