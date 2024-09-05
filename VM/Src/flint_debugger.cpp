@@ -478,7 +478,7 @@ void FlintDebugger::responseReadFile(void) {
                 dataFrameFinish();
                 return;
             }
-        } 
+        }
         sendRespCode(DBG_CMD_READ_FILE, DBG_RESP_FAIL);
     }
     else
@@ -516,6 +516,24 @@ void FlintDebugger::responseCloseFile(void) {
     }
     else
         sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_BUSY);
+}
+
+void FlintDebugger::responseFileInfo(const char *fileName) {
+    if(csr & DBG_STATUS_RESET) {
+        uint32_t size;
+        int64_t time;
+        FlintFileResult ret = FlintAPI::File::info(fileName, &size, &time);
+        if(ret != FILE_RESULT_OK)
+            sendRespCode(DBG_CMD_READ_FILE_INFO, DBG_RESP_FAIL);
+        else {
+            initDataFrame(DBG_CMD_READ_FILE_INFO, DBG_RESP_OK, sizeof(size) + sizeof(time));
+            if(!dataFrameAppend(size)) return;
+            if(!dataFrameAppend((uint64_t)time)) return;
+            dataFrameFinish();
+        }
+    }
+    else
+        sendRespCode(DBG_CMD_READ_FILE_INFO, DBG_RESP_BUSY);
 }
 
 void FlintDebugger::responseCreateDelete(FlintDbgCmd cmd, const char *path) {
@@ -808,6 +826,15 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_CLOSE_FILE: {
             responseCloseFile();
+            return true;
+        }
+        case DBG_CMD_READ_FILE_INFO: {
+            if(length >= 12) {
+                const char *path = (const char *)((FlintConstUtf8 *)&data[4])->text;
+                responseFileInfo(path);
+            }
+            else
+                sendRespCode(DBG_CMD_CREATE_DIR, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_DELETE_FILE:

@@ -7,6 +7,10 @@ FlintFileResult FlintAPI::File::exists(const char *fileName) {
     throw "FlintAPI::File::exists is not implemented in VM";
 }
 
+FlintFileResult FlintAPI::File::info(const char *fileName, uint32_t *size, int64_t *time) {
+    throw "FlintAPI::File::info is not implemented in VM";
+}
+
 void *FlintAPI::File::open(const char *fileName, FlintFileMode mode) {
     throw "FlintAPI::File::open is not implemented in VM";
 }

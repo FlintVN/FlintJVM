@@ -35,6 +35,7 @@ namespace FlintAPI {
 
     namespace File {
         FlintFileResult exists(const char *fileName);
+        FlintFileResult info(const char *fileName, uint32_t *size, int64_t *time);
         void *open(const char *fileName, FlintFileMode mode);
         FlintFileResult read(void *handle, void *buff, uint32_t btr, uint32_t *br);
         FlintFileResult write(void *handle, void *buff, uint32_t btw, uint32_t *bw);

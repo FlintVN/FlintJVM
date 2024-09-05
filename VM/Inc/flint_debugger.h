@@ -52,6 +52,7 @@ typedef enum : uint8_t {
     DBG_CMD_READ_FILE,
     DBG_CMD_WRITE_FILE,
     DBG_CMD_CLOSE_FILE,
+    DBG_CMD_READ_FILE_INFO,
     DBG_CMD_DELETE_FILE,
     DBG_CMD_OPEN_DIR,
     DBG_CMD_READ_DIR,
@@ -147,6 +148,7 @@ private:
     void responseReadFile(void);
     void responseWriteFile(uint8_t *data, int32_t size);
     void responseCloseFile(void);
+    void responseFileInfo(const char *fileName);
     void responseCreateDelete(FlintDbgCmd cmd, const char *path);
     void responseOpenDir(const char *path);
     void responseReadDir(void);
