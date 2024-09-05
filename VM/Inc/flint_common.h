@@ -4,6 +4,10 @@
 
 #include <stdint.h>
 
+#define FLINT_VERSION_MAJOR     1
+#define FLINT_VERSION_MINOR     0
+#define FLINT_VERSION_PATCH     0
+
 #define KILO_BYTE(value)        (value * 1024)
 #define MEGA_BYTE(value)        (value * KILO_BYTE(1024))
 

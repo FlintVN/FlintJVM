@@ -165,6 +165,14 @@ bool FlintDebugger::sendRespCode(FlintDbgCmd cmd, FlintDbgRespCode responseCode)
     return dataFrameFinish();
 }
 
+void FlintDebugger::responseVersion(void) {
+    initDataFrame(DBG_CMD_READ_VM_VERSION, DBG_RESP_OK, 3);
+    if(!dataFrameAppend((uint8_t)FLINT_VERSION_MAJOR)) return;
+    if(!dataFrameAppend((uint8_t)FLINT_VERSION_MINOR)) return;
+    if(!dataFrameAppend((uint8_t)FLINT_VERSION_PATCH)) return;
+    dataFrameFinish();
+}
+
 void FlintDebugger::responseStatus(void) {
     uint16_t tmp = csr | (consoleLength ? DBG_STATUS_CONSOLE : 0);
     if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT))
@@ -604,6 +612,10 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         return true;
     }
     switch(cmd) {
+        case DBG_CMD_READ_VM_VERSION: {
+            responseVersion();
+            return true;
+        }
         case DBG_CMD_ENTER_DEBUG: {
             flint.setDebugger(this);
             sendRespCode(DBG_CMD_ENTER_DEBUG, DBG_RESP_OK);
