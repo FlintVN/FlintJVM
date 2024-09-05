@@ -19,4 +19,6 @@ uint64_t Flint_Swap64(uint64_t value);
 
 uint16_t Flint_CalcCrc(const uint8_t *data, uint32_t length);
 
+int64_t Flint_GetUnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
+
 #endif /* __FLINT_COMMON_H */

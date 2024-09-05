@@ -33,3 +33,20 @@ uint16_t Flint_CalcCrc(const uint8_t *data, uint32_t length) {
         ret += data[i];
     return ret;
 }
+
+int64_t Flint_GetUnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
+    static const uint16_t dayCount[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
+    int64_t ret = dayCount[month - 1] + day;
+    if(year % 4 == 0 && month > 2)
+        ret++;
+    if(year >= 1) {
+        year--;
+        ret = ret + year * 365 + year / 4 - year / 100 + year / 400;
+    }
+    ret *= 24 * 60 * 60;
+    ret += hour * 60 * 60;
+    ret += minute * 60;
+    ret += second;
+    ret -= 62135683200ULL; /* 00:00:00 - 1/1/1970 */
+    return ret;
+}
