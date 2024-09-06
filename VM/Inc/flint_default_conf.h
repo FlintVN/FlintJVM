@@ -2,6 +2,11 @@
 #ifndef __FLINT_DEFAULT_CONF_H
 #define __FLINT_DEFAULT_CONF_H
 
+#ifndef FLINT_VARIANT_NAME
+    #define FLINT_VARIANT_NAME          "Common FlintJVM"
+    #warning "FLINT_VARIANT_NAME is not defined. Default value will be used"
+#endif /* FLINT_VARIANT_NAME */
+
 #ifndef FILE_NAME_BUFF_SIZE
     #define FILE_NAME_BUFF_SIZE         256
     #warning "FILE_NAME_BUFF_SIZE is not defined. Default value will be used"

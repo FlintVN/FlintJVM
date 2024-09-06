@@ -27,7 +27,7 @@
 
 typedef enum : uint8_t {
     DBG_CMD_ENTER_DEBUG,
-    DBG_CMD_READ_VM_VERSION,
+    DBG_CMD_READ_VM_INFO,
     DBG_CMD_READ_STATUS,
     DBG_CMD_READ_STACK_TRACE,
     DBG_CMD_ADD_BKP,
@@ -48,6 +48,7 @@ typedef enum : uint8_t {
     DBG_CMD_WRITE_FIELD,
     DBG_CMD_READ_ARRAY,
     DBG_CMD_READ_SIZE_AND_TYPE,
+    DBG_CMD_READ_CONSOLE,
     DBG_CMD_OPEN_FILE,
     DBG_CMD_READ_FILE,
     DBG_CMD_WRITE_FILE,
@@ -59,7 +60,6 @@ typedef enum : uint8_t {
     DBG_CMD_CREATE_DIR,
     DBG_CMD_CLOSE_DIR,
     DBG_CMD_DELETE_DIR,
-    DBG_CMD_READ_CONSOLE,
 } FlintDbgCmd;
 
 typedef enum : uint8_t {
@@ -136,7 +136,7 @@ private:
     bool dataFrameFinish(void);
     bool sendRespCode(FlintDbgCmd cmd, FlintDbgRespCode responseCode);
 
-    void responseVersion(void);
+    void responseInfo(void);
     void responseStatus(void);
     void responseStackTrace(uint32_t stackIndex);
     void responseExceptionInfo(void);
