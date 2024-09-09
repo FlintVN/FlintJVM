@@ -7,7 +7,7 @@ void *FlintAPI::Directory::open(const char *dirName) {
     throw "FlintAPI::Directory::open is not implemented in VM";
 }
 
-FlintFileResult FlintAPI::Directory::read(void *handle, bool *isFile, char *nameBuff, uint32_t buffSize) {
+FlintFileResult FlintAPI::Directory::read(void *handle, bool *isFile, char *nameBuff, uint32_t buffSize, uint32_t *size, int64_t *time) {
     throw "FlintAPI::Directory::read is not implemented in VM";
 }
 

@@ -574,15 +574,22 @@ void FlintDebugger::responseReadDir(void) {
     if(csr & DBG_STATUS_RESET) {
         if(dirHandle) {
             bool isFile;
-            if(FlintAPI::Directory::read(dirHandle, &isFile, (char *)fileBuff, sizeof(fileBuff)) == FILE_RESULT_OK) {
+            uint32_t size;
+            int64_t time;
+            if(FlintAPI::Directory::read(dirHandle, &isFile, (char *)fileBuff, sizeof(fileBuff), &size, &time) == FILE_RESULT_OK) {
                 uint16_t nameLength = strlen((char *)fileBuff);
-                initDataFrame(DBG_CMD_READ_DIR, DBG_RESP_OK, 6 + nameLength);
+                uint32_t respLength = 6 + nameLength + ((isFile) ? (sizeof(size) + sizeof(time)) : 0);
+                initDataFrame(DBG_CMD_READ_DIR, DBG_RESP_OK, respLength);
                 if(!dataFrameAppend((uint8_t)isFile)) return;
                 if(!dataFrameAppend((uint16_t)nameLength)) return;
                 if(!dataFrameAppend((uint16_t)0)) return;
                 for(uint32_t i = 0; i < nameLength; i++)
                     if(!dataFrameAppend((uint8_t)fileBuff[i])) return;
                 if(!dataFrameAppend((uint8_t)0)) return;
+                if(isFile) {
+                    if(!dataFrameAppend(size)) return;
+                    if(!dataFrameAppend((uint64_t)time)) return;
+                }
                 dataFrameFinish();
             }
         }
