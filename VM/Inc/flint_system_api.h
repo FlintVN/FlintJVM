@@ -6,6 +6,12 @@
 #include "flint_method_info.h"
 #include "flint_attribute_info.h"
 
+#define	FLINT_FILE_ATTR_RDO         0x01
+#define	FLINT_FILE_ATTR_HID         0x02
+#define	FLINT_FILE_ATTR_SYS         0x04
+#define FLINT_FILE_ATTR_DIR         0x10
+#define FLINT_FILE_ATTR_ARC         0x20
+
 typedef enum : uint8_t {
     FLINT_FILE_OPEN_EXISTING = 0x00,
     FLINT_FILE_READ = 0x01,
@@ -48,7 +54,7 @@ namespace FlintAPI {
 
     namespace Directory {
         void *open(const char *dirName);
-        FlintFileResult read(void *handle, bool *isFile, char *nameBuff, uint32_t buffSize, uint32_t *size, int64_t *time);
+        FlintFileResult read(void *handle, uint8_t *attribute, char *nameBuff, uint32_t buffSize, uint32_t *size, int64_t *time);
         FlintFileResult close(void *handle);
         FlintFileResult exists(const char *path);
         FlintFileResult create(const char *path);
