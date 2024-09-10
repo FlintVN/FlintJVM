@@ -590,6 +590,8 @@ void FlintDebugger::responseReadDir(void) {
                 if(!dataFrameAppend((uint64_t)time)) return;
                 dataFrameFinish();
             }
+            else
+                sendRespCode(DBG_CMD_READ_DIR, DBG_RESP_OK);
         }
     }
     else
