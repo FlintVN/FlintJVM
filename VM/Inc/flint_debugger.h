@@ -53,13 +53,12 @@ typedef enum : uint8_t {
     DBG_CMD_READ_FILE,
     DBG_CMD_WRITE_FILE,
     DBG_CMD_CLOSE_FILE,
-    DBG_CMD_READ_FILE_INFO,
+    DBG_CMD_FILE_INFO,
     DBG_CMD_DELETE_FILE,
     DBG_CMD_OPEN_DIR,
     DBG_CMD_READ_DIR,
     DBG_CMD_CREATE_DIR,
     DBG_CMD_CLOSE_DIR,
-    DBG_CMD_DELETE_DIR,
 } FlintDbgCmd;
 
 typedef enum : uint8_t {

@@ -453,12 +453,12 @@ void FlintDebugger::responseObjSizeAndType(FlintObject *obj) {
 void FlintDebugger::responseOpenFile(char *fileName, FlintFileMode mode) {
     if(csr & DBG_STATUS_RESET) {
         if(fileHandle)
-            FlintAPI::File::close(fileHandle);
+            FlintAPI::IO::fclose(fileHandle);
         for(uint16_t i = 0; fileName[i]; i++) {
             if((fileName[i] == '/') || (fileName[i] == '\\')) {
                 fileName[i] = 0;
-                if(FlintAPI::Directory::exists(fileName) != FILE_RESULT_OK) {
-                    if(FlintAPI::Directory::create(fileName) != FILE_RESULT_OK) {
+                if(FlintAPI::IO::finfo(fileName, NULL, NULL) != FILE_RESULT_OK) {
+                    if(FlintAPI::IO::mkdir(fileName) != FILE_RESULT_OK) {
                         sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_FAIL);
                         return;
                     }
@@ -466,7 +466,7 @@ void FlintDebugger::responseOpenFile(char *fileName, FlintFileMode mode) {
                 fileName[i] = '/';
             }
         }
-        fileHandle = FlintAPI::File::open(fileName, mode);
+        fileHandle = FlintAPI::IO::fopen(fileName, mode);
         if(fileHandle)
             sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_OK);
         else
@@ -480,7 +480,7 @@ void FlintDebugger::responseReadFile(void) {
     if(csr & DBG_STATUS_RESET) {
         if(fileHandle) {
             uint32_t size;
-            if(FlintAPI::File::read(fileHandle, fileBuff, sizeof(fileBuff), &size) == FILE_RESULT_OK) {
+            if(FlintAPI::IO::fread(fileHandle, fileBuff, sizeof(fileBuff), &size) == FILE_RESULT_OK) {
                 initDataFrame(DBG_CMD_READ_FILE, DBG_RESP_OK, size);
                 if(!dataFrameAppend(fileBuff, size)) return;
                 dataFrameFinish();
@@ -499,7 +499,7 @@ void FlintDebugger::responseWriteFile(uint8_t *data, int32_t size) {
         if(
             size > 0 &&
             fileHandle &&
-            FlintAPI::File::write(fileHandle, data, size, &bw) == FILE_RESULT_OK
+            FlintAPI::IO::fwrite(fileHandle, data, size, &bw) == FILE_RESULT_OK
         ) {
             sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_OK);
         }
@@ -514,7 +514,7 @@ void FlintDebugger::responseCloseFile(void) {
     if(csr & DBG_STATUS_RESET) {
         if(
             fileHandle &&
-            FlintAPI::File::close(fileHandle) == FILE_RESULT_OK
+            FlintAPI::IO::fclose(fileHandle) == FILE_RESULT_OK
         ) {
             fileHandle = 0;
             sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_OK);
@@ -530,29 +530,27 @@ void FlintDebugger::responseFileInfo(const char *fileName) {
     if(csr & DBG_STATUS_RESET) {
         uint32_t size;
         int64_t time;
-        FlintFileResult ret = FlintAPI::File::info(fileName, &size, &time);
+        FlintFileResult ret = FlintAPI::IO::finfo(fileName, &size, &time);
         if(ret != FILE_RESULT_OK)
-            sendRespCode(DBG_CMD_READ_FILE_INFO, DBG_RESP_FAIL);
+            sendRespCode(DBG_CMD_FILE_INFO, DBG_RESP_FAIL);
         else {
-            initDataFrame(DBG_CMD_READ_FILE_INFO, DBG_RESP_OK, sizeof(size) + sizeof(time));
+            initDataFrame(DBG_CMD_FILE_INFO, DBG_RESP_OK, sizeof(size) + sizeof(time));
             if(!dataFrameAppend(size)) return;
             if(!dataFrameAppend((uint64_t)time)) return;
             dataFrameFinish();
         }
     }
     else
-        sendRespCode(DBG_CMD_READ_FILE_INFO, DBG_RESP_BUSY);
+        sendRespCode(DBG_CMD_FILE_INFO, DBG_RESP_BUSY);
 }
 
 void FlintDebugger::responseCreateDelete(FlintDbgCmd cmd, const char *path) {
     if(csr & DBG_STATUS_RESET) {
         FlintFileResult ret;
         if(cmd == DBG_CMD_DELETE_FILE)
-            ret = FlintAPI::File::remove(path);
-        else if(cmd == DBG_CMD_DELETE_DIR)
-            ret = FlintAPI::Directory::remove(path);
+            ret = FlintAPI::IO::fremove(path);
         else
-            ret = FlintAPI::Directory::create(path);
+            ret = FlintAPI::IO::mkdir(path);
         sendRespCode(cmd, (ret == FILE_RESULT_OK) ? DBG_RESP_OK : DBG_RESP_FAIL);
     }
     else
@@ -562,8 +560,8 @@ void FlintDebugger::responseCreateDelete(FlintDbgCmd cmd, const char *path) {
 void FlintDebugger::responseOpenDir(const char *path) {
     if(csr & DBG_STATUS_RESET) {
         if(dirHandle)
-            FlintAPI::Directory::close(dirHandle);
-        dirHandle = FlintAPI::Directory::open(path);
+            FlintAPI::IO::closedir(dirHandle);
+        dirHandle = FlintAPI::IO::opendir(path);
         sendRespCode(DBG_CMD_OPEN_DIR, dirHandle ? DBG_RESP_OK : DBG_RESP_FAIL);
     }
     else
@@ -576,7 +574,7 @@ void FlintDebugger::responseReadDir(void) {
             uint8_t attribute;
             uint32_t size = 0;
             int64_t time = 0;
-            if(FlintAPI::Directory::read(dirHandle, &attribute, (char *)fileBuff, sizeof(fileBuff), &size, &time) == FILE_RESULT_OK) {
+            if(FlintAPI::IO::readdir(dirHandle, &attribute, (char *)fileBuff, sizeof(fileBuff), &size, &time) == FILE_RESULT_OK) {
                 uint16_t nameLength = strlen((char *)fileBuff);
                 uint32_t respLength = 6 + nameLength + sizeof(size) + sizeof(time);
                 initDataFrame(DBG_CMD_READ_DIR, DBG_RESP_OK, respLength);
@@ -602,7 +600,7 @@ void FlintDebugger::responseCloseDir(void) {
     if(csr & DBG_STATUS_RESET) {
         if(
             dirHandle &&
-            FlintAPI::Directory::close(fileHandle) == FILE_RESULT_OK
+            FlintAPI::IO::closedir(fileHandle) == FILE_RESULT_OK
         ) {
             dirHandle = 0;
             sendRespCode(DBG_CMD_CLOSE_DIR, DBG_RESP_OK);
@@ -843,7 +841,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             responseCloseFile();
             return true;
         }
-        case DBG_CMD_READ_FILE_INFO: {
+        case DBG_CMD_FILE_INFO: {
             if(length >= 12) {
                 const char *path = (const char *)((FlintConstUtf8 *)&data[4])->text;
                 responseFileInfo(path);
@@ -853,7 +851,6 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             return true;
         }
         case DBG_CMD_DELETE_FILE:
-        case DBG_CMD_DELETE_DIR:
         case DBG_CMD_CREATE_DIR: {
             if(length >= 12) {
                 const char *path = (const char *)((FlintConstUtf8 *)&data[4])->text;

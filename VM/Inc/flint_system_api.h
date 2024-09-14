@@ -39,26 +39,21 @@ namespace FlintAPI {
         FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo);
     };
 
-    namespace File {
-        FlintFileResult exists(const char *fileName);
-        FlintFileResult info(const char *fileName, uint32_t *size, int64_t *time);
-        void *open(const char *fileName, FlintFileMode mode);
-        FlintFileResult read(void *handle, void *buff, uint32_t btr, uint32_t *br);
-        FlintFileResult write(void *handle, void *buff, uint32_t btw, uint32_t *bw);
-        uint32_t size(void *handle);
-        uint32_t tell(void *handle);
-        FlintFileResult seek(void *handle, uint32_t offset);
-        FlintFileResult close(void *handle);
-        FlintFileResult remove(const char *fileName);
-    };
+    namespace IO {
+        FlintFileResult finfo(const char *fileName, uint32_t *size, int64_t *time);
+        void *fopen(const char *fileName, FlintFileMode mode);
+        FlintFileResult fread(void *handle, void *buff, uint32_t btr, uint32_t *br);
+        FlintFileResult fwrite(void *handle, void *buff, uint32_t btw, uint32_t *bw);
+        uint32_t fsize(void *handle);
+        uint32_t ftell(void *handle);
+        FlintFileResult fseek(void *handle, uint32_t offset);
+        FlintFileResult fclose(void *handle);
+        FlintFileResult fremove(const char *fileName);
 
-    namespace Directory {
-        void *open(const char *dirName);
-        FlintFileResult read(void *handle, uint8_t *attribute, char *nameBuff, uint32_t buffSize, uint32_t *size, int64_t *time);
-        FlintFileResult close(void *handle);
-        FlintFileResult exists(const char *path);
-        FlintFileResult create(const char *path);
-        FlintFileResult remove(const char *path);
+        void *opendir(const char *dirName);
+        FlintFileResult readdir(void *handle, uint8_t *attribute, char *nameBuff, uint32_t buffSize, uint32_t *size, int64_t *time);
+        FlintFileResult closedir(void *handle);
+        FlintFileResult mkdir(const char *path);
     };
 
     namespace Thread {
