@@ -352,10 +352,49 @@ FlintString &Flint::getConstString(FlintString &str) {
 }
 
 FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
+    static const FlintConstUtf8 *baseConstUtf8List[] = {
+        primTypeConstUtf8List[0],
+        primTypeConstUtf8List[1],
+        primTypeConstUtf8List[2],
+        primTypeConstUtf8List[3],
+        primTypeConstUtf8List[4],
+        primTypeConstUtf8List[5],
+        primTypeConstUtf8List[6],
+        primTypeConstUtf8List[7],
+        &mathClassName,
+        &classClassName,
+        &floatClassName,
+        &doubleClassName,
+        &objectClassName,
+        &systemClassName,
+        &stringClassName,
+        &threadClassName,
+        &characterClassName,
+        &throwableClassName,
+        &printStreamClassName,
+        &nullPtrExcpClassName,
+        &arrayStoreExceptionClassName,
+        &arithmeticExceptionClassName,
+        &classNotFoundExceptionClassName,
+        &cloneNotSupportedExceptionClassName,
+        &negativeArraySizeExceptionClassName,
+        &unsupportedOperationExceptionClassName,
+        &arrayIndexOutOfBoundsExceptionClassName,
+    };
+
     uint32_t hash;
     ((uint16_t *)&hash)[0] = length;
     ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)text, length);
+
+    for(uint32_t i = 0; i < LENGTH(baseConstUtf8List); i++) {
+        if(CONST_UTF8_HASH(baseConstUtf8List[i][0]) == hash) {
+            if(strncmp(baseConstUtf8List[i]->text, text, length) == 0)
+                return *(FlintConstUtf8 *)baseConstUtf8List[i];
+        }
+    }
+
     Flint::lock();
+
     for(FlintConstUtf8Node *node = constUtf8List; node != 0; node = node->next) {
         if(CONST_UTF8_HASH(node->value) == hash) {
             if(strncmp(node->value.text, text, length) == 0) {
