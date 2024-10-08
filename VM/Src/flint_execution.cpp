@@ -1962,6 +1962,7 @@ void FlintExecution::run(void) {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         FlintConstUtf8 &constClass = method->classLoader.getConstUtf8Class(poolIndex);
         FlintObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass);
+        memset(obj.data, 0, sizeof(FlintFieldsData));
         try {
             ClassData &classData = *(ClassData *)&flint.load(constClass.text);
             new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);

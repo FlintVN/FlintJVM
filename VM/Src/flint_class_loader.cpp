@@ -483,12 +483,18 @@ FlintClass &FlintClassLoader::getConstClass(Flint &flint, uint16_t poolIndex) {
         if(poolTable[poolIndex].tag & 0x80) {
             Flint::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                FlintConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
-                ConstClassValue *constClassValue = (ConstClassValue *)Flint::malloc(sizeof(ConstClassValue));
-                constClassValue->constUtf8Class = &constUtf8Class;
-                constClassValue->constClass = &flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)constClassValue;
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_CLASS;
+                try {
+                    FlintConstUtf8 &constUtf8Class = getConstUtf8(poolTable[poolIndex].value);
+                    ConstClassValue *constClassValue = (ConstClassValue *)Flint::malloc(sizeof(ConstClassValue));
+                    constClassValue->constUtf8Class = &constUtf8Class;
+                    constClassValue->constClass = &flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
+                    *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)constClassValue;
+                    *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_CLASS;
+                }
+                catch(...) {
+                    Flint::unlock();
+                    throw;
+                }
             }
             Flint::unlock();
         }
@@ -502,12 +508,18 @@ FlintClass &FlintClassLoader::getConstClass(Flint &flint, FlintConstPool &constP
         if(constPool.tag & 0x80) {
             Flint::lock();
             if(constPool.tag & 0x80) {
-                FlintConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
-                ConstClassValue *constClassValue = (ConstClassValue *)Flint::malloc(sizeof(ConstClassValue));
-                constClassValue->constUtf8Class = &constUtf8Class;
-                constClassValue->constClass = &flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
-                *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
-                *(FlintConstPoolTag *)&constPool.tag = CONST_CLASS;
+                try {
+                    FlintConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
+                    ConstClassValue *constClassValue = (ConstClassValue *)Flint::malloc(sizeof(ConstClassValue));
+                    constClassValue->constUtf8Class = &constUtf8Class;
+                    constClassValue->constClass = &flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
+                    *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
+                    *(FlintConstPoolTag *)&constPool.tag = CONST_CLASS;
+                }
+                catch(...) {
+                    Flint::unlock();
+                    throw;
+                }
             }
             Flint::unlock();
         }
@@ -522,10 +534,16 @@ FlintString &FlintClassLoader::getConstString(Flint &flint, uint16_t poolIndex) 
         if(poolTable[poolIndex].tag & 0x80) {
             Flint::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                FlintConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
-                FlintString &strObj = flint.getConstString(utf8Str);
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)&strObj;
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
+                try {
+                    FlintConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
+                    FlintString &strObj = flint.getConstString(utf8Str);
+                    *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)&strObj;
+                    *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
+                }
+                catch(...) {
+                    Flint::unlock();
+                    throw;
+                }
             }
             Flint::unlock();
         }
@@ -539,10 +557,16 @@ FlintString &FlintClassLoader::getConstString(Flint &flint, FlintConstPool &cons
         if(constPool.tag & 0x80) {
             Flint::lock();
             if(constPool.tag & 0x80) {
-                FlintConstUtf8 &utf8Str = getConstUtf8(constPool.value);
-                FlintString &strObj = flint.getConstString(utf8Str);
-                *(uint32_t *)&constPool.value = (uint32_t)&strObj;
-                *(FlintConstPoolTag *)&constPool.tag = CONST_STRING;
+                try {
+                    FlintConstUtf8 &utf8Str = getConstUtf8(constPool.value);
+                    FlintString &strObj = flint.getConstString(utf8Str);
+                    *(uint32_t *)&constPool.value = (uint32_t)&strObj;
+                    *(FlintConstPoolTag *)&constPool.tag = CONST_STRING;
+                }
+                catch(...) {
+                    Flint::unlock();
+                    throw;
+                }
             }
             Flint::unlock();
         }
@@ -570,11 +594,17 @@ FlintConstNameAndType &FlintClassLoader::getConstNameAndType(uint16_t poolIndex)
         if(poolTable[poolIndex].tag & 0x80) {
             Flint::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-                uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstNameAndType));
-                new ((FlintConstNameAndType *)poolTable[poolIndex].value)FlintConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
+                try {
+                    uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+                    uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+                    *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstNameAndType));
+                    new ((FlintConstNameAndType *)poolTable[poolIndex].value)FlintConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
+                    *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
+                }
+                catch(...) {
+                    Flint::unlock();
+                    throw;
+                }
             }
             Flint::unlock();
         }
@@ -593,11 +623,17 @@ FlintConstField &FlintClassLoader::getConstField(uint16_t poolIndex) {
         if(poolTable[poolIndex].tag & 0x80) {
             Flint::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-                uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstField));
-                new ((FlintConstField *)poolTable[poolIndex].value)FlintConstField(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
+                try {
+                    uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+                    uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+                    *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstField));
+                    new ((FlintConstField *)poolTable[poolIndex].value)FlintConstField(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                    *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
+                }
+                catch(...) {
+                    Flint::unlock();
+                    throw;
+                }
             }
             Flint::unlock();
         }
@@ -616,11 +652,17 @@ FlintConstMethod &FlintClassLoader::getConstMethod(uint16_t poolIndex) {
         if(poolTable[poolIndex].tag & 0x80) {
             Flint::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-                uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstMethod));
-                new ((FlintConstMethod *)poolTable[poolIndex].value)FlintConstMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
+                try {
+                    uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+                    uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+                    *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstMethod));
+                    new ((FlintConstMethod *)poolTable[poolIndex].value)FlintConstMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                    *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
+                }
+                catch(...) {
+                    Flint::unlock();
+                    throw;
+                }
             }
             Flint::unlock();
         }
@@ -639,11 +681,17 @@ FlintConstInterfaceMethod &FlintClassLoader::getConstInterfaceMethod(uint16_t po
         if(poolTable[poolIndex].tag & 0x80) {
             Flint::lock();
             if(poolTable[poolIndex].tag & 0x80) {
-                uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-                uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-                *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstInterfaceMethod));
-                new ((FlintConstInterfaceMethod *)poolTable[poolIndex].value)FlintConstInterfaceMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
-                *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
+                try {
+                    uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+                    uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+                    *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)Flint::malloc(sizeof(FlintConstInterfaceMethod));
+                    new ((FlintConstInterfaceMethod *)poolTable[poolIndex].value)FlintConstInterfaceMethod(getConstUtf8Class(classNameIndex), getConstNameAndType(nameAndTypeIndex));
+                    *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
+                }
+                catch(...) {
+                    Flint::unlock();
+                    throw;
+                }
             }
             Flint::unlock();
         }

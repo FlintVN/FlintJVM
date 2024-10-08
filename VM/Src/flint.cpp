@@ -161,6 +161,7 @@ FlintClass &Flint::newClass(FlintString &typeName) {
 
     /* create new class object */
     FlintClass &classObj = *(FlintClass *)&newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&classClassName);
+    memset(classObj.data, 0, sizeof(FlintFieldsData));
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)classObj.data;
@@ -231,6 +232,7 @@ FlintString &Flint::newString(uint16_t length, uint8_t coder) {
 
     /* create new string object */
     FlintString &strObj = *(FlintString *)&newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    memset(strObj.data, 0, sizeof(FlintFieldsData));
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)strObj.data;
@@ -277,6 +279,7 @@ FlintString &Flint::newString(const char *text, uint16_t size, bool isUtf8) {
 
     /* create new string object */
     FlintString &strObj = *(FlintString *)&newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    memset(strObj.data, 0, sizeof(FlintFieldsData));
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)strObj.data;
@@ -311,6 +314,7 @@ FlintString &Flint::newString(const char *latin1Str[], uint16_t count) {
 
     /* create new string object */
     FlintString &strObj = *(FlintString *)&newObject(sizeof(FlintFieldsData), *(FlintConstUtf8 *)&stringClassName);
+    memset(strObj.data, 0, sizeof(FlintFieldsData));
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)strObj.data;
@@ -422,6 +426,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
 FlintThrowable &Flint::newThrowable(FlintString &strObj, FlintConstUtf8 &excpType) {
     /* create new exception object */
     FlintThrowable &obj = *(FlintThrowable *)&newObject(sizeof(FlintFieldsData), excpType);
+    memset(obj.data, 0, sizeof(FlintFieldsData));
 
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)obj.data;
