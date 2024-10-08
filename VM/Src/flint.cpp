@@ -612,6 +612,7 @@ FlintClassLoader &Flint::load(FlintConstUtf8 &className) {
             }
         }
         newNode = (ClassData *)Flint::malloc(sizeof(ClassData));
+        newNode->staticFieldsData = 0;
         new (newNode)ClassData(*this, className.text, className.length);
         newNode->next = classDataList;
         classDataList = newNode;
