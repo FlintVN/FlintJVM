@@ -70,6 +70,7 @@ private:
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const;
 
     static void runTask(FlintExecution *execution);
+    static void innerRunTask(FlintExecution *execution);
 public:
     bool run(FlintMethodInfo &method);
 

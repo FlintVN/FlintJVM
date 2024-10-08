@@ -2324,7 +2324,7 @@ void FlintExecution::run(void) {
         return;
 }
 
-void FlintExecution::runTask(FlintExecution *execution) {
+void FlintExecution::innerRunTask(FlintExecution *execution) {
     try {
         execution->run();
     }
@@ -2364,6 +2364,10 @@ void FlintExecution::runTask(FlintExecution *execution) {
     execution->peakSp = -1;
     execution->flint.freeExecution(*execution);
     FlintAPI::Thread::terminate(0);
+}
+
+void FlintExecution::runTask(FlintExecution *execution) {
+    innerRunTask(execution);
 }
 
 bool FlintExecution::run(FlintMethodInfo &method) {
