@@ -23,9 +23,9 @@ public:
     static uint8_t getPrimitiveTypeSize(uint8_t atype);
     static uint8_t convertToAType(char type);
     static uint8_t isPrimType(const FlintConstUtf8 &type);
-private:
-    uint8_t parseTypeSize(void) const;
 
+    uint8_t parseTypeSize(void) const;
+private:
     void setProtected(void);
     void clearProtected(void);
     uint8_t getProtected(void) const;
