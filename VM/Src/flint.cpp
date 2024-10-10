@@ -375,6 +375,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &threadClassName,
         &characterClassName,
         &throwableClassName,
+        &exceptionClassName,
         &printStreamClassName,
         &nullPtrExcpClassName,
         &arrayStoreExceptionClassName,
@@ -437,6 +438,10 @@ FlintThrowable &Flint::newThrowable(FlintString &strObj, FlintConstUtf8 &excpTyp
     obj.setDetailMessage(strObj);
 
     return obj;
+}
+
+FlintThrowable &Flint::newException(FlintString &strObj) {
+    return newThrowable(strObj, *(FlintConstUtf8 *)&exceptionClassName);
 }
 
 FlintThrowable &Flint::newArrayStoreException(FlintString &strObj) {
