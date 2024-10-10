@@ -11,13 +11,13 @@ static const uint8_t utf8ByteCount[] = {
 };
 
 static const uint32_t stringValueFieldName[] = {
-    (uint32_t)"\x05\x00\x1D\x02""value",                /* field name */
-    (uint32_t)"\x02\x00\x9D\x00""[B"                    /* field type */
+    (uint32_t)"\x05\x00\x2B\x6E""value",                /* field name */
+    (uint32_t)"\x02\x00\x45\x4E""[B"                    /* field type */
 };
 
 static const uint32_t stringCoderFieldName[] = {
-    (uint32_t)"\x05\x00\x0D\x02""coder",                /* field name */
-    (uint32_t)"\x01\x00\x42\x00""B"                     /* field type */
+    (uint32_t)"\x05\x00\xE8\x49""coder",                /* field name */
+    (uint32_t)"\x01\x00\xC0\x8E""B"                     /* field type */
 };
 
 uint8_t FlintString::getUtf8DecodeSize(char c) {

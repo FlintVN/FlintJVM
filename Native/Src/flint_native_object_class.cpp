@@ -56,9 +56,9 @@ static bool nativeClone(FlintExecution &execution) {
 }
 
 static const FlintNativeMethod methods[] = {
-    NATIVE_METHOD("\x08\x00\x36\x03""getClass", "\x13\x00\x70\x06""()Ljava/lang/Class;",  nativeGetClass),
-    NATIVE_METHOD("\x08\x00\x1F\x03""hashCode", "\x03\x00\x9A\x00""()I",                  nativeHashCode),
-    NATIVE_METHOD("\x05\x00\x11\x02""clone",    "\x14\x00\xD1\x06""()Ljava/lang/Object;", nativeClone),
+    NATIVE_METHOD("\x08\x00\xAA\x1C""getClass", "\x13\x00\x0A\x1F""()Ljava/lang/Class;",  nativeGetClass),
+    NATIVE_METHOD("\x08\x00\x6D\x04""hashCode", "\x03\x00\xD0\x51""()I",                  nativeHashCode),
+    NATIVE_METHOD("\x05\x00\xDE\xF1""clone",    "\x14\x00\xC7\x39""()Ljava/lang/Object;", nativeClone),
 };
 
 const FlintNativeClass OBJECT_CLASS = NATIVE_CLASS(objectClassName, methods);

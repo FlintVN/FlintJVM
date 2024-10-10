@@ -216,18 +216,18 @@ static bool nativeIsHidden(FlintExecution &execution) {
 }
 
 static const FlintNativeMethod methods[] = {
-    NATIVE_METHOD("\x11\x00\xEF\x06""getPrimitiveClass", "\x25\x00\x10\x0D""(Ljava/lang/String;)Ljava/lang/Class;", nativeGetPrimitiveClass),
-    NATIVE_METHOD("\x07\x00\xC8\x02""forName",           "\x25\x00\x10\x0D""(Ljava/lang/String;)Ljava/lang/Class;", nativeForName),
-    NATIVE_METHOD("\x0A\x00\x11\x04""isInstance",        "\x15\x00\x2B\x07""(Ljava/lang/Object;)Z",                 nativeIsInstance),
-    NATIVE_METHOD("\x10\x00\x69\x06""isAssignableFrom",  "\x14\x00\xCA\x06""(Ljava/lang/Class;)Z",                  nativeIsAssignableFrom),
-    NATIVE_METHOD("\x0B\x00\x6D\x04""isInterface",       "\x03\x00\xAB\x00""()Z",                                   nativeIsInterface),
-    NATIVE_METHOD("\x07\x00\xDB\x02""isArray",           "\x03\x00\xAB\x00""()Z",                                   nativeIsArray),
-    NATIVE_METHOD("\x0B\x00\x95\x04""isPrimitive",       "\x03\x00\xAB\x00""()Z",                                   nativeIsPrimitive),
-    NATIVE_METHOD("\x0D\x00\x65\x05""getSuperclass",     "\x13\x00\x70\x06""()Ljava/lang/Class;",                   nativeGetSuperclass),
-    NATIVE_METHOD("\x0D\x00\x44\x05""getInterfaces",     "\x14\x00\xCB\x06""()[Ljava/lang/Class;",                  nativeGetInterfaces),
-    NATIVE_METHOD("\x10\x00\x95\x06""getComponentType",  "\x13\x00\x70\x06""()Ljava/lang/Class;",                   nativeGetComponentType),
-    NATIVE_METHOD("\x0C\x00\xE2\x04""getModifiers",      "\x03\x00\x9A\x00""()I",                                   nativeGetModifiers),
-    NATIVE_METHOD("\x08\x00\x28\x03""isHidden",          "\x03\x00\xAB\x00""()Z",                                   nativeIsHidden),
+    NATIVE_METHOD("\x11\x00\x0A\x98""getPrimitiveClass", "\x25\x00\x56\xAD""(Ljava/lang/String;)Ljava/lang/Class;", nativeGetPrimitiveClass),
+    NATIVE_METHOD("\x07\x00\x79\xE0""forName",           "\x25\x00\x56\xAD""(Ljava/lang/String;)Ljava/lang/Class;", nativeForName),
+    NATIVE_METHOD("\x0A\x00\x4B\x35""isInstance",        "\x15\x00\x08\xBB""(Ljava/lang/Object;)Z",                 nativeIsInstance),
+    NATIVE_METHOD("\x10\x00\x3C\x0E""isAssignableFrom",  "\x14\x00\x8A\x77""(Ljava/lang/Class;)Z",                  nativeIsAssignableFrom),
+    NATIVE_METHOD("\x0B\x00\xA5\xE1""isInterface",       "\x03\x00\x91\x9C""()Z",                                   nativeIsInterface),
+    NATIVE_METHOD("\x07\x00\x79\xE4""isArray",           "\x03\x00\x91\x9C""()Z",                                   nativeIsArray),
+    NATIVE_METHOD("\x0B\x00\x21\x49""isPrimitive",       "\x03\x00\x91\x9C""()Z",                                   nativeIsPrimitive),
+    NATIVE_METHOD("\x0D\x00\x38\xF1""getSuperclass",     "\x13\x00\x0A\x1F""()Ljava/lang/Class;",                   nativeGetSuperclass),
+    NATIVE_METHOD("\x0D\x00\xC7\x4B""getInterfaces",     "\x14\x00\xEA\x91""()[Ljava/lang/Class;",                  nativeGetInterfaces),
+    NATIVE_METHOD("\x10\x00\x95\x8C""getComponentType",  "\x13\x00\x0A\x1F""()Ljava/lang/Class;",                   nativeGetComponentType),
+    NATIVE_METHOD("\x0C\x00\x21\x8F""getModifiers",      "\x03\x00\xD0\x51""()I",                                   nativeGetModifiers),
+    NATIVE_METHOD("\x08\x00\x9C\xA3""isHidden",          "\x03\x00\x91\x9C""()Z",                                   nativeIsHidden),
 };
 
 const FlintNativeClass CLASS_CLASS = NATIVE_CLASS(classClassName, methods);

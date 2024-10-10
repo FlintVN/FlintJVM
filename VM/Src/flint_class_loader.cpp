@@ -792,16 +792,16 @@ FlintMethodInfo &FlintClassLoader::getMethodInfo(FlintConstNameAndType &nameAndT
 
 FlintMethodInfo &FlintClassLoader::getMainMethodInfo(void) const {
     static const uint32_t nameAndType[] = {
-        (uint32_t)"\x04\x00\xA5\x01""main",                     /* method name */
-        (uint32_t)"\x16\x00\xA2\x07""([Ljava/lang/String;)V",   /* method type */
+        (uint32_t)"\x04\x00\x1D\x15""main",                     /* method name */
+        (uint32_t)"\x16\x00\x03\x78""([Ljava/lang/String;)V",   /* method type */
     };
     return getMethodInfo(*(FlintConstNameAndType *)nameAndType);
 }
 
 FlintMethodInfo &FlintClassLoader::getStaticConstructor(void) const {
     static const uint32_t nameAndType[] = {
-        (uint32_t)"\x08\x00\xFD\x02""<clinit>",                 /* method name */
-        (uint32_t)"\x03\x00\xA7\x00""()V",                      /* method type */
+        (uint32_t)"\x08\x00\xD0\xF2""<clinit>",                 /* method name */
+        (uint32_t)"\x03\x00\x91\x99""()V",                      /* method type */
     };
     return getMethodInfo(*(FlintConstNameAndType *)nameAndType);
 }

@@ -20,8 +20,8 @@ static bool nativeWriteln(FlintExecution &execution) {
 }
 
 static const FlintNativeMethod methods[] = {
-    NATIVE_METHOD("\x05\x00\x2B\x02""write",   "\x15\x00\x47\x07""(Ljava/lang/String;)V", nativeWrite),
-    NATIVE_METHOD("\x07\x00\x05\x03""writeln", "\x15\x00\x47\x07""(Ljava/lang/String;)V", nativeWriteln),
+    NATIVE_METHOD("\x05\x00\x03\xBB""write",   "\x15\x00\xA0\xD0""(Ljava/lang/String;)V", nativeWrite),
+    NATIVE_METHOD("\x07\x00\x12\x20""writeln", "\x15\x00\xA0\xD0""(Ljava/lang/String;)V", nativeWriteln),
 };
 
 const FlintNativeClass PRINT_STREAM_CLASS = NATIVE_CLASS(printStreamClassName, methods);

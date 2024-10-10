@@ -4,8 +4,8 @@
 #include "flint_fields_data.h"
 
 static const uint32_t exceptionDetailMessageFieldName[] = {
-    (uint32_t)"\x0D\x00\x38\x05""detailMessage",        /* field name */
-    (uint32_t)"\x12\x00\xA0\x06""Ljava/lang/String;"    /* field type */
+    (uint32_t)"\x0D\x00\xE6\x62""detailMessage",        /* field name */
+    (uint32_t)"\x12\x00\xC0\x24""Ljava/lang/String;"    /* field type */
 };
 
 FlintString *FlintThrowable::getDetailMessage(void) const {
