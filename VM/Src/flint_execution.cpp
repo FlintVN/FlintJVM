@@ -263,12 +263,21 @@ bool FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
         return true;
     }
     else {
-        FlintNativeAttribute &attrNative = methodInfo.getAttributeNative();
-        if(attrNative.nativeMethod(*this)) {
-            pc = lr;
-            return true;
+        try {
+            FlintNativeAttribute &attrNative = methodInfo.getAttributeNative();
+            if(attrNative.nativeMethod(*this)) {
+                pc = lr;
+                return true;
+            }
+            return false;
         }
-        return false;
+        catch(FlintFindNativeError *err) {
+            const char *msg[] = {err->getMessage(), " ", methodInfo.name.text};
+            FlintString &strObj = flint.newString(msg, LENGTH(msg));
+            FlintThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(strObj);
+            stackPushObject(&excpObj);
+            return false;
+        }
     }
 }
 

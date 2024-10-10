@@ -20,6 +20,7 @@ extern const FlintConstUtf8 &printStreamClassName;
 extern const FlintConstUtf8 &nullPtrExcpClassName;
 extern const FlintConstUtf8 &arrayStoreExceptionClassName;
 extern const FlintConstUtf8 &arithmeticExceptionClassName;
+extern const FlintConstUtf8 &unsatisfiedLinkErrorClassName;
 extern const FlintConstUtf8 &classNotFoundExceptionClassName;
 extern const FlintConstUtf8 &cloneNotSupportedExceptionClassName;
 extern const FlintConstUtf8 &negativeArraySizeExceptionClassName;

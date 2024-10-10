@@ -11,6 +11,7 @@
 #include "flint_fields_data.h"
 #include "flint_out_of_memory.h"
 #include "flint_load_file_error.h"
+#include "flint_find_native_error.h"
 #include "flint_system_api.h"
 
 class FlintExecutionNode : public FlintExecution {
@@ -98,6 +99,7 @@ public:
     FlintThrowable &newNegativeArraySizeException(FlintString &strObj);
     FlintThrowable &newArrayIndexOutOfBoundsException(FlintString &strObj);
     FlintThrowable &newUnsupportedOperationException(FlintString &strObj);
+    FlintThrowable &newUnsatisfiedLinkErrorException(FlintString &strObj);
 
     void clearProtectObjectNew(FlintObject &obj);
     void garbageCollectionProtectObject(FlintObject &obj);

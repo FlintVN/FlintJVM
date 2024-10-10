@@ -379,6 +379,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &nullPtrExcpClassName,
         &arrayStoreExceptionClassName,
         &arithmeticExceptionClassName,
+        &unsatisfiedLinkErrorClassName,
         &classNotFoundExceptionClassName,
         &cloneNotSupportedExceptionClassName,
         &negativeArraySizeExceptionClassName,
@@ -468,6 +469,10 @@ FlintThrowable &Flint::newArrayIndexOutOfBoundsException(FlintString &strObj) {
 
 FlintThrowable &Flint::newUnsupportedOperationException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&unsupportedOperationExceptionClassName);
+}
+
+FlintThrowable &Flint::newUnsatisfiedLinkErrorException(FlintString &strObj) {
+    return newThrowable(strObj, *(FlintConstUtf8 *)&unsatisfiedLinkErrorClassName);
 }
 
 void Flint::clearProtectObjectNew(FlintObject &obj) {

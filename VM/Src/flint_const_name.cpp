@@ -26,6 +26,7 @@ const FlintConstUtf8 &printStreamClassName = *(const FlintConstUtf8 *)"\x13\x00\
 const FlintConstUtf8 &nullPtrExcpClassName = *(const FlintConstUtf8 *)"\x1E\x00\xCD\x0B""java/lang/NullPointerException";
 const FlintConstUtf8 &arrayStoreExceptionClassName = *(const FlintConstUtf8 *)"\x1D\x00\x5D\x0B""java/lang/ArrayStoreException";
 const FlintConstUtf8 &arithmeticExceptionClassName = *(const FlintConstUtf8 *)"\x1D\x00\x5B\x0B""java/lang/ArithmeticException";
+const FlintConstUtf8 &unsatisfiedLinkErrorClassName = *(const FlintConstUtf8 *)"\x1E\x00\xB9\x0B""java/lang/UnsatisfiedLinkError";
 const FlintConstUtf8 &classNotFoundExceptionClassName = *(const FlintConstUtf8 *)"\x20\x00\x74\x0C""java/lang/ClassNotFoundException";
 const FlintConstUtf8 &cloneNotSupportedExceptionClassName = *(const FlintConstUtf8 *)"\x24\x00\x39\x0E""java/lang/CloneNotSupportedException";
 const FlintConstUtf8 &negativeArraySizeExceptionClassName = *(const FlintConstUtf8 *)"\x24\x00\x1E\x0E""java/lang/NegativeArraySizeException";
