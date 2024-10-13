@@ -13,6 +13,7 @@ const FlintConstUtf8 * const primTypeConstUtf8List[] = {
 };
 
 const FlintConstUtf8 &mathClassName = *(const FlintConstUtf8 *)"\x0E\x00\x37\xC8""java/lang/Math";
+const FlintConstUtf8 &errorClassName = *(const FlintConstUtf8 *)"\x0F\x00\x4E\x38""java/lang/Error";
 const FlintConstUtf8 &classClassName = *(const FlintConstUtf8 *)"\x0F\x00\xF8\xD5""java/lang/Class";
 const FlintConstUtf8 &floatClassName = *(const FlintConstUtf8 *)"\x0F\x00\x18\x74""java/lang/Float";
 const FlintConstUtf8 &doubleClassName = *(const FlintConstUtf8 *)"\x10\x00\x4C\x64""java/lang/Double";

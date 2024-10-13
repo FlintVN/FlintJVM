@@ -366,6 +366,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         primTypeConstUtf8List[6],
         primTypeConstUtf8List[7],
         &mathClassName,
+        &errorClassName,
         &classClassName,
         &floatClassName,
         &doubleClassName,
@@ -442,6 +443,10 @@ FlintThrowable &Flint::newThrowable(FlintString &strObj, FlintConstUtf8 &excpTyp
 
 FlintThrowable &Flint::newException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&exceptionClassName);
+}
+
+FlintThrowable &Flint::newErrorException(FlintString &strObj) {
+    return newThrowable(strObj, *(FlintConstUtf8 *)&errorClassName);
 }
 
 FlintThrowable &Flint::newArrayStoreException(FlintString &strObj) {

@@ -7,6 +7,7 @@
 extern const FlintConstUtf8 * const primTypeConstUtf8List[];
 
 extern const FlintConstUtf8 &mathClassName;
+extern const FlintConstUtf8 &errorClassName;
 extern const FlintConstUtf8 &classClassName;
 extern const FlintConstUtf8 &floatClassName;
 extern const FlintConstUtf8 &doubleClassName;
