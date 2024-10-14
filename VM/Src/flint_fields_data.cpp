@@ -1,5 +1,6 @@
 
 #include <iostream>
+#include <string.h>
 #include "flint.h"
 #include "flint_fields_data.h"
 
@@ -133,6 +134,24 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
     }
 }
 
+FlintFieldData32 &FlintFieldsData::getFieldData32(const char *fieldName) const {
+    if(fields32Count) {
+        uint16_t length = strlen(fieldName);
+        uint32_t hash;
+        ((uint16_t *)&hash)[0] = length;
+        ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)fieldName, length);
+
+        for(uint16_t i = 0; i < fields32Count; i++) {
+            const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
+            if(CONST_UTF8_HASH(fieldInfo.name) == hash) {
+                if(strncmp(fieldInfo.name.text, fieldName, length) == 0)
+                    return fieldsData32[i];
+            }
+        }
+    }
+    return *(FlintFieldData32 *)0;
+}
+
 FlintFieldData32 &FlintFieldsData::getFieldData32(const FlintConstUtf8 &fieldName) const {
     if(fields32Count) {
         for(uint16_t i = 0; i < fields32Count; i++) {
@@ -155,6 +174,24 @@ FlintFieldData32 &FlintFieldsData::getFieldData32(const FlintConstNameAndType &f
     return *(FlintFieldData32 *)0;
 }
 
+FlintFieldData64 &FlintFieldsData::getFieldData64(const char *fieldName) const {
+    if(fields64Count) {
+        uint16_t length = strlen(fieldName);
+        uint32_t hash;
+        ((uint16_t *)&hash)[0] = length;
+        ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)fieldName, length);
+
+        for(uint16_t i = 0; i < fields64Count; i++) {
+            const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
+            if(CONST_UTF8_HASH(fieldInfo.name) == hash) {
+                if(strncmp(fieldInfo.name.text, fieldName, length) == 0)
+                    return fieldsData64[i];
+            }
+        }
+    }
+    return *(FlintFieldData64 *)0;
+}
+
 FlintFieldData64 &FlintFieldsData::getFieldData64(const FlintConstUtf8 &fieldName) const {
     if(fields64Count) {
         for(uint16_t i = 0; i < fields64Count; i++) {
@@ -175,6 +212,24 @@ FlintFieldData64 &FlintFieldsData::getFieldData64(const FlintConstNameAndType &f
         }
     }
     return *(FlintFieldData64 *)0;
+}
+
+FlintFieldObject &FlintFieldsData::getFieldObject(const char *fieldName) const {
+    if(fieldsObjCount) {
+        uint16_t length = strlen(fieldName);
+        uint32_t hash;
+        ((uint16_t *)&hash)[0] = length;
+        ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)fieldName, length);
+
+        for(uint16_t i = 0; i < fieldsObjCount; i++) {
+            const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
+            if(CONST_UTF8_HASH(fieldInfo.name) == hash) {
+                if(strncmp(fieldInfo.name.text, fieldName, length) == 0)
+                    return fieldsObject[i];
+            }
+        }
+    }
+    return *(FlintFieldObject *)0;
 }
 
 FlintFieldObject &FlintFieldsData::getFieldObject(const FlintConstUtf8 &fieldName) const {
