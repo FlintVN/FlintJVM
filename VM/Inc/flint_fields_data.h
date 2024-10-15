@@ -47,8 +47,6 @@ public:
     const uint16_t fields64Count;
     const uint16_t fieldsObjCount;
 
-    FlintFieldsData(Flint &flint, const FlintClassLoader &classLoader, bool isStatic);
-
     FlintFieldData32 &getFieldData32(const char *fieldName) const;
     FlintFieldData32 &getFieldData32(const FlintConstUtf8 &fieldName) const;
     FlintFieldData32 &getFieldData32(const FlintConstNameAndType &fieldNameAndType) const;
@@ -63,6 +61,7 @@ private:
     FlintFieldData64 *fieldsData64;
     FlintFieldObject *fieldsObject;
 private:
+    FlintFieldsData(Flint &flint, const FlintClassLoader &classLoader, bool isStatic);
     FlintFieldsData(const FlintFieldsData &) = delete;
     void operator=(const FlintFieldsData &) = delete;
 

@@ -74,6 +74,7 @@ public:
     void freeExecution(FlintExecution &execution);
 
     FlintObject &newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);
+    FlintObject &newObject(FlintConstUtf8 &type);
 
     FlintObject &newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 

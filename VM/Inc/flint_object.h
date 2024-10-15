@@ -25,6 +25,8 @@ public:
     static uint8_t isPrimType(const FlintConstUtf8 &type);
 
     uint8_t parseTypeSize(void) const;
+
+    class FlintFieldsData &getFields(void) const;
 private:
     void setProtected(void);
     void clearProtected(void);

@@ -325,15 +325,14 @@ void FlintDebugger::responseField(FlintObject *obj, FlintConstUtf8 &fieldName) {
             sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
             return;
         }
-        FlintFieldsData *fields = (FlintFieldsData *)obj->data;
         uint8_t fieldType = 0;
-        void *fieldData = (void *)&fields->getFieldData32(fieldName);
+        void *fieldData = (void *)&obj->getFields().getFieldData32(fieldName);
         if(!fieldData) {
             fieldType = 1;
-            fieldData = (void *)&fields->getFieldData64(fieldName);
+            fieldData = (void *)&obj->getFields().getFieldData64(fieldName);
             if(!fieldData) {
                 fieldType = 2;
-                fieldData = (void *)&fields->getFieldObject(fieldName);
+                fieldData = (void *)&obj->getFields().getFieldObject(fieldName);
             }
         }
         if(fieldData) {

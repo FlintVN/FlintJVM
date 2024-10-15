@@ -1796,8 +1796,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                FlintFieldsData &fields = *(FlintFieldsData *)obj->data;
-                stackPushInt64(fields.getFieldData64(constField.nameAndType).value);
+                stackPushInt64(obj->getFields().getFieldData64(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
             }
             case 'L':
@@ -1805,16 +1804,14 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                FlintFieldsData &fields = *(FlintFieldsData *)obj->data;
-                stackPushObject(fields.getFieldObject(constField.nameAndType).object);
+                stackPushObject(obj->getFields().getFieldObject(constField.nameAndType).object);
                 goto *opcodes[code[pc]];
             }
             default: {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                FlintFieldsData &fields = *(FlintFieldsData *)obj->data;
-                stackPushInt32(fields.getFieldData32(constField.nameAndType).value);
+                stackPushInt32(obj->getFields().getFieldData32(constField.nameAndType).value);
                 goto *opcodes[code[pc]];
             }
         }
@@ -1842,8 +1839,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FlintFieldsData &fields = *(FlintFieldsData *)obj->data;
-                fields.getFieldData32(constField.nameAndType).value = (int8_t)value;
+                obj->getFields().getFieldData32(constField.nameAndType).value = (int8_t)value;
                 goto *opcodes[code[pc]];
             }
             case 'C':
@@ -1852,8 +1848,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FlintFieldsData &fields = *(FlintFieldsData *)obj->data;
-                fields.getFieldData32(constField.nameAndType).value = (int16_t)value;
+                obj->getFields().getFieldData32(constField.nameAndType).value = (int16_t)value;
                 goto *opcodes[code[pc]];
             }
             case 'J':
@@ -1862,8 +1857,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FlintFieldsData &fields = *(FlintFieldsData *)obj->data;
-                fields.getFieldData64(constField.nameAndType).value = value;
+                obj->getFields().getFieldData64(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
             }
             case 'L':
@@ -1872,8 +1866,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FlintFieldsData &fields = *(FlintFieldsData *)obj->data;
-                fields.getFieldObject(constField.nameAndType).object = value;
+                obj->getFields().getFieldObject(constField.nameAndType).object = value;
                 goto *opcodes[code[pc]];
             }
             default: {
@@ -1881,8 +1874,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                FlintFieldsData &fields = *(FlintFieldsData *)obj->data;
-                fields.getFieldData32(constField.nameAndType).value = value;
+                obj->getFields().getFieldData32(constField.nameAndType).value = value;
                 goto *opcodes[code[pc]];
             }
         }
@@ -1973,7 +1965,7 @@ void FlintExecution::run(void) {
         FlintObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass);
         memset(obj.data, 0, sizeof(FlintFieldsData));
         try {
-            ClassData &classData = *(ClassData *)&flint.load(constClass.text);
+            ClassData &classData = *(ClassData *)&flint.load(constClass);
             new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);
             stackPushObject(&obj);
             pc += 3;
@@ -2005,7 +1997,7 @@ void FlintExecution::run(void) {
         if(count < 0)
             goto negative_array_size_excp;
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
-        FlintConstUtf8 &constClass =  method->classLoader.getConstUtf8Class(poolIndex);
+        FlintConstUtf8 &constClass = method->classLoader.getConstUtf8Class(poolIndex);
         FlintObject &obj = flint.newObject(4 * count, constClass, 1);
         memset(obj.data, 0, obj.size);
         stackPushObject(&obj);

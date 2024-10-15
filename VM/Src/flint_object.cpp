@@ -61,6 +61,10 @@ uint8_t FlintObject::parseTypeSize(void) const {
     }
 }
 
+FlintFieldsData &FlintObject::getFields(void) const {
+    return *(FlintFieldsData *)data;
+}
+
 void FlintObject::setProtected(void) {
     prot = 1;
 }
