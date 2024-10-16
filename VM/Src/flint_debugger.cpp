@@ -475,12 +475,14 @@ void FlintDebugger::responseOpenFile(char *fileName, FlintFileMode mode) {
         sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseReadFile(void) {
+void FlintDebugger::responseReadFile(uint32_t size) {
     if(csr & DBG_STATUS_RESET) {
         if(fileHandle) {
-            uint32_t size;
-            if(FlintAPI::IO::fread(fileHandle, fileBuff, sizeof(fileBuff), &size) == FILE_RESULT_OK) {
-                initDataFrame(DBG_CMD_READ_FILE, DBG_RESP_OK, size);
+            uint32_t br = 0;
+            size = (size < sizeof(fileBuff)) ? size : sizeof(fileBuff);
+            if(FlintAPI::IO::fread(fileHandle, fileBuff, size, &br) == FILE_RESULT_OK) {
+                initDataFrame(DBG_CMD_READ_FILE, DBG_RESP_OK, br + sizeof(uint32_t));
+                if(!dataFrameAppend((uint32_t)br)) return;
                 if(!dataFrameAppend(fileBuff, size)) return;
                 dataFrameFinish();
                 return;
@@ -492,7 +494,7 @@ void FlintDebugger::responseReadFile(void) {
         sendRespCode(DBG_CMD_READ_FILE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseWriteFile(uint8_t *data, int32_t size) {
+void FlintDebugger::responseWriteFile(uint8_t *data, uint32_t size) {
     if(csr & DBG_STATUS_RESET) {
         uint32_t bw = 0;
         if(
@@ -507,6 +509,17 @@ void FlintDebugger::responseWriteFile(uint8_t *data, int32_t size) {
     }
     else
         sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_BUSY);
+}
+
+void FlintDebugger::responseSeekFile(uint32_t offset) {
+    if(csr & DBG_STATUS_RESET) {
+        if(fileHandle && FlintAPI::IO::fseek(fileHandle, offset) == FILE_RESULT_OK)
+            sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_OK);
+        else
+            sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_FAIL);
+    }
+    else
+        sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_BUSY);
 }
 
 void FlintDebugger::responseCloseFile(void) {
@@ -829,11 +842,28 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             return true;
         }
         case DBG_CMD_READ_FILE: {
-            responseReadFile();
+            if(length == 10) {
+                uint32_t size = *(uint32_t *)&data[4];
+                responseReadFile(size);
+            }
+            else
+                sendRespCode(DBG_CMD_READ_FILE, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_WRITE_FILE: {
-            responseWriteFile(&data[4], length - 6);
+            if(length > 6)
+                responseWriteFile(&data[4], length - 6);
+            else
+                sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_FAIL);
+            return true;
+        }
+        case DBG_CMD_SEEK_FILE: {
+            if(length == 10) {
+                uint32_t offset = *(uint32_t *)&data[4];
+                responseSeekFile(offset);
+            }
+            else
+                sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_CLOSE_FILE: {
