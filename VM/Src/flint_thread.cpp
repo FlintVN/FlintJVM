@@ -8,5 +8,5 @@ static const uint32_t threadTaskFieldName[] = {
 };
 
 FlintObject *FlintThread::getTask(void) const {
-    return ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)threadTaskFieldName).object;
+    return getFields().getFieldObject(*(FlintConstNameAndType *)threadTaskFieldName).object;
 }

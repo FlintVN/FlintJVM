@@ -3,11 +3,12 @@
 #define __FLINT_STRING_H
 
 #include "flint_object.h"
+#include "flint_array_object.h"
 
 class FlintString : public FlintObject {
 public:
-    FlintObject *getValue(void) const;
-    void setValue(FlintObject &byteArray);
+    FlintInt8Array *getValue(void) const;
+    void setValue(FlintInt8Array &byteArray);
     const char *getText(void) const;
     uint32_t getLength(void) const;
     uint8_t getCoder(void) const;

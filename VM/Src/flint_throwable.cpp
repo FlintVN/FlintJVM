@@ -9,9 +9,9 @@ static const uint32_t exceptionDetailMessageFieldName[] = {
 };
 
 FlintString *FlintThrowable::getDetailMessage(void) const {
-    return (FlintString *)((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object;
+    return (FlintString *)getFields().getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object;
 }
 
 void FlintThrowable::setDetailMessage(FlintString &strObj) {
-    ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object = &strObj;
+    getFields().getFieldObject(*(FlintConstNameAndType *)exceptionDetailMessageFieldName).object = &strObj;
 }

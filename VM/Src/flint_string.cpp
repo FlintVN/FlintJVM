@@ -99,33 +99,33 @@ bool FlintString::isLatin1(const char *utf8) {
     return true;
 }
 
-FlintObject *FlintString::getValue(void) const {
-    return ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object;
+FlintInt8Array *FlintString::getValue(void) const {
+    return (FlintInt8Array *)getFields().getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object;
 }
 
-void FlintString::setValue(FlintObject &byteArray) {
-    ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = &byteArray;
+void FlintString::setValue(FlintInt8Array &byteArray) {
+    getFields().getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = &byteArray;
 }
 
 const char *FlintString::getText(void) const {
-    FlintObject *byteArray = getValue();
-    return (const char *)byteArray->data;
+    FlintInt8Array *byteArray = getValue();
+    return (const char *)byteArray->getData();
 }
 
 uint32_t FlintString::getLength(void) const {
-    FlintObject *byteArray = getValue();
+    FlintInt8Array *byteArray = getValue();
     if(getCoder() == 0)
-        return byteArray->size / sizeof(int8_t);
+        return byteArray->getLength();
     else
-        return byteArray->size / (sizeof(int8_t) << 1);
+        return byteArray->getLength() / 2;
 }
 
 uint8_t FlintString::getCoder(void) const {
-    return ((FlintFieldsData *)data)->getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value;
+    return getFields().getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value;
 }
 
 void FlintString::setCoder(uint8_t coder) {
-    ((FlintFieldsData *)data)->getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value = coder;
+    getFields().getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value = coder;
 }
 
 bool FlintString::equals(const char *text, uint32_t length) const {

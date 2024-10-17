@@ -151,6 +151,42 @@ FlintObject &Flint::newObject(FlintConstUtf8 &type) {
     return obj;
 }
 
+FlintInt8Array &Flint::newBooleanArray(uint32_t length) {
+    return *(FlintInt8Array *)&newObject(length, *(FlintConstUtf8 *)primTypeConstUtf8List[0], 1);
+}
+
+FlintInt8Array &Flint::newByteArray(uint32_t length) {
+    return *(FlintInt8Array *)&newObject(length, *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
+}
+
+FlintInt16Array &Flint::newCharArray(uint32_t length) {
+    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)primTypeConstUtf8List[1], 1);
+}
+
+FlintInt16Array &Flint::newShortArray(uint32_t length) {
+    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)primTypeConstUtf8List[5], 1);
+}
+
+FlintInt32Array &Flint::newIntegerArray(uint32_t length) {
+    return *(FlintInt32Array *)&newObject(length * sizeof(int32_t), *(FlintConstUtf8 *)primTypeConstUtf8List[6], 1);
+}
+
+FlintFloatArray &Flint::newFloatArray(uint32_t length) {
+    return *(FlintFloatArray *)&newObject(length * sizeof(float), *(FlintConstUtf8 *)primTypeConstUtf8List[2], 1);
+}
+
+FlintInt64Array &Flint::newLongArray(uint32_t length) {
+    return *(FlintInt64Array *)&newObject(length * sizeof(int64_t), *(FlintConstUtf8 *)primTypeConstUtf8List[7], 1);
+}
+
+FlintDoubleArray &Flint::newDoubleArray(uint32_t length) {
+    return *(FlintDoubleArray *)&newObject(length * sizeof(double), *(FlintConstUtf8 *)primTypeConstUtf8List[3], 1);
+}
+
+FlintObjectArray &Flint::newObjectArray(FlintConstUtf8 &type, uint32_t length) {
+    return *(FlintObjectArray *)&newObject(length * sizeof(FlintObject *), type, 1);
+}
+
 FlintObject &Flint::newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
     if(dimensions > 1) {
         FlintObject &array = newObject(counts[0] * sizeof(FlintObject *), typeName, dimensions);
@@ -233,7 +269,7 @@ FlintClass &Flint::getConstClass(FlintString &str) {
 
 FlintString &Flint::newString(uint16_t length, uint8_t coder) {
     /* create new byte array to store string */
-    FlintObject &byteArray = newObject(length << (coder ? 1 : 0), *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
+    FlintInt8Array &byteArray = newByteArray(length << (coder ? 1 : 0));
 
     /* create new string object */
     FlintString &strObj = *(FlintString *)&newObject(*(FlintConstUtf8 *)&stringClassName);
@@ -254,14 +290,15 @@ FlintString &Flint::newString(const char *text, uint16_t size, bool isUtf8) {
 
     /* create new byte array to store string */
     uint32_t arrayLen = isLatin1 ? strLen : (strLen << 1);
-    FlintObject &byteArray = newObject(arrayLen, *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
+    FlintInt8Array &byteArray = newByteArray(arrayLen);
+    uint8_t *byteArrayData = (uint8_t *)byteArray.getData();
     if(!isUtf8)
-        memcpy(byteArray.data, text, strLen);
+        memcpy(byteArrayData, text, strLen);
     else {
         if(isLatin1) {
             while(*text) {
                 uint32_t c = FlintString::utf8Decode(text);
-                byteArray.data[index] = c;
+                byteArrayData[index] = c;
                 text += FlintString::getUtf8DecodeSize(*text);
                 index++;
             }
@@ -269,7 +306,7 @@ FlintString &Flint::newString(const char *text, uint16_t size, bool isUtf8) {
         else while(*text) {
             uint32_t c = FlintString::utf8Decode(text);
             if(c <= 0xFFFFFF)
-                ((uint16_t *)byteArray.data)[index] = c;
+                ((uint16_t *)byteArrayData)[index] = c;
             else
                 throw "Characters are not supported";
             text += FlintString::getUtf8DecodeSize(*text);
@@ -296,12 +333,13 @@ FlintString &Flint::newString(const char *latin1Str[], uint16_t count) {
         length += strlen(latin1Str[i]);
 
     /* create new byte array to store string */
-    FlintObject &byteArray = newObject(length, *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
+    FlintInt8Array &byteArray = newByteArray(length);
+    uint8_t *byteArrayData = (uint8_t *)byteArray.getData();
     for(uint16_t i = 0; i < count; i++) {
         const char *buff = latin1Str[i];
         while(*buff) {
             uint32_t c = FlintString::utf8Decode(buff);
-            byteArray.data[index] = c;
+            byteArrayData[index] = c;
             buff += FlintString::getUtf8DecodeSize(*buff);
             index++;
         }

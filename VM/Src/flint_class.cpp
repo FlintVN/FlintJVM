@@ -9,11 +9,11 @@ static const uint32_t stringNameFieldName[] = {
 };
 
 FlintString &FlintClass::getName(void) const {
-    return *(FlintString *)((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringNameFieldName).object;
+    return *(FlintString *)getFields().getFieldObject(*(FlintConstNameAndType *)stringNameFieldName).object;
 }
 
 void FlintClass::setName(FlintString *name) {
-    ((FlintFieldsData *)data)->getFieldObject(*(FlintConstNameAndType *)stringNameFieldName).object = name;
+    getFields().getFieldObject(*(FlintConstNameAndType *)stringNameFieldName).object = name;
 }
 
 FlintConstClass::FlintConstClass(FlintClass &flintClass) : flintClass(flintClass) {

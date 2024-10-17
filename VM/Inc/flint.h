@@ -8,6 +8,7 @@
 #include "flint_string.h"
 #include "flint_throwable.h"
 #include "flint_class_loader.h"
+#include "flint_array_object.h"
 #include "flint_fields_data.h"
 #include "flint_out_of_memory.h"
 #include "flint_load_file_error.h"
@@ -75,6 +76,15 @@ public:
 
     FlintObject &newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);
     FlintObject &newObject(FlintConstUtf8 &type);
+    FlintInt8Array &newBooleanArray(uint32_t length);
+    FlintInt8Array &newByteArray(uint32_t length);
+    FlintInt16Array &newCharArray(uint32_t length);
+    FlintInt16Array &newShortArray(uint32_t length);
+    FlintInt32Array &newIntegerArray(uint32_t length);
+    FlintFloatArray &newFloatArray(uint32_t length);
+    FlintInt64Array &newLongArray(uint32_t length);
+    FlintDoubleArray &newDoubleArray(uint32_t length);
+    FlintObjectArray &newObjectArray(FlintConstUtf8 &type, uint32_t length);
 
     FlintObject &newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 

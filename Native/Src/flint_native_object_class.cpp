@@ -16,19 +16,19 @@ static bool nativeGetClass(FlintExecution &execution) {
             length += 2;
     }
     FlintString &strObj = execution.flint.newString(length, 0);
-    FlintObject *byteArray = strObj.getValue();
+    int8_t *byteArray = strObj.getValue()->getData();
     if(obj->dimensions) {
         for(uint32_t i = 0; i < obj->dimensions; i++)
-            byteArray->data[idx++] = '[';
+            byteArray[idx++] = '[';
         if(!isPrim)
-            byteArray->data[idx++] = 'L';
+            byteArray[idx++] = 'L';
     }
     for(uint32_t i = 0; i < obj->type.length; i++) {
         uint8_t c = obj->type.text[i];
-        byteArray->data[idx++] = (c == '/') ? '.' : c;
+        byteArray[idx++] = (c == '/') ? '.' : c;
     }
     if(obj->dimensions && !isPrim)
-        byteArray->data[idx++] = ';';
+        byteArray[idx++] = ';';
     execution.stackPushObject(&execution.flint.getConstClass(strObj));
     return true;
 }
@@ -43,7 +43,7 @@ static bool nativeClone(FlintExecution &execution) {
     FlintObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
         FlintObject &cloneObj = execution.flint.newObject(obj->size, obj->type, obj->dimensions);
-        memcpy(cloneObj.data, obj->data, obj->size);
+        memcpy(((FlintInt8Array &)cloneObj).getData(), ((FlintInt8Array *)obj)->getData(), ((FlintInt8Array *)obj)->getLength());
         execution.stackPushObject(&cloneObj);
         return true;
     }

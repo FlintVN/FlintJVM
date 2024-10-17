@@ -16,10 +16,12 @@ private:
 public:
     FlintConstUtf8 &type;
     const uint32_t dimensions : 8;
+private:
     uint32_t monitorCount : 24;
     uint32_t ownId;
+protected:
     uint8_t data[];
-
+public:
     static uint8_t getPrimitiveTypeSize(uint8_t atype);
     static uint8_t convertToAType(char type);
     static uint8_t isPrimType(const FlintConstUtf8 &type);
@@ -28,7 +30,7 @@ public:
 
     class FlintFieldsData &getFields(void) const;
 private:
-    void setProtected(void);
+    void setProtected(void); 
     void clearProtected(void);
     uint8_t getProtected(void) const;
 protected:
@@ -38,6 +40,7 @@ protected:
 
     friend class Flint;
     friend class FlintExecution;
+    friend class FlintDebugger;
 };
 
 #endif /* __FLINT_OBJECT_H */

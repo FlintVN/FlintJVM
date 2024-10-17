@@ -21,13 +21,23 @@ static bool nativeArraycopy(FlintExecution &execution) {
     FlintObject *dest = execution.stackPopObject();
     int32_t srcPos = execution.stackPopInt32();
     FlintObject *src = execution.stackPopObject();
-    if(src->type == dest->type) {
+    if(src->dimensions == 0 || dest->dimensions == 0) {
+        FlintString *strObj;
+        if(src->dimensions == 0)
+            strObj = &execution.flint.newString(STR_AND_SIZE("Source object is not a array"));
+        else
+            strObj = &execution.flint.newString(STR_AND_SIZE("Destination object is not a array"));
+        FlintThrowable &excpObj = execution.flint.newArrayStoreException(*strObj);
+        execution.stackPushObject(&excpObj);
+        return false;
+    }
+    else if(src->type == dest->type) {
         uint8_t atype = FlintObject::isPrimType(src->type);
         uint8_t elementSize = atype ? FlintObject::getPrimitiveTypeSize(atype) : sizeof(FlintObject *);
         if((length < 0) || ((length + srcPos) > src->size / elementSize) || ((length + destPos) > dest->size / elementSize))
             throw "Index out of range in System.arraycopy";
-        void *srcVal = src->data;
-        void *dstVal = dest->data;
+        void *srcVal = ((FlintInt8Array *)src)->getData();
+        void *dstVal = ((FlintInt8Array *)dest)->getData();
         switch(elementSize) {
             case 1:
                 for(uint32_t i = 0; i < length; i++)
