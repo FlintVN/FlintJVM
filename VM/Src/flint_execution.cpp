@@ -1514,7 +1514,7 @@ void FlintExecution::run(void) {
     op_lcmp: {
         int64_t value2 = stackPopInt64();
         int64_t value1 = stackPopInt64();
-        stackPushInt32((value1 == value2) ? 0 : ((value1 < value2) ? -1 : 0));
+        stackPushInt32((value1 == value2) ? 0 : ((value1 < value2) ? -1 : 1));
         pc++;
         goto *opcodes[code[pc]];
     }
