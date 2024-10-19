@@ -15,6 +15,7 @@ private:
 public:
     uint32_t getLength(void) const;
     int8_t *getData(void) const;
+    void clearData(void);
 };
 
 class FlintInt16Array : public FlintObject {
@@ -28,6 +29,7 @@ private:
 public:
     uint32_t getLength(void) const;
     int16_t *getData(void) const;
+    void clearData(void);
 };
 
 class FlintInt32Array : public FlintObject {
@@ -41,6 +43,7 @@ private:
 public:
     uint32_t getLength(void) const;
     int32_t *getData(void) const;
+    void clearData(void);
 };
 
 class FlintFloatArray : public FlintObject {
@@ -54,6 +57,7 @@ private:
 public:
     uint32_t getLength(void) const;
     float *getData(void) const;
+    void clearData(void);
 };
 
 class FlintInt64Array : public FlintObject {
@@ -67,6 +71,7 @@ private:
 public:
     uint32_t getLength(void) const;
     int64_t *getData(void) const;
+    void clearData(void);
 };
 
 class FlintDoubleArray : public FlintObject {
@@ -80,6 +85,7 @@ private:
 public:
     uint32_t getLength(void) const;
     double *getData(void) const;
+    void clearData(void);
 };
 
 class FlintObjectArray : public FlintObject {
@@ -92,6 +98,7 @@ private:
 public:
     uint32_t getLength(void) const;
     FlintObject **getData(void) const;
+    void clearData(void);
 };
 
 #endif /* __FLINT_ARRAY_OBJECT_H */
