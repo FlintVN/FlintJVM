@@ -8,10 +8,13 @@
 #define FLINT_VERSION_MINOR     0
 #define FLINT_VERSION_PATCH     0
 
-#define KILO_BYTE(value)        (value * 1024)
-#define MEGA_BYTE(value)        (value * KILO_BYTE(1024))
+#define KILO_BYTE(_value)       ((_value) * 1024)
+#define MEGA_BYTE(_value)       ((_value) * KILO_BYTE(1024))
 
-#define LENGTH(array)           (sizeof(array) / sizeof(array[0]))
+#define MAX(_a, _b)             ((_a) > (_b) ? (_a) : (_b))
+#define MIN(_a, _b)             ((_a) < (_b) ? (_a) : (_b))
+
+#define LENGTH(_array)          (sizeof(_array) / sizeof(_array[0]))
 
 uint16_t Flint_Swap16(uint16_t value);
 uint32_t Flint_Swap32(uint32_t value);

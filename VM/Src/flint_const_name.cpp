@@ -24,6 +24,7 @@ const FlintConstUtf8 &threadClassName = *(const FlintConstUtf8 *)"\x10\x00\x8E\x
 const FlintConstUtf8 &characterClassName = *(const FlintConstUtf8 *)"\x13\x00\x92\x49""java/lang/Character";
 const FlintConstUtf8 &throwableClassName = *(const FlintConstUtf8 *)"\x13\x00\xB7\x14""java/lang/Throwable";
 const FlintConstUtf8 &exceptionClassName = *(const FlintConstUtf8 *)"\x13\x00\xF6\xDA""java/lang/Exception";
+const FlintConstUtf8 &bigIntegerClassName = *(const FlintConstUtf8 *)"\x14\x00\x72\xF5""java/math/BigInteger";
 const FlintConstUtf8 &printStreamClassName = *(const FlintConstUtf8 *)"\x13\x00\x34\x38""java/io/PrintStream";
 const FlintConstUtf8 &nullPtrExcpClassName = *(const FlintConstUtf8 *)"\x1E\x00\x0F\xCB""java/lang/NullPointerException";
 const FlintConstUtf8 &arrayStoreExceptionClassName = *(const FlintConstUtf8 *)"\x1D\x00\xCA\x26""java/lang/ArrayStoreException";
