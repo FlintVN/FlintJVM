@@ -136,6 +136,7 @@ public:
     bool isRunning(void) const;
     void terminateRequest(void);
     void terminate(void);
+    void freeObject(FlintObject &obj);
     void clearAllStaticFields(void);
     void freeAllObject(void);
     void freeAllExecution(void);

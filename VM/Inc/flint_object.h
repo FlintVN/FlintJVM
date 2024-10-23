@@ -30,8 +30,8 @@ public:
 
     class FlintFieldsData &getFields(void) const;
 private:
-    void setProtected(void); 
     void clearProtected(void);
+    void setProtected(void);
     uint8_t getProtected(void) const;
 protected:
     FlintObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions);

@@ -771,6 +771,21 @@ void Flint::terminate(void) {
         FlintAPI::Thread::yield();
 }
 
+void Flint::freeObject(FlintObject &obj) {
+    Flint::lock();
+    if(obj.prev)
+        obj.prev->next = obj.next;
+    else
+        objectList = obj.next;
+    if(obj.next)
+        obj.next->prev = obj.prev;
+
+    if(obj.dimensions == 0)
+        obj.getFields().~FlintFieldsData();
+    Flint::free(&obj);
+    Flint::unlock();
+}
+
 void Flint::clearAllStaticFields(void) {
     for(ClassData *node = classDataList; node != 0; node = node->next)
         node->clearStaticFields();
