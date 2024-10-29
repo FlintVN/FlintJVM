@@ -154,7 +154,7 @@ static void shiftRightImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32
     ret = &ret[retLen - 1];
     val = &val[valLength - 1];
 
-    if(nBits == 0) for(uint32_t i = nInts; i < (valLength - 1) && index < retLen; i++) {
+    if(nBits == 0) for(uint32_t i = nInts; i < valLength && index < retLen; i++) {
         ret[-index] = val[-i];
         index++;
     }
@@ -227,12 +227,13 @@ static void multiplyBasicImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint3
 static uint32_t divideByIntImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xLen, uint32_t y) {
     if(xLen <= 2) {
         uint64_t tmp = (xLen == 1) ? x[0] : (((uint64_t)x[0] << 32) | x[1]);
+        uint32_t rem = (uint32_t)(tmp % y);
         tmp /= y;
         if(retLen > 1) ret[retLen - 2] = (uint32_t)(tmp >> 32);
         if(retLen > 0) ret[retLen - 1] = (uint32_t)tmp;
         for(int32_t i = retLen - 3; i >= 0; i--)
             ret[i] = 0;
-        return (uint32_t)(tmp % y);
+        return rem;
     }
     else {
         uint64_t tmp;
@@ -260,7 +261,7 @@ static uint32_t divideByIntImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uin
                 ret[retIdx] = q;
             retIdx++;
         }
-        return tmp;
+        return (uint32_t)tmp;
     }
 }
 
@@ -531,22 +532,22 @@ static FlintInt32Array *divideByInt(FlintExecution &execution, FlintInt32Array *
     return trustedStripLeadingZeroInts(execution, &ret);
 }
 
-static FlintInt32Array *divideKnuth(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
+static FlintInt32Array *divideKnuth(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y, FlintInt32Array **rem) {
     uint32_t xLen = x->getLength();
     uint32_t yLen = y->getLength();
     int32_t retLen = (xLen - yLen) + (((uint32_t)x->getData()[0] >= (uint32_t)y->getData()[0]) ? 1 : 0);
     if(retLen == 0)
         return NULL;
 
-    uint32_t aLen;
+    uint32_t aLen, shift;
     FlintInt32Array *a;
     FlintInt32Array *b = &execution.flint.newIntegerArray(yLen);
     uint32_t *aData;
     uint32_t *bData = (uint32_t *)b->getData();
     if((uint32_t)y->getData()[0] < 0x80000000) {
-        uint32_t shift = 32 - bitLength(y->getData()[0]);
         uint32_t *xData = (uint32_t *)x->getData();
         uint32_t *yData = (uint32_t *)y->getData();
+        shift = 32 - bitLength(y->getData()[0]);
         aLen = ((xData[0] >> (32 - shift)) != 0) ? (xLen + 1) : xLen;
         a = &execution.flint.newIntegerArray(aLen);
         aData = (uint32_t *)a->getData();
@@ -554,6 +555,7 @@ static FlintInt32Array *divideKnuth(FlintExecution &execution, FlintInt32Array *
         shiftLeftImpl(bData, yLen, yData, yLen, shift);
     }
     else {
+        shift = 0;
         aLen = xLen;
         a = &execution.flint.newIntegerArray(xLen);
         aData = (uint32_t *)a->getData();
@@ -596,7 +598,26 @@ static FlintInt32Array *divideKnuth(FlintExecution &execution, FlintInt32Array *
         tmp = (aLen < 2) ? aData[0] : (((uint64_t)aData[0] << 32) | aData[1]);
     }
 
-    execution.flint.freeObject(*a);
+    if(rem) {
+        if(aLen == 0) {
+            *rem = NULL;
+            execution.flint.freeObject(*a);
+        }
+        else if((aLen == a->getLength()) && (aData[0] >> shift)) {
+            if(shift != 0)
+                shiftRightImpl(aData, aLen, aData, aLen, shift);
+            *rem = a;
+        }
+        else {
+            uint32_t remLen = aLen - ((aData[0] >> shift) ? 0 : 1);
+            *rem = &execution.flint.newIntegerArray(remLen);
+            shiftRightImpl((uint32_t *)(*rem)->getData(), remLen, aData, aLen, shift);
+            execution.flint.freeObject(*a);
+        }
+    }
+    else
+        execution.flint.freeObject(*a);
+
     execution.flint.freeObject(*b);
     execution.flint.freeObject(bq);
 
@@ -609,7 +630,28 @@ static FlintInt32Array *divide(FlintExecution &execution, FlintInt32Array *x, Fl
     if(y->getLength() == 1)
         return divideByInt(execution, x, y->getData()[0], NULL);
     else
-        return divideKnuth(execution, x, y);
+        return divideKnuth(execution, x, y, NULL);
+}
+
+static FlintInt32Array *remainder(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
+    if(compareMagnitude(x, y) < 0)
+        return x;
+    if(y->getLength() == 1) {
+        uint32_t rem;
+        divideByInt(execution, x, y->getData()[0], &rem);
+        if(rem == 0)
+            return NULL;
+        FlintInt32Array &ret = execution.flint.newIntegerArray(1);
+        ret.getData()[0] = (int32_t)rem;
+        return &ret;
+    }
+    else {
+        FlintInt32Array *rem;
+        FlintInt32Array *ret = divideKnuth(execution, x, y, &rem);
+        if(ret)
+            execution.flint.freeObject(*ret);
+        return rem;
+    }
 }
 
 static bool nativeMakeMagnitudeWithLongInput(FlintExecution &execution) {
@@ -725,6 +767,17 @@ static bool nativeDivide(FlintExecution &execution) {
     return true;
 }
 
+static bool nativeRemainder(FlintExecution &execution) {
+    FlintInt32Array *y = (FlintInt32Array *)execution.stackPopObject();
+    FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
+    if(FlintThrowable *excp = checkOperandParams(execution, x, y)) {
+        execution.stackPushObject(excp);
+        return false;
+    }
+    execution.stackPushObject(remainder(execution, x, y));
+    return true;
+}
+
 static bool nativeShiftLeft(FlintExecution &execution) {
     uint32_t n = execution.stackPopInt32();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
@@ -756,6 +809,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x08\x00\x06\x3A""subtract",         "\x08\x00\x00\x49""([I[I)[I",  nativeSubtract),
     NATIVE_METHOD("\x08\x00\x15\x40""multiply",         "\x08\x00\x00\x49""([I[I)[I",  nativeMultiply),
     NATIVE_METHOD("\x06\x00\x8B\x76""divide",           "\x08\x00\x00\x49""([I[I)[I",  nativeDivide),
+    NATIVE_METHOD("\x09\x00\x51\x46""remainder",        "\x08\x00\x00\x49""([I[I)[I",  nativeRemainder),
     NATIVE_METHOD("\x09\x00\xEE\x70""shiftLeft",        "\x07\x00\xA1\x4A""([II)[I",   nativeShiftLeft),
     NATIVE_METHOD("\x0A\x00\x42\x86""shiftRight",       "\x07\x00\xA1\x4A""([II)[I",   nativeShiftRight),
 };
