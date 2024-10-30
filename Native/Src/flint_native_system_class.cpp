@@ -66,10 +66,17 @@ static bool nativeArraycopy(FlintExecution &execution) {
     return true;
 }
 
+static bool nativeIdentityHashCode(FlintExecution &execution) {
+    FlintObject *obj = execution.stackPopObject();
+    execution.stackPushInt32((int32_t)obj);
+    return true;
+}
+
 static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x11\x00\xF9\xDF""currentTimeMillis", "\x03\x00\x90\x50""()J",                                        nativeCurrentTimeMillis),
     NATIVE_METHOD("\x08\x00\xB8\x86""nanoTime",          "\x03\x00\x90\x50""()J",                                        nativeNanoTime),
     NATIVE_METHOD("\x09\x00\xDB\xA7""arraycopy",         "\x2A\x00\xC2\xBC""(Ljava/lang/Object;ILjava/lang/Object;II)V", nativeArraycopy),
+    NATIVE_METHOD("\x10\x00\xC5\xB8""identityHashCode",  "\x15\x00\x49\x76""(Ljava/lang/Object;)I",                      nativeIdentityHashCode),
 };
 
 const FlintNativeClass SYSTEM_CLASS = NATIVE_CLASS(systemClassName, methods);
