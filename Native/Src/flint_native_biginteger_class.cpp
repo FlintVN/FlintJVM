@@ -66,7 +66,7 @@ static uint32_t addImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xL
         xLen = yLen;
     }
     len = MIN(retLen, xLen);
-    uint8_t carry = (uint32_t)(sum >> 32);
+    uint8_t carry = (uint8_t)(sum >> 32);
     while((index < len) && carry) {
         ret[-index] = x[-index] + 1;
         carry = (ret[-index] == 0);
@@ -115,10 +115,10 @@ static void subtractImpl(uint32_t *ret, uint32_t retLen, uint32_t *big, uint32_t
     }
 }
 
-static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_t valLength, uint8_t shift) {
+static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_t valLength, uint32_t shift) {
     int32_t index = 0;
     uint32_t nInts = shift >> 5;
-    uint32_t nBits = shift & 0x1F; 
+    uint32_t nBits = shift & 0x1F;
     ret = &ret[retLen - 1];
     val = &val[valLength - 1];
 
@@ -147,10 +147,10 @@ static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_
         ret[-index] = 0;
 }
 
-static void shiftRightImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_t valLength, uint8_t shift) {
+static void shiftRightImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_t valLength, uint32_t shift) {
     int32_t index = 0;
     uint32_t nInts = shift >> 5;
-    uint32_t nBits = shift & 0x1F; 
+    uint32_t nBits = shift & 0x1F;
     ret = &ret[retLen - 1];
     val = &val[valLength - 1];
 
@@ -265,12 +265,18 @@ static uint32_t divideByIntImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uin
     }
 }
 
-static FlintThrowable *checkMakeMagnitudeParams(FlintExecution &execution, FlintInt8Array *val, int32_t off, int32_t len) {
-    if(val == NULL) {
+static FlintThrowable *checkNullObject(FlintExecution &execution, FlintObject *obj) {
+    if(obj == NULL) {
         FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
         FlintThrowable &excpObj = execution.flint.newNullPointerException(strObj);
         return &excpObj;
     }
+    return NULL;
+} 
+
+static FlintThrowable *checkMakeMagnitudeParams(FlintExecution &execution, FlintInt8Array *val, int32_t off, int32_t len) {
+    if(FlintThrowable *excp = checkNullObject(execution, val))
+        return excp;
     uint32_t valLen = val->getLength();
     if(off < 0 || off >= valLen || (off + len) > valLen) {
         char indexStrBuff[11];
@@ -286,21 +292,13 @@ static FlintThrowable *checkMakeMagnitudeParams(FlintExecution &execution, Flint
 }
 
 static FlintThrowable *checkOperandParams(FlintExecution &execution, FlintInt32Array *x) {
-    if(x == NULL) {
-        FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
-        FlintThrowable &excpObj = execution.flint.newNullPointerException(strObj);
-        return &excpObj;
-    }
-    return NULL;
+    return checkNullObject(execution, x);
 }
 
 static FlintThrowable *checkOperandParams(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
-    if(x == NULL || y == NULL) {
-        FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
-        FlintThrowable &excpObj = execution.flint.newNullPointerException(strObj);
-        return &excpObj;
-    }
-    return NULL;
+    if(FlintThrowable *excp = checkNullObject(execution, x))
+        return excp;
+    return checkNullObject(execution, y);
 }
 
 static FlintInt32Array *makeMagnitude(FlintExecution &execution, int8_t *valData, int32_t off, uint32_t end) {
@@ -428,7 +426,10 @@ static FlintInt32Array *subtract(FlintExecution &execution, FlintInt32Array *big
 }
 
 static FlintInt32Array *shiftLeft(FlintExecution &execution, FlintInt32Array *mag, uint32_t shift) {
-    uint32_t retLen = mag->getLength() + (shift >> 5) + (((uint32_t)mag->getData()[0] >> (32 - (shift & 0x1F))) ? 1 : 0);
+    uint32_t nInts = shift >> 5;
+    uint32_t nBits = shift & 0x1F;
+    uint32_t retLen = mag->getLength() + nInts;
+    retLen += nBits ? (((uint32_t)mag->getData()[0] >> (32 - nBits)) ? 1 : 0) : 0;
     FlintInt32Array *ret = &execution.flint.newIntegerArray(retLen);
     shiftLeftImpl((uint32_t *)ret->getData(), retLen, (uint32_t *)mag->getData(), mag->getLength(), shift);
     return ret;
@@ -436,11 +437,13 @@ static FlintInt32Array *shiftLeft(FlintExecution &execution, FlintInt32Array *ma
 
 static FlintInt32Array *shiftRight(FlintExecution &execution, FlintInt32Array *mag, uint32_t shift) {
     uint32_t nInts = shift >> 5;
+    uint32_t nBits = shift & 0x1F;
     uint32_t magLen = mag->getLength();
     if(nInts >= magLen)
         return NULL;
     else {
-        uint32_t retLen = (magLen - nInts) - (((uint32_t)mag->getData()[0] >> (shift & 0x1F)) ? 0 : 1);
+        uint32_t retLen = magLen - nInts;
+        retLen -= nBits ? (((uint32_t)mag->getData()[0] >> nBits) ? 0 : 1) : 0;
         if(retLen == 0)
             return NULL;
         FlintInt32Array *ret = &execution.flint.newIntegerArray(retLen);
@@ -468,7 +471,7 @@ static FlintInt32Array *multiplyBasic(FlintExecution &execution, FlintInt32Array
 static FlintInt32Array *multiply(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y);
 
 static FlintInt32Array *multiplyKaratsuba(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
-    uint32_t half = (((x->getLength() > y->getLength()) ? x->getLength() : y->getLength()) + 1) / 2;
+    uint32_t half = (MAX(x->getLength(), y->getLength()) + 1) / 2;
 
     FlintInt32Array *xl = getLower(execution, x, half);
     FlintInt32Array *xh = getUpper(execution, x, half);
