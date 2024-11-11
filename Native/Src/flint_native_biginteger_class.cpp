@@ -18,6 +18,16 @@ static uint32_t bitLength(uint32_t value) {
     return len + (value & 0x01);
 }
 
+static uint32_t bitLength(uint32_t *value, uint32_t length) {
+    while((*value == 0) && length) {
+        value++;
+        length--;
+    }
+    if(!length)
+        return 0;
+    return bitLength(*value) + (length - 1) * 32;
+}
+
 static uint8_t getExponentOfTwo(uint32_t i) {
     uint32_t n = 0;
     if (i > 1 << 16) {n += 16; i >>= 16;}
@@ -454,7 +464,14 @@ static FlintInt32Array *shiftRight(FlintExecution &execution, FlintInt32Array *m
 
 static FlintInt32Array *multiplyByInt(FlintExecution &execution, FlintInt32Array *x, uint32_t y) {
     uint32_t xLen = x->getLength();
-    uint32_t retLen = (xLen > 1) ? (xLen + 1) : ((((uint64_t)x->getData()[0] * y) >> 32) ? 2 : 1);
+    uint32_t retLen;
+    if(xLen > 1) {
+        uint32_t xBitLen = bitLength((uint32_t *)x->getData(), xLen);
+        uint32_t yBitLen = bitLength(y);
+        retLen = (xBitLen + yBitLen + 31) / 32;
+    }
+    else
+        retLen = (((uint64_t)x->getData()[0] * y) >> 32) ? 2 : 1;
     FlintInt32Array &ret = execution.flint.newIntegerArray(retLen);
     multiplyByIntImpl((uint32_t *)ret.getData(), retLen, (uint32_t *)x->getData(), xLen, y);
     return trustedStripLeadingZeroInts(execution, &ret);
@@ -463,8 +480,10 @@ static FlintInt32Array *multiplyByInt(FlintExecution &execution, FlintInt32Array
 static FlintInt32Array *multiplyBasic(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
     uint32_t xLen = x->getLength();
     uint32_t yLen = y->getLength();
-    FlintInt32Array &ret = execution.flint.newIntegerArray(xLen + yLen);
-    multiplyBasicImpl((uint32_t *)ret.getData(), xLen + yLen, (uint32_t *)x->getData(), xLen, (uint32_t *)y->getData(), yLen);
+    uint32_t xBitLen = bitLength((uint32_t *)x->getData(), xLen);
+    uint32_t yBitLen = bitLength((uint32_t *)y->getData(), yLen);
+    FlintInt32Array &ret = execution.flint.newIntegerArray((xBitLen + yBitLen + 31) / 32);
+    multiplyBasicImpl((uint32_t *)ret.getData(), ret.getLength(), (uint32_t *)x->getData(), xLen, (uint32_t *)y->getData(), yLen);
     return trustedStripLeadingZeroInts(execution, &ret);
 }
 
