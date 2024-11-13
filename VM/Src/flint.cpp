@@ -131,11 +131,13 @@ FlintObject &Flint::newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimen
     FlintObject *newNode = (FlintObject *)Flint::malloc(sizeof(FlintObject) + size);
     new (newNode)FlintObject(size, type, dimensions);
 
+    Flint::lock();
     newNode->prev = 0;
     newNode->next = objectList;
     if(objectList)
         objectList->prev = newNode;
     objectList = newNode;
+    Flint::unlock();
 
     return *newNode;
 }
