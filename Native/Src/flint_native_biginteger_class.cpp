@@ -125,30 +125,30 @@ static void subtractImpl(uint32_t *ret, uint32_t retLen, uint32_t *big, uint32_t
     }
 }
 
-static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_t valLength, uint32_t shift) {
+static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_t valLen, uint32_t shift) {
     int32_t index = 0;
     uint32_t nInts = shift >> 5;
     uint32_t nBits = shift & 0x1F;
     ret = &ret[retLen - 1];
-    val = &val[valLength - 1];
+    val = &val[valLen - 1];
 
     uint32_t len = MIN(nInts, retLen);
     for(; index < len; index++)
         ret[-index] = 0;
 
-    if(nBits == 0) for(uint32_t i = 0; i < valLength && index < retLen; i++) {
+    if(nBits == 0) for(uint32_t i = 0; i < valLen && index < retLen; i++) {
         ret[-index] = val[-i];
         index++;
     }
     else if(index < retLen) {
         ret[-index] = val[0] << nBits;
         index++;
-        for(uint32_t i = 1; i < valLength && index < retLen; i++) {
+        for(uint32_t i = 1; i < valLen && index < retLen; i++) {
             ret[-index] = (val[-i] << nBits) | (val[-(i - 1)] >> (32 - nBits));
             index++;
         }
         if(index < retLen) {
-            ret[-index] = val[-(valLength - 1)] >> (32 - nBits);
+            ret[-index] = val[-(valLen - 1)] >> (32 - nBits);
             index++;
         }
     }
@@ -157,24 +157,24 @@ static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_
         ret[-index] = 0;
 }
 
-static void shiftRightImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_t valLength, uint32_t shift) {
+static void shiftRightImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_t valLen, uint32_t shift) {
     int32_t index = 0;
     uint32_t nInts = shift >> 5;
     uint32_t nBits = shift & 0x1F;
     ret = &ret[retLen - 1];
-    val = &val[valLength - 1];
+    val = &val[valLen - 1];
 
-    if(nBits == 0) for(uint32_t i = nInts; i < valLength && index < retLen; i++) {
+    if(nBits == 0) for(uint32_t i = nInts; i < valLen && index < retLen; i++) {
         ret[-index] = val[-i];
         index++;
     }
     else {
-        for(uint32_t i = nInts; i < (valLength - 1) && index < retLen; i++) {
+        for(uint32_t i = nInts; i < (valLen - 1) && index < retLen; i++) {
             ret[-index] = (val[-i] >> nBits) | (val[-(i + 1)] << (32 - nBits));
             index++;
         }
         if(index < retLen) {
-            ret[-index] = val[-(valLength - 1)] >> nBits;
+            ret[-index] = val[-(valLen - 1)] >> nBits;
             index++;
         }
     }
@@ -183,43 +183,29 @@ static void shiftRightImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32
         ret[-index] = 0;
 }
 
-static void multiplyByIntImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xLen, uint32_t y) {
-    if(xLen == 1) {
-        uint64_t tmp = (uint64_t)x[0] * y;
-        if(retLen)
-            ret[retLen - 1] = tmp & 0xFFFFFFFF;
-        if(retLen > 1)
-            ret[retLen - 2] = tmp >> 32;
-    }
-    else {
-        uint8_t isPowTwo = (y & (y - 1)) == 0;
-        if(isPowTwo)
-            shiftLeftImpl(ret, retLen, x, xLen, getExponentOfTwo(y));
-        else {
-            uint32_t carry = 0;
-            uint32_t len = MIN(retLen, xLen);
-            x = &x[xLen - 1];
-            ret = &ret[retLen - 1];
-            for(int32_t i = 0; i < len; i++) {
-                uint64_t product = (uint64_t)x[-i] * y + carry;
-                ret[-i] = (uint32_t)product;
-                carry = (uint32_t)(product >> 32);
+static void multiplyBasicImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xLen, uint32_t *y, uint32_t yLen) {
+    uint32_t xBitLen = bitLength(x, xLen);
+    if((xBitLen <= 32) || (bitLength(y, yLen) <= 32)) {
+        if(xBitLen <= 32) {
+            uint32_t tmp = x[xLen - 1];
+            if((tmp & (tmp - 1)) == 0) {
+                shiftLeftImpl(ret, retLen, x, xLen, getExponentOfTwo(tmp));
+                return;
             }
-            if(len < retLen)
-                ret[-len] = carry;
-            for(int32_t i = len + 1; i < retLen; i++)
-                ret[-i] = 0;
+        }
+        else {
+            uint32_t tmp = y[yLen - 1];
+            if((tmp & (tmp - 1)) == 0) {
+                shiftLeftImpl(ret, retLen, y, yLen, getExponentOfTwo(tmp));
+                return;
+            }
         }
     }
-}
-
-static void multiplyBasicImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xLen, uint32_t *y, uint32_t yLen) {
+    memset(ret, 0, retLen * sizeof(uint32_t));
     x = &x[xLen - 1];
     y = &y[yLen - 1];
     ret = &ret[retLen - 1];
     uint32_t carry;
-    for(int32_t i = 0; i < retLen; i++)
-        ret[-i] = 0;
     for(int32_t i = 0; i < yLen; i++) {
         carry = 0;
         for(int32_t j = 0; (j < xLen) && ((i + j) < retLen); j++) {
@@ -462,28 +448,17 @@ static FlintInt32Array *shiftRight(FlintExecution &execution, FlintInt32Array *m
     }
 }
 
-static FlintInt32Array *multiplyByInt(FlintExecution &execution, FlintInt32Array *x, uint32_t y) {
-    uint32_t xLen = x->getLength();
-    uint32_t retLen;
-    if(xLen > 1) {
-        uint32_t xBitLen = bitLength((uint32_t *)x->getData(), xLen);
-        uint32_t yBitLen = bitLength(y);
-        retLen = (xBitLen + yBitLen + 31) / 32;
-    }
-    else
-        retLen = (((uint64_t)x->getData()[0] * y) >> 32) ? 2 : 1;
-    FlintInt32Array &ret = execution.flint.newIntegerArray(retLen);
-    multiplyByIntImpl((uint32_t *)ret.getData(), retLen, (uint32_t *)x->getData(), xLen, y);
-    return trustedStripLeadingZeroInts(execution, &ret);
-}
-
 static FlintInt32Array *multiplyBasic(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
     uint32_t xLen = x->getLength();
     uint32_t yLen = y->getLength();
     uint32_t xBitLen = bitLength((uint32_t *)x->getData(), xLen);
     uint32_t yBitLen = bitLength((uint32_t *)y->getData(), yLen);
     FlintInt32Array &ret = execution.flint.newIntegerArray((xBitLen + yBitLen + 31) / 32);
-    multiplyBasicImpl((uint32_t *)ret.getData(), ret.getLength(), (uint32_t *)x->getData(), xLen, (uint32_t *)y->getData(), yLen);
+    multiplyBasicImpl(
+        (uint32_t *)ret.getData(), ret.getLength(),
+        (uint32_t *)x->getData(), xLen,
+        (uint32_t *)y->getData(), yLen
+    );
     return trustedStripLeadingZeroInts(execution, &ret);
 }
 
@@ -533,13 +508,8 @@ static FlintInt32Array *multiplyKaratsuba(FlintExecution &execution, FlintInt32A
 static FlintInt32Array *multiply(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
     uint32_t xLen = x->getLength();
     uint32_t yLen = y->getLength();
-    if((xLen < KARATSUBA_THRESHOLD) || (yLen < KARATSUBA_THRESHOLD)) {
-        if(xLen == 1)
-            return multiplyByInt(execution, y, x->getData()[0]);
-        else if(yLen == 1)
-            return multiplyByInt(execution, x, y->getData()[0]);
+    if((xLen < KARATSUBA_THRESHOLD) || (yLen < KARATSUBA_THRESHOLD))
         return multiplyBasic(execution, x, y);
-    }
     else
         return multiplyKaratsuba(execution, x, y);
 }
@@ -599,7 +569,7 @@ static FlintInt32Array *divideKnuth(FlintExecution &execution, FlintInt32Array *
             uint32_t bqLen = (tmp >> 32) ? (yLen + 1) : yLen;
             bqData[yLen] = 0;
             while(q) {
-                multiplyByIntImpl(bqData, bqLen, bData, yLen, q);
+                multiplyBasicImpl(bqData, bqLen, bData, yLen, &q, 1);
                 if(compareMagnitudeImpl(bqData, aLen, aData, aLen) <= 0)
                     break;
                 q--;
