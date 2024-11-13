@@ -50,7 +50,7 @@ public:
     virtual ~FlintAttribute(void) = 0;
 };
 
-typedef bool (*FlintNativeMethodPtr)(class FlintExecution &execution);
+typedef void (*FlintNativeMethodPtr)(class FlintExecution &execution);
 
 class FlintNativeAttribute : public FlintAttribute {
 public:

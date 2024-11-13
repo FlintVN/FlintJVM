@@ -261,18 +261,15 @@ static uint32_t divideByIntImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uin
     }
 }
 
-static FlintThrowable *checkNullObject(FlintExecution &execution, FlintObject *obj) {
+static void checkNullObject(FlintExecution &execution, FlintObject *obj) {
     if(obj == NULL) {
         FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
-        FlintThrowable &excpObj = execution.flint.newNullPointerException(strObj);
-        return &excpObj;
+        throw &execution.flint.newNullPointerException(strObj);
     }
-    return NULL;
-} 
+}
 
-static FlintThrowable *checkMakeMagnitudeParams(FlintExecution &execution, FlintInt8Array *val, int32_t off, int32_t len) {
-    if(FlintThrowable *excp = checkNullObject(execution, val))
-        return excp;
+static void checkMakeMagnitudeParams(FlintExecution &execution, FlintInt8Array *val, int32_t off, int32_t len) {
+    checkNullObject(execution, val);
     uint32_t valLen = val->getLength();
     if(off < 0 || off >= valLen || (off + len) > valLen) {
         char indexStrBuff[11];
@@ -281,20 +278,8 @@ static FlintThrowable *checkMakeMagnitudeParams(FlintExecution &execution, Flint
         sprintf(lengthStrBuff, "%d", (int)valLen);
         const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
         FlintString &strObj = execution.flint.newString(msg, LENGTH(msg));
-        FlintThrowable &excpObj = execution.flint.newArrayIndexOutOfBoundsException(strObj);
-        return &excpObj;
+        throw &execution.flint.newArrayIndexOutOfBoundsException(strObj);
     }
-    return NULL;
-}
-
-static FlintThrowable *checkOperandParams(FlintExecution &execution, FlintInt32Array *x) {
-    return checkNullObject(execution, x);
-}
-
-static FlintThrowable *checkOperandParams(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
-    if(FlintThrowable *excp = checkNullObject(execution, x))
-        return excp;
-    return checkNullObject(execution, y);
 }
 
 static FlintInt32Array *makeMagnitude(FlintExecution &execution, int8_t *valData, int32_t off, uint32_t end) {
@@ -646,7 +631,7 @@ static FlintInt32Array *remainder(FlintExecution &execution, FlintInt32Array *x,
     }
 }
 
-static bool nativeMakeMagnitudeWithLongInput(FlintExecution &execution) {
+static void nativeMakeMagnitudeWithLongInput(FlintExecution &execution) {
     int64_t val = execution.stackPopInt64();
     if(val < 0)
         val = -val;
@@ -662,38 +647,34 @@ static bool nativeMakeMagnitudeWithLongInput(FlintExecution &execution) {
         mag.getData()[0] = (int32_t)val;
         execution.stackPushObject(&mag);
     }
-    return true;
 }
 
-static bool nativeMakeMagnitudeWithByteArrayInput(FlintExecution &execution) {
+static void nativeMakeMagnitudeWithByteArrayInput(FlintExecution &execution) {
     int32_t len = execution.stackPopInt32();
     int32_t off = execution.stackPopInt32();
     FlintInt8Array *val = (FlintInt8Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkMakeMagnitudeParams(execution, val, off, len)) {
-        execution.stackPushObject(excp);
-        return false;
+    checkMakeMagnitudeParams(execution, val, off, len);
+    if(val == NULL)
+        execution.stackPushObject(NULL);
+    else {
+        int8_t *valData = val->getData();
+        uint32_t end = off + len;
+        if(valData[off] >= 0)
+            execution.stackPushObject(makeMagnitude(execution, valData, off, end));
+        else
+            execution.stackPushObject(makePositiveMagnitude(execution, valData, off, end));
     }
-    int8_t *valData = val->getData();
-    uint32_t end = off + len;
-    if(valData[off] >= 0)
-        execution.stackPushObject(makeMagnitude(execution, valData, off, end));
-    else
-        execution.stackPushObject(makePositiveMagnitude(execution, valData, off, end));
-    return true;
 }
 
-static bool nativeMakeMagnitudeWithSignumInput(FlintExecution &execution) {
+static void nativeMakeMagnitudeWithSignumInput(FlintExecution &execution) {
     int32_t len = execution.stackPopInt32();
     int32_t off = execution.stackPopInt32();
     FlintInt8Array *val = (FlintInt8Array *)execution.stackPopObject();
     int32_t signum = execution.stackPopInt32();
-    if(FlintThrowable *excp = checkMakeMagnitudeParams(execution, val, off, len)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
-    if(signum == 0)
-        execution.stackPushObject(0);
+    if(signum == NULL || val == NULL)
+        execution.stackPushObject(NULL);
     else {
+        checkMakeMagnitudeParams(execution, val, off, len);
         int8_t *valData = val->getData();
         uint32_t end = off + len;
         if(signum > 0)
@@ -701,95 +682,54 @@ static bool nativeMakeMagnitudeWithSignumInput(FlintExecution &execution) {
         else
             execution.stackPushObject(makePositiveMagnitude(execution, valData, off, end));
     }
-    return true;
 }
 
-static bool nativeCompareMagnitude(FlintExecution &execution) {
+static void nativeCompareMagnitude(FlintExecution &execution) {
     FlintInt32Array *y = (FlintInt32Array *)execution.stackPopObject();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkOperandParams(execution, x, y)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
     execution.stackPushInt32(compareMagnitude(x, y));
-    return true;
 }
 
-static bool nativeAdd(FlintExecution &execution) {
+static void nativeAdd(FlintExecution &execution) {
     FlintInt32Array *y = (FlintInt32Array *)execution.stackPopObject();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkOperandParams(execution, x, y)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
     execution.stackPushObject(add(execution, x, y));
-    return true;
 }
 
-static bool nativeSubtract(FlintExecution &execution) {
+static void nativeSubtract(FlintExecution &execution) {
     FlintInt32Array *little = (FlintInt32Array *)execution.stackPopObject();
     FlintInt32Array *big = (FlintInt32Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkOperandParams(execution, big, little)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
     execution.stackPushObject(subtract(execution, big, little));
-    return true;
 }
 
-static bool nativeMultiply(FlintExecution &execution) {
+static void nativeMultiply(FlintExecution &execution) {
     FlintInt32Array *y = (FlintInt32Array *)execution.stackPopObject();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkOperandParams(execution, x, y)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
     execution.stackPushObject(multiply(execution, x, y));
-    return true;
 }
 
-static bool nativeDivide(FlintExecution &execution) {
+static void nativeDivide(FlintExecution &execution) {
     FlintInt32Array *y = (FlintInt32Array *)execution.stackPopObject();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkOperandParams(execution, x, y)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
     execution.stackPushObject(divide(execution, x, y));
-    return true;
 }
 
-static bool nativeRemainder(FlintExecution &execution) {
+static void nativeRemainder(FlintExecution &execution) {
     FlintInt32Array *y = (FlintInt32Array *)execution.stackPopObject();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkOperandParams(execution, x, y)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
     execution.stackPushObject(remainder(execution, x, y));
-    return true;
 }
 
-static bool nativeShiftLeft(FlintExecution &execution) {
+static void nativeShiftLeft(FlintExecution &execution) {
     uint32_t n = execution.stackPopInt32();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkOperandParams(execution, x)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
     execution.stackPushObject(shiftLeft(execution, x, n));
-    return true;
 }
 
-static bool nativeShiftRight(FlintExecution &execution) {
+static void nativeShiftRight(FlintExecution &execution) {
     uint32_t n = execution.stackPopInt32();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
-    if(FlintThrowable *excp = checkOperandParams(execution, x)) {
-        execution.stackPushObject(excp);
-        return false;
-    }
     execution.stackPushObject(shiftRight(execution, x, n));
-    return true;
 }
 
 static const FlintNativeMethod methods[] = {

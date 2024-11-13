@@ -115,18 +115,16 @@ static int32_t findIndex(const uint16_t *letterList, uint16_t c) {
     return -1;
 }
 
-static bool nativeToLower(FlintExecution &execution) {
+static void nativeToLower(FlintExecution &execution) {
     uint16_t c = execution.stackPopInt32();
     int32_t index = findIndex(letterUpper, c);
     execution.stackPushInt32((index >= 0) ? letterLower[index] : c);
-    return true;
 }
 
-static bool nativeToUpper(FlintExecution &execution) {
+static void nativeToUpper(FlintExecution &execution) {
     uint16_t c = execution.stackPopInt32();
     int32_t index = findIndex(letterLower, c);
     execution.stackPushInt32((index >= 0) ? letterUpper[index] : c);
-    return true;
 }
 
 static const FlintNativeMethod methods[] = {

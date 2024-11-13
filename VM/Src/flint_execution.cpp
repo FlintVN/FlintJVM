@@ -238,7 +238,7 @@ void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) 
     sp += attributeCode.maxLocals;
 }
 
-bool FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
+void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
     if((methodInfo.accessFlag & METHOD_NATIVE) != METHOD_NATIVE) {
         peakSp = sp + 4;
         for(uint32_t i = 0; i < argc; i++) {
@@ -259,29 +259,15 @@ bool FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
         startSp = sp;
 
         initNewContext(methodInfo, argc);
-
-        return true;
     }
     else {
-        try {
-            FlintNativeAttribute &attrNative = methodInfo.getAttributeNative();
-            if(attrNative.nativeMethod(*this)) {
-                pc = lr;
-                return true;
-            }
-            return false;
-        }
-        catch(FlintFindNativeError *err) {
-            const char *msg[] = {err->getMessage(), " ", methodInfo.name.text};
-            FlintString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(strObj);
-            stackPushObject(&excpObj);
-            return false;
-        }
+        FlintNativeAttribute &attrNative = methodInfo.getAttributeNative();
+        attrNative.nativeMethod(*this);
+        pc = lr;
     }
 }
 
-bool FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
+void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getParmInfo().argc;
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
@@ -304,16 +290,15 @@ bool FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
             else {
                 Flint::unlock();
                 FlintAPI::Thread::yield();
-                return true;
             }
         }
-        return invoke(methodInfo, argc);
+        invoke(methodInfo, argc);
     }
     else
         throw "invoke static to non-static method";
 }
 
-bool FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
+void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getParmInfo().argc + 1;
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
@@ -336,16 +321,15 @@ bool FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
             else {
                 Flint::unlock();
                 FlintAPI::Thread::yield();
-                return true;
             }
         }
-        return invoke(methodInfo, argc);
+        invoke(methodInfo, argc);
     }
     else
         throw "invoke special to static method";
 }
 
-bool FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
+void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getParmInfo().argc;
     FlintObject *obj = (FlintObject *)stack[sp - argc];
     if(obj == 0) {
@@ -353,7 +337,6 @@ bool FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         FlintString &strObj = flint.newString(msg, LENGTH(msg));
         FlintThrowable &excpObj = flint.newNullPointerException(strObj);
         stackPushObject(&excpObj);
-        return false;
     }
     FlintConstUtf8 &type = FlintObject::isPrimType(obj->type) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
@@ -383,24 +366,22 @@ bool FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
             else {
                 Flint::unlock();
                 FlintAPI::Thread::yield();
-                return true;
             }
         }
         argc++;
-        return invoke(*methodInfo, argc);
+        invoke(*methodInfo, argc);
     }
     else
         throw "invoke virtual to static method";
 }
 
-bool FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc) {
+void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     FlintObject *obj = (FlintObject *)stack[sp - argc + 1];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
         FlintString &strObj = flint.newString(msg, LENGTH(msg));
         FlintThrowable &excpObj = flint.newNullPointerException(strObj);
         stackPushObject(&excpObj);
-        return false;
     }
     FlintConstUtf8 &type = FlintObject::isPrimType(obj->type) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
@@ -430,10 +411,9 @@ bool FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
             else {
                 Flint::unlock();
                 FlintAPI::Thread::yield();
-                return true;
             }
         }
-        return invoke(*methodInfo, argc);
+        invoke(*methodInfo, argc);
     }
     else
         throw "invoke interface to static method";
@@ -1896,12 +1876,27 @@ void FlintExecution::run(void) {
         FlintConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
-            if(!invokeVirtual(constMethod))
-                goto exception_handler;
+            invokeVirtual(constMethod);
+        }
+        catch(FlintThrowable *ex) {
+            stackPushObject(ex);
+            goto exception_handler;
         }
         catch(FlintLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
+        }
+        catch(FlintFindNativeError *err) {
+            const char *msg[] = {err->getMessage(), " ", constMethod.nameAndType.name.text};
+            FlintString &strObj = flint.newString(msg, LENGTH(msg));
+            FlintThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(strObj);
+            stackPushObject(&excpObj);
+            goto exception_handler;
+        }
+        catch(const char *msg) {
+            FlintThrowable &excpObj = flint.newException(flint.newString(msg, strlen(msg)));
+            stackPushObject(&excpObj);
+            goto exception_handler;
         }
         goto *opcodes[code[pc]];
     }
@@ -1909,12 +1904,27 @@ void FlintExecution::run(void) {
         FlintConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
-            if(!invokeSpecial(constMethod))
-                goto exception_handler;
+            invokeSpecial(constMethod);
+        }
+        catch(FlintThrowable *ex) {
+            stackPushObject(ex);
+            goto exception_handler;
         }
         catch(FlintLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
+        }
+        catch(FlintFindNativeError *err) {
+            const char *msg[] = {err->getMessage(), " ", constMethod.nameAndType.name.text};
+            FlintString &strObj = flint.newString(msg, LENGTH(msg));
+            FlintThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(strObj);
+            stackPushObject(&excpObj);
+            goto exception_handler;
+        }
+        catch(const char *msg) {
+            FlintThrowable &excpObj = flint.newException(flint.newString(msg, strlen(msg)));
+            stackPushObject(&excpObj);
+            goto exception_handler;
         }
         goto *opcodes[code[pc]];
     }
@@ -1922,12 +1932,27 @@ void FlintExecution::run(void) {
         FlintConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
         lr = pc + 3;
         try {
-            if(!invokeStatic(constMethod))
-                goto exception_handler;
+            invokeStatic(constMethod);
+        }
+        catch(FlintThrowable *ex) {
+            stackPushObject(ex);
+            goto exception_handler;
         }
         catch(FlintLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
+        }
+        catch(FlintFindNativeError *err) {
+            const char *msg[] = {err->getMessage(), " ", constMethod.nameAndType.name.text};
+            FlintString &strObj = flint.newString(msg, LENGTH(msg));
+            FlintThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(strObj);
+            stackPushObject(&excpObj);
+            goto exception_handler;
+        }
+        catch(const char *msg) {
+            FlintThrowable &excpObj = flint.newException(flint.newString(msg, strlen(msg)));
+            stackPushObject(&excpObj);
+            goto exception_handler;
         }
         goto *opcodes[code[pc]];
     }
@@ -1936,12 +1961,27 @@ void FlintExecution::run(void) {
         uint8_t count = code[pc + 3];
         lr = pc + 5;
         try {
-            if(!invokeInterface(interfaceMethod, count))
-                goto exception_handler;
+            invokeInterface(interfaceMethod, count);
+        }
+        catch(FlintThrowable *ex) {
+            stackPushObject(ex);
+            goto exception_handler;
         }
         catch(FlintLoadFileError *file) {
             fileNotFound = file;
             goto file_not_found_excp;
+        }
+        catch(FlintFindNativeError *err) {
+            const char *msg[] = {err->getMessage(), " ", interfaceMethod.nameAndType.name.text};
+            FlintString &strObj = flint.newString(msg, LENGTH(msg));
+            FlintThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(strObj);
+            stackPushObject(&excpObj);
+            goto exception_handler;
+        }
+        catch(const char *msg) {
+            FlintThrowable &excpObj = flint.newException(flint.newString(msg, strlen(msg)));
+            stackPushObject(&excpObj);
+            goto exception_handler;
         }
         goto *opcodes[code[pc]];
     }

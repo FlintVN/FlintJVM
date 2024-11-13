@@ -5,17 +5,15 @@
 #include "flint_const_name.h"
 #include "flint_native_system_class.h"
 
-static bool nativeCurrentTimeMillis(FlintExecution &execution) {
+static void nativeCurrentTimeMillis(FlintExecution &execution) {
     execution.stackPushInt64(FlintAPI::System::getNanoTime() / 1000);
-    return true;
 }
 
-static bool nativeNanoTime(FlintExecution &execution) {
+static void nativeNanoTime(FlintExecution &execution) {
     execution.stackPushInt64(FlintAPI::System::getNanoTime());
-    return true;
 }
 
-static bool nativeArraycopy(FlintExecution &execution) {
+static void nativeArraycopy(FlintExecution &execution) {
     int32_t length = execution.stackPopInt32();
     int32_t destPos = execution.stackPopInt32();
     FlintObject *dest = execution.stackPopObject();
@@ -27,9 +25,7 @@ static bool nativeArraycopy(FlintExecution &execution) {
             strObj = &execution.flint.newString(STR_AND_SIZE("Source object is not a array"));
         else
             strObj = &execution.flint.newString(STR_AND_SIZE("Destination object is not a array"));
-        FlintThrowable &excpObj = execution.flint.newArrayStoreException(*strObj);
-        execution.stackPushObject(&excpObj);
-        return false;
+        throw &execution.flint.newArrayStoreException(*strObj);
     }
     else if(src->type == dest->type) {
         uint8_t atype = FlintObject::isPrimType(src->type);
@@ -59,17 +55,13 @@ static bool nativeArraycopy(FlintExecution &execution) {
     }
     else {
         FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Type mismatch, can not copy array object"));
-        FlintThrowable &excpObj = execution.flint.newArrayStoreException(strObj);
-        execution.stackPushObject(&excpObj);
-        return false;
+        throw &execution.flint.newArrayStoreException(strObj);
     }
-    return true;
 }
 
-static bool nativeIdentityHashCode(FlintExecution &execution) {
+static void nativeIdentityHashCode(FlintExecution &execution) {
     FlintObject *obj = execution.stackPopObject();
     execution.stackPushInt32((int32_t)obj);
-    return true;
 }
 
 static const FlintNativeMethod methods[] = {

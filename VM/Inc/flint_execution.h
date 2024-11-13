@@ -57,11 +57,11 @@ private:
 
     void initNewContext(FlintMethodInfo &methodInfo, uint16_t argc = 0);
 
-    bool invoke(FlintMethodInfo &methodInfo, uint8_t argc);
-    bool invokeStatic(FlintConstMethod &constMethod);
-    bool invokeSpecial(FlintConstMethod &constMethod);
-    bool invokeVirtual(FlintConstMethod &constMethod);
-    bool invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc);
+    void invoke(FlintMethodInfo &methodInfo, uint8_t argc);
+    void invokeStatic(FlintConstMethod &constMethod);
+    void invokeSpecial(FlintConstMethod &constMethod);
+    void invokeVirtual(FlintConstMethod &constMethod);
+    void invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc);
 
     void run(void);
     void terminateRequest(void);

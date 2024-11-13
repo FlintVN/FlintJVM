@@ -5,7 +5,7 @@
 #include "flint_const_name.h"
 #include "flint_native_object_class.h"
 
-static bool nativeGetClass(FlintExecution &execution) {
+static void nativeGetClass(FlintExecution &execution) {
     uint32_t idx = 0;
     FlintObject *obj = execution.stackPopObject();
     uint16_t length = obj->type.length;
@@ -30,28 +30,23 @@ static bool nativeGetClass(FlintExecution &execution) {
     if(obj->dimensions && !isPrim)
         byteArray[idx++] = ';';
     execution.stackPushObject(&execution.flint.getConstClass(strObj));
-    return true;
 }
 
-static bool nativeHashCode(FlintExecution &execution) {
+static void nativeHashCode(FlintExecution &execution) {
     FlintObject *obj = execution.stackPopObject();
     execution.stackPushInt32((int32_t)obj);
-    return true;
 }
 
-static bool nativeClone(FlintExecution &execution) {
+static void nativeClone(FlintExecution &execution) {
     FlintObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
         FlintObject &cloneObj = execution.flint.newObject(obj->size, obj->type, obj->dimensions);
         memcpy(((FlintInt8Array &)cloneObj).getData(), ((FlintInt8Array *)obj)->getData(), ((FlintInt8Array *)obj)->getLength());
         execution.stackPushObject(&cloneObj);
-        return true;
     }
     else {
         FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Clone method is not supported"));
-        FlintThrowable &excpObj = execution.flint.newCloneNotSupportedException(strObj);
-        execution.stackPushObject(&excpObj);
-        return false;
+        throw &execution.flint.newCloneNotSupportedException(strObj);
     }
 }
 

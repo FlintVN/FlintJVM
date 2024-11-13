@@ -5,7 +5,7 @@
 #include "flint_const_name.h"
 #include "flint_native_class_class.h"
 
-static bool nativeGetPrimitiveClass(FlintExecution &execution) {
+static void nativeGetPrimitiveClass(FlintExecution &execution) {
     FlintString *str = (FlintString *)execution.stackPopObject();
     if(str->getCoder() == 0) {
         uint32_t len = str->getLength();
@@ -13,26 +13,26 @@ static bool nativeGetPrimitiveClass(FlintExecution &execution) {
             case 3:
                 if(strncmp(str->getText(), "int", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("int", len));
-                    return true;
+                    return;
                 }
                 break;
             case 4: {
                 const char *text = str->getText();
                 if(strncmp(text, "void", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("void", len));
-                    return true;
+                    return;
                 }
                 else if(strncmp(text, "byte", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("byte", len));
-                    return true;
+                    return;
                 }
                 else if(strncmp(text, "char", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("char", len));
-                    return true;
+                    return;
                 }
                 else if(strncmp(text, "long", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("long", len));
-                    return true;
+                    return;
                 }
                 break;
             }
@@ -40,24 +40,24 @@ static bool nativeGetPrimitiveClass(FlintExecution &execution) {
                 const char *text = str->getText();
                 if(strncmp(text, "float", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("float", len));
-                    return true;
+                    return;
                 }
                 else if(strncmp(text, "short", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("short", len));
-                    return true;
+                    return;
                 }
                 break;
             }
             case 6:
                 if(strncmp(str->getText(), "double", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("double", len));
-                    return true;
+                    return;
                 }
                 break;
             case 7:
                 if(strncmp(str->getText(), "boolean", len) == 0) {
                     execution.stackPushObject(&execution.flint.getConstClass("boolean", len));
-                    return true;
+                    return;
                 }
                 break;
             default:
@@ -67,11 +67,11 @@ static bool nativeGetPrimitiveClass(FlintExecution &execution) {
     throw "primitive type name is invalid";
 }
 
-static bool nativeForName(FlintExecution &execution) {
+static void nativeForName(FlintExecution &execution) {
     throw "forName is not implemented in VM";
 }
 
-static bool nativeIsInstance(FlintExecution &execution) {
+static void nativeIsInstance(FlintExecution &execution) {
     FlintObject *obj = (FlintObject *)execution.stackPopObject();
     FlintClass *clsObj = (FlintClass *)execution.stackPopObject();
     FlintString &typeName = clsObj->getName();
@@ -79,18 +79,17 @@ static bool nativeIsInstance(FlintExecution &execution) {
         execution.stackPushInt32(execution.flint.isInstanceof(obj, typeName.getText(), typeName.getLength()) ? 1 : 0);
     else
         execution.stackPushInt32(0);
-    return true;
 }
 
-static bool nativeIsAssignableFrom(FlintExecution &execution) {
+static void nativeIsAssignableFrom(FlintExecution &execution) {
     throw "isAssignableFrom is not implemented in VM";
 }
 
-static bool nativeIsInterface(FlintExecution &execution) {
+static void nativeIsInterface(FlintExecution &execution) {
     throw "isInterface is not implemented in VM";
 }
 
-static bool nativeIsArray(FlintExecution &execution) {
+static void nativeIsArray(FlintExecution &execution) {
     FlintClass *clsObj = (FlintClass *)execution.stackPopObject();
     FlintString &name = clsObj->getName();
     const char *text = name.getText();
@@ -100,10 +99,9 @@ static bool nativeIsArray(FlintExecution &execution) {
         execution.stackPushInt32(1);
     else
         execution.stackPushInt32(0);
-    return true;
 }
 
-static bool nativeIsPrimitive(FlintExecution &execution) {
+static void nativeIsPrimitive(FlintExecution &execution) {
     FlintClass *clsObj = (FlintClass *)execution.stackPopObject();
     FlintString &name = clsObj->getName();
     uint8_t coder = name.getCoder();
@@ -148,18 +146,17 @@ static bool nativeIsPrimitive(FlintExecution &execution) {
         }
     }
     execution.stackPushInt32(result);
-    return true;
 }
 
-static bool nativeGetSuperclass(FlintExecution &execution) {
+static void nativeGetSuperclass(FlintExecution &execution) {
     throw "getSuperclass is not implemented in VM";
 }
 
-static bool nativeGetInterfaces(FlintExecution &execution) {
+static void nativeGetInterfaces(FlintExecution &execution) {
     throw "getInterfaces is not implemented in VM";
 }
 
-static bool nativeGetComponentType(FlintExecution &execution) {
+static void nativeGetComponentType(FlintExecution &execution) {
     FlintClass *clsObj = (FlintClass *)execution.stackPopObject();
     FlintString &name = clsObj->getName();
     const char *text = name.getText();
@@ -201,17 +198,16 @@ static bool nativeGetComponentType(FlintExecution &execution) {
         else
             ret = &execution.flint.getConstClass(&text[start], len);
         execution.stackPushObject(ret);
-        return true;
     }
-    execution.stackPushInt32(0);
-    return true;
+    else
+        execution.stackPushInt32(0);
 }
 
-static bool nativeGetModifiers(FlintExecution &execution) {
+static void nativeGetModifiers(FlintExecution &execution) {
     throw "getModifiers is not implemented in VM";
 }
 
-static bool nativeIsHidden(FlintExecution &execution) {
+static void nativeIsHidden(FlintExecution &execution) {
     throw "isHidden is not implemented in VM";
 }
 

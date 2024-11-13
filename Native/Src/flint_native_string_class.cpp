@@ -4,12 +4,11 @@
 #include "flint_const_name.h"
 #include "flint_native_string_class.h"
 
-static bool nativeIntern(FlintExecution &execution) {
+static void nativeIntern(FlintExecution &execution) {
     FlintString *obj = (FlintString *)execution.stackPopObject();
     Flint::lock();
     execution.stackPushObject(&execution.flint.getConstString(*obj));
     Flint::unlock();
-    return true;
 }
 
 static const FlintNativeMethod methods[] = {

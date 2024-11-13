@@ -3,20 +3,17 @@
 #include "flint_system_api.h"
 #include "flint_native_print_stream_class.h"
 
-static bool nativeWrite(FlintExecution &execution) {
+static void nativeWrite(FlintExecution &execution) {
     FlintString *str = (FlintString *)execution.stackPopObject();
     if(str == 0)
         execution.flint.print("null", 4, 0);
     else
         execution.flint.print(str->getText(), str->getLength(), str->getCoder());
-    return true;
 }
 
-static bool nativeWriteln(FlintExecution &execution) {
-    if(!nativeWrite(execution))
-        return false;
+static void nativeWriteln(FlintExecution &execution) {
+    nativeWrite(execution);
     execution.flint.print("\n", 1, 0);
-    return true;
 }
 
 static const FlintNativeMethod methods[] = {
