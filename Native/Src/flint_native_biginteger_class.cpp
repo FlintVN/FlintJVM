@@ -19,6 +19,8 @@ static uint32_t bitLength(uint32_t value) {
 }
 
 static uint32_t bitLength(uint32_t *value, uint32_t length) {
+    if(value == NULL)
+        return 0;
     while((*value == 0) && length) {
         value++;
         length--;
@@ -38,6 +40,10 @@ static uint8_t getExponentOfTwo(uint32_t i) {
 }
 
 static int32_t compareMagnitudeImpl(uint32_t *x, uint32_t xLen, uint32_t *y, uint32_t yLen) {
+    if(x == NULL)
+        xLen = 0;
+    if(y == NULL)
+        yLen = 0;
     while(xLen > yLen) {
         if(*x > 0)
             return 1;
@@ -60,6 +66,12 @@ static int32_t compareMagnitudeImpl(uint32_t *x, uint32_t xLen, uint32_t *y, uin
 }
 
 static uint32_t addImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xLen, uint32_t *y, uint32_t yLen) {
+    if(x == NULL)
+        xLen = 0;
+    if(y == NULL)
+        yLen = 0;
+    if(ret == NULL || retLen == 0)
+        return (xLen || yLen) ? 1 : 0;
     int32_t index = 0;
     uint64_t sum = 0;
     uint32_t len = MIN(retLen, MIN(xLen, yLen));
@@ -97,6 +109,12 @@ static uint32_t addImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xL
 }
 
 static void subtractImpl(uint32_t *ret, uint32_t retLen, uint32_t *big, uint32_t bigLen, uint32_t *little, uint32_t littleLen) {
+    if(ret == NULL || retLen == 0)
+        return;
+    if(big == NULL)
+        bigLen = 0;
+    if(little == NULL)
+        little = 0;
     int32_t index = 0;
     int64_t difference = 0;
     uint32_t len = MIN(retLen, littleLen);
@@ -129,13 +147,17 @@ static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_
     int32_t index = 0;
     uint32_t nInts = shift >> 5;
     uint32_t nBits = shift & 0x1F;
+    if(ret == NULL || retLen == 0)
+        return;
+    if(val == NULL || valLen == 0) {
+        memset(ret, 0, retLen * sizeof(uint32_t));
+        return;
+    }
     ret = &ret[retLen - 1];
     val = &val[valLen - 1];
-
     uint32_t len = MIN(nInts, retLen);
     for(; index < len; index++)
         ret[-index] = 0;
-
     if(nBits == 0) for(uint32_t i = 0; i < valLen && index < retLen; i++) {
         ret[-index] = val[-i];
         index++;
@@ -152,7 +174,6 @@ static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_
             index++;
         }
     }
-
     for(; index < retLen; index++)
         ret[-index] = 0;
 }
@@ -161,9 +182,14 @@ static void shiftRightImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32
     int32_t index = 0;
     uint32_t nInts = shift >> 5;
     uint32_t nBits = shift & 0x1F;
+    if(ret == NULL || retLen == 0)
+        return;
+    if(val == NULL || valLen == 0) {
+        memset(ret, 0, retLen * sizeof(uint32_t));
+        return;
+    }
     ret = &ret[retLen - 1];
     val = &val[valLen - 1];
-
     if(nBits == 0) for(uint32_t i = nInts; i < valLen && index < retLen; i++) {
         ret[-index] = val[-i];
         index++;
@@ -178,25 +204,30 @@ static void shiftRightImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32
             index++;
         }
     }
-
     for(; index < retLen; index++)
         ret[-index] = 0;
 }
 
 static void multiplyBasicImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xLen, uint32_t *y, uint32_t yLen) {
+    if(ret == NULL || retLen == 0)
+        return;
+    if(x == NULL || y == NULL || xLen == 0 || yLen == 0) {
+        memset(ret, 0, retLen * sizeof(uint32_t));
+        return;
+    }
     uint32_t xBitLen = bitLength(x, xLen);
     if((xBitLen <= 32) || (bitLength(y, yLen) <= 32)) {
         if(xBitLen <= 32) {
             uint32_t tmp = x[xLen - 1];
             if((tmp & (tmp - 1)) == 0) {
-                shiftLeftImpl(ret, retLen, x, xLen, getExponentOfTwo(tmp));
+                shiftLeftImpl(ret, retLen, y, yLen, getExponentOfTwo(tmp));
                 return;
             }
         }
         else {
             uint32_t tmp = y[yLen - 1];
             if((tmp & (tmp - 1)) == 0) {
-                shiftLeftImpl(ret, retLen, y, yLen, getExponentOfTwo(tmp));
+                shiftLeftImpl(ret, retLen, x, xLen, getExponentOfTwo(tmp));
                 return;
             }
         }
@@ -221,6 +252,14 @@ static void multiplyBasicImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint3
 }
 
 static uint32_t divideByIntImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xLen, uint32_t y) {
+    if(ret == NULL || retLen == 0)
+        return 0;
+    if(y == 0)
+        throw "Divided by zero";
+    if(x == 0 || xLen == 0) {
+        memset(ret, 0, retLen * sizeof(uint32_t));
+        return 0;
+    }
     if(xLen <= 2) {
         uint64_t tmp = (xLen == 1) ? x[0] : (((uint64_t)x[0] << 32) | x[1]);
         uint32_t rem = (uint32_t)(tmp % y);
@@ -330,26 +369,35 @@ static FlintInt32Array *makePositiveMagnitude(FlintExecution &execution, int8_t 
     }
 }
 
-static FlintInt32Array *getLower(FlintExecution &execution, FlintInt32Array *mag, uint32_t n) {
-    uint32_t len = mag->getLength();
+static FlintInt32Array *getLower(FlintExecution &execution, FlintInt32Array *x, uint32_t n) {
+    uint32_t len = x ? x->getLength() : 0;
     if(len <= n)
-        return mag;
+        return x;
+    int32_t *xData = x->getData();
+    while(n && (xData[len - n] == 0))
+        n--;
+    if(n == 0)
+        return NULL;
     FlintInt32Array &lowerInts = execution.flint.newIntegerArray(n);
-    memcpy(lowerInts.getData(), &mag->getData()[len - n], n * sizeof(int32_t));
+    memcpy(lowerInts.getData(), &xData[len - n], n * sizeof(int32_t));
     return &lowerInts;
 }
 
-static FlintInt32Array *getUpper(FlintExecution &execution, FlintInt32Array *mag, uint32_t n) {
-    uint32_t len = mag->getLength();
+static FlintInt32Array *getUpper(FlintExecution &execution, FlintInt32Array *x, uint32_t n) {
+    uint32_t len = x ? x->getLength() : 0;
     if(len <= n)
         return NULL;
+    if(n == 0)
+        return x;
     uint32_t upperLen = len - n;
     FlintInt32Array &upperInts = execution.flint.newIntegerArray(upperLen);
-    memcpy(upperInts.getData(), mag->getData(), upperLen * sizeof(int32_t));
+    memcpy(upperInts.getData(), x->getData(), upperLen * sizeof(int32_t));
     return &upperInts;
 }
 
 static FlintInt32Array *trustedStripLeadingZeroInts(FlintExecution &execution, FlintInt32Array *value) {
+    if(value == NULL)
+        return NULL;
     int32_t *data = value->getData();
     if(data[0] != 0)
         return value;
@@ -374,21 +422,23 @@ static FlintInt32Array *trustedStripLeadingZeroInts(FlintExecution &execution, F
 }
 
 static int32_t compareMagnitude(FlintInt32Array *x, FlintInt32Array *y) {
-    uint32_t xLen = x->getLength();
-    uint32_t yLen = y->getLength();
-    if(xLen > yLen)
-        return 1;
-    else if(xLen < yLen)
-        return -1;
-    else
-        return compareMagnitudeImpl((uint32_t *)x->getData(), xLen, (uint32_t *)y->getData(), yLen);
+    return compareMagnitudeImpl(
+        x ? (uint32_t *)x->getData() : 0, x ? x->getLength() : 0,
+        y ? (uint32_t *)y->getData() : 0, y ? y->getLength() : 0
+    );
 }
 
 static FlintInt32Array *add(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
-    uint32_t xLen = x->getLength();
-    uint32_t yLen = y->getLength();
-    FlintInt32Array &ret = execution.flint.newIntegerArray(xLen > yLen ? xLen : yLen);
-    if(addImpl((uint32_t *)ret.getData(), ret.getLength(), (uint32_t *)x->getData(), xLen, (uint32_t *)y->getData(), yLen)) {
+    uint32_t xLen = x ? x->getLength() : 0;
+    uint32_t yLen = y ? y->getLength() : 0;
+    if(xLen == 0 && yLen == 0)
+        return NULL;
+    FlintInt32Array &ret = execution.flint.newIntegerArray(MAX(xLen, yLen));
+    if(addImpl(
+        (uint32_t *)ret.getData(), ret.getLength(),
+        x ? (uint32_t *)x->getData() : 0, xLen,
+        y ? (uint32_t *)y->getData() : 0, yLen
+    )) {
         FlintInt32Array &bigger = execution.flint.newIntegerArray(ret.getLength() + 1);
         memcpy(&bigger.getData()[1], ret.getData(), ret.getLength() * sizeof(int32_t));
         bigger.getData()[0] = 1;
@@ -399,52 +449,52 @@ static FlintInt32Array *add(FlintExecution &execution, FlintInt32Array *x, Flint
 }
 
 static FlintInt32Array *subtract(FlintExecution &execution, FlintInt32Array *big, FlintInt32Array *little) {
+    if(big == NULL) {
+        if(little == NULL)
+            return NULL;
+        FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
+        throw &execution.flint.newNullPointerException(strObj);
+    }
     uint32_t bigLen = big->getLength();
-    uint32_t littleLen = little->getLength();
-    FlintInt32Array &ret = execution.flint.newIntegerArray(bigLen > littleLen ? bigLen : littleLen);
-    subtractImpl((uint32_t *)ret.getData(), ret.getLength(), (uint32_t *)big->getData(), bigLen, (uint32_t *)little->getData(), littleLen);
+    uint32_t littleLen = little ? little->getLength() : 0;
+    FlintInt32Array &ret = execution.flint.newIntegerArray(bigLen);
+    subtractImpl(
+        (uint32_t *)ret.getData(), ret.getLength(),
+        (uint32_t *)big->getData(), bigLen,
+        little ? (uint32_t *)little->getData() : 0, littleLen
+    );
     return trustedStripLeadingZeroInts(execution, &ret);
 }
 
-static FlintInt32Array *shiftLeft(FlintExecution &execution, FlintInt32Array *mag, uint32_t shift) {
+static FlintInt32Array *shiftLeft(FlintExecution &execution, FlintInt32Array *x, uint32_t shift) {
+    if(x == NULL)
+        return NULL;
     uint32_t nInts = shift >> 5;
     uint32_t nBits = shift & 0x1F;
-    uint32_t retLen = mag->getLength() + nInts;
-    retLen += nBits ? (((uint32_t)mag->getData()[0] >> (32 - nBits)) ? 1 : 0) : 0;
+    uint32_t retLen = x->getLength() + nInts;
+    retLen += nBits ? (((uint32_t)x->getData()[0] >> (32 - nBits)) ? 1 : 0) : 0;
     FlintInt32Array *ret = &execution.flint.newIntegerArray(retLen);
-    shiftLeftImpl((uint32_t *)ret->getData(), retLen, (uint32_t *)mag->getData(), mag->getLength(), shift);
+    shiftLeftImpl((uint32_t *)ret->getData(), retLen, (uint32_t *)x->getData(), x->getLength(), shift);
     return ret;
 }
 
-static FlintInt32Array *shiftRight(FlintExecution &execution, FlintInt32Array *mag, uint32_t shift) {
+static FlintInt32Array *shiftRight(FlintExecution &execution, FlintInt32Array *x, uint32_t shift) {
+    if(x == NULL)
+        return NULL;
     uint32_t nInts = shift >> 5;
     uint32_t nBits = shift & 0x1F;
-    uint32_t magLen = mag->getLength();
+    uint32_t magLen = x->getLength();
     if(nInts >= magLen)
         return NULL;
     else {
         uint32_t retLen = magLen - nInts;
-        retLen -= nBits ? (((uint32_t)mag->getData()[0] >> nBits) ? 0 : 1) : 0;
+        retLen -= nBits ? (((uint32_t)x->getData()[0] >> nBits) ? 0 : 1) : 0;
         if(retLen == 0)
             return NULL;
         FlintInt32Array *ret = &execution.flint.newIntegerArray(retLen);
-        shiftRightImpl((uint32_t *)ret->getData(), retLen, (uint32_t *)mag->getData(), magLen, shift);
+        shiftRightImpl((uint32_t *)ret->getData(), retLen, (uint32_t *)x->getData(), magLen, shift);
         return ret;
     }
-}
-
-static FlintInt32Array *multiplyBasic(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
-    uint32_t xLen = x->getLength();
-    uint32_t yLen = y->getLength();
-    uint32_t xBitLen = bitLength((uint32_t *)x->getData(), xLen);
-    uint32_t yBitLen = bitLength((uint32_t *)y->getData(), yLen);
-    FlintInt32Array &ret = execution.flint.newIntegerArray((xBitLen + yBitLen + 31) / 32);
-    multiplyBasicImpl(
-        (uint32_t *)ret.getData(), ret.getLength(),
-        (uint32_t *)x->getData(), xLen,
-        (uint32_t *)y->getData(), yLen
-    );
-    return trustedStripLeadingZeroInts(execution, &ret);
 }
 
 static FlintInt32Array *multiply(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y);
@@ -461,40 +511,56 @@ static FlintInt32Array *multiplyKaratsuba(FlintExecution &execution, FlintInt32A
     FlintInt32Array *p2 = multiply(execution, xl, yl);
 
     FlintInt32Array *tmp1 = add(execution, xh, xl);
+    if(xl && xl != x) execution.flint.freeObject(*xl);
+    if(xh && xh != x) execution.flint.freeObject(*xh);
+
     FlintInt32Array *tmp2 = add(execution, yh, yl);
+    if(yl && yl != y) execution.flint.freeObject(*yl);
+    if(yh && yh != y) execution.flint.freeObject(*yh);
+
     FlintInt32Array *p3 = multiply(execution, tmp1, tmp2);
-    execution.flint.freeObject(*xl);
-    execution.flint.freeObject(*xh);
-    execution.flint.freeObject(*yl);
-    execution.flint.freeObject(*yh);
-    execution.flint.freeObject(*tmp1);
-    execution.flint.freeObject(*tmp2);
+    if(tmp1) execution.flint.freeObject(*tmp1);
+    if(tmp2) execution.flint.freeObject(*tmp2);
 
     tmp1 = subtract(execution, p3, p1);
-    execution.flint.freeObject(*p3);
+    if(p3) execution.flint.freeObject(*p3);
+
     tmp2 = subtract(execution, tmp1, p2);                   /* p3 - p1 - p2 */
-    execution.flint.freeObject(*tmp1);
+    if(tmp1) execution.flint.freeObject(*tmp1);
+
     tmp1 = shiftLeft(execution, p1, 32 * half);             /* p1 * 2 ^ (32 * half) */
-    execution.flint.freeObject(*p1);
+    if(p1) execution.flint.freeObject(*p1);
 
     FlintInt32Array *result = add(execution, tmp1, tmp2);   /* p1 * 2 ^ (32 * half) + (p3 - p1 - p2) */
-    execution.flint.freeObject(*tmp1);
-    execution.flint.freeObject(*tmp2);
-    tmp1 = shiftLeft(execution, result, 32 * half);         /* (p1 * 2 ^ (32 * half) + (p3 - p1 - p2)) ^ (32 * half) */
-    execution.flint.freeObject(*result);
-    result = add(execution, tmp1, p2);                      /* (p1 * 2 ^ (32 * half) + (p3 - p1 - p2)) ^ (32 * half) + p2 */
+    if(tmp1) execution.flint.freeObject(*tmp1);
+    if(tmp2) execution.flint.freeObject(*tmp2);
 
-    execution.flint.freeObject(*p2);
-    execution.flint.freeObject(*tmp1);
+    tmp1 = shiftLeft(execution, result, 32 * half);         /* (p1 * 2 ^ (32 * half) + (p3 - p1 - p2)) ^ (32 * half) */
+    if(result) execution.flint.freeObject(*result);
+
+    result = add(execution, tmp1, p2);                      /* (p1 * 2 ^ (32 * half) + (p3 - p1 - p2)) ^ (32 * half) + p2 */
+    if(p2) execution.flint.freeObject(*p2);
+    if(tmp1) execution.flint.freeObject(*tmp1);
 
     return result;
 }
 
 static FlintInt32Array *multiply(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
-    uint32_t xLen = x->getLength();
-    uint32_t yLen = y->getLength();
-    if((xLen < KARATSUBA_THRESHOLD) || (yLen < KARATSUBA_THRESHOLD))
-        return multiplyBasic(execution, x, y);
+    uint32_t xLen = x ? x->getLength() : 0;
+    uint32_t yLen = y ? y->getLength() : 0;
+    if(xLen == 0 || yLen == 0)
+        return NULL;
+    if((xLen < KARATSUBA_THRESHOLD) || (yLen < KARATSUBA_THRESHOLD)) {
+        uint32_t xBitLen = bitLength((uint32_t *)x->getData(), xLen);
+        uint32_t yBitLen = bitLength((uint32_t *)y->getData(), yLen);
+        FlintInt32Array &ret = execution.flint.newIntegerArray((xBitLen + yBitLen + 31) / 32);
+        multiplyBasicImpl(
+            (uint32_t *)ret.getData(), ret.getLength(),
+            (uint32_t *)x->getData(), xLen,
+            (uint32_t *)y->getData(), yLen
+        );
+        return trustedStripLeadingZeroInts(execution, &ret);
+    }
     else
         return multiplyKaratsuba(execution, x, y);
 }
@@ -602,6 +668,10 @@ static FlintInt32Array *divideKnuth(FlintExecution &execution, FlintInt32Array *
 }
 
 static FlintInt32Array *divide(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
+    if(y == NULL)
+        throw &execution.flint.newArithmeticException(execution.flint.newString(STR_AND_SIZE("Divided by zero")));
+    else if(x == NULL)
+        return NULL;
     if(compareMagnitude(x, y) < 0)
         return NULL;
     if(y->getLength() == 1)
@@ -611,9 +681,15 @@ static FlintInt32Array *divide(FlintExecution &execution, FlintInt32Array *x, Fl
 }
 
 static FlintInt32Array *remainder(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
+    if(y == NULL)
+        throw &execution.flint.newArithmeticException(execution.flint.newString(STR_AND_SIZE("Divided by zero")));
+    else if(x == NULL)
+        return NULL;
     if(compareMagnitude(x, y) < 0)
         return x;
     if(y->getLength() == 1) {
+        if(y->getData()[0] == 1)
+            return NULL;
         uint32_t rem;
         divideByInt(execution, x, y->getData()[0], &rem);
         if(rem == 0)
@@ -671,7 +747,7 @@ static void nativeMakeMagnitudeWithSignumInput(FlintExecution &execution) {
     int32_t off = execution.stackPopInt32();
     FlintInt8Array *val = (FlintInt8Array *)execution.stackPopObject();
     int32_t signum = execution.stackPopInt32();
-    if(signum == NULL || val == NULL)
+    if(signum == 0 || val == NULL)
         execution.stackPushObject(NULL);
     else {
         checkMakeMagnitudeParams(execution, val, off, len);
