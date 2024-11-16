@@ -37,8 +37,16 @@ static void nativeCurrentThread(FlintExecution &execution) {
 }
 
 static void nativeSleep0(FlintExecution &execution) {
-    int64_t millis = execution.stackPopInt64();
-    FlintAPI::Thread::sleep(millis);
+    uint64_t startTime = FlintAPI::System::getNanoTime() / 1000000;
+    uint64_t millis = execution.stackPopInt64();
+    while(((FlintAPI::System::getNanoTime() / 1000000) - startTime) < (millis - 100)) {
+        FlintAPI::Thread::sleep(100);
+        if(execution.hasTerminateRequest())
+            throw &execution.flint.newInterruptedException(*(FlintString *)0);
+    }
+    int64_t remaining = millis - ((FlintAPI::System::getNanoTime() / 1000000) - startTime);
+    if(remaining > 0)
+        FlintAPI::Thread::sleep((uint32_t)remaining);
 }
 
 static const FlintNativeMethod methods[] = {
