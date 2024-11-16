@@ -8,6 +8,9 @@
 
 #define KARATSUBA_THRESHOLD         80
 
+static FlintInt32Array *square(FlintExecution &execution, FlintInt32Array *x);
+static FlintInt32Array *multiply(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y);
+
 static uint32_t bitLength(uint32_t value) {
     uint32_t len = 0;
     if(value & 0xFFFF0000) {len += 16; value >>= 16;}
@@ -422,6 +425,8 @@ static FlintInt32Array *trustedStripLeadingZeroInts(FlintExecution &execution, F
 }
 
 static int32_t compareMagnitude(FlintInt32Array *x, FlintInt32Array *y) {
+    if(x == y)
+        return 0;
     return compareMagnitudeImpl(
         x ? (uint32_t *)x->getData() : 0, x ? x->getLength() : 0,
         y ? (uint32_t *)y->getData() : 0, y ? y->getLength() : 0
@@ -497,8 +502,6 @@ static FlintInt32Array *shiftRight(FlintExecution &execution, FlintInt32Array *x
     }
 }
 
-static FlintInt32Array *multiply(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y);
-
 static FlintInt32Array *multiplyKaratsuba(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
     uint32_t half = (MAX(x->getLength(), y->getLength()) + 1) / 2;
 
@@ -528,17 +531,17 @@ static FlintInt32Array *multiplyKaratsuba(FlintExecution &execution, FlintInt32A
     tmp2 = subtract(execution, tmp1, p2);                   /* p3 - p1 - p2 */
     if(tmp1) execution.flint.freeObject(*tmp1);
 
-    tmp1 = shiftLeft(execution, p1, 32 * half);             /* p1 * 2 ^ (32 * half) */
+    tmp1 = shiftLeft(execution, p1, 32 * half);             /* p1 << (32 * half) */
     if(p1) execution.flint.freeObject(*p1);
 
-    FlintInt32Array *result = add(execution, tmp1, tmp2);   /* p1 * 2 ^ (32 * half) + (p3 - p1 - p2) */
+    FlintInt32Array *result = add(execution, tmp1, tmp2);   /* p1 << (32 * half) + (p3 - p1 - p2) */
     if(tmp1) execution.flint.freeObject(*tmp1);
     if(tmp2) execution.flint.freeObject(*tmp2);
 
-    tmp1 = shiftLeft(execution, result, 32 * half);         /* (p1 * 2 ^ (32 * half) + (p3 - p1 - p2)) ^ (32 * half) */
+    tmp1 = shiftLeft(execution, result, 32 * half);         /* (p1 << (32 * half) + (p3 - p1 - p2)) << (32 * half) */
     if(result) execution.flint.freeObject(*result);
 
-    result = add(execution, tmp1, p2);                      /* (p1 * 2 ^ (32 * half) + (p3 - p1 - p2)) ^ (32 * half) + p2 */
+    result = add(execution, tmp1, p2);                      /* (p1 << (32 * half) + (p3 - p1 - p2)) << (32 * half) + p2 */
     if(p2) execution.flint.freeObject(*p2);
     if(tmp1) execution.flint.freeObject(*tmp1);
 
@@ -550,7 +553,9 @@ static FlintInt32Array *multiply(FlintExecution &execution, FlintInt32Array *x, 
     uint32_t yLen = y ? y->getLength() : 0;
     if(xLen == 0 || yLen == 0)
         return NULL;
-    if((xLen < KARATSUBA_THRESHOLD) || (yLen < KARATSUBA_THRESHOLD)) {
+    if(x == y)
+        return square(execution, x);
+    else if((xLen < KARATSUBA_THRESHOLD) || (yLen < KARATSUBA_THRESHOLD)) {
         uint32_t xBitLen = bitLength((uint32_t *)x->getData(), xLen);
         uint32_t yBitLen = bitLength((uint32_t *)y->getData(), yLen);
         FlintInt32Array &ret = execution.flint.newIntegerArray((xBitLen + yBitLen + 31) / 32);
@@ -707,6 +712,63 @@ static FlintInt32Array *remainder(FlintExecution &execution, FlintInt32Array *x,
     }
 }
 
+static FlintInt32Array *squareKaratsuba(FlintExecution &execution, FlintInt32Array *x) {
+    uint32_t half = (x->getLength() + 1) / 2;
+
+    FlintInt32Array *xl = getLower(execution, x, half);
+    FlintInt32Array *xh = getUpper(execution, x, half);
+
+    FlintInt32Array *xhs = square(execution, xh);
+    FlintInt32Array *xls = square(execution, xl);
+
+    FlintInt32Array *tmp1 = add(execution, xh, xl);             
+    if(xl && xl != x) execution.flint.freeObject(*xl);
+    if(xh && xh != x) execution.flint.freeObject(*xh);
+    
+    FlintInt32Array *tmp2 = square(execution, tmp1);            
+    if(tmp1) execution.flint.freeObject(*tmp1);
+
+    tmp1 = add(execution, xhs, xls);                            
+
+    FlintInt32Array *result = subtract(execution, tmp2, tmp1);  
+    if(tmp1) execution.flint.freeObject(*tmp1);
+    if(tmp2) execution.flint.freeObject(*tmp2);
+
+    tmp1 = shiftLeft(execution, xhs, 32 * half);                
+    if(xhs) execution.flint.freeObject(*xhs);
+
+    tmp2 = add(execution, tmp1, result);                        
+    if(tmp1) execution.flint.freeObject(*tmp1);
+    if(result) execution.flint.freeObject(*result);
+
+    tmp1 = shiftLeft(execution, tmp2, 32 * half);               
+    if(tmp2) execution.flint.freeObject(*tmp2);
+
+    result = add(execution, tmp1, xls);                         
+    if(tmp1) execution.flint.freeObject(*tmp1);
+    if(xls) execution.flint.freeObject(*xls);
+
+    return result;
+}
+
+static FlintInt32Array *square(FlintExecution &execution, FlintInt32Array *x) {
+    if(x == NULL)
+        return NULL;
+    uint32_t xLen = x->getLength();
+    if(xLen < KARATSUBA_THRESHOLD) {
+        uint32_t xBitLen = bitLength((uint32_t *)x->getData(), xLen);
+        FlintInt32Array &ret = execution.flint.newIntegerArray((xBitLen * 2 + 31) / 32);
+        multiplyBasicImpl(
+            (uint32_t *)ret.getData(), ret.getLength(),
+            (uint32_t *)x->getData(), xLen,
+            (uint32_t *)x->getData(), xLen
+        );
+        return trustedStripLeadingZeroInts(execution, &ret);
+    }
+    else
+        return squareKaratsuba(execution, x);
+}
+
 static void nativeMakeMagnitudeWithLongInput(FlintExecution &execution) {
     int64_t val = execution.stackPopInt64();
     if(val < 0)
@@ -808,6 +870,11 @@ static void nativeShiftRight(FlintExecution &execution) {
     execution.stackPushObject(shiftRight(execution, x, n));
 }
 
+static void nativeSquare(FlintExecution &execution) {
+    FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
+    execution.stackPushObject(square(execution, x));
+}
+
 static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x05\x00\x86\xEF""(J)[I",     nativeMakeMagnitudeWithLongInput),
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x08\x00\xB9\x31""([BII)[I",  nativeMakeMagnitudeWithByteArrayInput),
@@ -820,6 +887,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x09\x00\x51\x46""remainder",        "\x08\x00\x00\x49""([I[I)[I",  nativeRemainder),
     NATIVE_METHOD("\x09\x00\xEE\x70""shiftLeft",        "\x07\x00\xA1\x4A""([II)[I",   nativeShiftLeft),
     NATIVE_METHOD("\x0A\x00\x42\x86""shiftRight",       "\x07\x00\xA1\x4A""([II)[I",   nativeShiftRight),
+    NATIVE_METHOD("\x06\x00\x27\xB5""square",           "\x07\x00\xA1\x4A""([II)[I",   nativeSquare),
 };
 
 const FlintNativeClass BIGINTEGER_CLASS = NATIVE_CLASS(bigIntegerClassName, methods);
