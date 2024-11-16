@@ -2423,6 +2423,10 @@ void FlintExecution::terminateRequest(void) {
     opcodes = opcodeLabelsExit;
 }
 
+bool FlintExecution::hasTerminateRequest(void) const {
+    return (opcodes == opcodeLabelsExit);
+}
+
 FlintExecution::~FlintExecution(void) {
     Flint::free(stack);
     Flint::free(stackType);

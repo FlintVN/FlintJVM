@@ -73,6 +73,7 @@ private:
     static void innerRunTask(FlintExecution *execution);
 public:
     bool run(FlintMethodInfo &method);
+    bool hasTerminateRequest(void) const;
 
     friend class Flint;
     friend class FlintDebugger;
