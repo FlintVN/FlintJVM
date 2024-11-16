@@ -107,6 +107,7 @@ public:
     FlintThrowable &newArrayStoreException(FlintString &strObj);
     FlintThrowable &newArithmeticException(FlintString &strObj);
     FlintThrowable &newNullPointerException(FlintString &strObj);
+    FlintThrowable &newInterruptedException(FlintString &strObj);
     FlintThrowable &newClassNotFoundException(FlintString &strObj);
     FlintThrowable &newCloneNotSupportedException(FlintString &strObj);
     FlintThrowable &newNegativeArraySizeException(FlintString &strObj);

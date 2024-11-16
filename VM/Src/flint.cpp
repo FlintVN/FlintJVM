@@ -409,10 +409,11 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &exceptionClassName,
         &bigIntegerClassName,
         &printStreamClassName,
-        &nullPtrExcpClassName,
         &arrayStoreExceptionClassName,
         &arithmeticExceptionClassName,
+        &nullPointerExceptionClassName,
         &unsatisfiedLinkErrorClassName,
+        &interruptedExceptionClassName,
         &classNotFoundExceptionClassName,
         &cloneNotSupportedExceptionClassName,
         &negativeArraySizeExceptionClassName,
@@ -484,7 +485,11 @@ FlintThrowable &Flint::newArithmeticException(FlintString &strObj) {
 }
 
 FlintThrowable &Flint::newNullPointerException(FlintString &strObj) {
-    return newThrowable(strObj, *(FlintConstUtf8 *)&nullPtrExcpClassName);
+    return newThrowable(strObj, *(FlintConstUtf8 *)&nullPointerExceptionClassName);
+}
+
+FlintThrowable &Flint::newInterruptedException(FlintString &strObj) {
+    return newThrowable(strObj, *(FlintConstUtf8 *)&interruptedExceptionClassName);
 }
 
 FlintThrowable &Flint::newClassNotFoundException(FlintString &strObj) {
