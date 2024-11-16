@@ -35,7 +35,7 @@ namespace FlintAPI {
         void *realloc(void *p, uint32_t size);
         void free(void *p);
         void print(const char *text, uint32_t length, uint8_t coder);
-        int64_t getNanoTime(void);
+        uint64_t getNanoTime(void);
         FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo);
     };
 
