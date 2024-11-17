@@ -42,6 +42,24 @@ static uint8_t getExponentOfTwo(uint32_t i) {
     return n + (i >> 1);
 }
 
+static void setValueByIntImpl(uint32_t *x, uint32_t xLen, uint32_t value) {
+    memset(x, 0, (xLen - 1) * sizeof(uint32_t));
+    x[xLen - 1] = value;
+}
+
+static void setValueImpl(uint32_t *x, uint32_t xLen, uint32_t *val, uint32_t valLen) {
+    if(xLen > valLen) {
+        memset(x, 0, (xLen - valLen) * sizeof(uint32_t));
+        x += (xLen - valLen);
+        xLen = valLen;
+    }
+    else if(valLen > xLen) {
+        val += (valLen - xLen);
+        valLen = xLen;
+    }
+    memcpy(x, val, xLen * sizeof(uint32_t));
+}
+
 static int32_t compareMagnitudeImpl(uint32_t *x, uint32_t xLen, uint32_t *y, uint32_t yLen) {
     if(x == NULL)
         xLen = 0;
@@ -769,6 +787,104 @@ static FlintInt32Array *square(FlintExecution &execution, FlintInt32Array *x) {
         return squareKaratsuba(execution, x);
 }
 
+static FlintInt32Array *pow1(FlintExecution &execution, FlintInt32Array *x, uint32_t exponent) {
+    uint32_t xLen = x->getLength();
+    uint32_t baseLen = xLen;
+    uint32_t curRetLen = 1;
+    uint32_t retLen = (bitLength((uint32_t *)x->getData(), xLen) * exponent + 31) / 32;
+    FlintInt32Array *ret = &execution.flint.newIntegerArray(retLen);
+    FlintInt32Array *base = &execution.flint.newIntegerArray(retLen);
+    FlintInt32Array *buff = &execution.flint.newIntegerArray(retLen);
+
+    setValueByIntImpl((uint32_t *)ret->getData(), curRetLen, 1);
+    setValueImpl((uint32_t *)base->getData(), baseLen, (uint32_t *)x->getData(), xLen);
+
+    while(exponent > 0) {
+        FlintInt32Array *tmp;
+        if(exponent % 2) {
+            uint32_t newRetLen = MIN(curRetLen + baseLen, retLen);
+            multiplyBasicImpl(
+                (uint32_t *)buff->getData(), newRetLen,
+                (uint32_t *)ret->getData(), curRetLen,
+                (uint32_t *)base->getData(), baseLen
+            );
+
+            if(execution.hasTerminateRequest()) {
+                execution.flint.freeObject(*ret);
+                execution.flint.freeObject(*base);
+                execution.flint.freeObject(*buff);
+                throw &execution.flint.newInterruptedException(*(FlintString *)NULL);
+            }
+
+            tmp = ret;
+            ret = buff;
+            buff = tmp;
+            curRetLen = newRetLen;
+        }
+        exponent /= 2;
+        if(exponent) {
+            uint32_t newBaseLen = MIN(baseLen * 2, retLen);
+            multiplyBasicImpl(
+                (uint32_t *)buff->getData(), newBaseLen,
+                (uint32_t *)base->getData(), baseLen,
+                (uint32_t *)base->getData(), baseLen
+            );
+            tmp = base;
+            base = buff;
+            buff = tmp;
+            baseLen = newBaseLen;
+        }
+    }
+
+    execution.flint.freeObject(*base);
+    execution.flint.freeObject(*buff);
+
+    return ret;
+}
+
+static FlintInt32Array *pow2(FlintExecution &execution, FlintInt32Array *x, uint32_t exponent) {
+    FlintInt32Array *ret = 0;
+    FlintInt32Array *base = x;
+    while(exponent > 0) {
+        if(exponent % 2) {
+            if(ret == 0)
+                ret = base;
+            else {
+                FlintInt32Array *tmp = multiply(execution, ret, base);
+                if(ret != x)
+                    execution.flint.freeObject(*ret);
+                ret = tmp;
+            }
+            if(execution.hasTerminateRequest()) {
+                if(ret != x) execution.flint.freeObject(*ret);
+                if(base != x) execution.flint.freeObject(*base);
+                throw &execution.flint.newInterruptedException(*(FlintString *)NULL);
+            }
+        }
+        exponent /= 2;
+        if(exponent) {
+            FlintInt32Array *tmp = square(execution, base);
+            if(base != x)
+                execution.flint.freeObject(*base);
+            base = tmp;
+        }
+    }
+    if(base != x && base != ret)
+        execution.flint.freeObject(*base);
+    return ret;
+}
+
+static FlintInt32Array *pow(FlintExecution &execution, FlintInt32Array *x, uint32_t exponent) {
+    uint32_t bitLen = x ? bitLength((uint32_t *)x->getData(), x->getLength()) : 0;
+    uint32_t retLen = bitLen * exponent;
+    if((retLen <= bitLen) || (retLen <= exponent) || ((uint32_t)retLen > (uint32_t)0xFFFFFFE0))
+        throw "BigInteger would overflow supported range";
+    if(retLen < (KARATSUBA_THRESHOLD * 2))
+        return pow1(execution, x, exponent);
+    else
+        return pow2(execution, x, exponent);
+}
+
 static void nativeMakeMagnitudeWithLongInput(FlintExecution &execution) {
     int64_t val = execution.stackPopInt64();
     if(val < 0)
@@ -875,6 +991,12 @@ static void nativeSquare(FlintExecution &execution) {
     execution.stackPushObject(square(execution, x));
 }
 
+static void nativePow(FlintExecution &execution) {
+    uint32_t exponent = execution.stackPopInt32();
+    FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
+    execution.stackPushObject(pow(execution, x, exponent));
+}
+
 static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x05\x00\x86\xEF""(J)[I",     nativeMakeMagnitudeWithLongInput),
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x08\x00\xB9\x31""([BII)[I",  nativeMakeMagnitudeWithByteArrayInput),
@@ -888,6 +1010,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x09\x00\xEE\x70""shiftLeft",        "\x07\x00\xA1\x4A""([II)[I",   nativeShiftLeft),
     NATIVE_METHOD("\x0A\x00\x42\x86""shiftRight",       "\x07\x00\xA1\x4A""([II)[I",   nativeShiftRight),
     NATIVE_METHOD("\x06\x00\x27\xB5""square",           "\x07\x00\xA1\x4A""([II)[I",   nativeSquare),
+    NATIVE_METHOD("\x03\x00\xE2\x32""pow",              "\x07\x00\xA1\x4A""([II)[I",   nativePow),
 };
 
 const FlintNativeClass BIGINTEGER_CLASS = NATIVE_CLASS(bigIntegerClassName, methods);
