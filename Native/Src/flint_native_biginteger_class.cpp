@@ -1,4 +1,5 @@
 
+#include <math.h>
 #include <string.h>
 #include <iostream>
 #include "flint.h"
@@ -885,6 +886,59 @@ static FlintInt32Array *pow(FlintExecution &execution, FlintInt32Array *x, uint3
         return pow2(execution, x, exponent);
 }
 
+static FlintInt32Array *sqrt(FlintExecution &execution, FlintInt32Array *x) {
+    if(x == NULL)
+        return NULL;
+    else if(x->getLength() == 1) {
+        FlintInt32Array *ret = &execution.flint.newIntegerArray(1);
+        ((uint32_t *)ret->getData())[0] = (uint32_t)sqrt((uint32_t)x->getData()[0]);
+        return ret;
+    }
+    else if(x->getLength() == 2) {
+        uint64_t val = ((uint64_t)x->getData()[0] << 32) | ((uint32_t)x->getData()[1]);
+        val = (uint64_t)sqrt(val);
+        if(val > 0xFFFFFFFF) {
+            FlintInt32Array *ret = &execution.flint.newIntegerArray(2);
+            ((uint32_t *)ret->getData())[0] = (uint32_t)(val >> 32);
+            ((uint32_t *)ret->getData())[1] = (uint32_t)val;
+            return ret;
+        }
+        else {
+            FlintInt32Array *ret = &execution.flint.newIntegerArray(1);
+            ((uint32_t *)ret->getData())[1] = (uint32_t)val;
+            return ret;
+        }
+    }
+    else {
+        FlintInt32Array *ret2 = 0;
+        FlintInt32Array *ret1 = shiftRight(execution, x, 1);
+        do {
+            if(execution.hasTerminateRequest()) {
+                execution.flint.freeObject(*ret1);
+                if(ret2) execution.flint.freeObject(*ret2);
+                throw &execution.flint.newInterruptedException(*(FlintString *)NULL);
+            }
+            else {
+                FlintInt32Array *tmp1 = divide(execution, x, ret1);
+
+                FlintInt32Array *tmp2 = add(execution, ret1, tmp1);
+                execution.flint.freeObject(*tmp1);
+                
+                ret2 = shiftRight(execution, tmp2, 1);
+                execution.flint.freeObject(*tmp2);
+
+                if(compareMagnitude(ret1, ret2) == 0) {
+                    execution.flint.freeObject(*ret1);
+                    return ret2;
+                }
+
+                execution.flint.freeObject(*ret1);
+                ret1 = ret2;
+            }
+        } while(true);
+    }
+}
+
 static void nativeMakeMagnitudeWithLongInput(FlintExecution &execution) {
     int64_t val = execution.stackPopInt64();
     if(val < 0)
@@ -997,6 +1051,11 @@ static void nativePow(FlintExecution &execution) {
     execution.stackPushObject(pow(execution, x, exponent));
 }
 
+static void nativeSqrt(FlintExecution &execution) {
+    FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
+    execution.stackPushObject(sqrt(execution, x));
+}
+
 static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x05\x00\x86\xEF""(J)[I",     nativeMakeMagnitudeWithLongInput),
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x08\x00\xB9\x31""([BII)[I",  nativeMakeMagnitudeWithByteArrayInput),
@@ -1011,6 +1070,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0A\x00\x42\x86""shiftRight",       "\x07\x00\xA1\x4A""([II)[I",   nativeShiftRight),
     NATIVE_METHOD("\x06\x00\x27\xB5""square",           "\x07\x00\xA1\x4A""([II)[I",   nativeSquare),
     NATIVE_METHOD("\x03\x00\xE2\x32""pow",              "\x07\x00\xA1\x4A""([II)[I",   nativePow),
+    NATIVE_METHOD("\x04\x00\x91\xC3""sqrt",             "\x06\x00\xA1\x53""([I)[I",    nativeSqrt),
 };
 
 const FlintNativeClass BIGINTEGER_CLASS = NATIVE_CLASS(bigIntegerClassName, methods);
