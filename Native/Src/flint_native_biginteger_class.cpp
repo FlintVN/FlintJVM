@@ -333,21 +333,20 @@ static void checkNullObject(FlintExecution &execution, FlintObject *obj) {
     }
 }
 
-static void checkMakeMagnitudeParams(FlintExecution &execution, FlintInt8Array *val, int32_t off, int32_t len) {
-    checkNullObject(execution, val);
-    uint32_t valLen = val->getLength();
-    if(off < 0 || off >= valLen || (off + len) > valLen) {
+static void checkMakeMagnitudeParams(FlintExecution &execution, int32_t maxLen, int32_t off, int32_t len) {
+    if(off < 0 || off >= maxLen || (off + len) > maxLen) {
         char indexStrBuff[11];
         char lengthStrBuff[11];
-        sprintf(indexStrBuff, "%d", (int)((off < 0 || off >= valLen) ? off : valLen));
-        sprintf(lengthStrBuff, "%d", (int)valLen);
+        sprintf(indexStrBuff, "%d", (int)((off < 0 || off >= maxLen) ? off : maxLen));
+        sprintf(lengthStrBuff, "%d", (int)maxLen);
         const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
         FlintString &strObj = execution.flint.newString(msg, LENGTH(msg));
         throw &execution.flint.newArrayIndexOutOfBoundsException(strObj);
     }
 }
 
-static FlintInt32Array *makeMagnitude(FlintExecution &execution, int8_t *valData, int32_t off, uint32_t end) {
+static FlintInt32Array *makeMagnitude(FlintExecution &execution, FlintInt8Array *val, int32_t off, uint32_t end) {
+    int8_t *valData = val->getData();
     while((valData[off] == 0) && (off < end))
         off++;
     if(off == end)
@@ -364,7 +363,8 @@ static FlintInt32Array *makeMagnitude(FlintExecution &execution, int8_t *valData
     return &mag;
 }
 
-static FlintInt32Array *makePositiveMagnitude(FlintExecution &execution, int8_t *valData, int32_t off, uint32_t end) {
+static FlintInt32Array *makePositiveMagnitude(FlintExecution &execution, FlintInt8Array *val, int32_t off, uint32_t end) {
+    int8_t *valData = val->getData();
     while((valData[off] == -1) && (off < end))
         off++;
     if(off == end) {
@@ -965,17 +965,13 @@ static void nativeMakeMagnitudeWithByteArrayInput(FlintExecution &execution) {
     int32_t len = execution.stackPopInt32();
     int32_t off = execution.stackPopInt32();
     FlintInt8Array *val = (FlintInt8Array *)execution.stackPopObject();
-    checkMakeMagnitudeParams(execution, val, off, len);
     if(val == NULL)
-        execution.stackPushObject(NULL);
-    else {
-        int8_t *valData = val->getData();
-        uint32_t end = off + len;
-        if(valData[off] >= 0)
-            execution.stackPushObject(makeMagnitude(execution, valData, off, end));
-        else
-            execution.stackPushObject(makePositiveMagnitude(execution, valData, off, end));
-    }
+        return execution.stackPushObject(NULL);
+    checkMakeMagnitudeParams(execution, val->getLength(), off, len);
+    uint32_t end = off + len;
+    if(val->getData()[off] >= 0)
+        return execution.stackPushObject(makeMagnitude(execution, val, off, end));
+    execution.stackPushObject(makePositiveMagnitude(execution, val, off, end));
 }
 
 static void nativeMakeMagnitudeWithSignumInput(FlintExecution &execution) {
@@ -984,16 +980,12 @@ static void nativeMakeMagnitudeWithSignumInput(FlintExecution &execution) {
     FlintInt8Array *val = (FlintInt8Array *)execution.stackPopObject();
     int32_t signum = execution.stackPopInt32();
     if(signum == 0 || val == NULL)
-        execution.stackPushObject(NULL);
-    else {
-        checkMakeMagnitudeParams(execution, val, off, len);
-        int8_t *valData = val->getData();
-        uint32_t end = off + len;
-        if(signum > 0)
-            execution.stackPushObject(makeMagnitude(execution, valData, off, end));
-        else
-            execution.stackPushObject(makePositiveMagnitude(execution, valData, off, end));
-    }
+        return execution.stackPushObject(NULL);
+    checkMakeMagnitudeParams(execution, val->getLength(), off, len);
+    uint32_t end = off + len;
+    if(signum > 0)
+        return execution.stackPushObject(makeMagnitude(execution, val, off, end));
+    execution.stackPushObject(makePositiveMagnitude(execution, val, off, end));
 }
 
 static void nativeBitLength(FlintExecution &execution) {
