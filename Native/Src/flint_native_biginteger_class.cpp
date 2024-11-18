@@ -34,6 +34,10 @@ static uint32_t bitLength(uint32_t *value, uint32_t length) {
     return bitLength(*value) + (length - 1) * 32;
 }
 
+static bool isPowerOfTwo(uint32_t value) {
+    return (value & (value - 1)) == 0;
+}
+
 static uint8_t getExponentOfTwo(uint32_t i) {
     uint32_t n = 0;
     if (i > 1 << 16) {n += 16; i >>= 16;}
@@ -992,6 +996,22 @@ static void nativeMakeMagnitudeWithSignumInput(FlintExecution &execution) {
     }
 }
 
+static void nativeBitLength(FlintExecution &execution) {
+    int32_t signum = execution.stackPopInt32();
+    FlintInt32Array *mag = (FlintInt32Array *)execution.stackPopObject();
+    if(signum == 0 || mag == NULL)
+        return execution.stackPushInt32(0);
+    uint32_t *magData = (uint32_t *)mag->getData();
+    uint32_t magLen = mag->getLength();
+    int32_t n = bitLength(magData, magLen);
+    if(signum > 0)
+        return execution.stackPushInt32(n);
+    bool isPowOfTwo = isPowerOfTwo(magData[0]);
+    for(uint32_t i = 1; i < magLen && isPowOfTwo; i++)
+        isPowOfTwo = (magData[i] == 0);
+    execution.stackPushInt32(isPowOfTwo ? (n - 1) : n);
+}
+
 static void nativeCompareMagnitude(FlintExecution &execution) {
     FlintInt32Array *y = (FlintInt32Array *)execution.stackPopObject();
     FlintInt32Array *x = (FlintInt32Array *)execution.stackPopObject();
@@ -1060,6 +1080,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x05\x00\x86\xEF""(J)[I",     nativeMakeMagnitudeWithLongInput),
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x08\x00\xB9\x31""([BII)[I",  nativeMakeMagnitudeWithByteArrayInput),
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x09\x00\xCA\x2F""(I[BII)[I", nativeMakeMagnitudeWithSignumInput),
+    NATIVE_METHOD("\x09\x00\x7F\xF5""bitLength",        "\x06\x00\x85\xED""([II)I",    nativeBitLength),
     NATIVE_METHOD("\x10\x00\x16\xC4""compareMagnitude", "\x07\x00\x80\x8C""([I[I)I",   nativeCompareMagnitude),
     NATIVE_METHOD("\x03\x00\xF4\xCA""add",              "\x08\x00\x00\x49""([I[I)[I",  nativeAdd),
     NATIVE_METHOD("\x08\x00\x06\x3A""subtract",         "\x08\x00\x00\x49""([I[I)[I",  nativeSubtract),
