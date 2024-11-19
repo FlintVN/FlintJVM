@@ -363,6 +363,20 @@ static FlintInt32Array *makeMagnitude(FlintExecution &execution, FlintInt8Array 
     return &mag;
 }
 
+static FlintInt32Array *makeMagnitude(FlintExecution &execution, FlintInt32Array *val, int32_t off, uint32_t end) {
+    int32_t *valData = val->getData();
+    while((valData[off] == 0) && (off < end))
+        off++;
+    if(off == end)
+        return NULL;
+    if(off == 0 && end == val->getLength())
+        return val;
+    uint32_t magLen = end - off;
+    FlintInt32Array &mag = execution.flint.newIntegerArray(magLen);
+    memcpy(mag.getData(), &val[off], magLen * sizeof(int32_t));
+    return &mag;
+}
+
 static FlintInt32Array *makePositiveMagnitude(FlintExecution &execution, FlintInt8Array *val, int32_t off, uint32_t end) {
     int8_t *valData = val->getData();
     while((valData[off] == -1) && (off < end))
@@ -390,6 +404,38 @@ static FlintInt32Array *makePositiveMagnitude(FlintExecution &execution, FlintIn
             magData[i] = magData[i] + 1;
             if(magData[i] != 0)
                 break;
+        }
+        return &mag;
+    }
+}
+
+static FlintInt32Array *makePositiveMagnitude(FlintExecution &execution, FlintInt32Array *val, int32_t off, uint32_t end) {
+    int32_t *valData = val->getData();
+    while((valData[off] == -1) && (off < end))
+        off++;
+    if(off == end) {
+        FlintInt32Array &mag = execution.flint.newIntegerArray(1);
+        mag.getData()[0] = 1;
+        return &mag;
+    }
+    else {
+        uint32_t k = off;
+        while((valData[k] == 0) && (k < end))
+            k++;
+        uint32_t magLen = (end - off) + ((k == end) ? 1 : 0);
+        FlintInt32Array &mag = execution.flint.newIntegerArray(magLen);
+        uint32_t *magData = (uint32_t *)&mag.getData()[magLen - 1];
+        uint8_t carry;
+        int32_t index = 0;
+        valData = &valData[end - 1];
+        do {
+            magData[-index] = -valData[-index];
+            carry = !magData[-index];
+            index++;
+        } while((index < magLen) && carry);
+        while(index < magLen) {
+            magData[-index] = ~valData[-index];
+            index++;
         }
         return &mag;
     }
@@ -988,6 +1034,19 @@ static void nativeMakeMagnitudeWithSignumInput(FlintExecution &execution) {
     execution.stackPushObject(makePositiveMagnitude(execution, val, off, end));
 }
 
+static void nativeMakeMagnitudeWithIntArrayInput(FlintExecution &execution) {
+    int32_t len = execution.stackPopInt32();
+    int32_t off = execution.stackPopInt32();
+    FlintInt32Array *val = (FlintInt32Array *)execution.stackPopObject();
+    if(val == NULL)
+        return execution.stackPushObject(NULL);
+    checkMakeMagnitudeParams(execution, val->getLength(), off, len);
+    uint32_t end = off + len;
+    if(val->getData()[off] >= 0)
+        return execution.stackPushObject(makeMagnitude(execution, val, off, end));
+    execution.stackPushObject(makePositiveMagnitude(execution, val, off, end));
+}
+
 static void nativeBitLength(FlintExecution &execution) {
     int32_t signum = execution.stackPopInt32();
     FlintInt32Array *mag = (FlintInt32Array *)execution.stackPopObject();
@@ -1072,6 +1131,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x05\x00\x86\xEF""(J)[I",     nativeMakeMagnitudeWithLongInput),
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x08\x00\xB9\x31""([BII)[I",  nativeMakeMagnitudeWithByteArrayInput),
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x09\x00\xCA\x2F""(I[BII)[I", nativeMakeMagnitudeWithSignumInput),
+    NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x08\x00\xB8\x4A""([III)[I",  nativeMakeMagnitudeWithIntArrayInput),
     NATIVE_METHOD("\x09\x00\x7F\xF5""bitLength",        "\x06\x00\x85\xED""([II)I",    nativeBitLength),
     NATIVE_METHOD("\x10\x00\x16\xC4""compareMagnitude", "\x07\x00\x80\x8C""([I[I)I",   nativeCompareMagnitude),
     NATIVE_METHOD("\x03\x00\xF4\xCA""add",              "\x08\x00\x00\x49""([I[I)[I",  nativeAdd),
