@@ -58,10 +58,8 @@ static void setValueImpl(uint32_t *x, uint32_t xLen, uint32_t *val, uint32_t val
         x += (xLen - valLen);
         xLen = valLen;
     }
-    else if(valLen > xLen) {
+    else if(valLen > xLen)
         val += (valLen - xLen);
-        valLen = xLen;
-    }
     memcpy(x, val, xLen * sizeof(uint32_t));
 }
 
@@ -1153,6 +1151,48 @@ static void nativeSqrt(FlintExecution &execution) {
     execution.stackPushObject(sqrt(execution, x));
 }
 
+static void nativeGetIntArray(FlintExecution &execution) {
+    int32_t length = execution.stackPopInt32();
+    int32_t signum = execution.stackPopInt32();
+    FlintInt32Array *mag = (FlintInt32Array *)execution.stackPopObject();
+    if(length == 0 || signum == 0 || mag == NULL) {
+        FlintInt32Array &ret = execution.flint.newIntegerArray(1);
+        ret.getData()[0] = 0;
+        execution.stackPushObject(&ret);
+    }
+    else {
+        uint32_t magLen = mag->getLength();
+        if(signum > 0) {
+            FlintInt32Array &ret = execution.flint.newIntegerArray(length);
+            setValueImpl((uint32_t *)ret.getData(), length, (uint32_t *)mag->getData(), magLen);
+            execution.stackPushObject(&ret);
+        }
+        else {
+            FlintInt32Array &ret = execution.flint.newIntegerArray(length);
+            uint32_t *magData = (uint32_t *)&mag->getData()[magLen - 1];
+            uint32_t *retData = (uint32_t *)&ret.getData()[length - 1];
+            retData[0] = -magData[0];
+            int32_t index = 1;
+            uint8_t carry = !retData[0];
+            uint32_t len = MIN(length, magLen);
+            while((index < len) && carry) {
+                retData[-index] = -magData[-index];
+                carry = !retData[-index];
+                index++;
+            }
+            while(index < len) {
+                retData[-index] = ~magData[-index];
+                index++;
+            }
+            while(index < length) {
+                retData[-index] = 0xFFFFFFFF;
+                index++;
+            }
+            execution.stackPushObject(&ret);
+        }
+    }
+}
+
 static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x05\x00\x86\xEF""(J)[I",     nativeMakeMagnitudeWithLongInput),
     NATIVE_METHOD("\x0D\x00\xD7\x06""makeMagnitude",    "\x08\x00\xB9\x31""([BII)[I",  nativeMakeMagnitudeWithByteArrayInput),
@@ -1171,6 +1211,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x06\x00\x27\xB5""square",           "\x07\x00\xA1\x4A""([II)[I",   nativeSquare),
     NATIVE_METHOD("\x03\x00\xE2\x32""pow",              "\x07\x00\xA1\x4A""([II)[I",   nativePow),
     NATIVE_METHOD("\x04\x00\x91\xC3""sqrt",             "\x06\x00\xA1\x53""([I)[I",    nativeSqrt),
+    NATIVE_METHOD("\x0B\x00\x77\xF4""getIntArray",      "\x08\x00\xB8\x4A""([III)[I",  nativeGetIntArray),
 };
 
 const FlintNativeClass BIGINTEGER_CLASS = NATIVE_CLASS(bigIntegerClassName, methods);
