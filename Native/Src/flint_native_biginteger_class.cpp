@@ -913,7 +913,7 @@ static FlintInt32Array *pow2(FlintExecution &execution, FlintInt32Array *x, uint
         exponent /= 2;
         if(exponent) {
             FlintInt32Array *tmp = square(execution, base);
-            if(base != x)
+            if(base != x && base != ret)
                 execution.flint.freeObject(*base);
             base = tmp;
         }
