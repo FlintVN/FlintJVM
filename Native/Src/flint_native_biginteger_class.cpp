@@ -1076,7 +1076,7 @@ static void nativeGetInt(FlintExecution &execution) {
     if(signum > 0)
         return execution.stackPushInt32(magInt);
     if(n > 0) {
-        uint32_t *magData = (uint32_t *)mag->getData()[magLen - 1];
+        uint32_t *magData = (uint32_t *)&mag->getData()[magLen - 1];
         n--;
         while(n >= 0) {
             if(magData[-n] != 0)
