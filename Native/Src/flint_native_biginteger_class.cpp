@@ -324,13 +324,6 @@ static uint32_t divideByIntImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uin
     }
 }
 
-static void checkNullObject(FlintExecution &execution, FlintObject *obj) {
-    if(obj == NULL) {
-        FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
-        throw &execution.flint.newNullPointerException(strObj);
-    }
-}
-
 static void checkMakeMagnitudeParams(FlintExecution &execution, int32_t maxLen, int32_t off, int32_t len) {
     if(off < 0 || off >= maxLen || (off + len) > maxLen) {
         char indexStrBuff[11];
@@ -371,7 +364,7 @@ static FlintInt32Array *makeMagnitude(FlintExecution &execution, FlintInt32Array
         return val;
     uint32_t magLen = end - off;
     FlintInt32Array &mag = execution.flint.newIntegerArray(magLen);
-    memcpy(mag.getData(), &val[off], magLen * sizeof(int32_t));
+    memcpy(mag.getData(), &val->getData()[off], magLen * sizeof(int32_t));
     return &mag;
 }
 
