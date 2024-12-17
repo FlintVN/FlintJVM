@@ -19,7 +19,7 @@ void FlintAPI::System::print(const char *text, uint32_t length, uint8_t coder) {
     throw "FlintAPI::System::print is not implemented in VM";
 }
 
-int64_t FlintAPI::System::getNanoTime(void) {
+uint64_t FlintAPI::System::getNanoTime(void) {
     throw "FlintAPI::System::getNanoTime is not implemented in VM";
 }
 
