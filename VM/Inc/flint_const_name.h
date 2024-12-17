@@ -20,6 +20,7 @@ extern const FlintConstUtf8 &throwableClassName;
 extern const FlintConstUtf8 &exceptionClassName;
 extern const FlintConstUtf8 &bigIntegerClassName;
 extern const FlintConstUtf8 &printStreamClassName;
+extern const FlintConstUtf8 &flintGraphicsClassName;
 extern const FlintConstUtf8 &arrayStoreExceptionClassName;
 extern const FlintConstUtf8 &arithmeticExceptionClassName;
 extern const FlintConstUtf8 &nullPointerExceptionClassName;

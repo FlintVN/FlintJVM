@@ -409,6 +409,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &exceptionClassName,
         &bigIntegerClassName,
         &printStreamClassName,
+        &flintGraphicsClassName,
         &arrayStoreExceptionClassName,
         &arithmeticExceptionClassName,
         &nullPointerExceptionClassName,
