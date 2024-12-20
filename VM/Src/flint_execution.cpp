@@ -338,7 +338,7 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         FlintThrowable &excpObj = flint.newNullPointerException(strObj);
         stackPushObject(&excpObj);
     }
-    FlintConstUtf8 &type = FlintObject::isPrimType(obj->type) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
+    FlintConstUtf8 &type = (obj->dimensions > 0 || FlintObject::isPrimType(obj->type)) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
     if(constMethod.className == type) {
         if(constMethod.methodInfo == 0)
@@ -383,7 +383,7 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
         FlintThrowable &excpObj = flint.newNullPointerException(strObj);
         stackPushObject(&excpObj);
     }
-    FlintConstUtf8 &type = FlintObject::isPrimType(obj->type) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
+    FlintConstUtf8 &type = (obj->dimensions > 0 || FlintObject::isPrimType(obj->type)) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
     if(interfaceMethod.className == type) {
         if(interfaceMethod.methodInfo == 0)
