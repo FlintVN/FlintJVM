@@ -16,6 +16,7 @@ public:
     bool equals(const char *text, uint32_t length) const;
     bool equals(const FlintConstUtf8 &utf8) const;
     bool equals(FlintString &utf8) const;
+    uint32_t getUft8BuffSize(void);
 
     static bool isLatin1(const char *utf8);
     static uint8_t getUtf8DecodeSize(char c);
@@ -23,7 +24,6 @@ public:
     static uint32_t utf8Decode(const char *c);
     static uint8_t utf8Encode(uint16_t c, char *buff);
     static uint32_t utf8StrLen(const char *utf8);
-    static uint32_t getUft8BuffSize(FlintString &str);
 protected:
     FlintString(void) = delete;
     FlintString(const FlintString &) = delete;

@@ -2372,7 +2372,10 @@ void FlintExecution::innerRunTask(FlintExecution *execution) {
     }
     catch(FlintThrowable *ex) {
         FlintString *str = ex->getDetailMessage();
-        execution->flint.print(str->getText(), str->getLength(), str->getCoder());
+        if(str)
+            execution->flint.print(str->getText(), str->getLength(), str->getCoder());
+        else
+            execution->flint.print(ex->type.text, ex->type.length, 0);
         execution->flint.print("\n", 1, 0);
     }
     catch(FlintOutOfMemoryError *err) {

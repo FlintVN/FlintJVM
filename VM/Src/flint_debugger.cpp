@@ -233,25 +233,27 @@ void FlintDebugger::responseExceptionInfo(void) {
         ) {
             FlintConstUtf8 &type = exception->type;
             FlintString *str = exception->getDetailMessage();
-            uint32_t responseSize = sizeof(FlintConstUtf8) * 2 + type.length + FlintString::getUft8BuffSize(*str) + 2;
-            uint8_t coder = str->getCoder();
-            const char *text = str->getText();
-            uint32_t msgLen = str->getLength();
+            uint32_t responseSize = sizeof(FlintConstUtf8) * 2 + type.length + (str ? str->getUft8BuffSize() : 0) + 2;
+            uint8_t coder = str ? str->getCoder() : 0;
+            const char *text = str ? str->getText() : 0;
+            uint32_t msgLen = str ? str->getLength() : 0;
             char utf8Buff[3];
 
             initDataFrame(DBG_CMD_READ_EXCP_INFO, DBG_RESP_OK, responseSize);
             if(!dataFrameAppend(type)) return;
             if(!dataFrameAppend((uint16_t)msgLen)) return;
             if(!dataFrameAppend((uint16_t)0)) return;
-            if(coder == 0) for(uint32_t i = 0; i < msgLen; i++) {
-                uint8_t encodeSize = FlintString::utf8Encode(text[i], utf8Buff);
-                for(uint8_t j = 0; j < encodeSize; j++)
-                    if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
-            }
-            else for(uint32_t i = 0; i < msgLen; i++) {
-                uint8_t encodeSize = FlintString::utf8Encode(((uint16_t *)text)[i], utf8Buff);
-                for(uint8_t j = 0; j < encodeSize; j++)
-                    if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
+            if(msgLen) {
+                if(coder == 0) for(uint32_t i = 0; i < msgLen; i++) {
+                    uint8_t encodeSize = FlintString::utf8Encode(text[i], utf8Buff);
+                    for(uint8_t j = 0; j < encodeSize; j++)
+                        if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
+                }
+                else for(uint32_t i = 0; i < msgLen; i++) {
+                    uint8_t encodeSize = FlintString::utf8Encode(((uint16_t *)text)[i], utf8Buff);
+                    for(uint8_t j = 0; j < encodeSize; j++)
+                        if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
+                }
             }
             if(!dataFrameAppend((uint8_t)0)) return;
             dataFrameFinish();

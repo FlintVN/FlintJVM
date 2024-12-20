@@ -70,11 +70,11 @@ uint32_t FlintString::utf8StrLen(const char *utf8) {
     return len;
 }
 
-uint32_t FlintString::getUft8BuffSize(FlintString &str) {
-    uint32_t length = str.getLength();
-    const char *text = str.getText();
+uint32_t FlintString::getUft8BuffSize(void) {
+    uint32_t length = getLength();
+    const char *text = getText();
     uint32_t ret = 0;
-    if(str.getCoder() == 0) {
+    if(getCoder() == 0) {
         for(uint32_t i = 0; i < length; i++)
             ret += getUtf8EncodeSize(text[i]);
     }
