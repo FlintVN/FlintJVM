@@ -103,6 +103,7 @@ public:
 
     FlintThrowable &newThrowable(FlintString &strObj, FlintConstUtf8 &excpType);
     FlintThrowable &newException(FlintString &strObj);
+    FlintThrowable &newIOException(FlintString &strObj);
     FlintThrowable &newErrorException(FlintString &strObj);
     FlintThrowable &newArrayStoreException(FlintString &strObj);
     FlintThrowable &newArithmeticException(FlintString &strObj);

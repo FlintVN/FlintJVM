@@ -409,6 +409,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &exceptionClassName,
         &bigIntegerClassName,
         &printStreamClassName,
+        &ioExceptionClassName,
         &flintGraphicsClassName,
         &arrayStoreExceptionClassName,
         &arithmeticExceptionClassName,
@@ -470,6 +471,10 @@ FlintThrowable &Flint::newThrowable(FlintString &strObj, FlintConstUtf8 &excpTyp
 }
 
 FlintThrowable &Flint::newException(FlintString &strObj) {
+    return newThrowable(strObj, *(FlintConstUtf8 *)&exceptionClassName);
+}
+
+FlintThrowable &Flint::newIOException(FlintString &strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&exceptionClassName);
 }
 
