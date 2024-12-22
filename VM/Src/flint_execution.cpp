@@ -2091,11 +2091,11 @@ void FlintExecution::run(void) {
             for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
                 FlintExceptionTable &exceptionTable = attributeCode.getException(i);
                 if(exceptionTable.startPc <= tracePc && tracePc < exceptionTable.endPc) {
-                    FlintConstUtf8 &typeName = method->classLoader.getConstUtf8Class(exceptionTable.catchType);
+                    FlintConstUtf8 &typeName = traceMethod->classLoader.getConstUtf8Class(exceptionTable.catchType);
                     if(flint.isInstanceof(obj, typeName.text, typeName.length)) {
                         while(startSp > traceStartSp)
                             stackRestoreContext();
-                        sp = startSp + method->getAttributeCode().maxLocals;
+                        sp = startSp + attributeCode.maxLocals;
                         stackPushObject(obj);
                         pc = exceptionTable.handlerPc;
                         goto *opcodes[code[pc]];
