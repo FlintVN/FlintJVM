@@ -6,7 +6,7 @@
 #include "flint_native_system_class.h"
 
 static void nativeCurrentTimeMillis(FlintExecution &execution) {
-    execution.stackPushInt64(FlintAPI::System::getNanoTime() / 1000);
+    execution.stackPushInt64(FlintAPI::System::getNanoTime() / 1000000);
 }
 
 static void nativeNanoTime(FlintExecution &execution) {
