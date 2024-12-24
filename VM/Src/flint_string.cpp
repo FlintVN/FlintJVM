@@ -10,16 +10,6 @@ static const uint8_t utf8ByteCount[] = {
     4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6
 };
 
-static const uint32_t stringValueFieldName[] = {
-    (uint32_t)"\x05\x00\x2B\x6E""value",                /* field name */
-    (uint32_t)"\x02\x00\x45\x4E""[B"                    /* field type */
-};
-
-static const uint32_t stringCoderFieldName[] = {
-    (uint32_t)"\x05\x00\xE8\x49""coder",                /* field name */
-    (uint32_t)"\x01\x00\xC0\x8E""B"                     /* field type */
-};
-
 uint8_t FlintString::getUtf8DecodeSize(char c) {
     return (c & 0x80) ? utf8ByteCount[((uint8_t)c - 0xC0) & 0xFC] : 1;
 }
@@ -100,11 +90,11 @@ bool FlintString::isLatin1(const char *utf8) {
 }
 
 FlintInt8Array *FlintString::getValue(void) const {
-    return (FlintInt8Array *)getFields().getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object;
+    return (FlintInt8Array *)getFields().getFieldObject(*(const FlintConstUtf8 *)"\x05\x00\x2B\x6E""value").object;
 }
 
 void FlintString::setValue(FlintInt8Array &byteArray) {
-    getFields().getFieldObject(*(FlintConstNameAndType *)stringValueFieldName).object = &byteArray;
+    getFields().getFieldObject(*(const FlintConstUtf8 *)"\x05\x00\x2B\x6E""value").object = &byteArray;
 }
 
 const char *FlintString::getText(void) const {
@@ -121,11 +111,11 @@ uint32_t FlintString::getLength(void) const {
 }
 
 uint8_t FlintString::getCoder(void) const {
-    return getFields().getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value;
+    return getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\xE8\x49""coder").value;
 }
 
 void FlintString::setCoder(uint8_t coder) {
-    getFields().getFieldData32(*(FlintConstNameAndType *)stringCoderFieldName).value = coder;
+    getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\xE8\x49""coder").value = coder;
 }
 
 bool FlintString::equals(const char *text, uint32_t length) const {

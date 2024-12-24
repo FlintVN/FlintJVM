@@ -1705,18 +1705,18 @@ void FlintExecution::run(void) {
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'J':
             case 'D': {
-                stackPushInt64(fields.getFieldData64(constField.nameAndType).value);
+                stackPushInt64(fields.getFieldData64(constField).value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'L':
             case '[': {
-                stackPushObject(fields.getFieldObject(constField.nameAndType).object);
+                stackPushObject(fields.getFieldObject(constField).object);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             default: {
-                stackPushInt32(fields.getFieldData32(constField.nameAndType).value);
+                stackPushInt32(fields.getFieldData32(constField).value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -1739,26 +1739,26 @@ void FlintExecution::run(void) {
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
             case 'B': {
-                fields.getFieldData32(constField.nameAndType).value = (int8_t)stackPopInt32();
+                fields.getFieldData32(constField).value = (int8_t)stackPopInt32();
                 goto *opcodes[code[pc]];
             }
             case 'C':
             case 'S': {
-                fields.getFieldData32(constField.nameAndType).value = (int16_t)stackPopInt32();
+                fields.getFieldData32(constField).value = (int16_t)stackPopInt32();
                 goto *opcodes[code[pc]];
             }
             case 'J':
             case 'D': {
-                fields.getFieldData64(constField.nameAndType).value = stackPopInt64();
+                fields.getFieldData64(constField).value = stackPopInt64();
                 goto *opcodes[code[pc]];
             }
             case 'L':
             case '[': {
-                fields.getFieldObject(constField.nameAndType).object = stackPopObject();
+                fields.getFieldObject(constField).object = stackPopObject();
                 goto *opcodes[code[pc]];
             }
             default: {
-                fields.getFieldData32(constField.nameAndType).value = stackPopInt32();
+                fields.getFieldData32(constField).value = stackPopInt32();
                 goto *opcodes[code[pc]];
             }
         }
@@ -1772,7 +1772,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                stackPushInt64(obj->getFields().getFieldData64(constField.nameAndType).value);
+                stackPushInt64(obj->getFields().getFieldData64(constField).value);
                 goto *opcodes[code[pc]];
             }
             case 'L':
@@ -1780,14 +1780,14 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                stackPushObject(obj->getFields().getFieldObject(constField.nameAndType).object);
+                stackPushObject(obj->getFields().getFieldObject(constField).object);
                 goto *opcodes[code[pc]];
             }
             default: {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto getfield_null_excp;
-                stackPushInt32(obj->getFields().getFieldData32(constField.nameAndType).value);
+                stackPushInt32(obj->getFields().getFieldData32(constField).value);
                 goto *opcodes[code[pc]];
             }
         }
@@ -1815,7 +1815,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                obj->getFields().getFieldData32(constField.nameAndType).value = (int8_t)value;
+                obj->getFields().getFieldData32(constField).value = (int8_t)value;
                 goto *opcodes[code[pc]];
             }
             case 'C':
@@ -1824,7 +1824,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                obj->getFields().getFieldData32(constField.nameAndType).value = (int16_t)value;
+                obj->getFields().getFieldData32(constField).value = (int16_t)value;
                 goto *opcodes[code[pc]];
             }
             case 'J':
@@ -1833,7 +1833,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                obj->getFields().getFieldData64(constField.nameAndType).value = value;
+                obj->getFields().getFieldData64(constField).value = value;
                 goto *opcodes[code[pc]];
             }
             case 'L':
@@ -1842,7 +1842,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                obj->getFields().getFieldObject(constField.nameAndType).object = value;
+                obj->getFields().getFieldObject(constField).object = value;
                 goto *opcodes[code[pc]];
             }
             default: {
@@ -1850,7 +1850,7 @@ void FlintExecution::run(void) {
                 FlintObject *obj = stackPopObject();
                 if(obj == 0)
                     goto putfield_null_excp;
-                obj->getFields().getFieldData32(constField.nameAndType).value = value;
+                obj->getFields().getFieldData32(constField).value = value;
                 goto *opcodes[code[pc]];
             }
         }

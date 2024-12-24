@@ -163,15 +163,17 @@ FlintFieldData32 &FlintFieldsData::getFieldData32(const FlintConstUtf8 &fieldNam
     return *(FlintFieldData32 *)0;
 }
 
-FlintFieldData32 &FlintFieldsData::getFieldData32(const FlintConstNameAndType &fieldNameAndType) const {
-    if(fields32Count) {
+FlintFieldData32 &FlintFieldsData::getFieldData32(FlintConstField &constField) const {
+    if(constField.fieldIndex == 0 && fields32Count) {
         for(uint16_t i = 0; i < fields32Count; i++) {
             const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
-            if(fieldInfo.name == fieldNameAndType.name && fieldInfo.descriptor == fieldNameAndType.descriptor)
-                return fieldsData32[i];
+            if(fieldInfo.name == constField.nameAndType.name && fieldInfo.descriptor == constField.nameAndType.descriptor)
+                constField.fieldIndex = i | 0x80000000;
         }
+        if(constField.fieldIndex == 0)
+            return *(FlintFieldData32 *)0;
     }
-    return *(FlintFieldData32 *)0;
+    return fieldsData32[constField.fieldIndex & 0x7FFFFFFF];
 }
 
 FlintFieldData64 &FlintFieldsData::getFieldData64(const char *fieldName) const {
@@ -203,15 +205,17 @@ FlintFieldData64 &FlintFieldsData::getFieldData64(const FlintConstUtf8 &fieldNam
     return *(FlintFieldData64 *)0;
 }
 
-FlintFieldData64 &FlintFieldsData::getFieldData64(const FlintConstNameAndType &fieldNameAndType) const {
-    if(fields64Count) {
+FlintFieldData64 &FlintFieldsData::getFieldData64(FlintConstField &constField) const {
+    if(constField.fieldIndex == 0 && fields64Count) {
         for(uint16_t i = 0; i < fields64Count; i++) {
             const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
-            if(fieldInfo.name == fieldNameAndType.name && fieldInfo.descriptor == fieldNameAndType.descriptor)
-                return fieldsData64[i];
+            if(fieldInfo.name == constField.nameAndType.name && fieldInfo.descriptor == constField.nameAndType.descriptor)
+                constField.fieldIndex = i | 0x80000000;
         }
+        if(constField.fieldIndex == 0)
+            return *(FlintFieldData64 *)0;
     }
-    return *(FlintFieldData64 *)0;
+    return fieldsData64[constField.fieldIndex & 0x7FFFFFFF];
 }
 
 FlintFieldObject &FlintFieldsData::getFieldObject(const char *fieldName) const {
@@ -243,15 +247,17 @@ FlintFieldObject &FlintFieldsData::getFieldObject(const FlintConstUtf8 &fieldNam
     return *(FlintFieldObject *)0;
 }
 
-FlintFieldObject &FlintFieldsData::getFieldObject(const FlintConstNameAndType &fieldNameAndType) const {
-    if(fieldsObjCount) {
+FlintFieldObject &FlintFieldsData::getFieldObject(FlintConstField &constField) const {
+    if(constField.fieldIndex == 0 && fieldsObjCount) {
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
             const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
-            if(fieldInfo.name == fieldNameAndType.name && fieldInfo.descriptor == fieldNameAndType.descriptor)
-                return fieldsObject[i];
+            if(fieldInfo.name == constField.nameAndType.name && fieldInfo.descriptor == constField.nameAndType.descriptor)
+                constField.fieldIndex = i | 0x80000000;
         }
+        if(constField.fieldIndex == 0)
+            return *(FlintFieldObject *)0;
     }
-    return *(FlintFieldObject *)0;
+    return fieldsObject[constField.fieldIndex & 0x7FFFFFFF];
 }
 
 FlintFieldsData::~FlintFieldsData(void) {

@@ -3,6 +3,7 @@
 #define __FLINT_FIELD_DATA_H
 
 #include "flint_object.h"
+#include "flint_const_pool.h"
 #include "flint_class_loader.h"
 
 class FlintFieldData32 {
@@ -49,13 +50,13 @@ public:
 
     FlintFieldData32 &getFieldData32(const char *fieldName) const;
     FlintFieldData32 &getFieldData32(const FlintConstUtf8 &fieldName) const;
-    FlintFieldData32 &getFieldData32(const FlintConstNameAndType &fieldNameAndType) const;
+    FlintFieldData32 &getFieldData32(FlintConstField &constField) const;
     FlintFieldData64 &getFieldData64(const char *fieldName) const;
     FlintFieldData64 &getFieldData64(const FlintConstUtf8 &fieldName) const;
-    FlintFieldData64 &getFieldData64(const FlintConstNameAndType &fieldNameAndType) const;
+    FlintFieldData64 &getFieldData64(FlintConstField &constField) const;
     FlintFieldObject &getFieldObject(const char *fieldName) const;
     FlintFieldObject &getFieldObject(const FlintConstUtf8 &fieldName) const;
-    FlintFieldObject &getFieldObject(const FlintConstNameAndType &fieldNameAndType) const;
+    FlintFieldObject &getFieldObject(FlintConstField &constField) const;
 private:
     FlintFieldData32 *fieldsData32;
     FlintFieldData64 *fieldsData64;

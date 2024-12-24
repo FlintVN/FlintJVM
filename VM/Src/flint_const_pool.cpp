@@ -62,7 +62,7 @@ name(name), descriptor(descriptor) {
 }
 
 FlintConstField::FlintConstField(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
-className(className), nameAndType(nameAndType) {
+className(className), nameAndType(nameAndType), fieldIndex(0) {
 
 }
 

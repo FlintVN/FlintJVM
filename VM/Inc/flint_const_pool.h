@@ -51,11 +51,14 @@ public:
     FlintConstUtf8 &className;
     FlintConstNameAndType &nameAndType;
 private:
+    uint32_t fieldIndex;
+private:
     FlintConstField(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
     FlintConstField(const FlintConstField &) = delete;
     void operator=(const FlintConstField &) = delete;
 
     friend class FlintClassLoader;
+    friend class FlintFieldsData;
 };
 
 typedef struct {
