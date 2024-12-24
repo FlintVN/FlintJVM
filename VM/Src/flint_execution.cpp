@@ -340,14 +340,12 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     }
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintObject::isPrimType(obj->type)) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
-    if(constMethod.className == type) {
-        if(constMethod.methodInfo == 0)
-            constMethod.methodInfo = &flint.findMethod(constMethod);
+    if(constMethod.methodInfo && constMethod.methodInfo->classLoader.getThisClass() == type)
         methodInfo = constMethod.methodInfo;
-    }
     else {
         FlintConstMethod virtualConstMethod(type, constMethod.nameAndType, 0, 0);
-        methodInfo = &flint.findMethod(virtualConstMethod);
+        constMethod.methodInfo = &flint.findMethod(virtualConstMethod);
+        methodInfo = constMethod.methodInfo;
     }
     if((methodInfo->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
@@ -385,14 +383,12 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
     }
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintObject::isPrimType(obj->type)) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
-    if(interfaceMethod.className == type) {
-        if(interfaceMethod.methodInfo == 0)
-            interfaceMethod.methodInfo = &flint.findMethod(interfaceMethod);
+    if(interfaceMethod.methodInfo && interfaceMethod.methodInfo->classLoader.getThisClass() == type)
         methodInfo = interfaceMethod.methodInfo;
-    }
     else {
         FlintConstMethod interfaceConstMethod(type, interfaceMethod.nameAndType, 0, 0);
-        methodInfo = &flint.findMethod(interfaceConstMethod);
+        interfaceMethod.methodInfo = &flint.findMethod(interfaceConstMethod);
+        methodInfo = interfaceMethod.methodInfo;
     }
     if((methodInfo->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
         if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
