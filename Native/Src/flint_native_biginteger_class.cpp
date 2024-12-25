@@ -98,7 +98,7 @@ static uint32_t addImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xL
         return (xLen || yLen) ? 1 : 0;
     int32_t index = 0;
     uint64_t sum = 0;
-    uint32_t len = MIN(retLen, MIN(xLen, yLen));
+    uint32_t len = FLINT_MIN(retLen, FLINT_MIN(xLen, yLen));
     ret = &ret[retLen - 1];
     x = &x[xLen - 1];
     y = &y[yLen - 1];
@@ -111,7 +111,7 @@ static uint32_t addImpl(uint32_t *ret, uint32_t retLen, uint32_t *x, uint32_t xL
         x = y;
         xLen = yLen;
     }
-    len = MIN(retLen, xLen);
+    len = FLINT_MIN(retLen, xLen);
     uint8_t carry = (uint8_t)(sum >> 32);
     while((index < len) && carry) {
         ret[-index] = x[-index] + 1;
@@ -141,7 +141,7 @@ static void subtractImpl(uint32_t *ret, uint32_t retLen, uint32_t *big, uint32_t
         little = 0;
     int32_t index = 0;
     int64_t difference = 0;
-    uint32_t len = MIN(retLen, littleLen);
+    uint32_t len = FLINT_MIN(retLen, littleLen);
     ret = &ret[retLen - 1];
     big = &big[bigLen - 1];
     little = &little[littleLen - 1];
@@ -150,7 +150,7 @@ static void subtractImpl(uint32_t *ret, uint32_t retLen, uint32_t *big, uint32_t
         ret[-index] = (uint32_t)difference;
         index++;
     }
-    len = MIN(retLen, bigLen);
+    len = FLINT_MIN(retLen, bigLen);
     uint8_t borrow = (difference >> 32 != 0);
     while((index < len) && borrow) {
         ret[-index] = big[-index] - 1;
@@ -179,7 +179,7 @@ static void shiftLeftImpl(uint32_t *ret, uint32_t retLen, uint32_t *val, uint32_
     }
     ret = &ret[retLen - 1];
     val = &val[valLen - 1];
-    uint32_t len = MIN(nInts, retLen);
+    uint32_t len = FLINT_MIN(nInts, retLen);
     for(; index < len; index++)
         ret[-index] = 0;
     if(nBits == 0) for(uint32_t i = 0; i < valLen && index < retLen; i++) {
@@ -498,7 +498,7 @@ static FlintInt32Array *add(FlintExecution &execution, FlintInt32Array *x, Flint
     uint32_t yLen = y ? y->getLength() : 0;
     if(xLen == 0 && yLen == 0)
         return NULL;
-    FlintInt32Array &ret = execution.flint.newIntegerArray(MAX(xLen, yLen));
+    FlintInt32Array &ret = execution.flint.newIntegerArray(FLINT_MAX(xLen, yLen));
     if(addImpl(
         (uint32_t *)ret.getData(), ret.getLength(),
         x ? (uint32_t *)x->getData() : 0, xLen,
@@ -563,7 +563,7 @@ static FlintInt32Array *shiftRight(FlintExecution &execution, FlintInt32Array *x
 }
 
 static FlintInt32Array *multiplyKaratsuba(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
-    uint32_t half = (MAX(x->getLength(), y->getLength()) + 1) / 2;
+    uint32_t half = (FLINT_MAX(x->getLength(), y->getLength()) + 1) / 2;
 
     FlintInt32Array *xl = getLower(execution, x, half);
     FlintInt32Array *xh = getUpper(execution, x, half);
@@ -674,7 +674,7 @@ static FlintInt32Array *divideKnuth(FlintExecution &execution, FlintInt32Array *
     uint64_t tmp = aData[0];
     int32_t retIdx = (aData[0] >= bData[0]) ? 0 : -1;
     FlintInt32Array &ret = execution.flint.newIntegerArray(retLen);
-    FlintInt32Array &bq = execution.flint.newIntegerArray(MAX(aLen, yLen + 1));
+    FlintInt32Array &bq = execution.flint.newIntegerArray(FLINT_MAX(aLen, yLen + 1));
     uint32_t *retData = (uint32_t *)ret.getData();
     uint32_t *bqData = (uint32_t *)bq.getData();
     memset(&bqData[yLen + 1], 0, (bq.getLength() - (yLen + 1)) * sizeof(uint32_t));
@@ -844,7 +844,7 @@ static FlintInt32Array *pow1(FlintExecution &execution, FlintInt32Array *x, uint
     while(exponent > 0) {
         FlintInt32Array *tmp;
         if(exponent % 2) {
-            uint32_t newRetLen = MIN(curRetLen + baseLen, retLen);
+            uint32_t newRetLen = FLINT_MIN(curRetLen + baseLen, retLen);
             multiplyBasicImpl(
                 (uint32_t *)buff->getData(), newRetLen,
                 (uint32_t *)ret->getData(), curRetLen,
@@ -865,7 +865,7 @@ static FlintInt32Array *pow1(FlintExecution &execution, FlintInt32Array *x, uint
         }
         exponent /= 2;
         if(exponent) {
-            uint32_t newBaseLen = MIN(baseLen * 2, retLen);
+            uint32_t newBaseLen = FLINT_MIN(baseLen * 2, retLen);
             multiplyBasicImpl(
                 (uint32_t *)buff->getData(), newBaseLen,
                 (uint32_t *)base->getData(), baseLen,
@@ -1167,7 +1167,7 @@ static void nativeGetIntArray(FlintExecution &execution) {
             retData[0] = -magData[0];
             int32_t index = 1;
             uint8_t carry = !retData[0];
-            uint32_t len = MIN(length, magLen);
+            uint32_t len = FLINT_MIN(length, magLen);
             while((index < len) && carry) {
                 retData[-index] = -magData[-index];
                 carry = !retData[-index];

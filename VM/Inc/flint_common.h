@@ -11,8 +11,8 @@
 #define KILO_BYTE(_value)       ((_value) * 1024)
 #define MEGA_BYTE(_value)       ((_value) * KILO_BYTE(1024))
 
-#define MAX(_a, _b)             ((_a) > (_b) ? (_a) : (_b))
-#define MIN(_a, _b)             ((_a) < (_b) ? (_a) : (_b))
+#define FLINT_MAX(_a, _b)       ((_a) > (_b) ? (_a) : (_b))
+#define FLINT_MIN(_a, _b)       ((_a) < (_b) ? (_a) : (_b))
 
 #define LENGTH(_array)          (sizeof(_array) / sizeof(_array[0]))
 
