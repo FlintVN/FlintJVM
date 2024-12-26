@@ -545,6 +545,7 @@ void Flint::clearProtectObjectNew(FlintObject &obj) {
 
 void Flint::garbageCollectionProtectObject(FlintObject &obj) {
     bool isPrim = FlintObject::isPrimType(obj.type);
+    obj.setProtected();
     if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {
         uint32_t count = obj.size / 4;
         for(uint32_t i = 0; i < count; i++) {
@@ -561,7 +562,6 @@ void Flint::garbageCollectionProtectObject(FlintObject &obj) {
                 garbageCollectionProtectObject(*tmp);
         }
     }
-    obj.setProtected();
 }
 
 void Flint::garbageCollection(void) {
