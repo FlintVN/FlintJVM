@@ -225,7 +225,7 @@ void FlintExecution::stackRestoreContext(void) {
 void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) {
     FlintCodeAttribute &attributeCode = methodInfo.getAttributeCode();
     if((sp + attributeCode.maxLocals + attributeCode.maxStack) >= stackLength)
-        throw "stack overflow";
+        throw (FlintOutOfMemoryError *)"Stack overflow";
     method = &methodInfo;
     code = attributeCode.code;
     pc = 0;
@@ -247,6 +247,9 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
         }
         sp -= argc;
 
+        if((sp + 4) >= stackLength)
+            throw (FlintOutOfMemoryError *)"Stack overflow";
+
         /* Save current context */
         stack[++sp] = (int32_t)method;
         stackType[sp / 8] &= ~(1 << (sp % 8));
@@ -261,8 +264,29 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
         initNewContext(methodInfo, argc);
     }
     else {
+        int32_t retSp = sp - argc;
         FlintNativeAttribute &attrNative = methodInfo.getAttributeNative();
         attrNative.nativeMethod(*this);
+        uint8_t retType = methodInfo.descriptor.text[methodInfo.descriptor.length - 1];
+        if(retType != 'V') {
+            if(retType == 'J' || retType == 'D') {
+                int64_t ret = stackPopInt64();
+                sp = retSp;
+                stackPushInt64(ret);
+            }
+            else if(retType == 'L' || retType == '[') {
+                FlintObject *ret = stackPopObject();
+                sp = retSp;
+                stackPushObject(ret);
+            }
+            else {
+                int32_t ret = stackPopInt32();
+                sp = retSp;
+                stackPushInt32(ret);
+            }
+        }
+        else
+            sp = retSp;
         pc = lr;
     }
 }
