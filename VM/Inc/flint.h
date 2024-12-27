@@ -7,6 +7,7 @@
 #include "flint_class.h"
 #include "flint_string.h"
 #include "flint_throwable.h"
+#include "flint_thread.h"
 #include "flint_class_loader.h"
 #include "flint_array_object.h"
 #include "flint_fields_data.h"
@@ -20,8 +21,8 @@ public:
     FlintExecutionNode *prev;
     FlintExecutionNode *next;
 
-    FlintExecutionNode(Flint &flint);
-    FlintExecutionNode(Flint &flint, uint32_t stackSize);
+    FlintExecutionNode(Flint &flint, FlintThread *onwerThread);
+    FlintExecutionNode(Flint &flint, FlintThread *onwerThread, uint32_t stackSize);
 private:
     FlintExecutionNode(void) = delete;
     FlintExecutionNode(const FlintExecutionNode &) = delete;
@@ -69,9 +70,9 @@ public:
 
     void print(const char *text, uint32_t length, uint8_t coder);
 
-    FlintExecution &newExecution(void);
-    FlintExecution &newExecution(uint32_t stackSize);
-
+    FlintExecution &newExecution(FlintThread *onwerThread = 0);
+    FlintExecution &newExecution(FlintThread *onwerThread, uint32_t stackSize);
+    FlintExecution *getExcutionByThread(FlintThread &thread) const;
     void freeExecution(FlintExecution &execution);
 
     FlintObject &newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);

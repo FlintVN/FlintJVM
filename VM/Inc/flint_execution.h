@@ -7,6 +7,7 @@
 #include "flint_stack_info.h"
 #include "flint_const_pool.h"
 #include "flint_method_info.h"
+#include "flint_thread.h"
 
 #define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 
@@ -26,9 +27,10 @@ private:
     int32_t *stack;
     int32_t *locals;
     uint8_t *stackType;
+    FlintThread *onwerThread;
 protected:
-    FlintExecution(Flint &flint);
-    FlintExecution(Flint &flint, uint32_t stackSize);
+    FlintExecution(Flint &flint, FlintThread *onwerThread);
+    FlintExecution(Flint &flint, FlintThread *onwerThread, uint32_t stackSize);
     FlintExecution(const FlintExecution &) = delete;
     void operator=(const FlintExecution &) = delete;
 
@@ -74,6 +76,7 @@ private:
 public:
     bool run(FlintMethodInfo &method);
     bool hasTerminateRequest(void) const;
+    FlintThread &getOnwerThread(void);
 
     friend class Flint;
     friend class FlintDebugger;

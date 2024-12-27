@@ -20,24 +20,26 @@
 
 static const void **opcodeLabelsExit = 0;
 
-FlintExecution::FlintExecution(Flint &flint) : flint(flint), stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
-    opcodes = 0;
-    lr = -1;
-    sp = -1;
-    startSp = sp;
-    peakSp = sp;
-    stack = (int32_t *)Flint::malloc(DEFAULT_STACK_SIZE);
-    stackType = (uint8_t *)Flint::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
+FlintExecution::FlintExecution(Flint &flint, FlintThread *onwerThread) : flint(flint), stackLength(DEFAULT_STACK_SIZE / sizeof(int32_t)) {
+    this->opcodes = 0;
+    this->lr = -1;
+    this->sp = -1;
+    this->startSp = sp;
+    this->peakSp = sp;
+    this->stack = (int32_t *)Flint::malloc(DEFAULT_STACK_SIZE);
+    this->stackType = (uint8_t *)Flint::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
+    this->onwerThread = onwerThread;
 }
 
-FlintExecution::FlintExecution(Flint &flint, uint32_t size) : flint(flint), stackLength(size / sizeof(int32_t)) {
-    opcodes = 0;
-    lr = -1;
-    sp = -1;
-    startSp = sp;
-    peakSp = sp;
-    stack = (int32_t *)Flint::malloc(size);
-    stackType = (uint8_t *)Flint::malloc(size / sizeof(int32_t) / 8);
+FlintExecution::FlintExecution(Flint &flint, FlintThread *onwerThread, uint32_t stackSize) : flint(flint), stackLength(stackSize / sizeof(int32_t)) {
+    this->opcodes = 0;
+    this->lr = -1;
+    this->sp = -1;
+    this->startSp = sp;
+    this->peakSp = sp;
+    this->stack = (int32_t *)Flint::malloc(stackSize);
+    this->stackType = (uint8_t *)Flint::malloc(stackSize / sizeof(int32_t) / 8);
+    this->onwerThread = onwerThread;
 }
 
 FlintStackType FlintExecution::getStackType(uint32_t index) {
@@ -2448,6 +2450,15 @@ void FlintExecution::terminateRequest(void) {
 
 bool FlintExecution::hasTerminateRequest(void) const {
     return (opcodes == opcodeLabelsExit);
+}
+
+FlintThread &FlintExecution::getOnwerThread(void) {
+    if(onwerThread == NULL) {
+        Flint::lock();
+        onwerThread = (FlintThread *)&flint.newObject(*(FlintConstUtf8 *)&threadClassName);
+        Flint::unlock();
+    }
+    return *onwerThread;
 }
 
 FlintExecution::~FlintExecution(void) {

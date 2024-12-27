@@ -9,12 +9,12 @@ FlintAPI::Thread::LockHandle *Flint::flintLockHandle = FlintAPI::Thread::createL
 
 Flint Flint::flintInstance;
 
-FlintExecutionNode::FlintExecutionNode(Flint &flint) : FlintExecution(flint) {
+FlintExecutionNode::FlintExecutionNode(Flint &flint, FlintThread *onwerThread) : FlintExecution(flint, onwerThread) {
     prev = 0;
     next = 0;
 }
 
-FlintExecutionNode::FlintExecutionNode(Flint &flint, uint32_t stackSize) : FlintExecution(flint, stackSize) {
+FlintExecutionNode::FlintExecutionNode(Flint &flint, FlintThread *onwerThread, uint32_t stackSize) : FlintExecution(flint, onwerThread, stackSize) {
     prev = 0;
     next = 0;
 }
@@ -85,9 +85,9 @@ void Flint::print(const char *text, uint32_t length, uint8_t coder) {
         FlintAPI::System::print(text, length, coder);
 }
 
-FlintExecution &Flint::newExecution(void) {
+FlintExecution &Flint::newExecution(FlintThread *onwerThread) {
     FlintExecutionNode *newNode = (FlintExecutionNode *)Flint::malloc(sizeof(FlintExecutionNode));
-    new (newNode)FlintExecutionNode(*this);
+    new (newNode)FlintExecutionNode(*this, onwerThread);
     lock();
     newNode->next = executionList;
     if(executionList)
@@ -97,9 +97,9 @@ FlintExecution &Flint::newExecution(void) {
     return *newNode;
 }
 
-FlintExecution &Flint::newExecution(uint32_t stackSize) {
+FlintExecution &Flint::newExecution(FlintThread *onwerThread, uint32_t stackSize) {
     FlintExecutionNode *newNode = (FlintExecutionNode *)Flint::malloc(sizeof(FlintExecutionNode));
-    new (newNode)FlintExecutionNode(*this, stackSize);
+    new (newNode)FlintExecutionNode(*this, onwerThread, stackSize);
     lock();
     newNode->next = executionList;
     if(executionList)
@@ -107,6 +107,14 @@ FlintExecution &Flint::newExecution(uint32_t stackSize) {
     executionList = newNode;
     unlock();
     return *newNode;
+}
+
+FlintExecution *Flint::getExcutionByThread(FlintThread &thread) const {
+    for(FlintExecutionNode *node = executionList; node != 0; node = node->next) {
+        if(node->onwerThread == &thread)
+            return node;
+    }
+    return NULL;
 }
 
 void Flint::freeExecution(FlintExecution &execution) {
@@ -586,6 +594,8 @@ void Flint::garbageCollection(void) {
         }
     }
     for(FlintExecutionNode *node = executionList; node != 0; node = node->next) {
+        if(node->onwerThread && !node->onwerThread->getProtected())
+            garbageCollectionProtectObject(*node->onwerThread);
         for(int32_t i = 0; i <= node->peakSp; i++) {
             if(node->getStackType(i) == STACK_TYPE_OBJECT) {
                 FlintObject *obj = (FlintObject *)node->stack[i];
@@ -767,7 +777,7 @@ void Flint::runToMain(const char *mainClass) {
 }
 
 void Flint::runToMain(const char *mainClass, uint32_t stackSize) {
-    newExecution(stackSize).run(load(mainClass).getMainMethodInfo());
+    newExecution(NULL, stackSize).run(load(mainClass).getMainMethodInfo());
 }
 
 bool Flint::isRunning(void) const {

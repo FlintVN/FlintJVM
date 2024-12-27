@@ -15,7 +15,7 @@ static void nativeStart0(FlintExecution &execution) {
     Flint &flint = execution.flint;
     FlintThread *threadObj = (FlintThread *)execution.stackPopObject();
     FlintObject *task = threadObj->getTask();
-    FlintExecution &threadExecution = flint.newExecution();
+    FlintExecution &threadExecution = flint.newExecution(threadObj);
     if(task == 0)
         task = threadObj;
     threadExecution.stackPushObject(task);
@@ -27,13 +27,13 @@ static void nativeYield0(FlintExecution &execution) {
 }
 
 static void nativeInterrupt0(FlintExecution &execution) {
+    FlintThread *threadObj = (FlintThread *)execution.stackPopObject();
     // TODO
     throw "interrupt0 is not implemented in VM";
 }
 
 static void nativeCurrentThread(FlintExecution &execution) {
-    // TODO
-    throw "currentThread is not implemented in VM";
+    execution.stackPushObject(&execution.getOnwerThread());
 }
 
 static void nativeSleep0(FlintExecution &execution) {
