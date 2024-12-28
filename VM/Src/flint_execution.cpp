@@ -181,6 +181,34 @@ bool FlintExecution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_
     return true;
 }
 
+void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) {
+    FlintCodeAttribute &attributeCode = methodInfo.getAttributeCode();
+    if((sp + attributeCode.maxLocals + attributeCode.maxStack + 4) >= stackLength)
+        throw (FlintOutOfMemoryError *)"Stack overflow";
+
+    /* Save current context */
+    stack[++sp] = (int32_t)method;
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = pc;
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = lr;
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = startSp;
+    stackType[sp / 8] &= ~(1 << (sp % 8));
+    startSp = sp;
+
+    method = &methodInfo;
+    code = attributeCode.code;
+    pc = 0;
+    locals = &stack[sp + 1];
+    for(uint32_t i = argc; i < attributeCode.maxLocals; i++) {
+        uint32_t index = sp + i + 1;
+        stack[index] = 0;
+        stackType[index / 8] &= ~(1 << (index % 8));
+    }
+    sp += attributeCode.maxLocals;
+}
+
 void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
     int32_t argc = sp + 1;
     for(uint32_t i = 0; i < argc; i++) {
@@ -188,17 +216,7 @@ void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
         setStackValue(sp - i + 4, stackValue);
     }
     sp -= argc;
-
-    stack[++sp] = (int32_t)method;              /* method */
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    stack[++sp] = exitPc;                       /* pc */
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    stack[++sp] = exitPc;                       /* lr */
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    stack[++sp] = startSp;                      /* startSp */
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    startSp = sp;
-
+    pc = lr = exitPc;
     initNewContext(*method, argc);
 }
 
@@ -224,22 +242,6 @@ void FlintExecution::stackRestoreContext(void) {
     locals = &stack[startSp + 1];
 }
 
-void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) {
-    FlintCodeAttribute &attributeCode = methodInfo.getAttributeCode();
-    if((sp + attributeCode.maxLocals + attributeCode.maxStack) >= stackLength)
-        throw (FlintOutOfMemoryError *)"Stack overflow";
-    method = &methodInfo;
-    code = attributeCode.code;
-    pc = 0;
-    locals = &stack[sp + 1];
-    for(uint32_t i = argc; i < attributeCode.maxLocals; i++) {
-        uint32_t index = sp + i + 1;
-        stack[index] = 0;
-        stackType[index / 8] &= ~(1 << (index % 8));
-    }
-    sp += attributeCode.maxLocals;
-}
-
 void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
     if((methodInfo.accessFlag & METHOD_NATIVE) != METHOD_NATIVE) {
         peakSp = sp + 4;
@@ -248,21 +250,6 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
             setStackValue(sp - i + 4, stackValue);
         }
         sp -= argc;
-
-        if((sp + 4) >= stackLength)
-            throw (FlintOutOfMemoryError *)"Stack overflow";
-
-        /* Save current context */
-        stack[++sp] = (int32_t)method;
-        stackType[sp / 8] &= ~(1 << (sp % 8));
-        stack[++sp] = pc;
-        stackType[sp / 8] &= ~(1 << (sp % 8));
-        stack[++sp] = lr;
-        stackType[sp / 8] &= ~(1 << (sp % 8));
-        stack[++sp] = startSp;
-        stackType[sp / 8] &= ~(1 << (sp % 8));
-        startSp = sp;
-
         initNewContext(methodInfo, argc);
     }
     else {

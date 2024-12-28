@@ -54,10 +54,10 @@ public:
     double stackPopDouble(void);
     FlintObject *stackPopObject(void);
 private:
+    void initNewContext(FlintMethodInfo &methodInfo, uint16_t argc);
+
     void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
-
-    void initNewContext(FlintMethodInfo &methodInfo, uint16_t argc = 0);
 
     void invoke(FlintMethodInfo &methodInfo, uint8_t argc);
     void invokeStatic(FlintConstMethod &constMethod);
