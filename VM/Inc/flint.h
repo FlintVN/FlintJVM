@@ -146,6 +146,7 @@ public:
     void freeAllClassLoader(void);
     void freeAllConstUtf8(void);
     void freeAll(void);
+    void reset(void);
 };
 
 #endif /* __FLINT_H */

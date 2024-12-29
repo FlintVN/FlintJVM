@@ -1,7 +1,12 @@
 
 #error "Do not build this file. You need to create a new file based on this template file and implement the functions defined in this file."
 
+#include "flint.h"
 #include "flint_system_api.h"
+
+void FlintAPI::System::reset(Flint &flint) {
+    throw "FlintAPI::System::reset is not implemented in VM";
+}
 
 void *FlintAPI::System::malloc(uint32_t size) {
     throw "FlintAPI::System::malloc is not implemented in VM";

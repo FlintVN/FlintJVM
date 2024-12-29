@@ -882,3 +882,7 @@ void Flint::freeAll(void) {
     freeAllClassLoader();
     freeAllConstUtf8();
 }
+
+void Flint::reset(void) {
+    FlintAPI::System::reset(*this);
+}

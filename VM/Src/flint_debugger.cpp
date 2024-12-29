@@ -720,6 +720,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             flint.clearAllStaticFields();
             flint.freeAllExecution();
             flint.garbageCollection();
+            flint.reset();
             try {
                 flint.runToMain(mainClass->text);
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
@@ -736,6 +737,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             unlock();
             flint.terminate();
             flint.freeAll();
+            flint.reset();
             sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
             return !endDbg;
         }

@@ -29,8 +29,11 @@ typedef enum : uint8_t {
     FILE_RESULT_WRITE_PROTECTED
 } FlintFileResult;
 
+class Flint;
+
 namespace FlintAPI {
     namespace System {
+        void reset(Flint &flint);
         void *malloc(uint32_t size);
         void *realloc(void *p, uint32_t size);
         void free(void *p);
