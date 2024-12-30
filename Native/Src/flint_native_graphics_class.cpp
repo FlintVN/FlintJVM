@@ -11,24 +11,6 @@
 #define COLOR_MODE_BGR565       3
 #define COLOR_MODE_RGB888       4
 
-static uint32_t convertColor(uint32_t color, uint8_t colorMode) {
-    switch (colorMode) {
-        case COLOR_MODE_RGB444:
-            return ((color >> 4) & 0x0F) | ((color >> 8) & 0xF0) | ((color >> 12) & 0x0F00);
-        case COLOR_MODE_RGB555:
-            color = ((color >> 3) & 0x1F) | ((color >> 6) & 0x03E0) | ((color >> 9) & 0x7C00);
-            return (color << 8) | (color >> 8);
-        case COLOR_MODE_RGB565:
-            color = ((color >> 3) & 0x1F) | ((color >> 5) & 0x07E0) | ((color >> 8) & 0xF800);
-            return (color << 8) | (color >> 8);
-        case COLOR_MODE_BGR565:
-            color = ((color << 8) & 0xF800) | ((color >> 5) & 0x07E0) | ((color >> 19) & 0x1F);
-            return (color << 8) | (color >> 8);
-        default:
-            return color;
-    }
-}
-
 class FlintGraphics {
 public:
     uint8_t alpha;
@@ -41,7 +23,11 @@ public:
     int16_t clipY;
     int16_t clipWidth;
     int16_t clipHeight;
-    uint32_t rgb;
+    union {
+        uint16_t rgb16;
+        uint32_t rgb32;
+        uint8_t rgb[4];
+    };
 
     FlintGraphics(FlintObject *g, uint32_t color) {
         FlintInt8Array *buffer = (FlintInt8Array *)g->getFields().getFieldObject(*(const FlintConstUtf8 *)"\x0B\x00\x05\xB6""colorBuffer").object;
@@ -57,7 +43,35 @@ public:
         clipHeight = g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x0A\x00\xF6\xEA""clipHeight").value;
 
         alpha = color >> 24;
-        rgb = convertColor(color, colorMode);
+
+        switch (colorMode) {
+            case COLOR_MODE_RGB444:
+                color = ((color >> 4) & 0x0F) | ((color >> 8) & 0xF0) | ((color >> 12) & 0x0F00);
+                rgb[0] = (uint8_t)(color >> 8);
+                rgb[1] = (uint8_t)color;
+                break;
+            case COLOR_MODE_RGB555:
+                color = ((color >> 3) & 0x1F) | ((color >> 6) & 0x03E0) | ((color >> 9) & 0x7C00);
+                rgb[0] = (uint8_t)(color >> 8);
+                rgb[1] = (uint8_t)color;
+                break;
+            case COLOR_MODE_RGB565:
+                color = ((color >> 3) & 0x1F) | ((color >> 5) & 0x07E0) | ((color >> 8) & 0xF800);
+                rgb[0] = (uint8_t)(color >> 8);
+                rgb[1] = (uint8_t)color;
+                break;
+            case COLOR_MODE_BGR565:
+                color = ((color << 8) & 0xF800) | ((color >> 5) & 0x07E0) | ((color >> 19) & 0x1F);
+                rgb[0] = (uint8_t)(color >> 8);
+                rgb[1] = (uint8_t)color;
+                break;
+            default:
+                rgb[0] = (uint8_t)(color >> 16);
+                rgb[1] = (uint8_t)(color >> 8);
+                rgb[2] = (uint8_t)color;
+                rgb[3] = 0;
+                break;
+        }
     }
 
     uint8_t getPixelSize(void) const {
@@ -83,29 +97,56 @@ static void sortSwap(int32_t *a1, int32_t *a2) {
 static void fillRect(const FlintGraphics &g, int32_t x1, int32_t x2, int32_t y1, int32_t y2) {
     if(g.alpha == 0xFF) {
         if(g.getPixelSize() == 2) {
-            uint16_t rgb = g.rgb;
             for(; y1 <= y2; y1++) {
                 uint16_t *buff = &((uint16_t *)g.colorBuffer)[y1 * g.width];
                 for(int32_t x = x1; x <= x2; x++)
-                    buff[x] = rgb;
+                    buff[x] = g.rgb16;
             }
         }
         else {
-            uint8_t a = (uint8_t)g.rgb;
-            uint8_t b = (uint8_t)(g.rgb >> 8);
-            uint8_t c = (uint8_t)(g.rgb >> 16);
+            x1 *= 3;
+            x2 *= 3;
             for(; y1 <= y2; y1++) {
                 uint8_t *buff = (uint8_t *)&g.colorBuffer[y1 * g.width * 3];
                 for(int32_t x = x1; x <= x2; x += 3) {
-                    buff[x] = a;
-                    buff[x + 1] = b;
-                    buff[x + 2] = c;
+                    buff[x + 0] = g.rgb[0];
+                    buff[x + 1] = g.rgb[1];
+                    buff[x + 2] = g.rgb[2];
                 }
             }
         }
     }
+    else if(g.getPixelSize() == 3) {
+        x1 *= 3;
+        x2 *= 3;
+        for(; y1 <= y2; y1++) {
+            uint8_t *buff = (uint8_t *)&g.colorBuffer[y1 * g.width * 3];
+            for(int32_t x = x1; x <= x2; x += 3) {
+                buff[x + 0] += (g.rgb[0] - buff[x + 0]) * g.alpha >> 8;
+                buff[x + 1] += (g.rgb[1] - buff[x + 1]) * g.alpha >> 8;
+                buff[x + 2] += (g.rgb[2] - buff[x + 2]) * g.alpha >> 8;
+            }
+        }
+    }
     else {
-        // TODO
+        uint32_t alpha = (g.alpha + 4) >> 3;
+        uint32_t mask = (g.colorMode == COLOR_MODE_RGB555) ? 0x03E07C1F : 0x07E0F81F;
+        uint32_t fg = (g.rgb[0] << 8) | g.rgb[1];
+        fg = (fg | (fg << 16)) & mask;
+        x1 *= 2;
+        x2 *= 2;
+        for(; y1 <= y2; y1++) {
+            uint8_t *buff = (uint8_t *)&g.colorBuffer[y1 * g.width * 2];
+            for(int32_t x = x1; x <= x2; x += 2) {
+                uint32_t bg = ((buff[x] << 8) | buff[x + 1]);
+                bg = (bg | (bg << 16)) & mask;
+                bg += (fg - bg) * alpha >> 5;
+                bg &= mask;
+                bg = (bg | bg >> 16);
+                buff[x] = bg >> 8;
+                buff[x + 1] = bg;
+            }
+        }
     }
 }
 
