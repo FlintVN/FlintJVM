@@ -668,10 +668,8 @@ FlintClassLoader &Flint::load(FlintConstUtf8 &className) {
     Flint::lock();
     ClassData *newNode = 0;
     try {
-        uint32_t hash = CONST_UTF8_HASH(className);
         for(ClassData *node = classDataList; node != 0; node = node->next) {
-            FlintConstUtf8 &name = node->getThisClass();
-            if(hash == CONST_UTF8_HASH(name) && strncmp(name.text, className.text, className.length) == 0) {
+            if(className == node->getThisClass()) {
                 Flint::unlock();
                 return *node;
             }

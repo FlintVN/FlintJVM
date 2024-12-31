@@ -221,9 +221,9 @@ void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
 }
 
 void FlintExecution::stackRestoreContext(void) {
-    if((method->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
+    if(method->accessFlag & METHOD_SYNCHRONIZED) {
         Flint::lock();
-        if((method->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
+        if(!(method->accessFlag & METHOD_STATIC)) {
             FlintObject *obj = (FlintObject *)locals[0];
             obj->monitorCount--;
         }
@@ -243,7 +243,7 @@ void FlintExecution::stackRestoreContext(void) {
 }
 
 void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
-    if((methodInfo.accessFlag & METHOD_NATIVE) != METHOD_NATIVE) {
+    if(!(methodInfo.accessFlag & METHOD_NATIVE)) {
         peakSp = sp + 4;
         for(uint32_t i = 0; i < argc; i++) {
             FlintStackValue stackValue = getStackValue(sp - i);
@@ -281,34 +281,29 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
 }
 
 void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
-    uint8_t argc = constMethod.getParmInfo().argc;
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
     FlintMethodInfo &methodInfo = *constMethod.methodInfo;
-    if((methodInfo.accessFlag & METHOD_STATIC) == METHOD_STATIC) {
-        if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
-            ClassData &classData = *(ClassData *)&methodInfo.classLoader;
-            Flint::lock();
-            if(classData.monitorCount == 0 || classData.ownId == (int32_t)this) {
-                classData.ownId = (int32_t)this;
-                if(classData.monitorCount < 0x7FFFFFFF) {
-                    classData.monitorCount++;
-                    Flint::unlock();
-                }
-                else {
-                    Flint::unlock();
-                    throw "monitorCount limit has been reached";
-                }
+    if(methodInfo.accessFlag & METHOD_SYNCHRONIZED) {
+        ClassData &classData = *(ClassData *)&methodInfo.classLoader;
+        Flint::lock();
+        if(classData.monitorCount == 0 || classData.ownId == (int32_t)this) {
+            classData.ownId = (int32_t)this;
+            if(classData.monitorCount < 0x7FFFFFFF) {
+                classData.monitorCount++;
+                Flint::unlock();
             }
             else {
                 Flint::unlock();
-                FlintAPI::Thread::yield();
+                throw "monitorCount limit has been reached";
             }
         }
-        invoke(methodInfo, argc);
+        else {
+            Flint::unlock();
+            FlintAPI::Thread::yield();
+        }
     }
-    else
-        throw "invoke static to non-static method";
+    invoke(methodInfo, constMethod.getParmInfo().argc);
 }
 
 void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
@@ -316,30 +311,26 @@ void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
     FlintMethodInfo &methodInfo = *constMethod.methodInfo;
-    if((methodInfo.accessFlag & METHOD_STATIC) != METHOD_STATIC) {
-        if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
-            FlintObject *obj = (FlintObject *)stack[sp - argc - 1];
-            Flint::lock();
-            if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
-                obj->ownId = (int32_t)this;
-                if(obj->monitorCount < 0xFFFFFF) {
-                    obj->monitorCount++;
-                    Flint::unlock();
-                }
-                else {
-                    Flint::unlock();
-                    throw "monitorCount limit has been reached";
-                }
+    if(methodInfo.accessFlag & METHOD_SYNCHRONIZED) {
+        FlintObject *obj = (FlintObject *)stack[sp - argc - 1];
+        Flint::lock();
+        if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
+            obj->ownId = (int32_t)this;
+            if(obj->monitorCount < 0xFFFFFF) {
+                obj->monitorCount++;
+                Flint::unlock();
             }
             else {
                 Flint::unlock();
-                FlintAPI::Thread::yield();
+                throw "monitorCount limit has been reached";
             }
         }
-        invoke(methodInfo, argc);
+        else {
+            Flint::unlock();
+            FlintAPI::Thread::yield();
+        }
     }
-    else
-        throw "invoke special to static method";
+    invoke(methodInfo, argc);
 }
 
 void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
@@ -360,30 +351,26 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         constMethod.methodInfo = &flint.findMethod(virtualConstMethod);
         methodInfo = constMethod.methodInfo;
     }
-    if((methodInfo->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
-        if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
-            Flint::lock();
-            if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
-                obj->ownId = (int32_t)this;
-                if(obj->monitorCount < 0xFFFFFF) {
-                    obj->monitorCount++;
-                    Flint::unlock();
-                }
-                else {
-                    Flint::unlock();
-                    throw "monitorCount limit has been reached";
-                }
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        Flint::lock();
+        if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
+            obj->ownId = (int32_t)this;
+            if(obj->monitorCount < 0xFFFFFF) {
+                obj->monitorCount++;
+                Flint::unlock();
             }
             else {
                 Flint::unlock();
-                FlintAPI::Thread::yield();
+                throw "monitorCount limit has been reached";
             }
         }
-        argc++;
-        invoke(*methodInfo, argc);
+        else {
+            Flint::unlock();
+            FlintAPI::Thread::yield();
+        }
     }
-    else
-        throw "invoke virtual to static method";
+    argc++;
+    invoke(*methodInfo, argc);
 }
 
 void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc) {
@@ -403,29 +390,25 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
         interfaceMethod.methodInfo = &flint.findMethod(interfaceConstMethod);
         methodInfo = interfaceMethod.methodInfo;
     }
-    if((methodInfo->accessFlag & METHOD_STATIC) != METHOD_STATIC) {
-        if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) == METHOD_SYNCHRONIZED) {
-            Flint::lock();
-            if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
-                obj->ownId = (int32_t)this;
-                if(obj->monitorCount < 0xFFFFFF) {
-                    obj->monitorCount++;
-                    Flint::unlock();
-                }
-                else {
-                    Flint::unlock();
-                    throw "monitorCount limit has been reached";
-                }
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        Flint::lock();
+        if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
+            obj->ownId = (int32_t)this;
+            if(obj->monitorCount < 0xFFFFFF) {
+                obj->monitorCount++;
+                Flint::unlock();
             }
             else {
                 Flint::unlock();
-                FlintAPI::Thread::yield();
+                throw "monitorCount limit has been reached";
             }
         }
-        invoke(*methodInfo, argc);
+        else {
+            Flint::unlock();
+            FlintAPI::Thread::yield();
+        }
     }
-    else
-        throw "invoke interface to static method";
+    invoke(*methodInfo, argc);
 }
 
 void FlintExecution::run(void) {
