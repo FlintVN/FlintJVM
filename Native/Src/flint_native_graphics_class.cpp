@@ -229,17 +229,17 @@ private:
 public:
     FlintGraphics(FlintObject *g, uint32_t color) {
         uint8_t alpha = color >> 24;
-
-        FlintInt8Array *buffer = (FlintInt8Array *)g->getFields().getFieldObject(*(const FlintConstUtf8 *)"\x0B\x00\x05\xB6""colorBuffer").object;
-        colorMode = (uint8_t)g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x09\x00\x5F\x5D""colorMode").value;
+        FlintFieldsData &fields = g->getFields();
+        FlintInt8Array *buffer = (FlintInt8Array *)fields.getFieldObjectByIndex(0).object;
+        colorMode = (uint8_t)fields.getFieldData32ByIndex(0).value;
         colorBuffer = (uint8_t *)buffer->getData();
-        originX = g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x01\x00\x40\x9D""x").value;
-        originY = g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x01\x00\x81\x5D""y").value;
-        gwidth = g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\x55\x59""width").value;
-        clipX = g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\xF6\x81""clipX").value - originX;
-        clipY = g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\x37\x41""clipY").value - originY;
-        clipWidth = g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x09\x00\xB2\xD7""clipWidth").value;
-        clipHeight = g->getFields().getFieldData32(*(const FlintConstUtf8 *)"\x0A\x00\xF6\xEA""clipHeight").value;
+        originX = fields.getFieldData32ByIndex(1).value;
+        originY = fields.getFieldData32ByIndex(2).value;
+        gwidth = fields.getFieldData32ByIndex(3).value;
+        clipX = fields.getFieldData32ByIndex(4).value - originX;
+        clipY = fields.getFieldData32ByIndex(5).value - originY;
+        clipWidth = fields.getFieldData32ByIndex(6).value;
+        clipHeight = fields.getFieldData32ByIndex(7).value;
 
         switch (colorMode) {
             case COLOR_MODE_RGB444:

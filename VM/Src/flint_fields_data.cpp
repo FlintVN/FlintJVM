@@ -74,10 +74,6 @@ void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
 }
 
 void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classLoader) {
-    uint16_t field32Index = 0;
-    uint16_t field64Index = 0;
-    uint16_t fieldObjIndex = 0;
-
     const FlintClassLoader *loader = &classLoader;
 
     while(loader) {
@@ -108,23 +104,27 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
     fieldsData64 = (fields64Count) ? (FlintFieldData64 *)Flint::malloc(fields64Count * sizeof(FlintFieldData64)) : 0;
     fieldsObject = (fieldsObjCount) ? (FlintFieldObject *)Flint::malloc(fieldsObjCount * sizeof(FlintFieldObject)) : 0;
 
+    uint16_t field32Index = fields32Count;
+    uint16_t field64Index = fields64Count;
+    uint16_t fieldObjIndex = fieldsObjCount;
+
     loader = &classLoader;
     while(loader) {
         uint16_t fieldsCount = loader->getFieldsCount();
-        for(uint16_t index = 0; index < fieldsCount; index++) {
+        for(int16_t index = fieldsCount - 1; index >= 0; index--) {
             const FlintFieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
                 switch(fieldInfo.descriptor.text[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
-                        new (&fieldsData64[field64Index++])FlintFieldData64(fieldInfo);
+                        new (&fieldsData64[--field64Index])FlintFieldData64(fieldInfo);
                         break;
                     case 'L':   /* An instance of class ClassName */
                     case '[':   /* Array */
-                        new (&fieldsObject[fieldObjIndex++])FlintFieldObject(fieldInfo);
+                        new (&fieldsObject[--fieldObjIndex])FlintFieldObject(fieldInfo);
                         break;
                     default:
-                        new (&fieldsData32[field32Index++])FlintFieldData32(fieldInfo);
+                        new (&fieldsData32[--field32Index])FlintFieldData32(fieldInfo);
                         break;
                 }
             }
@@ -176,6 +176,10 @@ FlintFieldData32 &FlintFieldsData::getFieldData32(FlintConstField &constField) c
     return fieldsData32[constField.fieldIndex & 0x7FFFFFFF];
 }
 
+FlintFieldData32 &FlintFieldsData::getFieldData32ByIndex(int32_t index) const {
+    return fieldsData32[index];
+}
+
 FlintFieldData64 &FlintFieldsData::getFieldData64(const char *fieldName) const {
     if(fields64Count) {
         uint16_t length = strlen(fieldName);
@@ -218,6 +222,10 @@ FlintFieldData64 &FlintFieldsData::getFieldData64(FlintConstField &constField) c
     return fieldsData64[constField.fieldIndex & 0x7FFFFFFF];
 }
 
+FlintFieldData64 &FlintFieldsData::getFieldData64ByIndex(int32_t index) const {
+    return fieldsData64[index];
+}
+
 FlintFieldObject &FlintFieldsData::getFieldObject(const char *fieldName) const {
     if(fieldsObjCount) {
         uint16_t length = strlen(fieldName);
@@ -258,6 +266,10 @@ FlintFieldObject &FlintFieldsData::getFieldObject(FlintConstField &constField) c
             return *(FlintFieldObject *)0;
     }
     return fieldsObject[constField.fieldIndex & 0x7FFFFFFF];
+}
+
+FlintFieldObject &FlintFieldsData::getFieldObjectByIndex(int32_t index) const {
+    return fieldsObject[index];
 }
 
 FlintFieldsData::~FlintFieldsData(void) {

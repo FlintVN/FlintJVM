@@ -51,12 +51,18 @@ public:
     FlintFieldData32 &getFieldData32(const char *fieldName) const;
     FlintFieldData32 &getFieldData32(const FlintConstUtf8 &fieldName) const;
     FlintFieldData32 &getFieldData32(FlintConstField &constField) const;
+    FlintFieldData32 &getFieldData32ByIndex(int32_t index) const;
+
     FlintFieldData64 &getFieldData64(const char *fieldName) const;
     FlintFieldData64 &getFieldData64(const FlintConstUtf8 &fieldName) const;
     FlintFieldData64 &getFieldData64(FlintConstField &constField) const;
+    FlintFieldData64 &getFieldData64ByIndex(int32_t index) const;
+
     FlintFieldObject &getFieldObject(const char *fieldName) const;
     FlintFieldObject &getFieldObject(const FlintConstUtf8 &fieldName) const;
     FlintFieldObject &getFieldObject(FlintConstField &constField) const;
+    FlintFieldObject &getFieldObjectByIndex(int32_t index) const;
+
 private:
     FlintFieldData32 *fieldsData32;
     FlintFieldData64 *fieldsData64;
