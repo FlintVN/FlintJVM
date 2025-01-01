@@ -13,6 +13,12 @@
 
 #define FLINT_MAX(_a, _b)       ((_a) > (_b) ? (_a) : (_b))
 #define FLINT_MIN(_a, _b)       ((_a) < (_b) ? (_a) : (_b))
+#define FLINT_ABS(_val)         (((_val) < 0) ? -(_val) : (_val))
+#define FLINT_SWAP(_a, _b) {    \
+    int32_t tmp = _a;           \
+    _a = _b;                    \
+    _b = tmp;                   \
+}
 
 #define LENGTH(_array)          (sizeof(_array) / sizeof(_array[0]))
 
