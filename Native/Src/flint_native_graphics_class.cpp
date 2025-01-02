@@ -404,6 +404,19 @@ public:
 
         (this->*fillFastRect)(x1, x2, y1, y2);
     }
+
+    void drawPolyline(int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
+        nPoints--;
+        for(int32_t i = 0; i < nPoints; i++)
+            drawLine(xPoints[i], yPoints[i], xPoints[i + 1], yPoints[i + 1]);
+    }
+
+    void drawPolygon(int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
+        if(nPoints > 0) {
+            drawPolyline(xPoints, yPoints, nPoints);
+            drawLine(xPoints[0], yPoints[0], xPoints[nPoints - 1], yPoints[nPoints - 1]);
+        }
+    }
 };
 
 class FlintColor : public FlintObject {
@@ -412,6 +425,12 @@ public:
         return getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\x2B\x6E""value").value;
     }
 };
+
+static FlintObject *checkNullObject(FlintExecution &execution, FlintObject *obj) {
+    if(!obj)
+        throw &execution.flint.newNullPointerException();
+    return obj;
+}
 
 static void nativeClear(FlintExecution &execution) {
     FlintObject *g = execution.stackPopObject();
@@ -424,7 +443,7 @@ static void nativeDrawLine(FlintExecution &execution) {
     int32_t x2 = execution.stackPopInt32();
     int32_t y1 = execution.stackPopInt32();
     int32_t x1 = execution.stackPopInt32();
-    uint32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     g.drawLine(x1, y1, x2, y2);
 }
@@ -434,7 +453,7 @@ static void nativeDrawRect(FlintExecution &execution) {
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     g.drawRect(x, y, width, height);
 }
@@ -444,7 +463,7 @@ static void nativeFillRect(FlintExecution &execution) {
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     g.fillRect(x, y, width, height);
 }
@@ -456,7 +475,7 @@ static void nativeDrawRoundRect(FlintExecution &execution) {
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     // TODO
 }
@@ -468,7 +487,7 @@ static void nativeFillRoundRect(FlintExecution &execution) {
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     // TODO
 }
@@ -478,7 +497,7 @@ static void nativeDrawEllipse(FlintExecution &execution) {
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     // TODO
 }
@@ -488,7 +507,7 @@ static void nativeFillEllipse(FlintExecution &execution) {
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     // TODO
 }
@@ -500,7 +519,7 @@ static void nativeDrawArc(FlintExecution &execution) {
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     // TODO
 }
@@ -512,34 +531,38 @@ static void nativeFillArc(FlintExecution &execution) {
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     // TODO
 }
 
 static void nativeDrawPolyline(FlintExecution &execution) {
     int32_t nPoints = execution.stackPopInt32();
-    FlintInt32Array *yPoints = (FlintInt32Array *)execution.stackPopObject();
-    FlintInt32Array *xPoints = (FlintInt32Array *)execution.stackPopObject();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    FlintInt32Array *yPoints = (FlintInt32Array *)checkNullObject(execution, execution.stackPopObject());
+    FlintInt32Array *xPoints = (FlintInt32Array *)checkNullObject(execution, execution.stackPopObject());
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
-    // TODO
+    if((nPoints > xPoints->getLength()) || (nPoints > yPoints->getLength()))
+        throw &execution.flint.newArrayIndexOutOfBoundsException();
+    g.drawPolyline(xPoints->getData(), yPoints->getData(), nPoints);
 }
 
 static void nativeDrawPolygon(FlintExecution &execution) {
     int32_t nPoints = execution.stackPopInt32();
-    FlintInt32Array *yPoints = (FlintInt32Array *)execution.stackPopObject();
-    FlintInt32Array *xPoints = (FlintInt32Array *)execution.stackPopObject();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    FlintInt32Array *yPoints = (FlintInt32Array *)checkNullObject(execution, execution.stackPopObject());
+    FlintInt32Array *xPoints = (FlintInt32Array *)checkNullObject(execution, execution.stackPopObject());
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
-    // TODO
+    if((nPoints > xPoints->getLength()) || (nPoints > yPoints->getLength()))
+        throw &execution.flint.newArrayIndexOutOfBoundsException();
+    g.drawPolygon(xPoints->getData(), yPoints->getData(), nPoints);
 }
 
 static void nativeFillPolygon(FlintExecution &execution) {
     int32_t nPoints = execution.stackPopInt32();
-    FlintInt32Array *yPoints = (FlintInt32Array *)execution.stackPopObject();
-    FlintInt32Array *xPoints = (FlintInt32Array *)execution.stackPopObject();
-    int32_t color = ((FlintColor *)execution.stackPopObject())->getValue();
+    FlintInt32Array *yPoints = (FlintInt32Array *)checkNullObject(execution, execution.stackPopObject());
+    FlintInt32Array *xPoints = (FlintInt32Array *)checkNullObject(execution, execution.stackPopObject());
+    uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
     // TODO
 }
