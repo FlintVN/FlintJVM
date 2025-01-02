@@ -42,7 +42,7 @@ static void nativeSleep0(FlintExecution &execution) {
     while((int64_t)((FlintAPI::System::getNanoTime() / 1000000) - startTime) < (millis - 100)) {
         FlintAPI::Thread::sleep(100);
         if(execution.hasTerminateRequest())
-            throw &execution.flint.newInterruptedException(*(FlintString *)0);
+            throw &execution.flint.newInterruptedException();
     }
     int64_t remaining = millis - ((FlintAPI::System::getNanoTime() / 1000000) - startTime);
     if(remaining > 0)

@@ -25,7 +25,7 @@ static void nativeArraycopy(FlintExecution &execution) {
             strObj = &execution.flint.newString(STR_AND_SIZE("Source object is not a array"));
         else
             strObj = &execution.flint.newString(STR_AND_SIZE("Destination object is not a array"));
-        throw &execution.flint.newArrayStoreException(*strObj);
+        throw &execution.flint.newArrayStoreException(strObj);
     }
     else if(src->type == dest->type) {
         uint8_t atype = FlintObject::isPrimType(src->type);
@@ -55,7 +55,7 @@ static void nativeArraycopy(FlintExecution &execution) {
     }
     else {
         FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Type mismatch, can not copy array object"));
-        throw &execution.flint.newArrayStoreException(strObj);
+        throw &execution.flint.newArrayStoreException(&strObj);
     }
 }
 

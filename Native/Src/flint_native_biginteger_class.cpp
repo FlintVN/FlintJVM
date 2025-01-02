@@ -332,7 +332,7 @@ static void checkMakeMagnitudeParams(FlintExecution &execution, int32_t maxLen, 
         sprintf(lengthStrBuff, "%d", (int)maxLen);
         const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
         FlintString &strObj = execution.flint.newString(msg, LENGTH(msg));
-        throw &execution.flint.newArrayIndexOutOfBoundsException(strObj);
+        throw &execution.flint.newArrayIndexOutOfBoundsException(&strObj);
     }
 }
 
@@ -518,7 +518,7 @@ static FlintInt32Array *subtract(FlintExecution &execution, FlintInt32Array *big
         if(little == NULL)
             return NULL;
         FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
-        throw &execution.flint.newNullPointerException(strObj);
+        throw &execution.flint.newNullPointerException(&strObj);
     }
     uint32_t bigLen = big->getLength();
     uint32_t littleLen = little ? little->getLength() : 0;
@@ -734,7 +734,7 @@ static FlintInt32Array *divideKnuth(FlintExecution &execution, FlintInt32Array *
 
 static FlintInt32Array *divide(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
     if(y == NULL)
-        throw &execution.flint.newArithmeticException(execution.flint.newString(STR_AND_SIZE("Divided by zero")));
+        throw &execution.flint.newArithmeticException(&execution.flint.newString(STR_AND_SIZE("Divided by zero")));
     else if(x == NULL)
         return NULL;
     if(compareMagnitude(x, y) < 0)
@@ -747,7 +747,7 @@ static FlintInt32Array *divide(FlintExecution &execution, FlintInt32Array *x, Fl
 
 static FlintInt32Array *remainder(FlintExecution &execution, FlintInt32Array *x, FlintInt32Array *y) {
     if(y == NULL)
-        throw &execution.flint.newArithmeticException(execution.flint.newString(STR_AND_SIZE("Divided by zero")));
+        throw &execution.flint.newArithmeticException(&execution.flint.newString(STR_AND_SIZE("Divided by zero")));
     else if(x == NULL)
         return NULL;
     if(compareMagnitude(x, y) < 0)
@@ -855,7 +855,7 @@ static FlintInt32Array *pow1(FlintExecution &execution, FlintInt32Array *x, uint
                 execution.flint.freeObject(*ret);
                 execution.flint.freeObject(*base);
                 execution.flint.freeObject(*buff);
-                throw &execution.flint.newInterruptedException(*(FlintString *)NULL);
+                throw &execution.flint.newInterruptedException();
             }
 
             tmp = ret;
@@ -900,7 +900,7 @@ static FlintInt32Array *pow2(FlintExecution &execution, FlintInt32Array *x, uint
             if(execution.hasTerminateRequest()) {
                 if(ret != x) execution.flint.freeObject(*ret);
                 if(base != x) execution.flint.freeObject(*base);
-                throw &execution.flint.newInterruptedException(*(FlintString *)NULL);
+                throw &execution.flint.newInterruptedException();
             }
         }
         exponent /= 2;
@@ -957,7 +957,7 @@ static FlintInt32Array *sqrt(FlintExecution &execution, FlintInt32Array *x) {
             if(execution.hasTerminateRequest()) {
                 execution.flint.freeObject(*ret1);
                 if(ret2) execution.flint.freeObject(*ret2);
-                throw &execution.flint.newInterruptedException(*(FlintString *)NULL);
+                throw &execution.flint.newInterruptedException();
             }
             else {
                 FlintInt32Array *tmp1 = divide(execution, x, ret1);

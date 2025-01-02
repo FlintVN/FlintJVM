@@ -102,20 +102,22 @@ public:
 
     FlintConstUtf8 &getConstUtf8(const char *text, uint16_t length);
 
-    FlintThrowable &newThrowable(FlintString &strObj, FlintConstUtf8 &excpType);
-    FlintThrowable &newException(FlintString &strObj);
-    FlintThrowable &newIOException(FlintString &strObj);
-    FlintThrowable &newErrorException(FlintString &strObj);
-    FlintThrowable &newArrayStoreException(FlintString &strObj);
-    FlintThrowable &newArithmeticException(FlintString &strObj);
-    FlintThrowable &newNullPointerException(FlintString &strObj);
-    FlintThrowable &newInterruptedException(FlintString &strObj);
-    FlintThrowable &newClassNotFoundException(FlintString &strObj);
-    FlintThrowable &newCloneNotSupportedException(FlintString &strObj);
-    FlintThrowable &newNegativeArraySizeException(FlintString &strObj);
-    FlintThrowable &newArrayIndexOutOfBoundsException(FlintString &strObj);
-    FlintThrowable &newUnsupportedOperationException(FlintString &strObj);
-    FlintThrowable &newUnsatisfiedLinkErrorException(FlintString &strObj);
+private:
+    FlintThrowable &newThrowable(FlintString *strObj, FlintConstUtf8 &excpType);
+public:
+    FlintThrowable &newException(FlintString *strObj = 0);
+    FlintThrowable &newIOException(FlintString *strObj = 0);
+    FlintThrowable &newErrorException(FlintString *strObj = 0);
+    FlintThrowable &newArrayStoreException(FlintString *strObj = 0);
+    FlintThrowable &newArithmeticException(FlintString *strObj = 0);
+    FlintThrowable &newNullPointerException(FlintString *strObj = 0);
+    FlintThrowable &newInterruptedException(FlintString *strObj = 0);
+    FlintThrowable &newClassNotFoundException(FlintString *strObj = 0);
+    FlintThrowable &newCloneNotSupportedException(FlintString *strObj = 0);
+    FlintThrowable &newNegativeArraySizeException(FlintString *strObj = 0);
+    FlintThrowable &newArrayIndexOutOfBoundsException(FlintString *strObj = 0);
+    FlintThrowable &newUnsupportedOperationException(FlintString *strObj = 0);
+    FlintThrowable &newUnsatisfiedLinkErrorException(FlintString *strObj = 0);
 
     void clearProtectObjectNew(FlintObject &obj);
     void garbageCollectionProtectObject(FlintObject &obj);

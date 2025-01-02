@@ -468,65 +468,66 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
     return newNode->value;
 }
 
-FlintThrowable &Flint::newThrowable(FlintString &strObj, FlintConstUtf8 &excpType) {
+FlintThrowable &Flint::newThrowable(FlintString *strObj, FlintConstUtf8 &excpType) {
     /* create new exception object */
     FlintThrowable &obj = *(FlintThrowable *)&newObject(excpType);
 
     /* set detailMessage value */
-    obj.setDetailMessage(strObj);
+    if(strObj)
+        obj.setDetailMessage(*strObj);
 
     return obj;
 }
 
-FlintThrowable &Flint::newException(FlintString &strObj) {
+FlintThrowable &Flint::newException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&exceptionClassName);
 }
 
-FlintThrowable &Flint::newIOException(FlintString &strObj) {
+FlintThrowable &Flint::newIOException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&exceptionClassName);
 }
 
-FlintThrowable &Flint::newErrorException(FlintString &strObj) {
+FlintThrowable &Flint::newErrorException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&errorClassName);
 }
 
-FlintThrowable &Flint::newArrayStoreException(FlintString &strObj) {
+FlintThrowable &Flint::newArrayStoreException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&arrayStoreExceptionClassName);
 }
 
-FlintThrowable &Flint::newArithmeticException(FlintString &strObj) {
+FlintThrowable &Flint::newArithmeticException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&arithmeticExceptionClassName);
 }
 
-FlintThrowable &Flint::newNullPointerException(FlintString &strObj) {
+FlintThrowable &Flint::newNullPointerException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&nullPointerExceptionClassName);
 }
 
-FlintThrowable &Flint::newInterruptedException(FlintString &strObj) {
+FlintThrowable &Flint::newInterruptedException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&interruptedExceptionClassName);
 }
 
-FlintThrowable &Flint::newClassNotFoundException(FlintString &strObj) {
+FlintThrowable &Flint::newClassNotFoundException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&classNotFoundExceptionClassName);
 }
 
-FlintThrowable &Flint::newCloneNotSupportedException(FlintString &strObj) {
+FlintThrowable &Flint::newCloneNotSupportedException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&cloneNotSupportedExceptionClassName);
 }
 
-FlintThrowable &Flint::newNegativeArraySizeException(FlintString &strObj) {
+FlintThrowable &Flint::newNegativeArraySizeException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&negativeArraySizeExceptionClassName);
 }
 
-FlintThrowable &Flint::newArrayIndexOutOfBoundsException(FlintString &strObj) {
+FlintThrowable &Flint::newArrayIndexOutOfBoundsException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&arrayIndexOutOfBoundsExceptionClassName);
 }
 
-FlintThrowable &Flint::newUnsupportedOperationException(FlintString &strObj) {
+FlintThrowable &Flint::newUnsupportedOperationException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&unsupportedOperationExceptionClassName);
 }
 
-FlintThrowable &Flint::newUnsatisfiedLinkErrorException(FlintString &strObj) {
+FlintThrowable &Flint::newUnsatisfiedLinkErrorException(FlintString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&unsatisfiedLinkErrorClassName);
 }
 

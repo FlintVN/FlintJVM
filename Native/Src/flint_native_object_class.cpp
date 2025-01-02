@@ -46,7 +46,7 @@ static void nativeClone(FlintExecution &execution) {
     }
     else {
         FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Clone method is not supported"));
-        throw &execution.flint.newCloneNotSupportedException(strObj);
+        throw &execution.flint.newCloneNotSupportedException(&strObj);
     }
 }
 
