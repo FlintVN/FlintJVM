@@ -13,6 +13,14 @@
 
 static const uint32_t colorMask[] = {0x00F00F0F, 0x03E07C1F, 0x07E0F81F, 0x07E0F81F};
 
+#define IS_IN_CLIP(_x, _y)                  \
+    ((                                      \
+        ((_x) < clipX) ||                   \
+        ((_y) < clipY) ||                   \
+        ((_x) >= (clipX + clipWidth)) ||    \
+        ((_y) >= (clipY + clipHeight))      \
+    ) ? false : true)
+
 class FlintGraphics {
 private:
     uint8_t colorMode;
@@ -35,46 +43,45 @@ private:
     void (FlintGraphics::*fillFastRect)(int32_t x1, int32_t x2, int32_t y1, int32_t y2);
 
     void drawPixel1(int32_t x, int32_t y) {
-        if((x < clipX) || (y < clipY) || (x >= (clipX + clipWidth)) || (y >= (clipY + clipHeight)))
-            return;
-        ((uint16_t *)colorBuffer)[y * gwidth + x] = rgb16;
+        if(IS_IN_CLIP(x, y))
+            ((uint16_t *)colorBuffer)[y * gwidth + x] = rgb16;
     }
 
     void drawPixel2(int32_t x, int32_t y) {
-        if((x < clipX) || (y < clipY) || (x >= (clipX + clipWidth)) || (y >= (clipY + clipHeight)))
-            return;
-        uint8_t bitCount = (colorMode == COLOR_MODE_RGB444) ? 4 : 5;
-        uint32_t alpha = rgb[3];
-        uint32_t mask = colorMask[colorMode];
-        uint32_t fg = (rgb[0] << 8) | rgb[1];
-        fg = (fg | (fg << 16)) & mask;
-        uint8_t *buff = (uint8_t *)&colorBuffer[(y * gwidth + x) * 2];
-        uint32_t bg = ((buff[0] << 8) | buff[1]);
-        bg = (bg | (bg << 16)) & mask;
-        bg += (fg - bg) * alpha >> bitCount;
-        bg &= mask;
-        bg = (bg | bg >> 16);
-        buff[0] = bg >> 8;
-        buff[1] = bg;
+        if(IS_IN_CLIP(x, y)) {
+            uint8_t bitCount = (colorMode == COLOR_MODE_RGB444) ? 4 : 5;
+            uint32_t alpha = rgb[3];
+            uint32_t mask = colorMask[colorMode];
+            uint32_t fg = (rgb[0] << 8) | rgb[1];
+            fg = (fg | (fg << 16)) & mask;
+            uint8_t *buff = (uint8_t *)&colorBuffer[(y * gwidth + x) * 2];
+            uint32_t bg = ((buff[0] << 8) | buff[1]);
+            bg = (bg | (bg << 16)) & mask;
+            bg += (fg - bg) * alpha >> bitCount;
+            bg &= mask;
+            bg = (bg | bg >> 16);
+            buff[0] = bg >> 8;
+            buff[1] = bg;
+        }
     }
 
     void drawPixel3(int32_t x, int32_t y) {
-        if((x < clipX) || (y < clipY) || (x >= (clipX + clipWidth)) || (y >= (clipY + clipHeight)))
-            return;
-        uint8_t *buff = (uint8_t *)&colorBuffer[(y * gwidth + x) * 3];
-        buff[0] = rgb[0];
-        buff[1] = rgb[1];
-        buff[2] = rgb[2];
+        if(IS_IN_CLIP(x, y)) {
+            uint8_t *buff = (uint8_t *)&colorBuffer[(y * gwidth + x) * 3];
+            buff[0] = rgb[0];
+            buff[1] = rgb[1];
+            buff[2] = rgb[2];
+        }
     }
 
     void drawPixel4(int32_t x, int32_t y) {
-        if((x < clipX) || (y < clipY) || (x >= (clipX + clipWidth)) || (y >= (clipY + clipHeight)))
-            return;
-        uint8_t alpha = rgb[3];
-        uint8_t *buff = (uint8_t *)&colorBuffer[(y * gwidth + x) * 3];
-        buff[0] += (rgb[0] - buff[0]) * alpha >> 8;
-        buff[1] += (rgb[1] - buff[1]) * alpha >> 8;
-        buff[2] += (rgb[2] - buff[2]) * alpha >> 8;
+        if(IS_IN_CLIP(x, y)) {
+            uint8_t alpha = rgb[3];
+            uint8_t *buff = (uint8_t *)&colorBuffer[(y * gwidth + x) * 3];
+            buff[0] += (rgb[0] - buff[0]) * alpha >> 8;
+            buff[1] += (rgb[1] - buff[1]) * alpha >> 8;
+            buff[2] += (rgb[2] - buff[2]) * alpha >> 8;
+        }
     }
 
     void drawFastHLine1(int32_t x1, int32_t x2, int32_t y) {
@@ -256,6 +263,40 @@ private:
             x++;
         }
     }
+
+    void fillCircleQuadrant(int32_t xc, int32_t yc, int32_t r, int32_t q) {
+        int32_t x = 0, y = r;
+        int32_t d = 3 - 2 * r;
+        int32_t xc1 = FLINT_MAX(xc, clipX);
+        int32_t xc2 = FLINT_MIN(xc, clipX + clipWidth - 1);
+        while (x <= y) {
+            if((q & 0x01) && (yc - x) >= clipY && (yc - x) < (clipY + clipHeight))
+                (this->*drawFastHLine)(FLINT_MAX(clipX, xc - y), xc2, yc - x);
+            if((q & 0x02) && (yc - x) >= clipY && (yc - x) < (clipY + clipHeight))
+                (this->*drawFastHLine)(xc1, FLINT_MIN(xc + y, clipX + clipWidth - 1), yc - x);
+            if((q & 0x04) && (yc + x) >= clipY && (yc + x) < (clipY + clipHeight))
+                (this->*drawFastHLine)(xc1, FLINT_MIN(xc + y, clipX + clipWidth - 1), yc + x);
+            if((q & 0x08) && (yc + x) >= clipY && (yc + x) < (clipY + clipHeight))
+                (this->*drawFastHLine)(FLINT_MAX(clipX, xc - y), xc2, yc + x);
+            if(d > 0) {
+                if(x != y) {
+                    if((q & 0x01) && (yc - y) >= clipY && (yc - y) < (clipY + clipHeight))
+                        (this->*drawFastHLine)(FLINT_MAX(clipX, xc - x), xc2, yc - y);
+                    if((q & 0x02) && (yc - y) >= clipY && (yc - y) < (clipY + clipHeight))
+                        (this->*drawFastHLine)(xc1, FLINT_MIN(xc + x, clipX + clipWidth - 1), yc - y);
+                    if((q & 0x04) && (yc + y) >= clipY && (yc + y) < (clipY + clipHeight))
+                        (this->*drawFastHLine)(xc1, FLINT_MIN(xc + x, clipX + clipWidth - 1), yc + y);
+                    if((q & 0x08) && (yc + y) >= clipY && (yc + y) < (clipY + clipHeight))
+                        (this->*drawFastHLine)(FLINT_MAX(clipX, xc - x), xc2, yc + y);
+                }
+                y--;
+                d = d + 4 * (x - y) + 10;
+            }
+            else
+                d = d + 4 * x + 6;
+            x++;
+        }
+    }
 public:
     FlintGraphics(FlintObject *g, uint32_t color) {
         uint8_t alpha = color >> 24;
@@ -345,20 +386,14 @@ public:
                 return;
             if(y1 > y2)
                 FLINT_SWAP(y1, y2);
-            y1 = FLINT_MAX(y1, clipY);
-            y2 = FLINT_MIN(y2, clipHeight - 1);
-            if(y1 <= y2)
-                (this->*drawFastVLine)(y1, y2, x1);
+            (this->*drawFastVLine)(FLINT_MAX(y1, clipY), FLINT_MIN(y2, clipY + clipHeight - 1), x1);
         }
         else if(y1 == y2) {
             if((y1 < clipY) || (y1 >= (clipY + clipHeight)))
                 return;
             if(x1 > x2)
                 FLINT_SWAP(x1, x2);
-            x1 = FLINT_MAX(x1, clipX);
-            x2 = FLINT_MIN(x2, clipWidth - 1);
-            if(x1 <= x2)
-                (this->*drawFastHLine)(x1, x2, y1);
+            (this->*drawFastHLine)(FLINT_MAX(x1, clipX), FLINT_MIN(x2, clipX + clipWidth - 1), y1);
         }
         else {
             int32_t dx = FLINT_ABS(x2 - x1), sx = x1 < x2 ? 1 : -1;
@@ -453,6 +488,46 @@ public:
         if(r4) drawCircleQuadrant(x + r4, y + height - 1 - r4, r4, 0x08);
     }
 
+    void fillRoundRect(int32_t x, int32_t y, int32_t width, int32_t height, int32_t r1, int32_t r2, int32_t r3, int32_t r4) {
+        r1 = FLINT_MIN(r1, (width - 1) / 2);
+        r2 = FLINT_MIN(r2, (width - 1) / 2);
+        r3 = FLINT_MIN(r3, (width - 1) / 2);
+        r4 = FLINT_MIN(r4, (width - 1) / 2);
+
+        if(r1 < 0) r1 = 0;
+        if(r2 < 0) r2 = 0;
+        if(r3 < 0) r3 = 0;
+        if(r4 < 0) r4 = 0;
+
+        int32_t r14 = FLINT_MAX(r1, r4);
+        int32_t r23 = FLINT_MAX(r2, r3);
+        
+        int32_t x2 = x;
+        int32_t w2 = width;
+        int32_t h2 = height;
+        if(r14) {
+            x2 += r14 + 1;
+            w2 -= r14 + 1;
+            h2 -= r14 + 1;
+        }
+        if(r23) {
+            w2 -= r23 + 1;
+            h2 -= r23 + 1;
+        }
+
+        fillRect(x2, y, w2, height);
+        fillRect(x, y + (r1 ? r1 + 1 : 0), r14 ? r14 + 1 : 0, h2);
+        fillRect(x + width - (r23 ? r23 + 1 : 0), y + (r2 ? r2 + 1 : 0), r23 + 1, h2);
+
+        x -= originX;
+        y -= originY;
+
+        if(r1) fillCircleQuadrant(x + r1, y + r1, r1, 0x01);
+        if(r2) fillCircleQuadrant(x + width - 1 - r2, y + r2, r2, 0x02);
+        if(r3) fillCircleQuadrant(x + width - 1 - r3, y + height - 1 - r3, r3, 0x04);
+        if(r4) fillCircleQuadrant(x + r4, y + height - 1 - r4, r4, 0x08);
+    }
+
     void drawPolyline(int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
         nPoints--;
         for(int32_t i = 0; i < nPoints; i++)
@@ -531,15 +606,17 @@ static void nativeDrawRoundRect(FlintExecution &execution) {
 }
 
 static void nativeFillRoundRect(FlintExecution &execution) {
-    int32_t arcHeight = execution.stackPopInt32();
-    int32_t arcWidth = execution.stackPopInt32();
+    int32_t r4 = execution.stackPopInt32();
+    int32_t r3 = execution.stackPopInt32();
+    int32_t r2 = execution.stackPopInt32();
+    int32_t r1 = execution.stackPopInt32();
     int32_t height = execution.stackPopInt32();
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
     uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
-    // TODO
+    g.fillRoundRect(x, y, width, height, r1, r2, r3, r4);
 }
 
 static void nativeDrawEllipse(FlintExecution &execution) {
