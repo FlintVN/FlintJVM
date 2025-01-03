@@ -15,11 +15,23 @@ static const uint32_t colorMask[] = {0x00F00F0F, 0x03E07C1F, 0x07E0F81F, 0x07E0F
 
 #define IS_IN_CLIP(_x, _y)                  \
     ((                                      \
-        ((_x) < clipX) ||                   \
-        ((_y) < clipY) ||                   \
-        ((_x) >= (clipX + clipWidth)) ||    \
-        ((_y) >= (clipY + clipHeight))      \
-    ) ? false : true)
+        ((_x) >= clipX) &&                  \
+        ((_y) >= clipY) &&                  \
+        ((_x) < (clipX + clipWidth)) &&     \
+        ((_y) < (clipY + clipHeight))       \
+    ) ? true : false)
+
+#define IS_IN_CLIP_X(_x)                    \
+    ((                                      \
+        ((_x) >= clipX) &&                  \
+        ((_x) < (clipX + clipWidth))        \
+    ) ? true : false)
+
+#define IS_IN_CLIP_Y(_y)                    \
+    ((                                      \
+        ((_y) >= clipY) &&                  \
+        ((_y) < (clipY + clipHeight))       \
+    ) ? true : false)
 
 class FlintGraphics {
 private:
@@ -270,23 +282,23 @@ private:
         int32_t xc1 = FLINT_MAX(xc, clipX);
         int32_t xc2 = FLINT_MIN(xc, clipX + clipWidth - 1);
         while (x <= y) {
-            if((q & 0x01) && (yc - x) >= clipY && (yc - x) < (clipY + clipHeight))
+            if((q & 0x01) && IS_IN_CLIP_Y(yc - x))
                 (this->*drawFastHLine)(FLINT_MAX(clipX, xc - y), xc2, yc - x);
-            if((q & 0x02) && (yc - x) >= clipY && (yc - x) < (clipY + clipHeight))
+            if((q & 0x02) && IS_IN_CLIP_Y(yc - x))
                 (this->*drawFastHLine)(xc1, FLINT_MIN(xc + y, clipX + clipWidth - 1), yc - x);
-            if((q & 0x04) && (yc + x) >= clipY && (yc + x) < (clipY + clipHeight))
+            if((q & 0x04) && IS_IN_CLIP_Y(yc + x))
                 (this->*drawFastHLine)(xc1, FLINT_MIN(xc + y, clipX + clipWidth - 1), yc + x);
-            if((q & 0x08) && (yc + x) >= clipY && (yc + x) < (clipY + clipHeight))
+            if((q & 0x08) && IS_IN_CLIP_Y(yc + x))
                 (this->*drawFastHLine)(FLINT_MAX(clipX, xc - y), xc2, yc + x);
             if(d > 0) {
                 if(x != y) {
-                    if((q & 0x01) && (yc - y) >= clipY && (yc - y) < (clipY + clipHeight))
+                    if((q & 0x01) && IS_IN_CLIP_Y(yc - y))
                         (this->*drawFastHLine)(FLINT_MAX(clipX, xc - x), xc2, yc - y);
-                    if((q & 0x02) && (yc - y) >= clipY && (yc - y) < (clipY + clipHeight))
+                    if((q & 0x02) && IS_IN_CLIP_Y(yc - y))
                         (this->*drawFastHLine)(xc1, FLINT_MIN(xc + x, clipX + clipWidth - 1), yc - y);
-                    if((q & 0x04) && (yc + y) >= clipY && (yc + y) < (clipY + clipHeight))
+                    if((q & 0x04) && IS_IN_CLIP_Y(yc + y))
                         (this->*drawFastHLine)(xc1, FLINT_MIN(xc + x, clipX + clipWidth - 1), yc + y);
-                    if((q & 0x08) && (yc + y) >= clipY && (yc + y) < (clipY + clipHeight))
+                    if((q & 0x08) && IS_IN_CLIP_Y(yc + y))
                         (this->*drawFastHLine)(FLINT_MAX(clipX, xc - x), xc2, yc + y);
                 }
                 y--;
@@ -382,14 +394,14 @@ public:
         y2 -= originY;
 
         if(x1 == x2) {
-            if((x1 < clipX) || (x1 >= (clipX + clipWidth)))
+            if(!IS_IN_CLIP_X(x1))
                 return;
             if(y1 > y2)
                 FLINT_SWAP(y1, y2);
             (this->*drawFastVLine)(FLINT_MAX(y1, clipY), FLINT_MIN(y2, clipY + clipHeight - 1), x1);
         }
         else if(y1 == y2) {
-            if((y1 < clipY) || (y1 >= (clipY + clipHeight)))
+            if(!IS_IN_CLIP_Y(y1))
                 return;
             if(x1 > x2)
                 FLINT_SWAP(x1, x2);
@@ -574,6 +586,56 @@ public:
         }
     }
 
+    void fillEllipse(int32_t x, int32_t y, int32_t width, int32_t height) {
+        x -= originX;
+        y -= originY;
+        int32_t x2 = x + width - 1;
+        int32_t y2 = y + height - 1;
+        int32_t a = FLINT_ABS(x2 - x), b = FLINT_ABS(y2 - y), b1 = b & 1;
+        int64_t dx = (int64_t)4 * (1 - a) * b * b, dy = 4 * (b1 + 1) * a * a;
+        int64_t err = (int64_t)dx + dy + b1 * a * a, e2;
+
+        if(x > x2) {
+            x = x2;
+            x2 += a;
+        }
+        if(y > y2)
+            y = y2;
+        y += (b + 1) / 2;
+        y2 = y - b1;
+        a *= 8 * a;
+        b1 = 8 * b * b;
+
+        do {
+            e2 = 2 * err;
+            if(e2 <= dy) {
+                int32_t tmp1 = FLINT_MAX(x, clipX);
+                int32_t tmp2 = FLINT_MIN(x2, clipX + clipWidth - 1);
+                if(IS_IN_CLIP_Y(y))
+                    (this->*drawFastHLine)(tmp1, tmp2, y);
+                if(IS_IN_CLIP_Y(y2))
+                    (this->*drawFastHLine)(tmp1, tmp2, y2);
+                y++;
+                y2--;
+                err += dy += a;
+            }
+            if(e2 >= dx || 2 * err > dy) {
+                x++;
+                x2--;
+                err += dx += b1;
+            }
+        } while(x <= x2);
+
+        while(y - y2 < b) {
+            int32_t tmp1 = FLINT_MAX(x - 1, clipX);
+            int32_t tmp2 = FLINT_MIN(x2 + 1, clipX + clipWidth - 1);
+            if(IS_IN_CLIP_Y(y))
+                (this->*drawFastHLine)(tmp1, tmp2, y++);
+            if(IS_IN_CLIP_Y(y2))
+                (this->*drawFastHLine)(tmp1, tmp2, y2--);
+        }
+    }
+
     void drawPolyline(int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
         nPoints--;
         for(int32_t i = 0; i < nPoints; i++)
@@ -682,7 +744,7 @@ static void nativeFillEllipse(FlintExecution &execution) {
     int32_t x = execution.stackPopInt32();
     uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
-    // TODO
+    g.fillEllipse(x, y, width, height);
 }
 
 static void nativeDrawArc(FlintExecution &execution) {
