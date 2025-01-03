@@ -331,36 +331,21 @@ public:
                 (this->*drawFastHLine)(x1, x2, y1);
         }
         else {
-            int16_t dx = FLINT_ABS(x2 - x1);
-            int16_t dy = FLINT_ABS(y2 - y1);
-            int8_t x_unit = (x1 < x2) ? 1 : -1;
-            int8_t y_unit = (y1 < y2) ? 1 : -1;
-            if(dx >= dy) {
-                int16_t p = 2 * dy - dx;
+            int32_t dx = FLINT_ABS(x2 - x1), sx = x1 < x2 ? 1 : -1;
+            int32_t dy = -FLINT_ABS(y2 - y1), sy = y1 < y2 ? 1 : -1;
+            int32_t err = dx + dy;
+            while(1) {
                 (this->*drawPixel)(x1, y1);
-                while(x1 != x2) {
-                    if(p < 0)
-                        p += 2 * dy;
-                    else {
-                        p += 2 * (dy - dx);
-                        y1 += y_unit;
-                    }
-                    x1 += x_unit;
-                    (this->*drawPixel)(x1, y1);
+                if(x1 == x2 && y1 == y2)
+                    break;
+                int32_t e2 = 2 * err;
+                if(e2 >= dy) {
+                    err += dy;
+                    x1 += sx;
                 }
-            }
-            else {
-                int16_t p = 2 * dx - dy;
-                (this->*drawPixel)(x1, y1);
-                while(y1 != y2) {
-                    if(p < 0)
-                        p += 2 * dx;
-                    else {
-                        p += 2 * (dx - dy);
-                        x1 += x_unit;
-                    }
-                    y1 += y_unit;
-                    (this->*drawPixel)(x1, y1);
+                if(e2 <= dx) {
+                    err += dx;
+                    y1 += sy;
                 }
             }
         }
