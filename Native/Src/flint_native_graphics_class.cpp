@@ -226,6 +226,36 @@ private:
             }
         }
     }
+
+    void drawCircleQuadrant(int32_t xc, int32_t yc, int32_t r, int32_t q) {
+        int32_t x = 0, y = r;
+        int32_t d = 3 - 2 * r;
+        while(x <= y) {
+            if(q & 0x01) {
+                (this->*drawPixel)(xc - x, yc - y);
+                (this->*drawPixel)(xc - y, yc - x);
+            }
+            if(q & 0x02) {
+                (this->*drawPixel)(xc + x, yc - y);
+                (this->*drawPixel)(xc + y, yc - x);
+            }
+            if(q & 0x04) {
+                (this->*drawPixel)(xc + x, yc + y);
+                (this->*drawPixel)(xc + y, yc + x);
+            }
+            if(q & 0x08) {
+                (this->*drawPixel)(xc - x, yc + y);
+                (this->*drawPixel)(xc - y, yc + x);
+            }
+            if(d > 0) {
+                y--;
+                d += 4 * (x - y) + 10;
+            }
+            else
+                d += 4 * x + 6;
+            x++;
+        }
+    }
 public:
     FlintGraphics(FlintObject *g, uint32_t color) {
         uint8_t alpha = color >> 24;
@@ -390,6 +420,39 @@ public:
         (this->*fillFastRect)(x1, x2, y1, y2);
     }
 
+    void drawRoundRect(int32_t x, int32_t y, int32_t width, int32_t height, int32_t r1, int32_t r2, int32_t r3, int32_t r4) {
+        x -= originX;
+        y -= originY;
+
+        r1 = (r1 < 0) ? 0 : FLINT_MIN(r1, width / 2);
+        r2 = (r2 < 0) ? 0 : FLINT_MIN(r2, width / 2);
+        r3 = (r3 < 0) ? 0 : FLINT_MIN(r3, width / 2);
+        r4 = (r4 < 0) ? 0 : FLINT_MIN(r4, width / 2);
+
+        int32_t x1 = FLINT_MAX(x, clipX);
+        int32_t x2 = FLINT_MIN(x + width, clipX + clipWidth) - 1;
+        int32_t y1 = FLINT_MAX(y, clipY);
+        int32_t y2 = FLINT_MIN(y + height, clipY + clipHeight) - 1;
+
+        if(y1 <= y2) {
+            if((x1 <= x) && (x <= x2))
+                (this->*drawFastVLine)(FLINT_MAX(y1, y + r1), FLINT_MIN(y2, y + height - r4), x1);
+            if((x2 >= clipX) && x2 == (x + width - 1))
+                (this->*drawFastVLine)(FLINT_MAX(y1, y + r2), FLINT_MIN(y2, y + height - r3), x2);
+        }
+        if(x1 <= x2) {
+            if((y1 <= y) && (y <= y2))
+                (this->*drawFastHLine)(FLINT_MAX(x1, x + r1), FLINT_MIN(x2, x + width - r2), y1);
+            if((y2 >= clipY) && y2 == (y + height - 1))
+                (this->*drawFastHLine)(FLINT_MAX(x1, x + r4), FLINT_MIN(x2, x + width - r3), y2);
+        }
+
+        if(r1) drawCircleQuadrant(x + r1, y + r1, r1, 0x01);
+        if(r2) drawCircleQuadrant(x + width - 1 - r2, y + r2, r2, 0x02);
+        if(r3) drawCircleQuadrant(x + width - 1 - r3, y + height - 1 - r3, r3, 0x04);
+        if(r4) drawCircleQuadrant(x + r4, y + height - 1 - r4, r4, 0x08);
+    }
+
     void drawPolyline(int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
         nPoints--;
         for(int32_t i = 0; i < nPoints; i++)
@@ -454,15 +517,17 @@ static void nativeFillRect(FlintExecution &execution) {
 }
 
 static void nativeDrawRoundRect(FlintExecution &execution) {
-    int32_t arcHeight = execution.stackPopInt32();
-    int32_t arcWidth = execution.stackPopInt32();
+    int32_t r4 = execution.stackPopInt32();
+    int32_t r3 = execution.stackPopInt32();
+    int32_t r2 = execution.stackPopInt32();
+    int32_t r1 = execution.stackPopInt32();
     int32_t height = execution.stackPopInt32();
     int32_t width = execution.stackPopInt32();
     int32_t y = execution.stackPopInt32();
     int32_t x = execution.stackPopInt32();
     uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
-    // TODO
+    g.drawRoundRect(x, y, width, height, r1, r2, r3, r4);
 }
 
 static void nativeFillRoundRect(FlintExecution &execution) {
@@ -572,8 +637,8 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x08\x00\x3C\x95""drawLine",      "\x1C\x00\xFB\xB2""(Lflint/drawing/Color;IIII)V",                                     nativeDrawLine),
     NATIVE_METHOD("\x08\x00\x3E\x22""drawRect",      "\x1C\x00\xFB\xB2""(Lflint/drawing/Color;IIII)V",                                     nativeDrawRect),
     NATIVE_METHOD("\x08\x00\x71\xE5""fillRect",      "\x1C\x00\xFB\xB2""(Lflint/drawing/Color;IIII)V",                                     nativeFillRect),
-    NATIVE_METHOD("\x0D\x00\x54\x7E""drawRoundRect", "\x1E\x00\x8D\x62""(Lflint/drawing/Color;IIIIII)V",                                   nativeDrawRoundRect),
-    NATIVE_METHOD("\x0D\x00\x3C\xC4""fillRoundRect", "\x1E\x00\x8D\x62""(Lflint/drawing/Color;IIIIII)V",                                   nativeFillRoundRect),
+    NATIVE_METHOD("\x0D\x00\x54\x7E""drawRoundRect", "\x20\x00\xAA\x9E""(Lflint/drawing/Color;IIIIIIII)V",                                 nativeDrawRoundRect),
+    NATIVE_METHOD("\x0D\x00\x3C\xC4""fillRoundRect", "\x20\x00\xAA\x9E""(Lflint/drawing/Color;IIIIIIII)V",                                 nativeFillRoundRect),
     NATIVE_METHOD("\x0B\x00\x26\x66""drawEllipse",   "\x1C\x00\xFB\xB2""(Lflint/drawing/Color;IIII)V",                                     nativeDrawEllipse),
     NATIVE_METHOD("\x0B\x00\x45\x81""fillEllipse",   "\x1C\x00\xFB\xB2""(Lflint/drawing/Color;IIII)V",                                     nativeFillEllipse),
     NATIVE_METHOD("\x07\x00\x59\x0A""drawArc",       "\x1E\x00\x8D\x62""(Lflint/drawing/Color;IIIIII)V",                                   nativeDrawArc),
