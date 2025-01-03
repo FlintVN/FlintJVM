@@ -528,6 +528,52 @@ public:
         if(r4) fillCircleQuadrant(x + r4, y + height - 1 - r4, r4, 0x08);
     }
 
+    void drawEllipse(int32_t x, int32_t y, int32_t width, int32_t height) {
+        x -= originX;
+        y -= originY;
+        int32_t x2 = x + width - 1;
+        int32_t y2 = y + height - 1;
+        int32_t a = FLINT_ABS(x2 - x), b = FLINT_ABS(y2 - y), b1 = b & 1;
+        int64_t dx = (int64_t)4 * (1 - a) * b * b, dy = 4 * (b1 + 1) * a * a;
+        int64_t err = (int64_t)dx + dy + b1 * a * a, e2;
+
+        if(x > x2) {
+            x = x2;
+            x2 += a;
+        }
+        if(y > y2)
+            y = y2;
+        y += (b + 1) / 2;
+        y2 = y - b1;
+        a *= 8 * a;
+        b1 = 8 * b * b;
+
+        do {
+            (this->*drawPixel)(x2, y);
+            (this->*drawPixel)(x, y);
+            (this->*drawPixel)(x, y2);
+            (this->*drawPixel)(x2, y2);
+            e2 = 2 * err;
+            if(e2 <= dy) {
+                y++;
+                y2--;
+                err += dy += a;
+            }
+            if(e2 >= dx || 2 * err > dy) {
+                x++;
+                x2--;
+                err += dx += b1;
+            }
+        } while(x <= x2);
+
+        while(y - y2 < b) {
+            (this->*drawPixel)(x - 1, y);
+            (this->*drawPixel)(x2 + 1, y++);
+            (this->*drawPixel)(x - 1, y2);
+            (this->*drawPixel)(x2 + 1, y2--);
+        }
+    }
+
     void drawPolyline(int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
         nPoints--;
         for(int32_t i = 0; i < nPoints; i++)
@@ -626,7 +672,7 @@ static void nativeDrawEllipse(FlintExecution &execution) {
     int32_t x = execution.stackPopInt32();
     uint32_t color = ((FlintColor *)checkNullObject(execution, execution.stackPopObject()))->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
-    // TODO
+    g.drawEllipse(x, y, width, height);
 }
 
 static void nativeFillEllipse(FlintExecution &execution) {
