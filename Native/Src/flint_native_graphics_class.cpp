@@ -516,20 +516,29 @@ public:
         
         int32_t x2 = x;
         int32_t w2 = width;
-        int32_t h2 = height;
         if(r14) {
             x2 += r14 + 1;
             w2 -= r14 + 1;
-            h2 -= r14 + 1;
         }
-        if(r23) {
+        if(r23)
             w2 -= r23 + 1;
-            h2 -= r23 + 1;
-        }
 
         fillRect(x2, y, w2, height);
-        fillRect(x, y + (r1 ? r1 + 1 : 0), r14 ? r14 + 1 : 0, h2);
-        fillRect(x + width - (r23 ? r23 + 1 : 0), y + (r2 ? r2 + 1 : 0), r23 + 1, h2);
+        fillRect(x, y + r1 + !!r1, r14 + !!r14, height - r1 - r4 - !!r1 - !!r4);
+        fillRect(x + width - r23 - !!r23, y + r2 + !!r2, r23 + 1, height - r2 - r3 - !!r2 - !!r3);
+
+        if(r1 != r4) {
+            if(r1 < r4)
+                fillRect(x + r1 + !!r1, y, r4 - r1, r1 + 1);
+            else
+                fillRect(x + r4 + !!r4, y + height - r4 - 1, r14 - r4, r4 + 1);
+        }
+        if(r2 != r3) {
+            if(r2 < r3)
+                fillRect(x + width - r3 - 1, y, r3 - r2, r2 + 1);
+            else
+                fillRect(x + width - r2 - 1, y + height - r3 - 1, r23 - r3, r3 + 1);
+        }
 
         x -= originX;
         y -= originY;
