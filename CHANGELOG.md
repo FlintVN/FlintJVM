@@ -1,4 +1,16 @@
 # Change Log
+## V1.1.1
+- Fix bug relate to VM.
+  - Bug when call to methods of an array object.
+  - Continuous reset error when java code throws exception with null message.
+  - Wrong unit in System.currentTimeMillis.
+  - Bug when handling exceptions.
+  - Infinite loop in Thread.sleep.
+  - Errors related to java stack.
+  - Infinite recursion in garbageCollectionProtectObject.
+- Improved performance for invokeVirtual and invokeInterace.
+- Improved performance for field accessibility.
+- Support flint.drawing.Graphics (not completed yet).
 ## V1.1.0
 - Fix free ClassData error when FlintClassLoader throws an exception.
 - Workround for ESP32 can't catch exceptions in a top-level of a task.
