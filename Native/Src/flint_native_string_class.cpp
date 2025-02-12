@@ -1,11 +1,11 @@
 
 #include "flint.h"
-#include "flint_object.h"
+#include "flint_java_object.h"
 #include "flint_const_name.h"
 #include "flint_native_string_class.h"
 
 static void nativeIntern(FlintExecution &execution) {
-    FlintString *obj = (FlintString *)execution.stackPopObject();
+    FlintJavaString *obj = (FlintJavaString *)execution.stackPopObject();
     Flint::lock();
     execution.stackPushObject(&execution.flint.getConstString(*obj));
     Flint::unlock();

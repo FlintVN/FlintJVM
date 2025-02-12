@@ -3,7 +3,7 @@
 #include <string.h>
 #include <iostream>
 #include "flint.h"
-#include "flint_class.h"
+#include "flint_java_class.h"
 #include "flint_const_name.h"
 #include "flint_native_biginteger_class.h"
 
@@ -331,7 +331,7 @@ static void checkMakeMagnitudeParams(FlintExecution &execution, int32_t maxLen, 
         sprintf(indexStrBuff, "%d", (int)((off < 0 || off >= maxLen) ? off : maxLen));
         sprintf(lengthStrBuff, "%d", (int)maxLen);
         const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-        FlintString &strObj = execution.flint.newString(msg, LENGTH(msg));
+        FlintJavaString &strObj = execution.flint.newString(msg, LENGTH(msg));
         throw &execution.flint.newArrayIndexOutOfBoundsException(&strObj);
     }
 }
@@ -517,7 +517,7 @@ static FlintInt32Array *subtract(FlintExecution &execution, FlintInt32Array *big
     if(big == NULL) {
         if(little == NULL)
             return NULL;
-        FlintString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
+        FlintJavaString &strObj = execution.flint.newString(STR_AND_SIZE("Cannot load from null array object"));
         throw &execution.flint.newNullPointerException(&strObj);
     }
     uint32_t bigLen = big->getLength();

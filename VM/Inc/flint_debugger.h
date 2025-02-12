@@ -3,7 +3,7 @@
 #define __FLINT_DEBUGGER_H
 
 #include "flint_method_info.h"
-#include "flint_throwable.h"
+#include "flint_java_throwable.h"
 #include "flint_const_name.h"
 #include "flint_system_api.h"
 
@@ -100,7 +100,7 @@ private:
     FlintAPI::Thread::LockHandle *dbgLockHandle;
     class Flint &flint;
     class FlintExecution *execution;
-    FlintThrowable *exception;
+    FlintJavaThrowable *exception;
     void *dirHandle;
     void *fileHandle;
     volatile uint32_t stepCodeLength;
@@ -141,9 +141,9 @@ private:
     void responseStackTrace(uint32_t stackIndex);
     void responseExceptionInfo(void);
     void responseLocalVariable(bool isU64, uint32_t stackIndex, uint32_t localIndex);
-    void responseField(FlintObject *obj, FlintConstUtf8 &fieldName);
-    void responseArray(FlintObject *array, uint32_t index, uint32_t length);
-    void responseObjSizeAndType(FlintObject *obj);
+    void responseField(FlintJavaObject *obj, FlintConstUtf8 &fieldName);
+    void responseArray(FlintJavaObject *array, uint32_t index, uint32_t length);
+    void responseObjSizeAndType(FlintJavaObject *obj);
     void responseOpenFile(char *fileName, FlintFileMode mode);
     void responseReadFile(uint32_t size);
     void responseWriteFile(uint8_t *data, uint32_t size);
@@ -159,7 +159,7 @@ public:
     bool receivedDataHandler(uint8_t *data, uint32_t length);
     bool exceptionIsEnabled(void);
     void checkBreakPoint(FlintExecution *exec);
-    void caughtException(FlintExecution *exec, FlintThrowable *excp);
+    void caughtException(FlintExecution *exec, FlintJavaThrowable *excp);
 private:
     FlintDebugger(const FlintDebugger &) = delete;
     void operator=(const FlintDebugger &) = delete;

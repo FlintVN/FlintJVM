@@ -75,11 +75,11 @@ void FlintDoubleArray::clearData(void) {
 }
 
 uint32_t FlintObjectArray::getLength(void) const {
-    return size / sizeof(FlintObject);
+    return size / sizeof(FlintJavaObject);
 }
 
-FlintObject **FlintObjectArray::getData(void) const {
-    return (FlintObject **)data;
+FlintJavaObject **FlintObjectArray::getData(void) const {
+    return (FlintJavaObject **)data;
 }
 
 void FlintObjectArray::clearData(void) {

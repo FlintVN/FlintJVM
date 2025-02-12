@@ -5,10 +5,10 @@
 #include "flint_std_types.h"
 #include "flint_const_pool.h"
 
-class FlintObject {
+class FlintJavaObject {
 private:
-    FlintObject *next;
-    FlintObject *prev;
+    FlintJavaObject *next;
+    FlintJavaObject *prev;
 public:
     const uint32_t size : 30;
 private:
@@ -34,9 +34,9 @@ private:
     void setProtected(void);
     uint8_t getProtected(void) const;
 protected:
-    FlintObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions);
-    FlintObject(const FlintObject &) = delete;
-    void operator=(const FlintObject &) = delete;
+    FlintJavaObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions);
+    FlintJavaObject(const FlintJavaObject &) = delete;
+    void operator=(const FlintJavaObject &) = delete;
 
     friend class Flint;
     friend class FlintExecution;

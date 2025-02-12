@@ -2,7 +2,7 @@
 #ifndef __FLINT_FIELD_DATA_H
 #define __FLINT_FIELD_DATA_H
 
-#include "flint_object.h"
+#include "flint_java_object.h"
 #include "flint_const_pool.h"
 #include "flint_class_loader.h"
 
@@ -33,7 +33,7 @@ private:
 class FlintFieldObject {
 public:
     const FlintFieldInfo &fieldInfo;
-    FlintObject *object;
+    FlintJavaObject *object;
 private:
     FlintFieldObject(const FlintFieldInfo &fieldInfo);
     FlintFieldObject(const FlintFieldObject &) = delete;

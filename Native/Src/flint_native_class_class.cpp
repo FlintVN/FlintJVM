@@ -1,12 +1,12 @@
 
 #include <string.h>
 #include "flint.h"
-#include "flint_class.h"
+#include "flint_java_class.h"
 #include "flint_const_name.h"
 #include "flint_native_class_class.h"
 
 static void nativeGetPrimitiveClass(FlintExecution &execution) {
-    FlintString *str = (FlintString *)execution.stackPopObject();
+    FlintJavaString *str = (FlintJavaString *)execution.stackPopObject();
     if(str->getCoder() == 0) {
         uint32_t len = str->getLength();
         switch(len) {
@@ -72,9 +72,9 @@ static void nativeForName(FlintExecution &execution) {
 }
 
 static void nativeIsInstance(FlintExecution &execution) {
-    FlintObject *obj = (FlintObject *)execution.stackPopObject();
-    FlintClass *clsObj = (FlintClass *)execution.stackPopObject();
-    FlintString &typeName = clsObj->getName();
+    FlintJavaObject *obj = (FlintJavaObject *)execution.stackPopObject();
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    FlintJavaString &typeName = clsObj->getName();
     if(typeName.getCoder() == 0)
         execution.stackPushInt32(execution.flint.isInstanceof(obj, typeName.getText(), typeName.getLength()) ? 1 : 0);
     else
@@ -90,8 +90,8 @@ static void nativeIsInterface(FlintExecution &execution) {
 }
 
 static void nativeIsArray(FlintExecution &execution) {
-    FlintClass *clsObj = (FlintClass *)execution.stackPopObject();
-    FlintString &name = clsObj->getName();
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    FlintJavaString &name = clsObj->getName();
     const char *text = name.getText();
     uint8_t coder = name.getCoder();
     uint32_t length = name.getLength();
@@ -102,8 +102,8 @@ static void nativeIsArray(FlintExecution &execution) {
 }
 
 static void nativeIsPrimitive(FlintExecution &execution) {
-    FlintClass *clsObj = (FlintClass *)execution.stackPopObject();
-    FlintString &name = clsObj->getName();
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    FlintJavaString &name = clsObj->getName();
     uint8_t coder = name.getCoder();
     uint32_t length = name.getLength();
     uint8_t result = 0;
@@ -157,8 +157,8 @@ static void nativeGetInterfaces(FlintExecution &execution) {
 }
 
 static void nativeGetComponentType(FlintExecution &execution) {
-    FlintClass *clsObj = (FlintClass *)execution.stackPopObject();
-    FlintString &name = clsObj->getName();
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    FlintJavaString &name = clsObj->getName();
     const char *text = name.getText();
     uint8_t coder = name.getCoder();
     uint32_t length = name.getLength();
@@ -166,7 +166,7 @@ static void nativeGetComponentType(FlintExecution &execution) {
         uint32_t start = (text[1] == 'L') ? 2 : 1;
         uint32_t end = (text[1] == 'L') ? (length - 1) : length;
         uint32_t len = end - start;
-        FlintClass *ret;
+        FlintJavaClass *ret;
         if(len == 1) {
             switch(text[start]) {
                 case 'Z':   /* boolean */

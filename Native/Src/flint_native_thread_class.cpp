@@ -1,7 +1,7 @@
 
 
 #include "flint.h"
-#include "flint_thread.h"
+#include "flint_java_thread.h"
 #include "flint_system_api.h"
 #include "flint_const_name.h"
 #include "flint_native_thread_class.h"
@@ -13,8 +13,8 @@ static const uint32_t runnableRunFieldName[] = {
 
 static void nativeStart0(FlintExecution &execution) {
     Flint &flint = execution.flint;
-    FlintThread *threadObj = (FlintThread *)execution.stackPopObject();
-    FlintObject *task = threadObj->getTask();
+    FlintJavaThread *threadObj = (FlintJavaThread *)execution.stackPopObject();
+    FlintJavaObject *task = threadObj->getTask();
     FlintExecution &threadExecution = flint.newExecution(threadObj);
     if(task == 0)
         task = threadObj;
@@ -27,7 +27,7 @@ static void nativeYield0(FlintExecution &execution) {
 }
 
 static void nativeInterrupt0(FlintExecution &execution) {
-    FlintThread *threadObj = (FlintThread *)execution.stackPopObject();
+    FlintJavaThread *threadObj = (FlintJavaThread *)execution.stackPopObject();
     // TODO
     throw "interrupt0 is not implemented in VM";
 }

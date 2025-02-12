@@ -1,5 +1,5 @@
 
-#include "flint_object.h"
+#include "flint_java_object.h"
 #include "flint_const_name.h"
 #include "flint_fields_data.h"
 
@@ -8,11 +8,11 @@ static const uint8_t primitiveTypeSize[8] = {
     sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
 };
 
-uint8_t FlintObject::getPrimitiveTypeSize(uint8_t atype) {
+uint8_t FlintJavaObject::getPrimitiveTypeSize(uint8_t atype) {
     return primitiveTypeSize[atype - 4];
 }
 
-uint8_t FlintObject::convertToAType(char type) {
+uint8_t FlintJavaObject::convertToAType(char type) {
     switch(type) {
         case 'Z':
             return 4;
@@ -34,18 +34,18 @@ uint8_t FlintObject::convertToAType(char type) {
     return 0;
 }
 
-uint8_t FlintObject::isPrimType(const FlintConstUtf8 &type) {
+uint8_t FlintJavaObject::isPrimType(const FlintConstUtf8 &type) {
     if(type.length == 1)
         return convertToAType(type.text[0]);
     return 0;
 }
 
-FlintObject::FlintObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions) :
+FlintJavaObject::FlintJavaObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions) :
 size(size), prot(0x02), type(type), dimensions(dimensions), monitorCount(0), ownId(0) {
 
 }
 
-uint8_t FlintObject::parseTypeSize(void) const {
+uint8_t FlintJavaObject::parseTypeSize(void) const {
     switch(this->type.text[0]) {
         case 'Z':
         case 'B':
@@ -61,18 +61,18 @@ uint8_t FlintObject::parseTypeSize(void) const {
     }
 }
 
-FlintFieldsData &FlintObject::getFields(void) const {
+FlintFieldsData &FlintJavaObject::getFields(void) const {
     return *(FlintFieldsData *)data;
 }
 
-void FlintObject::setProtected(void) {
+void FlintJavaObject::setProtected(void) {
     prot = 1;
 }
 
-void FlintObject::clearProtected(void) {
+void FlintJavaObject::clearProtected(void) {
     prot = 0;
 }
 
-uint8_t FlintObject::getProtected(void) const {
+uint8_t FlintJavaObject::getProtected(void) const {
     return prot;
 }

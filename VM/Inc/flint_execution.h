@@ -7,7 +7,7 @@
 #include "flint_stack_info.h"
 #include "flint_const_pool.h"
 #include "flint_method_info.h"
-#include "flint_thread.h"
+#include "flint_java_thread.h"
 
 #define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 
@@ -27,10 +27,10 @@ private:
     int32_t *stack;
     int32_t *locals;
     uint8_t *stackType;
-    FlintThread *onwerThread;
+    FlintJavaThread *onwerThread;
 protected:
-    FlintExecution(Flint &flint, FlintThread *onwerThread);
-    FlintExecution(Flint &flint, FlintThread *onwerThread, uint32_t stackSize);
+    FlintExecution(Flint &flint, FlintJavaThread *onwerThread);
+    FlintExecution(Flint &flint, FlintJavaThread *onwerThread, uint32_t stackSize);
     FlintExecution(const FlintExecution &) = delete;
     void operator=(const FlintExecution &) = delete;
 
@@ -46,13 +46,13 @@ public:
     void stackPushInt64(int64_t value);
     void stackPushFloat(float value);
     void stackPushDouble(double value);
-    void stackPushObject(FlintObject *obj);
+    void stackPushObject(FlintJavaObject *obj);
 
     int32_t stackPopInt32(void);
     int64_t stackPopInt64(void);
     float stackPopFloat(void);
     double stackPopDouble(void);
-    FlintObject *stackPopObject(void);
+    FlintJavaObject *stackPopObject(void);
 private:
     void initNewContext(FlintMethodInfo &methodInfo, uint16_t argc);
 
@@ -76,7 +76,7 @@ private:
 public:
     bool run(FlintMethodInfo &method);
     bool hasTerminateRequest(void) const;
-    FlintThread &getOnwerThread(void);
+    FlintJavaThread &getOnwerThread(void);
 
     friend class Flint;
     friend class FlintDebugger;

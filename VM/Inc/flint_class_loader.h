@@ -5,8 +5,8 @@
 #include "flint_const_pool.h"
 #include "flint_field_info.h"
 #include "flint_method_info.h"
-#include "flint_class.h"
-#include "flint_string.h"
+#include "flint_java_class.h"
+#include "flint_java_string.h"
 
 class FlintClassLoader {
 private:
@@ -63,11 +63,11 @@ public:
 
     FlintConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstUtf8Class(FlintConstPool &constPool) const;
-    FlintClass &getConstClass(class Flint &flint, uint16_t poolIndex);
-    FlintClass &getConstClass(class Flint &flint, FlintConstPool &constPool);
+    FlintJavaClass &getConstClass(class Flint &flint, uint16_t poolIndex);
+    FlintJavaClass &getConstClass(class Flint &flint, FlintConstPool &constPool);
 
-    FlintString &getConstString(class Flint &flint, uint16_t poolIndex);
-    FlintString &getConstString(class Flint &flint, FlintConstPool &constPool);
+    FlintJavaString &getConstString(class Flint &flint, uint16_t poolIndex);
+    FlintJavaString &getConstString(class Flint &flint, FlintConstPool &constPool);
 
     FlintConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstMethodType(FlintConstPool &constPool) const;

@@ -1,5 +1,5 @@
 
-#include "flint_string.h"
+#include "flint_java_string.h"
 #include "flint_const_name.h"
 #include "flint_fields_data.h"
 
@@ -10,15 +10,15 @@ static const uint8_t utf8ByteCount[] = {
     4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6
 };
 
-uint8_t FlintString::getUtf8DecodeSize(char c) {
+uint8_t FlintJavaString::getUtf8DecodeSize(char c) {
     return (c & 0x80) ? utf8ByteCount[((uint8_t)c - 0xC0) & 0xFC] : 1;
 }
 
-uint8_t FlintString::getUtf8EncodeSize(uint16_t c) {
+uint8_t FlintJavaString::getUtf8EncodeSize(uint16_t c) {
     return (c < 0x80) ? 1 : ((c < 0x0800) ? 2 : 3);
 }
 
-uint32_t FlintString::utf8Decode(const char *c) {
+uint32_t FlintJavaString::utf8Decode(const char *c) {
     if(*c & 0x80) {
         uint8_t byteCount = getUtf8DecodeSize(*c);
 
@@ -33,7 +33,7 @@ uint32_t FlintString::utf8Decode(const char *c) {
     return *c;
 }
 
-uint8_t FlintString::utf8Encode(uint16_t c, char *buff) {
+uint8_t FlintJavaString::utf8Encode(uint16_t c, char *buff) {
     if(c < 0x80) {
         buff[0] = (uint8_t)c;
         return 1;
@@ -51,7 +51,7 @@ uint8_t FlintString::utf8Encode(uint16_t c, char *buff) {
     }
 }
 
-uint32_t FlintString::utf8StrLen(const char *utf8) {
+uint32_t FlintJavaString::utf8StrLen(const char *utf8) {
     uint32_t len = 0;
     while(*utf8) {
         utf8 += getUtf8DecodeSize(*utf8);
@@ -60,7 +60,7 @@ uint32_t FlintString::utf8StrLen(const char *utf8) {
     return len;
 }
 
-uint32_t FlintString::getUft8BuffSize(void) {
+uint32_t FlintJavaString::getUft8BuffSize(void) {
     uint32_t length = getLength();
     const char *text = getText();
     uint32_t ret = 0;
@@ -75,7 +75,7 @@ uint32_t FlintString::getUft8BuffSize(void) {
     return ret;
 }
 
-bool FlintString::isLatin1(const char *utf8) {
+bool FlintJavaString::isLatin1(const char *utf8) {
     while(*utf8) {
         if((int8_t)*utf8 < 0) {
             uint8_t byteCount = getUtf8DecodeSize(*utf8);
@@ -89,20 +89,20 @@ bool FlintString::isLatin1(const char *utf8) {
     return true;
 }
 
-FlintInt8Array *FlintString::getValue(void) const {
+FlintInt8Array *FlintJavaString::getValue(void) const {
     return (FlintInt8Array *)getFields().getFieldObject(*(const FlintConstUtf8 *)"\x05\x00\x2B\x6E""value").object;
 }
 
-void FlintString::setValue(FlintInt8Array &byteArray) {
+void FlintJavaString::setValue(FlintInt8Array &byteArray) {
     getFields().getFieldObject(*(const FlintConstUtf8 *)"\x05\x00\x2B\x6E""value").object = &byteArray;
 }
 
-const char *FlintString::getText(void) const {
+const char *FlintJavaString::getText(void) const {
     FlintInt8Array *byteArray = getValue();
     return (const char *)byteArray->getData();
 }
 
-uint32_t FlintString::getLength(void) const {
+uint32_t FlintJavaString::getLength(void) const {
     FlintInt8Array *byteArray = getValue();
     if(getCoder() == 0)
         return byteArray->getLength();
@@ -110,15 +110,15 @@ uint32_t FlintString::getLength(void) const {
         return byteArray->getLength() / 2;
 }
 
-uint8_t FlintString::getCoder(void) const {
+uint8_t FlintJavaString::getCoder(void) const {
     return getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\xE8\x49""coder").value;
 }
 
-void FlintString::setCoder(uint8_t coder) {
+void FlintJavaString::setCoder(uint8_t coder) {
     getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\xE8\x49""coder").value = coder;
 }
 
-bool FlintString::equals(const char *text, uint32_t length) const {
+bool FlintJavaString::equals(const char *text, uint32_t length) const {
     uint8_t coder1 = getCoder();
     if((getLength() != length) || (coder1 != 0))
         return false;
@@ -130,7 +130,7 @@ bool FlintString::equals(const char *text, uint32_t length) const {
     return true;
 }
 
-bool FlintString::equals(const FlintConstUtf8 &utf8) const {
+bool FlintJavaString::equals(const FlintConstUtf8 &utf8) const {
     uint32_t len2 = utf8StrLen(utf8.text);
     uint8_t coder1 = getCoder();
     uint8_t coder2 = isLatin1(utf8.text) ? 0 : 1;
@@ -160,7 +160,7 @@ bool FlintString::equals(const FlintConstUtf8 &utf8) const {
     return true;
 }
 
-bool FlintString::equals(FlintString &str) const {
+bool FlintJavaString::equals(FlintJavaString &str) const {
     if(this == &str)
         return true;
     uint32_t len1 = getLength();
@@ -179,6 +179,6 @@ bool FlintString::equals(FlintString &str) const {
     return true;
 }
 
-FlintConstString::FlintConstString(FlintString &flintString) : flintString(flintString) {
+FlintConstString::FlintConstString(FlintJavaString &flintString) : flintString(flintString) {
     next = 0;
 }

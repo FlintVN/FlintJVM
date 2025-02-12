@@ -13,7 +13,7 @@
 
 typedef struct {
     FlintConstUtf8 *constUtf8Class;
-    FlintClass *constClass;
+    FlintJavaClass *constClass;
 } ConstClassValue;
 
 static void *ClassLoader_Open(const char *fileName) {
@@ -477,7 +477,7 @@ FlintConstUtf8 &FlintClassLoader::getConstUtf8Class(FlintConstPool &constPool) c
     throw "const pool tag is not class tag";
 }
 
-FlintClass &FlintClassLoader::getConstClass(Flint &flint, uint16_t poolIndex) {
+FlintJavaClass &FlintClassLoader::getConstClass(Flint &flint, uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -503,7 +503,7 @@ FlintClass &FlintClassLoader::getConstClass(Flint &flint, uint16_t poolIndex) {
     throw "index for const class is invalid";
 }
 
-FlintClass &FlintClassLoader::getConstClass(Flint &flint, FlintConstPool &constPool) {
+FlintJavaClass &FlintClassLoader::getConstClass(Flint &flint, FlintConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_CLASS) {
         if(constPool.tag & 0x80) {
             Flint::lock();
@@ -528,7 +528,7 @@ FlintClass &FlintClassLoader::getConstClass(Flint &flint, FlintConstPool &constP
     throw "const pool tag is not class tag";
 }
 
-FlintString &FlintClassLoader::getConstString(Flint &flint, uint16_t poolIndex) {
+FlintJavaString &FlintClassLoader::getConstString(Flint &flint, uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_STRING) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -536,7 +536,7 @@ FlintString &FlintClassLoader::getConstString(Flint &flint, uint16_t poolIndex) 
             if(poolTable[poolIndex].tag & 0x80) {
                 try {
                     FlintConstUtf8 &utf8Str = getConstUtf8(poolTable[poolIndex].value);
-                    FlintString &strObj = flint.getConstString(utf8Str);
+                    FlintJavaString &strObj = flint.getConstString(utf8Str);
                     *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)&strObj;
                     *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_STRING;
                 }
@@ -547,19 +547,19 @@ FlintString &FlintClassLoader::getConstString(Flint &flint, uint16_t poolIndex) 
             }
             Flint::unlock();
         }
-        return *(FlintString *)poolTable[poolIndex].value;
+        return *(FlintJavaString *)poolTable[poolIndex].value;
     }
     throw "index for const string is invalid";
 }
 
-FlintString &FlintClassLoader::getConstString(Flint &flint, FlintConstPool &constPool) {
+FlintJavaString &FlintClassLoader::getConstString(Flint &flint, FlintConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_STRING) {
         if(constPool.tag & 0x80) {
             Flint::lock();
             if(constPool.tag & 0x80) {
                 try {
                     FlintConstUtf8 &utf8Str = getConstUtf8(constPool.value);
-                    FlintString &strObj = flint.getConstString(utf8Str);
+                    FlintJavaString &strObj = flint.getConstString(utf8Str);
                     *(uint32_t *)&constPool.value = (uint32_t)&strObj;
                     *(FlintConstPoolTag *)&constPool.tag = CONST_STRING;
                 }
@@ -570,7 +570,7 @@ FlintString &FlintClassLoader::getConstString(Flint &flint, FlintConstPool &cons
             }
             Flint::unlock();
         }
-        return *(FlintString *)constPool.value;
+        return *(FlintJavaString *)constPool.value;
     }
     throw "const pool tag is not string tag";
 }

@@ -4,10 +4,10 @@
 
 #include <stdint.h>
 #include "flint_execution.h"
-#include "flint_class.h"
-#include "flint_string.h"
-#include "flint_throwable.h"
-#include "flint_thread.h"
+#include "flint_java_class.h"
+#include "flint_java_string.h"
+#include "flint_java_throwable.h"
+#include "flint_java_thread.h"
 #include "flint_class_loader.h"
 #include "flint_array_object.h"
 #include "flint_fields_data.h"
@@ -21,8 +21,8 @@ public:
     FlintExecutionNode *prev;
     FlintExecutionNode *next;
 
-    FlintExecutionNode(Flint &flint, FlintThread *onwerThread);
-    FlintExecutionNode(Flint &flint, FlintThread *onwerThread, uint32_t stackSize);
+    FlintExecutionNode(Flint &flint, FlintJavaThread *onwerThread);
+    FlintExecutionNode(Flint &flint, FlintJavaThread *onwerThread, uint32_t stackSize);
 private:
     FlintExecutionNode(void) = delete;
     FlintExecutionNode(const FlintExecutionNode &) = delete;
@@ -46,7 +46,7 @@ private:
     FlintDebugger *dbg;
     FlintExecutionNode *executionList;
     ClassData *classDataList;
-    FlintObject *objectList;
+    FlintJavaObject *objectList;
     FlintConstClass *constClassList;
     FlintConstString *constStringList;
     FlintConstUtf8Node *constUtf8List;
@@ -70,13 +70,13 @@ public:
 
     void print(const char *text, uint32_t length, uint8_t coder);
 
-    FlintExecution &newExecution(FlintThread *onwerThread = 0);
-    FlintExecution &newExecution(FlintThread *onwerThread, uint32_t stackSize);
-    FlintExecution *getExcutionByThread(FlintThread &thread) const;
+    FlintExecution &newExecution(FlintJavaThread *onwerThread = 0);
+    FlintExecution &newExecution(FlintJavaThread *onwerThread, uint32_t stackSize);
+    FlintExecution *getExcutionByThread(FlintJavaThread &thread) const;
     void freeExecution(FlintExecution &execution);
 
-    FlintObject &newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);
-    FlintObject &newObject(FlintConstUtf8 &type);
+    FlintJavaObject &newObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions = 0);
+    FlintJavaObject &newObject(FlintConstUtf8 &type);
     FlintInt8Array &newBooleanArray(uint32_t length);
     FlintInt8Array &newByteArray(uint32_t length);
     FlintInt16Array &newCharArray(uint32_t length);
@@ -87,47 +87,47 @@ public:
     FlintDoubleArray &newDoubleArray(uint32_t length);
     FlintObjectArray &newObjectArray(FlintConstUtf8 &type, uint32_t length);
 
-    FlintObject &newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
+    FlintJavaObject &newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
 
-    FlintClass &newClass(FlintString &typeName);
-    FlintClass &newClass(const char *typeName, uint16_t length);
-    FlintClass &getConstClass(const char *text, uint16_t length);
-    FlintClass &getConstClass(FlintString &str);
+    FlintJavaClass &newClass(FlintJavaString &typeName);
+    FlintJavaClass &newClass(const char *typeName, uint16_t length);
+    FlintJavaClass &getConstClass(const char *text, uint16_t length);
+    FlintJavaClass &getConstClass(FlintJavaString &str);
 
-    FlintString &newString(uint16_t length, uint8_t coder);
-    FlintString &newString(const char *text, uint16_t size, bool isUtf8 = false);
-    FlintString &newString(const char *latin1Str[], uint16_t count);
-    FlintString &getConstString(FlintConstUtf8 &utf8);
-    FlintString &getConstString(FlintString &str);
+    FlintJavaString &newString(uint16_t length, uint8_t coder);
+    FlintJavaString &newString(const char *text, uint16_t size, bool isUtf8 = false);
+    FlintJavaString &newString(const char *latin1Str[], uint16_t count);
+    FlintJavaString &getConstString(FlintConstUtf8 &utf8);
+    FlintJavaString &getConstString(FlintJavaString &str);
 
     FlintConstUtf8 &getConstUtf8(const char *text, uint16_t length);
 
 private:
-    FlintThrowable &newThrowable(FlintString *strObj, FlintConstUtf8 &excpType);
+    FlintJavaThrowable &newThrowable(FlintJavaString *strObj, FlintConstUtf8 &excpType);
 public:
-    FlintThrowable &newException(FlintString *strObj = 0);
-    FlintThrowable &newIOException(FlintString *strObj = 0);
-    FlintThrowable &newErrorException(FlintString *strObj = 0);
-    FlintThrowable &newArrayStoreException(FlintString *strObj = 0);
-    FlintThrowable &newArithmeticException(FlintString *strObj = 0);
-    FlintThrowable &newNullPointerException(FlintString *strObj = 0);
-    FlintThrowable &newInterruptedException(FlintString *strObj = 0);
-    FlintThrowable &newClassNotFoundException(FlintString *strObj = 0);
-    FlintThrowable &newCloneNotSupportedException(FlintString *strObj = 0);
-    FlintThrowable &newNegativeArraySizeException(FlintString *strObj = 0);
-    FlintThrowable &newArrayIndexOutOfBoundsException(FlintString *strObj = 0);
-    FlintThrowable &newUnsupportedOperationException(FlintString *strObj = 0);
-    FlintThrowable &newUnsatisfiedLinkErrorException(FlintString *strObj = 0);
+    FlintJavaThrowable &newException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newIOException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newErrorException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newArrayStoreException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newArithmeticException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newNullPointerException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newInterruptedException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newClassNotFoundException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newCloneNotSupportedException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newNegativeArraySizeException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newArrayIndexOutOfBoundsException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newUnsupportedOperationException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newUnsatisfiedLinkErrorException(FlintJavaString *strObj = 0);
 
-    void clearProtectObjectNew(FlintObject &obj);
-    void garbageCollectionProtectObject(FlintObject &obj);
+    void clearProtectObjectNew(FlintJavaObject &obj);
+    void garbageCollectionProtectObject(FlintJavaObject &obj);
 
     void initStaticField(ClassData &classData);
     FlintFieldsData &getStaticFields(FlintConstUtf8 &className) const;
 
     FlintMethodInfo &findMethod(FlintConstMethod &constMethod);
 
-    bool isInstanceof(FlintObject *obj, const char *typeName, uint16_t length);
+    bool isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length);
 
     void garbageCollection(void);
 
@@ -141,7 +141,7 @@ public:
     bool isRunning(void) const;
     void terminateRequest(void);
     void terminate(void);
-    void freeObject(FlintObject &obj);
+    void freeObject(FlintJavaObject &obj);
     void clearAllStaticFields(void);
     void freeAllObject(void);
     void freeAllExecution(void);
