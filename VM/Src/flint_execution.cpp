@@ -2114,10 +2114,30 @@ void FlintExecution::run(void) {
                 goto file_not_found_excp;
             }
             if(!isInsOf) {
-                const char *msg[] = {"Class '", obj->type.text, "' cannot be cast to class '", type.text, "'"};
-                FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
+                uint32_t len = 7 + obj->type.length + 27 + type.length + 1;
+                bool isPrimType = FlintJavaObject::isPrimType(obj->type);
+                len += obj->dimensions;
+                if(!isPrimType)
+                    len += 2;
+                FlintJavaString &strObj = flint.newString(len, 0);
+                int8_t *strBuff = strObj.getValue()->getData();
+                memcpy(&strBuff[0], "Class '", 7);
+                uint32_t index = 7;
+                for(uint32_t i = 0; i < obj->dimensions; i++)
+                    strBuff[index++] = '[';
+                if(!isPrimType)
+                    strBuff[index++] = 'L';
+                memcpy(&strBuff[index], obj->type.text, obj->type.length);
+                index += obj->type.length;
+                if(!isPrimType)
+                    strBuff[index++] = ';';
+                memcpy(&strBuff[index], "' cannot be cast to class '", 27);
+                index += 27;
+                memcpy(&strBuff[index], type.text, type.length);
+                index += type.length;
+                strBuff[index] = '\'';
                 try {
-                    FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
+                    FlintJavaThrowable &excpObj = flint.newClassCastException(&strObj);
                     stackPushObject(&excpObj);
                 }
                 catch(FlintLoadFileError *file) {

@@ -108,6 +108,7 @@ public:
     FlintJavaThrowable &newException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newIOException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newErrorException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newClassCastException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newArrayStoreException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newArithmeticException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newNullPointerException(FlintJavaString *strObj = 0);

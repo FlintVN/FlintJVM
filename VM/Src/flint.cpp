@@ -419,6 +419,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &printStreamClassName,
         &ioExceptionClassName,
         &flintGraphicsClassName,
+        &classCastExceptionClassName,
         &arrayStoreExceptionClassName,
         &arithmeticExceptionClassName,
         &nullPointerExceptionClassName,
@@ -489,6 +490,10 @@ FlintJavaThrowable &Flint::newIOException(FlintJavaString *strObj) {
 
 FlintJavaThrowable &Flint::newErrorException(FlintJavaString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&errorClassName);
+}
+
+FlintJavaThrowable &Flint::newClassCastException(FlintJavaString *strObj) {
+    return newThrowable(strObj, *(FlintConstUtf8 *)&classCastExceptionClassName);
 }
 
 FlintJavaThrowable &Flint::newArrayStoreException(FlintJavaString *strObj) {
@@ -749,6 +754,8 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
         return false;
     else {
         FlintConstUtf8 *objType = &obj->type;
+        if(FlintJavaObject::isPrimType(*objType) || ((len == 1) && (FlintJavaObject::convertToAType(text[0]))))
+            return (len == objType->length) && (text[0] == objType->text[0]);
         while(1) {
             if(len == objType->length) {
                 bool isEquals = true;
