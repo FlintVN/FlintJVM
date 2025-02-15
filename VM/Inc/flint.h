@@ -20,6 +20,7 @@
 #include "flint_java_char.h"
 #include "flint_java_short.h"
 #include "flint_java_integer.h"
+#include "flint_java_float.h"
 
 class FlintExecutionNode : public FlintExecution {
 public:
@@ -131,6 +132,7 @@ public:
     FlintJavaChar &newChar(uint16_t value = 0);
     FlintJavaShort &newShort(int16_t value = 0);
     FlintJavaInteger &newInteger(int32_t value = 0);
+    FlintJavaFloat &newFloat(float value = 0);
 
     void clearProtectObjectNew(FlintJavaObject &obj);
     void garbageCollectionProtectObject(FlintJavaObject &obj);
