@@ -577,6 +577,12 @@ FlintJavaFloat &Flint::newFloat(float value) {
     return obj;
 }
 
+FlintJavaLong &Flint::newLong(int64_t value) {
+    FlintJavaLong &obj = *(FlintJavaLong *)&newObject(*(FlintConstUtf8 *)&longClassName);
+    obj.setValue(value);
+    return obj;
+}
+
 void Flint::clearProtectObjectNew(FlintJavaObject &obj) {
     bool isPrim = FlintJavaObject::isPrimType(obj.type);
     if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {

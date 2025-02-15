@@ -21,6 +21,7 @@
 #include "flint_java_short.h"
 #include "flint_java_integer.h"
 #include "flint_java_float.h"
+#include "flint_java_long.h"
 
 class FlintExecutionNode : public FlintExecution {
 public:
@@ -133,6 +134,7 @@ public:
     FlintJavaShort &newShort(int16_t value = 0);
     FlintJavaInteger &newInteger(int32_t value = 0);
     FlintJavaFloat &newFloat(float value = 0);
+    FlintJavaLong &newLong(int64_t value = 0);
 
     void clearProtectObjectNew(FlintJavaObject &obj);
     void garbageCollectionProtectObject(FlintJavaObject &obj);
