@@ -1,6 +1,6 @@
 
-#ifndef __FLINT_STRING_H
-#define __FLINT_STRING_H
+#ifndef __FLINT_JAVA_STRING_H
+#define __FLINT_JAVA_STRING_H
 
 #include "flint_java_object.h"
 #include "flint_array_object.h"
@@ -43,4 +43,4 @@ private:
     friend class Flint;
 };
 
-#endif /* __FLINT_STRING_H */
+#endif /* __FLINT_JAVA_STRING_H */

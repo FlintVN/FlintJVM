@@ -1,6 +1,6 @@
 
-#ifndef __FLINT_OBJECT_H
-#define __FLINT_OBJECT_H
+#ifndef __FLINT_JAVA_OBJECT_H
+#define __FLINT_JAVA_OBJECT_H
 
 #include "flint_std_types.h"
 #include "flint_const_pool.h"
@@ -43,4 +43,4 @@ protected:
     friend class FlintDebugger;
 };
 
-#endif /* __FLINT_OBJECT_H */
+#endif /* __FLINT_JAVA_OBJECT_H */

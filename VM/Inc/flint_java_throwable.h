@@ -1,6 +1,6 @@
 
-#ifndef __FLINT_THROWABLE_H
-#define __FLINT_THROWABLE_H
+#ifndef __FLINT_JAVA_THROWABLE_H
+#define __FLINT_JAVA_THROWABLE_H
 
 #include "flint_java_string.h"
 
@@ -14,4 +14,4 @@ protected:
     void operator=(const FlintJavaThrowable &) = delete;
 };
 
-#endif /* __FLINT_THROWABLE_H */
+#endif /* __FLINT_JAVA_THROWABLE_H */

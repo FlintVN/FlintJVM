@@ -1,6 +1,6 @@
 
-#ifndef __FLINT_THREAD_H
-#define __FLINT_THREAD_H
+#ifndef __FLINT_JAVA_THREAD_H
+#define __FLINT_JAVA_THREAD_H
 
 #include "flint_java_object.h"
 
@@ -13,4 +13,4 @@ protected:
     void operator=(const FlintJavaThread &) = delete;
 };
 
-#endif /* __FLINT_THREAD_H */
+#endif /* __FLINT_JAVA_THREAD_H */
