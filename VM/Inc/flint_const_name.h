@@ -7,6 +7,10 @@
 extern const FlintConstUtf8 * const primTypeConstUtf8List[];
 
 extern const FlintConstUtf8 &mathClassName;
+extern const FlintConstUtf8 &charClassName;
+extern const FlintConstUtf8 &byteClassName;
+extern const FlintConstUtf8 &longClassName;
+extern const FlintConstUtf8 &shortClassName;
 extern const FlintConstUtf8 &errorClassName;
 extern const FlintConstUtf8 &classClassName;
 extern const FlintConstUtf8 &floatClassName;
@@ -15,6 +19,8 @@ extern const FlintConstUtf8 &objectClassName;
 extern const FlintConstUtf8 &systemClassName;
 extern const FlintConstUtf8 &stringClassName;
 extern const FlintConstUtf8 &threadClassName;
+extern const FlintConstUtf8 &booleanClassName;
+extern const FlintConstUtf8 &integerClassName;
 extern const FlintConstUtf8 &characterClassName;
 extern const FlintConstUtf8 &throwableClassName;
 extern const FlintConstUtf8 &exceptionClassName;

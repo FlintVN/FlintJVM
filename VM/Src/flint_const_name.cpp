@@ -13,6 +13,10 @@ const FlintConstUtf8 * const primTypeConstUtf8List[] = {
 };
 
 const FlintConstUtf8 &mathClassName = *(const FlintConstUtf8 *)"\x0E\x00\x37\xC8""java/lang/Math";
+const FlintConstUtf8 &charClassName = *(const FlintConstUtf8 *)"\x0E\x00\x6A\x79""java/lang/Char";
+const FlintConstUtf8 &byteClassName = *(const FlintConstUtf8 *)"\x0E\x00\x75\x1E""java/lang/Byte";
+const FlintConstUtf8 &longClassName = *(const FlintConstUtf8 *)"\x0E\x00\x1C\x93""java/lang/Long";
+const FlintConstUtf8 &shortClassName = *(const FlintConstUtf8 *)"\x0F\x00\x19\xB7""java/lang/Short";
 const FlintConstUtf8 &errorClassName = *(const FlintConstUtf8 *)"\x0F\x00\x4E\x38""java/lang/Error";
 const FlintConstUtf8 &classClassName = *(const FlintConstUtf8 *)"\x0F\x00\xF8\xD5""java/lang/Class";
 const FlintConstUtf8 &floatClassName = *(const FlintConstUtf8 *)"\x0F\x00\x18\x74""java/lang/Float";
@@ -21,6 +25,8 @@ const FlintConstUtf8 &objectClassName = *(const FlintConstUtf8 *)"\x10\x00\x13\x
 const FlintConstUtf8 &systemClassName = *(const FlintConstUtf8 *)"\x10\x00\xE0\x5A""java/lang/System";
 const FlintConstUtf8 &stringClassName = *(const FlintConstUtf8 *)"\x10\x00\xDB\x56""java/lang/String";
 const FlintConstUtf8 &threadClassName = *(const FlintConstUtf8 *)"\x10\x00\x8E\xD1""java/lang/Thread";
+const FlintConstUtf8 &booleanClassName = *(const FlintConstUtf8 *)"\x11\x00\x4B\x4E""java/lang/Boolean";
+const FlintConstUtf8 &integerClassName = *(const FlintConstUtf8 *)"\x11\x00\x35\x08""java/lang/Integer";
 const FlintConstUtf8 &characterClassName = *(const FlintConstUtf8 *)"\x13\x00\x92\x49""java/lang/Character";
 const FlintConstUtf8 &throwableClassName = *(const FlintConstUtf8 *)"\x13\x00\xB7\x14""java/lang/Throwable";
 const FlintConstUtf8 &exceptionClassName = *(const FlintConstUtf8 *)"\x13\x00\xF6\xDA""java/lang/Exception";
