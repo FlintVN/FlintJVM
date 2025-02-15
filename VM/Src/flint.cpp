@@ -559,6 +559,12 @@ FlintJavaChar &Flint::newChar(uint16_t value) {
     return obj;
 }
 
+FlintJavaShort &Flint::newShort(int16_t value) {
+    FlintJavaShort &obj = *(FlintJavaShort *)&newObject(*(FlintConstUtf8 *)&shortClassName);
+    obj.setValue(value);
+    return obj;
+}
+
 void Flint::clearProtectObjectNew(FlintJavaObject &obj) {
     bool isPrim = FlintJavaObject::isPrimType(obj.type);
     if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {

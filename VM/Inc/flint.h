@@ -18,6 +18,7 @@
 #include "flint_java_boolean.h"
 #include "flint_java_byte.h"
 #include "flint_java_char.h"
+#include "flint_java_short.h"
 
 class FlintExecutionNode : public FlintExecution {
 public:
@@ -127,6 +128,7 @@ public:
     FlintJavaBoolean &newBoolean(bool value = false);
     FlintJavaByte &newByte(int8_t value = 0);
     FlintJavaChar &newChar(uint16_t value = 0);
+    FlintJavaShort &newShort(int16_t value = 0);
 
     void clearProtectObjectNew(FlintJavaObject &obj);
     void garbageCollectionProtectObject(FlintJavaObject &obj);
