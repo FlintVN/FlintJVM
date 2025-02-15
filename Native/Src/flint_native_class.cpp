@@ -1,5 +1,6 @@
 
 #include "flint_native_math_class.h"
+#include "flint_native_array_class.h"
 #include "flint_native_class_class.h"
 #include "flint_native_float_class.h"
 #include "flint_native_double_class.h"
@@ -12,8 +13,9 @@
 #include "flint_native_biginteger_class.h"
 #include "flint_native_print_stream_class.h"
 
-const FlintNativeClass *BASE_NATIVE_CLASS_LIST[12] = {
+const FlintNativeClass *BASE_NATIVE_CLASS_LIST[13] = {
     &MATH_CLASS,
+    &ARRAY_CLASS,
     &CLASS_CLASS,
     &FLOAT_CLASS,
     &DOUBLE_CLASS,
