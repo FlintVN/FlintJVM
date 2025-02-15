@@ -547,6 +547,12 @@ FlintJavaBoolean &Flint::newBoolean(bool value) {
     return obj;
 }
 
+FlintJavaByte &Flint::newByte(int8_t value) {
+    FlintJavaByte &obj = *(FlintJavaByte *)&newObject(*(FlintConstUtf8 *)&byteClassName);
+    obj.setValue(value);
+    return obj;
+}
+
 FlintJavaChar &Flint::newChar(uint16_t value) {
     FlintJavaChar &obj = *(FlintJavaChar *)&newObject(*(FlintConstUtf8 *)&charClassName);
     obj.setValue(value);
