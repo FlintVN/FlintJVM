@@ -15,6 +15,7 @@
 #include "flint_load_file_error.h"
 #include "flint_find_native_error.h"
 #include "flint_system_api.h"
+#include "flint_java_boolean.h"
 
 class FlintExecutionNode : public FlintExecution {
 public:
@@ -120,6 +121,8 @@ public:
     FlintJavaThrowable &newArrayIndexOutOfBoundsException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newUnsupportedOperationException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newUnsatisfiedLinkErrorException(FlintJavaString *strObj = 0);
+
+    FlintJavaBoolean &newBoolean(bool value = false);
 
     void clearProtectObjectNew(FlintJavaObject &obj);
     void garbageCollectionProtectObject(FlintJavaObject &obj);

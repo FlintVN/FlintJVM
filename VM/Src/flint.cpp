@@ -541,6 +541,12 @@ FlintJavaThrowable &Flint::newUnsatisfiedLinkErrorException(FlintJavaString *str
     return newThrowable(strObj, *(FlintConstUtf8 *)&unsatisfiedLinkErrorClassName);
 }
 
+FlintJavaBoolean &Flint::newBoolean(bool value) {
+    FlintJavaBoolean &obj = *(FlintJavaBoolean *)&newObject(*(FlintConstUtf8 *)&booleanClassName);
+    obj.setValue(value);
+    return obj;
+}
+
 void Flint::clearProtectObjectNew(FlintJavaObject &obj) {
     bool isPrim = FlintJavaObject::isPrimType(obj.type);
     if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {
