@@ -11,6 +11,7 @@ extern const FlintConstUtf8 &charClassName;
 extern const FlintConstUtf8 &byteClassName;
 extern const FlintConstUtf8 &longClassName;
 extern const FlintConstUtf8 &shortClassName;
+extern const FlintConstUtf8 &arrayClassName;
 extern const FlintConstUtf8 &errorClassName;
 extern const FlintConstUtf8 &classClassName;
 extern const FlintConstUtf8 &floatClassName;

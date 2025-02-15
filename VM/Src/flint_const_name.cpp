@@ -27,6 +27,7 @@ const FlintConstUtf8 &stringClassName = *(const FlintConstUtf8 *)"\x10\x00\xDB\x
 const FlintConstUtf8 &threadClassName = *(const FlintConstUtf8 *)"\x10\x00\x8E\xD1""java/lang/Thread";
 const FlintConstUtf8 &booleanClassName = *(const FlintConstUtf8 *)"\x11\x00\x4B\x4E""java/lang/Boolean";
 const FlintConstUtf8 &integerClassName = *(const FlintConstUtf8 *)"\x11\x00\x35\x08""java/lang/Integer";
+const FlintConstUtf8 &arrayClassName = *(const FlintConstUtf8 *)"\x17\x00\xBD\xBC""java/lang/reflect/Array";
 const FlintConstUtf8 &characterClassName = *(const FlintConstUtf8 *)"\x13\x00\x92\x49""java/lang/Character";
 const FlintConstUtf8 &throwableClassName = *(const FlintConstUtf8 *)"\x13\x00\xB7\x14""java/lang/Throwable";
 const FlintConstUtf8 &exceptionClassName = *(const FlintConstUtf8 *)"\x13\x00\xF6\xDA""java/lang/Exception";
