@@ -16,6 +16,7 @@
 #include "flint_find_native_error.h"
 #include "flint_system_api.h"
 #include "flint_java_boolean.h"
+#include "flint_java_char.h"
 
 class FlintExecutionNode : public FlintExecution {
 public:
@@ -123,6 +124,7 @@ public:
     FlintJavaThrowable &newUnsatisfiedLinkErrorException(FlintJavaString *strObj = 0);
 
     FlintJavaBoolean &newBoolean(bool value = false);
+    FlintJavaChar &newChar(uint16_t value = 0);
 
     void clearProtectObjectNew(FlintJavaObject &obj);
     void garbageCollectionProtectObject(FlintJavaObject &obj);

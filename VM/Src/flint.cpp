@@ -547,6 +547,12 @@ FlintJavaBoolean &Flint::newBoolean(bool value) {
     return obj;
 }
 
+FlintJavaChar &Flint::newChar(uint16_t value) {
+    FlintJavaChar &obj = *(FlintJavaChar *)&newObject(*(FlintConstUtf8 *)&charClassName);
+    obj.setValue(value);
+    return obj;
+}
+
 void Flint::clearProtectObjectNew(FlintJavaObject &obj) {
     bool isPrim = FlintJavaObject::isPrimType(obj.type);
     if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {
