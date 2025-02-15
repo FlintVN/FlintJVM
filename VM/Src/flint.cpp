@@ -404,7 +404,6 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         primTypeConstUtf8List[6],
         primTypeConstUtf8List[7],
         &mathClassName,
-        &charClassName,
         &byteClassName,
         &longClassName,
         &shortClassName,
@@ -560,8 +559,8 @@ FlintJavaByte &Flint::newByte(int8_t value) {
     return obj;
 }
 
-FlintJavaChar &Flint::newChar(uint16_t value) {
-    FlintJavaChar &obj = *(FlintJavaChar *)&newObject(*(FlintConstUtf8 *)&charClassName);
+FlintJavaCharacter &Flint::newCharacter(uint16_t value) {
+    FlintJavaCharacter &obj = *(FlintJavaCharacter *)&newObject(*(FlintConstUtf8 *)&characterClassName);
     obj.setValue(value);
     return obj;
 }

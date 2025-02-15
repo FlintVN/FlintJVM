@@ -17,7 +17,7 @@
 #include "flint_system_api.h"
 #include "flint_java_boolean.h"
 #include "flint_java_byte.h"
-#include "flint_java_char.h"
+#include "flint_java_character.h"
 #include "flint_java_short.h"
 #include "flint_java_integer.h"
 #include "flint_java_float.h"
@@ -131,7 +131,7 @@ public:
 
     FlintJavaBoolean &newBoolean(bool value = false);
     FlintJavaByte &newByte(int8_t value = 0);
-    FlintJavaChar &newChar(uint16_t value = 0);
+    FlintJavaCharacter &newCharacter(uint16_t value = 0);
     FlintJavaShort &newShort(int16_t value = 0);
     FlintJavaInteger &newInteger(int32_t value = 0);
     FlintJavaFloat &newFloat(float value = 0);
