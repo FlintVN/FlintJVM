@@ -35,6 +35,7 @@ const FlintConstUtf8 &nullPointerExceptionClassName = *(const FlintConstUtf8 *)"
 const FlintConstUtf8 &unsatisfiedLinkErrorClassName = *(const FlintConstUtf8 *)"\x1E\x00\x77\x94""java/lang/UnsatisfiedLinkError";
 const FlintConstUtf8 &interruptedExceptionClassName = *(const FlintConstUtf8 *)"\x1E\x00\x19\x97""java/lang/InterruptedException";
 const FlintConstUtf8 &classNotFoundExceptionClassName = *(const FlintConstUtf8 *)"\x20\x00\xFD\xFC""java/lang/ClassNotFoundException";
+const FlintConstUtf8 &illegalArgumentExceptionClassName = *(const FlintConstUtf8 *)"\x22\x00\x6D\x2A""java/lang/IllegalArgumentException";
 const FlintConstUtf8 &cloneNotSupportedExceptionClassName = *(const FlintConstUtf8 *)"\x24\x00\xF3\xB9""java/lang/CloneNotSupportedException";
 const FlintConstUtf8 &negativeArraySizeExceptionClassName = *(const FlintConstUtf8 *)"\x24\x00\x7F\xE4""java/lang/NegativeArraySizeException";
 const FlintConstUtf8 &unsupportedOperationExceptionClassName = *(const FlintConstUtf8 *)"\x27\x00\xE6\x1D""java/lang/UnsupportedOperationException";

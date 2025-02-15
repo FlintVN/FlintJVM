@@ -114,6 +114,7 @@ public:
     FlintJavaThrowable &newNullPointerException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newInterruptedException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newClassNotFoundException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newIllegalArgumentException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newCloneNotSupportedException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newNegativeArraySizeException(FlintJavaString *strObj = 0);
     FlintJavaThrowable &newArrayIndexOutOfBoundsException(FlintJavaString *strObj = 0);

@@ -426,6 +426,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &unsatisfiedLinkErrorClassName,
         &interruptedExceptionClassName,
         &classNotFoundExceptionClassName,
+        &illegalArgumentExceptionClassName,
         &cloneNotSupportedExceptionClassName,
         &negativeArraySizeExceptionClassName,
         &unsupportedOperationExceptionClassName,
@@ -514,6 +515,10 @@ FlintJavaThrowable &Flint::newInterruptedException(FlintJavaString *strObj) {
 
 FlintJavaThrowable &Flint::newClassNotFoundException(FlintJavaString *strObj) {
     return newThrowable(strObj, *(FlintConstUtf8 *)&classNotFoundExceptionClassName);
+}
+
+FlintJavaThrowable &Flint::newIllegalArgumentException(FlintJavaString *strObj) {
+    return newThrowable(strObj, *(FlintConstUtf8 *)&illegalArgumentExceptionClassName);
 }
 
 FlintJavaThrowable &Flint::newCloneNotSupportedException(FlintJavaString *strObj) {
