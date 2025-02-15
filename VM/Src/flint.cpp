@@ -404,6 +404,10 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         primTypeConstUtf8List[6],
         primTypeConstUtf8List[7],
         &mathClassName,
+        &charClassName,
+        &byteClassName,
+        &longClassName,
+        &shortClassName,
         &errorClassName,
         &classClassName,
         &floatClassName,
@@ -412,6 +416,8 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &systemClassName,
         &stringClassName,
         &threadClassName,
+        &booleanClassName,
+        &integerClassName,
         &characterClassName,
         &throwableClassName,
         &exceptionClassName,
@@ -579,6 +585,12 @@ FlintJavaFloat &Flint::newFloat(float value) {
 
 FlintJavaLong &Flint::newLong(int64_t value) {
     FlintJavaLong &obj = *(FlintJavaLong *)&newObject(*(FlintConstUtf8 *)&longClassName);
+    obj.setValue(value);
+    return obj;
+}
+
+FlintJavaDouble &Flint::newDouble(double value) {
+    FlintJavaDouble &obj = *(FlintJavaDouble *)&newObject(*(FlintConstUtf8 *)&doubleClassName);
     obj.setValue(value);
     return obj;
 }
