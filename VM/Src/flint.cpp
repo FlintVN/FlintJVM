@@ -197,11 +197,15 @@ FlintObjectArray &Flint::newObjectArray(FlintConstUtf8 &type, uint32_t length) {
     return *(FlintObjectArray *)&newObject(length * sizeof(FlintJavaObject *), type, 1);
 }
 
-FlintJavaObject &Flint::newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts) {
-    if(dimensions > 1) {
-        FlintJavaObject &array = newObject(counts[0] * sizeof(FlintJavaObject *), typeName, dimensions);
-        for(uint32_t i = 0; i < counts[0]; i++)
-            ((FlintJavaObject **)(array.data))[i] = &newMultiArray(typeName, dimensions - 1, &counts[1]);
+FlintJavaObject &Flint::newMultiArray(FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims) {
+    if(startDims > 1) {
+        FlintJavaObject &array = newObject(counts[0] * sizeof(FlintJavaObject *), typeName, startDims);
+        if(startDims > endDims) {
+            for(uint32_t i = 0; i < counts[0]; i++)
+                ((FlintJavaObject **)(array.data))[i] = &newMultiArray(typeName, &counts[1], startDims - 1, endDims);
+        }
+        else
+            memset(array.data, 0, array.size);
         return array;
     }
     else {

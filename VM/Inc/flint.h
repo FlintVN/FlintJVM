@@ -95,7 +95,7 @@ public:
     FlintDoubleArray &newDoubleArray(uint32_t length);
     FlintObjectArray &newObjectArray(FlintConstUtf8 &type, uint32_t length);
 
-    FlintJavaObject &newMultiArray(FlintConstUtf8 &typeName, uint8_t dimensions, int32_t *counts);
+    FlintJavaObject &newMultiArray(FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims = 1);
 
     FlintJavaClass &newClass(FlintJavaString &typeName);
     FlintJavaClass &newClass(const char *typeName, uint16_t length);

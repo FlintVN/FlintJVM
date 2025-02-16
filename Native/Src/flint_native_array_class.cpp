@@ -30,10 +30,34 @@ static void checkIsArray(FlintExecution &execution, FlintJavaObject *obj) {
         throwIllegalArgumentException(execution, "Argument is not an array");
 }
 
+static void checkIsClassType(FlintExecution &execution, FlintJavaObject *obj) {
+    if(obj == NULL)
+        throw &execution.flint.newNullPointerException();
+    else if(obj->type != classClassName)
+        throw &execution.flint.newIllegalArgumentException();
+}
+
 static void checkIndex(FlintExecution &execution, FlintJavaObject *obj, int32_t index) {
     int32_t length = obj->size / obj->parseTypeSize();
     if((index < 0) || (index >= length))
         throw &execution.flint.newArrayIndexOutOfBoundsException();
+}
+
+static void checkLength(FlintExecution &execution, int32_t size) {
+    if(size < 0)
+        throw &execution.flint.newNegativeArraySizeException();
+}
+
+static void checkDimensions(FlintExecution &execution, FlintInt32Array *dimensions) {
+    if(
+        (dimensions == NULL) ||
+        (dimensions->dimensions != 1) ||
+        (dimensions->type != *primTypeConstUtf8List[6]) ||
+        (dimensions->getLength() == 0) ||
+        (dimensions->getLength() > 255)
+    ) {
+        throw &execution.flint.newIllegalArgumentException();
+    }
 }
 
 static void checkIsArrayOfPrimitiveType(FlintExecution &execution, FlintJavaObject *obj) {
@@ -506,30 +530,102 @@ static void nativeSetDouble(FlintExecution &execution) {
         throwIllegalArgumentException(execution, "Argument type mismatch");
 }
 
-static void nativeNewArray(FlintExecution &execution) {
-    // int32_t length = execution.stackPopInt32();
-    // FlintJavaClass *cls = (FlintJavaClass *)execution.stackPopObject();
-    // if(cls == NULL)
-    //     throw &execution.flint.newNullPointerException();
-    // if(length < 0)
-    //     throw &execution.flint.newNegativeArraySizeException();
-    // uint32_t dimensions = 1;
-    // FlintJavaString &name = cls->getName();
-    // const char *typeText = name.getText();
-    // uint32_t typeLength = name.getLength();
-    // while((*typeText == '[') && typeLength) {
-    //     typeLength--;
-    //     dimensions++;
-    //     typeText++;
-    // }
+static FlintConstUtf8 &getTypeInfo(FlintExecution &execution, FlintJavaClass *cls, uint32_t *dimensions) {
+    uint32_t dims = 0;
+    FlintJavaString &name = cls->getName();
+    const char *typeText = name.getText();
+    uint32_t typeLength = name.getLength();
+    while((*typeText == '[') && typeLength) {
+        typeText++;
+        typeLength--;
+        dims++;
+    }
+    const FlintConstUtf8 *type = NULL;
+    if(dims == 0) {
+        switch(typeLength) {
+            case 3:
+                if(strncmp(typeText, "int", typeLength) == 0)
+                    type = primTypeConstUtf8List[6];
+                else
+                    throwIllegalArgumentException(execution, NULL);
+                break;
+            case 4: {
+                if(strncmp(typeText, "byte", typeLength) == 0)
+                    type = primTypeConstUtf8List[4];
+                else if(strncmp(typeText, "char", typeLength) == 0)
+                    type = primTypeConstUtf8List[1];
+                else if(strncmp(typeText, "long", typeLength) == 0)
+                    type = primTypeConstUtf8List[7];
+                else
+                    throwIllegalArgumentException(execution, NULL);
+                break;
+            }
+            case 5: {
+                if(strncmp(typeText, "float", typeLength) == 0)
+                    type = primTypeConstUtf8List[2];
+                else if(strncmp(typeText, "short", typeLength) == 0)
+                    type = primTypeConstUtf8List[5];
+                else
+                    throwIllegalArgumentException(execution, NULL);
+                break;
+            }
+            case 6:
+                if(strncmp(typeText, "double", typeLength) == 0)
+                    type = primTypeConstUtf8List[3];
+                else
+                    throwIllegalArgumentException(execution, NULL);
+                break;
+            case 7:
+                if(strncmp(typeText, "boolean", typeLength) == 0)
+                    type = primTypeConstUtf8List[0];
+                else
+                    throwIllegalArgumentException(execution, NULL);
+                break;
+            default:
+                break;
+        }
+    }
+    else if(*typeText == 'L') {
+        typeText++;
+        typeLength -= 2;
+    }
+    if(type == NULL) {
+        char *text = (char *)Flint::malloc(typeLength);
+        for(uint32_t i = 0; i < typeLength; i++)
+            text[i] = (typeText[i] == '.') ? '/' : typeText[i];
+        type = &execution.flint.getConstUtf8(text, typeLength);
+        Flint::free(text);
+    }
+    if(dimensions)
+        *dimensions = dims;
+    return *(FlintConstUtf8 *)type;
+}
 
-    //TODO
-    throw "newArray is not implemented in VM";
+static void nativeNewArray(FlintExecution &execution) {
+    int32_t length = execution.stackPopInt32();
+    FlintJavaClass *componentType = (FlintJavaClass *)execution.stackPopObject();
+    checkIsClassType(execution, componentType);
+    checkLength(execution, length);
+    uint32_t dimensions;
+    FlintConstUtf8 &type = getTypeInfo(execution, componentType, &dimensions);
+    uint8_t atype = FlintJavaObject::isPrimType(type);
+    uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
+    FlintJavaObject &array = execution.flint.newObject(typeSize * length, type, dimensions + 1);
+    memset(&array.getFields(), 0, array.size);
+    execution.stackPushObject(&array);
 }
 
 static void nativeMultiNewArray(FlintExecution &execution) {
-    //TODO
-    throw "multiNewArray is not implemented in VM";
+    FlintInt32Array *dimensions = (FlintInt32Array *)execution.stackPopObject();
+    FlintJavaClass *componentType = (FlintJavaClass *)execution.stackPopObject();
+    checkIsClassType(execution, componentType);
+    checkDimensions(execution, dimensions);
+    uint32_t endDims;
+    FlintConstUtf8 &type = getTypeInfo(execution, componentType, &endDims);
+    if((dimensions->getLength() + endDims) > 255)
+        throw &execution.flint.newIllegalArgumentException();
+    FlintJavaObject &array = execution.flint.newMultiArray(type, dimensions->getData(), dimensions->getLength() + endDims, endDims + 1);
+    execution.stackPushObject(&array);
 }
 
 static const FlintNativeMethod methods[] = {

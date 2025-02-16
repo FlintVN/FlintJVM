@@ -2287,7 +2287,7 @@ void FlintExecution::run(void) {
                 if(stack[sp + i] < 0)
                     goto negative_array_size_excp;
             }
-            FlintJavaObject &array = flint.newMultiArray(*typeName, dimensions, &stack[sp]);
+            FlintJavaObject &array = flint.newMultiArray(*typeName, &stack[sp], dimensions);
             stackPushObject(&array);
         }
         catch(FlintLoadFileError *file) {
