@@ -593,7 +593,13 @@ static FlintConstUtf8 &getTypeInfo(FlintExecution &execution, FlintJavaClass *cl
         char *text = (char *)Flint::malloc(typeLength);
         for(uint32_t i = 0; i < typeLength; i++)
             text[i] = (typeText[i] == '.') ? '/' : typeText[i];
-        type = &execution.flint.getConstUtf8(text, typeLength);
+        try {
+            type = &execution.flint.getConstUtf8(text, typeLength);
+        }
+        catch(...) {
+            Flint::free(text);
+            throw;
+        }
         Flint::free(text);
     }
     if(dimensions)
