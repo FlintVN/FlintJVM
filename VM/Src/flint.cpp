@@ -234,19 +234,9 @@ FlintJavaClass &Flint::newClass(const char *typeName, uint16_t length) {
 
     /* replace '/' to '.' */
     char *text = (char *)name.getText();
-    uint8_t coder = name.getCoder();
-    if(coder == 0) {
-        for(uint32_t i = 0; i < length; i++) {
-            if(text[i] == '/')
-                text[i] = '.';
-        }
-    }
-    else {
-        uint16_t *buff = (uint16_t *)text;
-        for(uint32_t i = 0; i < length; i++) {
-            if(buff[i] == '/')
-                buff[i] = '.';
-        }
+    for(uint32_t i = 0; i < length; i++) {
+        if(text[i] == '/')
+            text[i] = '.';
     }
     return newClass(name);
 }
