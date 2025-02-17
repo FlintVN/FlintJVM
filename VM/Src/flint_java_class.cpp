@@ -28,7 +28,6 @@ bool FlintJavaClass::isPrimitive(void) const {
     FlintJavaString &name = getName();
     uint8_t coder = name.getCoder();
     uint32_t length = name.getLength();
-    uint8_t result = 0;
     if(coder == 0) {
         switch(length) {
             case 3:
@@ -74,46 +73,38 @@ const FlintConstUtf8 *FlintJavaClass::getComponentTypeName(Flint &flint, uint32_
         typeLength--;
         dims++;
     }
+    if(dimensions)
+        *dimensions = dims;
     const FlintConstUtf8 *type = NULL;
     if(dims == 0) {
         switch(typeLength) {
             case 3:
                 if(strncmp(typeText, "int", typeLength) == 0)
-                    type = primTypeConstUtf8List[6];
-                else
-                    return NULL;
+                    return primTypeConstUtf8List[6];
                 break;
             case 4: {
                 if(strncmp(typeText, "byte", typeLength) == 0)
-                    type = primTypeConstUtf8List[4];
+                    return primTypeConstUtf8List[4];
                 else if(strncmp(typeText, "char", typeLength) == 0)
-                    type = primTypeConstUtf8List[1];
+                    return primTypeConstUtf8List[1];
                 else if(strncmp(typeText, "long", typeLength) == 0)
-                    type = primTypeConstUtf8List[7];
-                else
-                    return NULL;
+                    return primTypeConstUtf8List[7];
                 break;
             }
             case 5: {
                 if(strncmp(typeText, "float", typeLength) == 0)
-                    type = primTypeConstUtf8List[2];
+                    return primTypeConstUtf8List[2];
                 else if(strncmp(typeText, "short", typeLength) == 0)
-                    type = primTypeConstUtf8List[5];
-                else
-                    return NULL;
+                    return primTypeConstUtf8List[5];
                 break;
             }
             case 6:
                 if(strncmp(typeText, "double", typeLength) == 0)
-                    type = primTypeConstUtf8List[3];
-                else
-                    return NULL;
+                    return primTypeConstUtf8List[3];
                 break;
             case 7:
                 if(strncmp(typeText, "boolean", typeLength) == 0)
-                    type = primTypeConstUtf8List[0];
-                else
-                    return NULL;
+                    return primTypeConstUtf8List[0];
                 break;
             default:
                 break;
@@ -124,20 +115,28 @@ const FlintConstUtf8 *FlintJavaClass::getComponentTypeName(Flint &flint, uint32_
         typeLength -= 2;
     }
     if(type == NULL) {
-        char *text = (char *)Flint::malloc(typeLength);
-        for(uint32_t i = 0; i < typeLength; i++)
-            text[i] = (typeText[i] == '.') ? '/' : typeText[i];
-        try {
-            type = &flint.getConstUtf8(text, typeLength);
-        }
-        catch(...) {
+        uint8_t atype = FlintJavaObject::convertToAType(typeText[0]);
+        if((dims != 0) && (atype != 0))
+            return primTypeConstUtf8List[atype - 4];
+        else {
+            char *text = (char *)Flint::malloc(typeLength + sizeof(".class"));
+            for(uint32_t i = 0; i < typeLength; i++)
+                text[i] = (typeText[i] == '.') ? '/' : typeText[i];
+            memcpy(&text[typeLength], ".class", sizeof(".class"));
+            try {
+                if(FlintAPI::IO::finfo(text, NULL, NULL) != FILE_RESULT_OK) {
+                    Flint::free(text);
+                    return NULL;
+                }
+                type = &flint.getConstUtf8(text, typeLength);
+            }
+            catch(...) {
+                Flint::free(text);
+                throw;
+            }
             Flint::free(text);
-            throw;
         }
-        Flint::free(text);
     }
-    if(dimensions)
-        *dimensions = dims;
     return type;
 }
 
