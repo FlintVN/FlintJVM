@@ -243,8 +243,19 @@ FlintJavaClass &Flint::newClass(const char *typeName, uint16_t length) {
 
 FlintJavaClass &Flint::getConstClass(const char *typeName, uint16_t length) {
     for(FlintConstClass *node = constClassList; node != 0; node = node->next) {
-        if(node->flintClass.getName().equals(typeName, length))
-            return node->flintClass;
+        FlintJavaString &className = node->flintClass.getName();
+        if((className.getLength() != length) || (className.getCoder() != 0))
+            continue;
+        const char *value = className.getText();
+        for(uint32_t i = 0; i < length; i++) {
+            if(value[i] == typeName[i])
+                continue;
+            else if(typeName[i] == '/' && value[i] == '.')
+                continue;
+            goto nextNode;
+        }
+        return node->flintClass;
+        nextNode:
     }
     FlintJavaClass &classObj = newClass(typeName, length);
     FlintConstClass *newNode = (FlintConstClass *)Flint::malloc(sizeof(FlintConstClass));
