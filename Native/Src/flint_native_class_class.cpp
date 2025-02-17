@@ -91,65 +91,28 @@ static void nativeIsInterface(FlintExecution &execution) {
 
 static void nativeIsArray(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
-    FlintJavaString &name = clsObj->getName();
-    const char *text = name.getText();
-    uint8_t coder = name.getCoder();
-    uint32_t length = name.getLength();
-    if(length > 1 && coder == 0 && text[0] == '[')
-        execution.stackPushInt32(1);
-    else
-        execution.stackPushInt32(0);
+    execution.stackPushInt32(clsObj->isArray());
 }
 
 static void nativeIsPrimitive(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
-    FlintJavaString &name = clsObj->getName();
-    uint8_t coder = name.getCoder();
-    uint32_t length = name.getLength();
-    uint8_t result = 0;
-    if(coder == 0) {
-        switch(length) {
-            case 3:
-                if(strncmp(name.getText(), "int", length) == 0)
-                    result = 1;
-                break;
-            case 4: {
-                const char *text = name.getText();
-                if(strncmp(text, "void", length) == 0)
-                    result = 1;
-                else if(strncmp(text, "byte", length) == 0)
-                    result = 1;
-                else if(strncmp(text, "char", length) == 0)
-                    result = 1;
-                else if(strncmp(text, "long", length) == 0)
-                    result = 1;
-                break;
-            }
-            case 5: {
-                const char *text = name.getText();
-                if(strncmp(text, "float", length) == 0)
-                    result = 1;
-                else if(strncmp(text, "short", length) == 0)
-                    result = 1;
-                break;
-            }
-            case 6:
-                if(strncmp(name.getText(), "double", length) == 0)
-                    result = 1;
-                break;
-            case 7:
-                if(strncmp(name.getText(), "boolean", length) == 0)
-                    result = 1;
-                break;
-            default:
-                break;
-        }
-    }
-    execution.stackPushInt32(result);
+    execution.stackPushInt32(clsObj->isPrimitive());
 }
 
 static void nativeGetSuperclass(FlintExecution &execution) {
-    throw "getSuperclass is not implemented in VM";
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    int32_t modifiers;
+    if(clsObj->isArray() || clsObj->isPrimitive())
+        execution.stackPushObject(NULL);
+    else {
+        FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
+        if(typeName == NULL)
+            return execution.stackPushObject(NULL);
+        FlintConstUtf8 *superClass = &execution.flint.load(*typeName).getSuperClass();
+        if(superClass == NULL)
+            return execution.stackPushObject(NULL);
+        execution.stackPushObject(&execution.flint.getConstClass(superClass->text, superClass->length));
+    }
 }
 
 static void nativeGetInterfaces(FlintExecution &execution) {
@@ -204,7 +167,15 @@ static void nativeGetComponentType(FlintExecution &execution) {
 }
 
 static void nativeGetModifiers(FlintExecution &execution) {
-    throw "getModifiers is not implemented in VM";
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    int32_t modifiers;
+    if(clsObj->isArray() || clsObj->isPrimitive())
+        modifiers = 0x0411;
+    else {
+        FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
+        modifiers = typeName ? execution.flint.load(*typeName).getAccessFlag() : 0x0411;
+    }
+    execution.stackPushInt32(modifiers);
 }
 
 static void nativeIsHidden(FlintExecution &execution) {

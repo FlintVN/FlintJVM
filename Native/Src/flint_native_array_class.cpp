@@ -530,93 +530,18 @@ static void nativeSetDouble(FlintExecution &execution) {
         throwIllegalArgumentException(execution, "Argument type mismatch");
 }
 
-static FlintConstUtf8 &getTypeInfo(FlintExecution &execution, FlintJavaClass *cls, uint32_t *dimensions) {
-    uint32_t dims = 0;
-    FlintJavaString &name = cls->getName();
-    const char *typeText = name.getText();
-    uint32_t typeLength = name.getLength();
-    while((*typeText == '[') && typeLength) {
-        typeText++;
-        typeLength--;
-        dims++;
-    }
-    const FlintConstUtf8 *type = NULL;
-    if(dims == 0) {
-        switch(typeLength) {
-            case 3:
-                if(strncmp(typeText, "int", typeLength) == 0)
-                    type = primTypeConstUtf8List[6];
-                else
-                    throwIllegalArgumentException(execution, NULL);
-                break;
-            case 4: {
-                if(strncmp(typeText, "byte", typeLength) == 0)
-                    type = primTypeConstUtf8List[4];
-                else if(strncmp(typeText, "char", typeLength) == 0)
-                    type = primTypeConstUtf8List[1];
-                else if(strncmp(typeText, "long", typeLength) == 0)
-                    type = primTypeConstUtf8List[7];
-                else
-                    throwIllegalArgumentException(execution, NULL);
-                break;
-            }
-            case 5: {
-                if(strncmp(typeText, "float", typeLength) == 0)
-                    type = primTypeConstUtf8List[2];
-                else if(strncmp(typeText, "short", typeLength) == 0)
-                    type = primTypeConstUtf8List[5];
-                else
-                    throwIllegalArgumentException(execution, NULL);
-                break;
-            }
-            case 6:
-                if(strncmp(typeText, "double", typeLength) == 0)
-                    type = primTypeConstUtf8List[3];
-                else
-                    throwIllegalArgumentException(execution, NULL);
-                break;
-            case 7:
-                if(strncmp(typeText, "boolean", typeLength) == 0)
-                    type = primTypeConstUtf8List[0];
-                else
-                    throwIllegalArgumentException(execution, NULL);
-                break;
-            default:
-                break;
-        }
-    }
-    else if(*typeText == 'L') {
-        typeText++;
-        typeLength -= 2;
-    }
-    if(type == NULL) {
-        char *text = (char *)Flint::malloc(typeLength);
-        for(uint32_t i = 0; i < typeLength; i++)
-            text[i] = (typeText[i] == '.') ? '/' : typeText[i];
-        try {
-            type = &execution.flint.getConstUtf8(text, typeLength);
-        }
-        catch(...) {
-            Flint::free(text);
-            throw;
-        }
-        Flint::free(text);
-    }
-    if(dimensions)
-        *dimensions = dims;
-    return *(FlintConstUtf8 *)type;
-}
-
 static void nativeNewArray(FlintExecution &execution) {
     int32_t length = execution.stackPopInt32();
     FlintJavaClass *componentType = (FlintJavaClass *)execution.stackPopObject();
     checkIsClassType(execution, componentType);
     checkLength(execution, length);
     uint32_t dimensions;
-    FlintConstUtf8 &type = getTypeInfo(execution, componentType, &dimensions);
-    uint8_t atype = FlintJavaObject::isPrimType(type);
+    FlintConstUtf8 *typeName = (FlintConstUtf8 *)componentType->getComponentTypeName(execution.flint, &dimensions);
+    if(typeName == NULL)
+        throwIllegalArgumentException(execution, NULL);
+    uint8_t atype = FlintJavaObject::isPrimType(*typeName);
     uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
-    FlintJavaObject &array = execution.flint.newObject(typeSize * length, type, dimensions + 1);
+    FlintJavaObject &array = execution.flint.newObject(typeSize * length, *typeName, dimensions + 1);
     memset(&array.getFields(), 0, array.size);
     execution.stackPushObject(&array);
 }
@@ -627,10 +552,12 @@ static void nativeMultiNewArray(FlintExecution &execution) {
     checkIsClassType(execution, componentType);
     checkDimensions(execution, dimensions);
     uint32_t endDims;
-    FlintConstUtf8 &type = getTypeInfo(execution, componentType, &endDims);
+    FlintConstUtf8 *typeName = (FlintConstUtf8 *)componentType->getComponentTypeName(execution.flint, &endDims);
+    if(typeName == NULL)
+        throwIllegalArgumentException(execution, NULL);
     if((dimensions->getLength() + endDims) > 255)
         throw &execution.flint.newIllegalArgumentException();
-    FlintJavaObject &array = execution.flint.newMultiArray(type, dimensions->getData(), dimensions->getLength() + endDims, endDims + 1);
+    FlintJavaObject &array = execution.flint.newMultiArray(*typeName, dimensions->getData(), dimensions->getLength() + endDims, endDims + 1);
     execution.stackPushObject(&array);
 }
 

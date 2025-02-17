@@ -8,6 +8,10 @@ class FlintJavaClass : public FlintJavaObject {
 public:
     FlintJavaString &getName(void) const;
     void setName(FlintJavaString *name);
+
+    bool isArray(void) const;
+    bool isPrimitive(void) const;
+    const FlintConstUtf8 *getComponentTypeName(class Flint &flint, uint32_t *dimensions = 0) const;
 protected:
     FlintJavaClass(void) = delete;
     FlintJavaClass(const FlintJavaClass &) = delete;
