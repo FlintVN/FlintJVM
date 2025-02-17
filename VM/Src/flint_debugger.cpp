@@ -229,7 +229,7 @@ void FlintDebugger::responseExceptionInfo(void) {
         if(
             exception &&
             (csr & DBG_STATUS_EXCP) &&
-            flint.isInstanceof(exception, throwableClassName.text, throwableClassName.length)
+            flint.isInstanceof(exception, *(FlintConstUtf8 *)&throwableClassName)
         ) {
             FlintConstUtf8 &type = exception->type;
             FlintJavaString *str = exception->getDetailMessage();

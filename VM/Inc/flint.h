@@ -149,6 +149,7 @@ public:
     FlintMethodInfo &findMethod(FlintConstMethod &constMethod);
 
     bool isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length);
+    bool isInstanceof(FlintJavaObject *obj, FlintConstUtf8 &typeName);
 
     void garbageCollection(void);
 

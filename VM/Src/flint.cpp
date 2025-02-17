@@ -818,23 +818,46 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
         return true;
     if(dimensions != obj->dimensions)
         return false;
-    else {
-        FlintConstUtf8 *objType = &obj->type;
-        if(FlintJavaObject::isPrimType(*objType) || ((len == 1) && (FlintJavaObject::convertToAType(text[0]))))
-            return (len == objType->length) && (text[0] == objType->text[0]);
-        while(1) {
-            if(compareClassName(*objType, text, len))
+    FlintConstUtf8 *objType = &obj->type;
+    if(FlintJavaObject::isPrimType(*objType) || ((len == 1) && (FlintJavaObject::convertToAType(text[0]))))
+        return (len == objType->length) && (text[0] == objType->text[0]);
+    while(1) {
+        if(compareClassName(*objType, text, len))
+            return true;
+        FlintClassLoader &loader = load(*objType);
+        uint16_t interfacesCount = loader.getInterfacesCount();
+        for(uint32_t i = 0; i < interfacesCount; i++) {
+            if(compareClassName(loader.getInterface(i), text, len))
                 return true;
-            FlintClassLoader &loader = load(*objType);
-            uint16_t interfacesCount = loader.getInterfacesCount();
-            for(uint32_t i = 0; i < interfacesCount; i++) {
-                if(compareClassName(loader.getInterface(i), text, len))
-                    return true;
-            }
-            objType = &loader.getSuperClass();
-            if(objType == 0)
-                return false;
         }
+        objType = &loader.getSuperClass();
+        if(objType == 0)
+            return false;
+    }
+}
+
+bool Flint::isInstanceof(FlintJavaObject *obj, FlintConstUtf8 &typeName) {
+    if(typeName.text[0] == '[' || typeName.text[typeName.length - 1] == ';')
+        return isInstanceof(obj, typeName.text, typeName.length);
+    if(objectClassName == typeName)
+        return true;
+    if(obj->dimensions > 0)
+        return false;
+    FlintConstUtf8 *objType = &obj->type;
+    if(FlintJavaObject::isPrimType(*objType) || FlintJavaObject::isPrimType(typeName))
+        return (objType->text[0] == typeName.text[0]);
+    while(1) {
+        if(*objType == typeName)
+            return true;
+        FlintClassLoader &loader = load(*objType);
+        uint16_t interfacesCount = loader.getInterfacesCount();
+        for(uint32_t i = 0; i < interfacesCount; i++) {
+            if(loader.getInterface(i) == typeName)
+                return true;
+        }
+        objType = &loader.getSuperClass();
+        if(objType == 0)
+            return false;
     }
 }
 

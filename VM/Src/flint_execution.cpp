@@ -2080,8 +2080,7 @@ void FlintExecution::run(void) {
             for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
                 FlintExceptionTable &exceptionTable = attributeCode.getException(i);
                 if(exceptionTable.startPc <= tracePc && tracePc < exceptionTable.endPc) {
-                    FlintConstUtf8 &typeName = traceMethod->classLoader.getConstUtf8Class(exceptionTable.catchType);
-                    if(flint.isInstanceof(obj, typeName.text, typeName.length)) {
+                    if(flint.isInstanceof(obj, traceMethod->classLoader.getConstUtf8Class(exceptionTable.catchType))) {
                         while(startSp > traceStartSp)
                             stackRestoreContext();
                         sp = startSp + attributeCode.maxLocals;
@@ -2107,7 +2106,7 @@ void FlintExecution::run(void) {
         if(obj != 0) {
             bool isInsOf;
             try {
-                isInsOf = flint.isInstanceof(obj, type.text, type.length);
+                isInsOf = flint.isInstanceof(obj, type);
             }
             catch(FlintLoadFileError *file) {
                 fileNotFound = file;
@@ -2154,7 +2153,7 @@ void FlintExecution::run(void) {
         FlintJavaObject *obj = stackPopObject();
         FlintConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         try {
-            stackPushInt32(flint.isInstanceof(obj, type.text, type.length));
+            stackPushInt32(flint.isInstanceof(obj, type));
         }
         catch(FlintLoadFileError *file) {
             fileNotFound = file;
