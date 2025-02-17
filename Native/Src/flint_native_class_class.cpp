@@ -86,7 +86,16 @@ static void nativeIsAssignableFrom(FlintExecution &execution) {
 }
 
 static void nativeIsInterface(FlintExecution &execution) {
-    throw "isInterface is not implemented in VM";
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    if(clsObj->isArray() || clsObj->isPrimitive())
+        execution.stackPushInt32(0);
+    else {
+        FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
+        if(typeName == NULL)
+            return execution.stackPushInt32(0);
+        int32_t modifiers = execution.flint.load(*typeName).getAccessFlag();
+        execution.stackPushInt32((modifiers & 0x0200) ? 1 : 0);
+    }
 }
 
 static void nativeIsArray(FlintExecution &execution) {
@@ -173,7 +182,7 @@ static void nativeGetModifiers(FlintExecution &execution) {
         modifiers = 0x0411;
     else {
         FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
-        modifiers = typeName ? execution.flint.load(*typeName).getAccessFlag() : 0x0411;
+        modifiers = typeName ? (execution.flint.load(*typeName).getAccessFlag() & 0xFFDF) : 0x0411;
     }
     execution.stackPushInt32(modifiers);
 }
