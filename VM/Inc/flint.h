@@ -97,8 +97,10 @@ public:
 
     FlintJavaObject &newMultiArray(FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims = 1);
 
+private:
     FlintJavaClass &newClass(FlintJavaString &typeName);
     FlintJavaClass &newClass(const char *typeName, uint16_t length);
+public:
     FlintJavaClass &getConstClass(const char *text, uint16_t length);
     FlintJavaClass &getConstClass(FlintJavaString &str);
 
