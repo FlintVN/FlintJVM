@@ -191,7 +191,8 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
     interfacesCount = ClassLoader_ReadUInt16(file);
     if(interfacesCount) {
         interfaces = (uint16_t *)Flint::malloc(interfacesCount * sizeof(uint16_t));
-        ClassLoader_Read(file, interfaces, interfacesCount * sizeof(uint16_t));
+        for(uint32_t i = 0; i < interfacesCount; i++)
+            interfaces[i] = ClassLoader_ReadUInt16(file);
     }
     fieldsCount = ClassLoader_ReadUInt16(file);
     if(fieldsCount) {

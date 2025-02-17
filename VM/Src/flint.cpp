@@ -790,6 +790,20 @@ FlintMethodInfo &Flint::findMethod(FlintConstMethod &constMethod) {
     throw "can't find the method";
 }
 
+static bool compareClassName(const FlintConstUtf8 &className1, const char *className2, uint32_t length) {
+    if(className1.length != length)
+        return false;
+    const char *txt1 = className1.text;
+    for(uint32_t i = 0; i < length; i++) {
+        if(txt1[i] == className2[i])
+            continue;
+        else if((txt1[i] == '.' && className2[i] == '/') || (txt1[i] == '/' && className2[i] == '.'))
+            continue;
+        return false;
+    }
+    return true;
+}
+
 bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length) {
     const char *text = typeName;
     while(*text == '[')
@@ -800,20 +814,8 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
         text++;
         len -= 2;
     }
-    if(len == 16 && obj->dimensions >= dimensions) {
-        bool isEquals = true;
-        const char *text2 = objectClassName.text;
-        for(uint32_t i = 0; i < len; i++) {
-            if(text[i] == text2[i])
-                continue;
-            else if((text[i] == '.' && text2[i] == '/') || (text[i] == '/' && text2[i] == '.'))
-                continue;
-            isEquals = false;
-            break;
-        }
-        if(isEquals)
-            return true;
-    }
+    if((obj->dimensions >= dimensions) && compareClassName(objectClassName, text, len))
+        return true;
     if(dimensions != obj->dimensions)
         return false;
     else {
@@ -821,21 +823,15 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
         if(FlintJavaObject::isPrimType(*objType) || ((len == 1) && (FlintJavaObject::convertToAType(text[0]))))
             return (len == objType->length) && (text[0] == objType->text[0]);
         while(1) {
-            if(len == objType->length) {
-                bool isEquals = true;
-                const char *text2 = objType->text;
-                for(uint32_t i = 0; i < len; i++) {
-                    if(text[i] == text2[i])
-                        continue;
-                    else if((text[i] == '.' && text2[i] == '/') || (text[i] == '/' && text2[i] == '.'))
-                        continue;
-                    isEquals = false;
-                    break;
-                }
-                if(isEquals)
+            if(compareClassName(*objType, text, len))
+                return true;
+            FlintClassLoader &loader = load(*objType);
+            uint16_t interfacesCount = loader.getInterfacesCount();
+            for(uint32_t i = 0; i < interfacesCount; i++) {
+                if(compareClassName(loader.getInterface(i), text, len))
                     return true;
             }
-            objType = &load(*objType).getSuperClass();
+            objType = &loader.getSuperClass();
             if(objType == 0)
                 return false;
         }
