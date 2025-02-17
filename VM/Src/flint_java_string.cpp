@@ -119,12 +119,11 @@ void FlintJavaString::setCoder(uint8_t coder) {
 }
 
 bool FlintJavaString::equals(const char *text, uint32_t length) const {
-    uint8_t coder1 = getCoder();
-    if((getLength() != length) || (coder1 != 0))
+    if((getLength() != length) || (getCoder() != 0))
         return false;
-    const char *value1 = getText();
+    const char *value = getText();
     for(uint32_t i = 0; i < length; i++) {
-        if(value1[i] != text[i])
+        if(value[i] != text[i])
             return false;
     }
     return true;
@@ -132,9 +131,11 @@ bool FlintJavaString::equals(const char *text, uint32_t length) const {
 
 bool FlintJavaString::equals(const FlintConstUtf8 &utf8) const {
     uint32_t len2 = utf8StrLen(utf8.text);
+    if(getLength() != len2)
+        return false;
     uint8_t coder1 = getCoder();
     uint8_t coder2 = isLatin1(utf8.text) ? 0 : 1;
-    if((getLength() != len2) || (coder1 != coder2))
+    if(coder1 != coder2)
         return false;
     const char *value1 = getText();
     if(coder1 == 0) {
@@ -163,15 +164,15 @@ bool FlintJavaString::equals(const FlintConstUtf8 &utf8) const {
 bool FlintJavaString::equals(FlintJavaString &str) const {
     if(this == &str)
         return true;
-    uint32_t len1 = getLength();
-    uint32_t len2 = str.getLength();
-    uint8_t coder1 = getCoder();
-    uint8_t coder2 = str.getCoder();
-    if((len1 != len2) || (coder1 != coder2))
+    uint32_t len = getLength();
+    if(len != str.getLength())
+        return false;
+    uint8_t coder = getCoder();
+    if(coder != str.getCoder())
         return false;
     const char *value1 = getText();
     const char *value2 = str.getText();
-    uint32_t len = len1 << coder1;
+    len <<= coder;
     for(uint32_t i = 0; i < len; i++) {
         if(value1[i] != value2[i])
             return false;
