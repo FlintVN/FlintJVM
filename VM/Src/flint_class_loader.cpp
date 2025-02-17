@@ -23,13 +23,7 @@ static void *ClassLoader_Open(const char *fileName) {
         buff[i] = fileName[i];
         i++;
     }
-    buff[i++] = '.';
-    buff[i++] = 'c';
-    buff[i++] = 'l';
-    buff[i++] = 'a';
-    buff[i++] = 's';
-    buff[i++] = 's';
-    buff[i++] = 0;
+    memcpy(&buff[i], ".class", sizeof(".class"));
 
     void *file = FlintAPI::IO::fopen(buff, FLINT_FILE_READ);
     if(file == 0)
@@ -38,19 +32,9 @@ static void *ClassLoader_Open(const char *fileName) {
 }
 
 static void *ClassLoader_Open(const char *fileName, uint32_t length) {
-    char buff[256];
-    uint32_t i = 0;
-    while(i < length) {
-        buff[i] = fileName[i];
-        i++;
-    }
-    buff[i++] = '.';
-    buff[i++] = 'c';
-    buff[i++] = 'l';
-    buff[i++] = 'a';
-    buff[i++] = 's';
-    buff[i++] = 's';
-    buff[i++] = 0;
+    char buff[FILE_NAME_BUFF_SIZE];
+    memcpy(buff, fileName, length);
+    memcpy(&buff[length], ".class", sizeof(".class"));
 
     void *file = FlintAPI::IO::fopen(buff, FLINT_FILE_READ);
     if(file == 0)
