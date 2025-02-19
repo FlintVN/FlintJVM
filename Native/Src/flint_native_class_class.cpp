@@ -82,7 +82,16 @@ static void nativeIsInstance(FlintExecution &execution) {
 }
 
 static void nativeIsAssignableFrom(FlintExecution &execution) {
-    throw "isAssignableFrom is not implemented in VM";
+    FlintJavaClass *cls = (FlintJavaClass *)execution.stackPopObject();
+    FlintJavaClass *thisCls = (FlintJavaClass *)execution.stackPopObject();
+    if(cls == NULL || thisCls == NULL)
+        throw &execution.flint.newNullPointerException();
+    uint32_t clsDims, thisDims;
+    FlintConstUtf8 *clsTypeName = (FlintConstUtf8 *)cls->getComponentTypeName(execution.flint, &clsDims);
+    FlintConstUtf8 *thisTypeName = (FlintConstUtf8 *)thisCls->getComponentTypeName(execution.flint, &thisDims);
+    if(clsTypeName == NULL || thisTypeName == NULL)
+        return execution.stackPushInt32(0);
+    execution.stackPushInt32(execution.flint.isInstanceof(*clsTypeName, clsDims, *thisTypeName, thisDims) ? 1 : 0);
 }
 
 static void nativeIsInterface(FlintExecution &execution) {

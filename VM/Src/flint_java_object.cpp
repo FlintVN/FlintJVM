@@ -3,9 +3,10 @@
 #include "flint_const_name.h"
 #include "flint_fields_data.h"
 
-static const uint8_t primitiveTypeSize[8] = {
+static const uint8_t primitiveTypeSize[9] = {
     sizeof(int8_t), sizeof(int16_t), sizeof(float), sizeof(double),
-    sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t)
+    sizeof(int8_t), sizeof(int16_t), sizeof(int32_t), sizeof(int64_t),
+    0
 };
 
 uint8_t FlintJavaObject::getPrimitiveTypeSize(uint8_t atype) {
@@ -30,6 +31,8 @@ uint8_t FlintJavaObject::convertToAType(char type) {
             return 10;
         case 'J':
             return 11;
+        case 'V':
+            return 12;
     }
     return 0;
 }

@@ -10,6 +10,7 @@ const FlintConstUtf8 * const primTypeConstUtf8List[] = {
     (FlintConstUtf8 *)"\x01\x00\x00\x82""S",                 /* short */
     (FlintConstUtf8 *)"\x01\x00\x81\x49""I",                 /* integer */
     (FlintConstUtf8 *)"\x01\x00\xC1\x48""J",                 /* long */
+    (FlintConstUtf8 *)"\x01\x00\xC0\x81""V",                 /* void */
 };
 
 const FlintConstUtf8 &mathClassName = *(const FlintConstUtf8 *)"\x0E\x00\x37\xC8""java/lang/Math";

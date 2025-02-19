@@ -83,7 +83,9 @@ const FlintConstUtf8 *FlintJavaClass::getComponentTypeName(Flint &flint, uint32_
                     return primTypeConstUtf8List[6];
                 break;
             case 4: {
-                if(strncmp(typeText, "byte", typeLength) == 0)
+                if(strncmp(typeText, "void", typeLength) == 0)
+                    return primTypeConstUtf8List[8];
+                else if(strncmp(typeText, "byte", typeLength) == 0)
                     return primTypeConstUtf8List[4];
                 else if(strncmp(typeText, "char", typeLength) == 0)
                     return primTypeConstUtf8List[1];

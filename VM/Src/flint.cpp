@@ -408,6 +408,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         primTypeConstUtf8List[5],
         primTypeConstUtf8List[6],
         primTypeConstUtf8List[7],
+        primTypeConstUtf8List[8],
         &mathClassName,
         &byteClassName,
         &longClassName,
@@ -839,7 +840,7 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
 bool Flint::isInstanceof(FlintJavaObject *obj, FlintConstUtf8 &typeName) {
     if(typeName.text[0] == '[' || typeName.text[typeName.length - 1] == ';')
         return isInstanceof(obj, typeName.text, typeName.length);
-    if(objectClassName == typeName)
+    if(typeName == objectClassName)
         return true;
     if(obj->dimensions > 0)
         return false;
@@ -853,6 +854,29 @@ bool Flint::isInstanceof(FlintJavaObject *obj, FlintConstUtf8 &typeName) {
         uint16_t interfacesCount = loader.getInterfacesCount();
         for(uint32_t i = 0; i < interfacesCount; i++) {
             if(loader.getInterface(i) == typeName)
+                return true;
+        }
+        objType = &loader.getSuperClass();
+        if(objType == 0)
+            return false;
+    }
+}
+
+bool Flint::isInstanceof(FlintConstUtf8 &typeName1, uint32_t dimensions1, FlintConstUtf8 &typeName2, uint32_t dimensions2) {
+    if((dimensions1 >= dimensions2) && (typeName2 == objectClassName))
+        return true;
+    if(dimensions1 != dimensions2)
+        return false;
+    if(FlintJavaObject::isPrimType(typeName1) || FlintJavaObject::isPrimType(typeName2))
+        return (typeName1.text[0] == typeName2.text[0]);
+    FlintConstUtf8 *objType = &typeName1;
+    while(1) {
+        if(*objType == typeName2)
+            return true;
+        FlintClassLoader &loader = load(*objType);
+        uint16_t interfacesCount = loader.getInterfacesCount();
+        for(uint32_t i = 0; i < interfacesCount; i++) {
+            if(loader.getInterface(i) == typeName2)
                 return true;
         }
         objType = &loader.getSuperClass();
