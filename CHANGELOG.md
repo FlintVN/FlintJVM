@@ -1,4 +1,16 @@
 # Change Log
+## V1.1.2
+- Fix the bug in the Flint::isInstanceof method when checking with primitive and interface types. It impacts checkcast, instanceof instructions, try...catch in java and more.
+- Add method to support create IllegalArgumentException object.
+- Add method to support create wrapper classes (Boolean, Byte, Character, Short, Integer, Float, Long, Double).
+- Full implementation of all native methods for java.lang.reflect.Array.
+- Implement some native method for java.lang.Class:
+  - getSuperclass.
+  - getModifiers.
+  - isInterface.
+  - isAssignableFrom.
+  - getInterfaces0.
+- Improve code and fix other bugs.
 ## V1.1.1
 - Fix bug relate to VM.
   - Bug when call to methods of an array object.
@@ -16,7 +28,7 @@
 - Workround for ESP32 can't catch exceptions in a top-level of a task.
 - Supports additional methods to create exception objects.
 - Changed CRC calculation algorithm used in FlintJavaString and debugger.
-- Add SEEK_FILE in debugger.
+- Add SEEK_FILE command in debugger.
 - Fix bug in "lcmp" bytecode instruction.
 - Implement Object.identityHashCode native method.
 - Add some native methods to support BigInteger (incomplete).
