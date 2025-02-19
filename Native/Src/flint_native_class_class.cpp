@@ -133,8 +133,27 @@ static void nativeGetSuperclass(FlintExecution &execution) {
     }
 }
 
-static void nativeGetInterfaces(FlintExecution &execution) {
-    throw "getInterfaces is not implemented in VM";
+static void nativeGetInterfaces0(FlintExecution &execution) {
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    if(clsObj->isArray() || clsObj->isPrimitive())
+        execution.stackPushObject(NULL);
+    else {
+        FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
+        if(typeName == NULL)
+            return execution.stackPushObject(NULL);
+        FlintClassLoader &loader = execution.flint.load(*typeName);
+        uint32_t interfaceCount = loader.getInterfacesCount();
+        if(interfaceCount) {
+            FlintObjectArray &clsArr = execution.flint.newObjectArray(*(FlintConstUtf8 *)&classClassName, interfaceCount);
+            for(uint32_t i = 0; i < interfaceCount; i++) {
+                FlintConstUtf8 &interfaceName = loader.getInterface(i);
+                clsArr.getData()[i] = &execution.flint.getConstClass(interfaceName.text, interfaceName.length);
+            }
+            execution.stackPushObject(&clsArr);
+        }
+        else
+            execution.stackPushObject(NULL);
+    }
 }
 
 static void nativeGetComponentType(FlintExecution &execution) {
@@ -209,7 +228,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x07\x00\x79\xE4""isArray",           "\x03\x00\x91\x9C""()Z",                                   nativeIsArray),
     NATIVE_METHOD("\x0B\x00\x21\x49""isPrimitive",       "\x03\x00\x91\x9C""()Z",                                   nativeIsPrimitive),
     NATIVE_METHOD("\x0D\x00\x38\xF1""getSuperclass",     "\x13\x00\x0A\x1F""()Ljava/lang/Class;",                   nativeGetSuperclass),
-    NATIVE_METHOD("\x0D\x00\xC7\x4B""getInterfaces",     "\x14\x00\xEA\x91""()[Ljava/lang/Class;",                  nativeGetInterfaces),
+    NATIVE_METHOD("\x0E\x00\x4A\x39""getInterfaces0",    "\x14\x00\xEA\x91""()[Ljava/lang/Class;",                  nativeGetInterfaces0),
     NATIVE_METHOD("\x10\x00\x95\x8C""getComponentType",  "\x13\x00\x0A\x1F""()Ljava/lang/Class;",                   nativeGetComponentType),
     NATIVE_METHOD("\x0C\x00\x21\x8F""getModifiers",      "\x03\x00\xD0\x51""()I",                                   nativeGetModifiers),
     NATIVE_METHOD("\x08\x00\x9C\xA3""isHidden",          "\x03\x00\x91\x9C""()Z",                                   nativeIsHidden),
