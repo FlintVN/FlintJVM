@@ -136,11 +136,11 @@ static void nativeGetSuperclass(FlintExecution &execution) {
 static void nativeGetInterfaces0(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive())
-        execution.stackPushObject(NULL);
+        execution.stackPushObject(&execution.flint.newObjectArray(*(FlintConstUtf8 *)&classClassName, 0));
     else {
         FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
         if(typeName == NULL)
-            return execution.stackPushObject(NULL);
+            return execution.stackPushObject(&execution.flint.newObjectArray(*(FlintConstUtf8 *)&classClassName, 0));
         FlintClassLoader &loader = execution.flint.load(*typeName);
         uint32_t interfaceCount = loader.getInterfacesCount();
         if(interfaceCount) {
@@ -152,7 +152,7 @@ static void nativeGetInterfaces0(FlintExecution &execution) {
             execution.stackPushObject(&clsArr);
         }
         else
-            execution.stackPushObject(NULL);
+            execution.stackPushObject(&execution.flint.newObjectArray(*(FlintConstUtf8 *)&classClassName, 0));
     }
 }
 
