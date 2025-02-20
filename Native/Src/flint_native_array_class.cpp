@@ -542,7 +542,7 @@ static void nativeNewArray(FlintExecution &execution) {
     uint8_t atype = FlintJavaObject::isPrimType(*typeName);
     uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
     FlintJavaObject &array = execution.flint.newObject(typeSize * length, *typeName, dimensions + 1);
-    memset(&array.getFields(), 0, array.size);
+    memset((void *)&array.getFields(), 0, array.size);
     execution.stackPushObject(&array);
 }
 
