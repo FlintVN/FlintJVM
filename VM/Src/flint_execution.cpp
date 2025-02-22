@@ -338,8 +338,7 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", constMethod.className.text, ".", constMethod.nameAndType.name.text, " by null object"};
-        FlintJavaThrowable &excpObj = flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
-        stackPushObject(&excpObj);
+        throw &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
     }
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
@@ -376,8 +375,7 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
     FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc + 1];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
-        FlintJavaThrowable &excpObj = flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
-        stackPushObject(&excpObj);
+        throw &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
     }
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
