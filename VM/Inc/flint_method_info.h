@@ -26,6 +26,7 @@ public:
     FlintAttribute &getAttribute(FlintAttributeType type) const;
     FlintCodeAttribute &getAttributeCode(void) const;
     FlintNativeAttribute &getAttributeNative(void) const;
+    bool hasAttributeCode(void) const;
 
     ~FlintMethodInfo(void);
 };

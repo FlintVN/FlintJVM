@@ -19,6 +19,7 @@ extern const FlintConstUtf8 &objectClassName;
 extern const FlintConstUtf8 &systemClassName;
 extern const FlintConstUtf8 &stringClassName;
 extern const FlintConstUtf8 &threadClassName;
+extern const FlintConstUtf8 &methodClassName;
 extern const FlintConstUtf8 &booleanClassName;
 extern const FlintConstUtf8 &integerClassName;
 extern const FlintConstUtf8 &characterClassName;
@@ -27,6 +28,7 @@ extern const FlintConstUtf8 &exceptionClassName;
 extern const FlintConstUtf8 &bigIntegerClassName;
 extern const FlintConstUtf8 &printStreamClassName;
 extern const FlintConstUtf8 &ioExceptionClassName;
+extern const FlintConstUtf8 &constructorClassName;
 extern const FlintConstUtf8 &flintGraphicsClassName;
 extern const FlintConstUtf8 &classCastExceptionClassName;
 extern const FlintConstUtf8 &arrayStoreExceptionClassName;
@@ -43,5 +45,12 @@ extern const FlintConstUtf8 &arrayIndexOutOfBoundsExceptionClassName;
 
 extern const FlintConstUtf8 &constructorName;
 extern const FlintConstUtf8 &staticConstructorName;
+
+extern const FlintConstUtf8 &nameFieldName;
+extern const FlintConstUtf8 &clazzFieldName;
+extern const FlintConstUtf8 &returnTypeFieldName;
+extern const FlintConstUtf8 &parameterTypesFieldName;
+extern const FlintConstUtf8 &exceptionTypesFieldName;
+extern const FlintConstUtf8 &modifiersFieldName;
 
 #endif /* __FLINT_CONST_NAME_H */

@@ -66,8 +66,9 @@ Flint::Flint(void) {
     objectList = 0;
     constClassList = 0;
     constStringList = 0;
-    objectSizeToGc = 0;
     constUtf8List = 0;
+    classArray0 = 0;
+    objectSizeToGc = 0;
 }
 
 FlintDebugger *Flint::getDebugger(void) const {
@@ -162,35 +163,35 @@ FlintJavaObject &Flint::newObject(const FlintConstUtf8 &type) {
 }
 
 FlintInt8Array &Flint::newBooleanArray(uint32_t length) {
-    return *(FlintInt8Array *)&newObject(length, *(FlintConstUtf8 *)primTypeConstUtf8List[0], 1);
+    return *(FlintInt8Array *)&newObject(length, *primTypeConstUtf8List[0], 1);
 }
 
 FlintInt8Array &Flint::newByteArray(uint32_t length) {
-    return *(FlintInt8Array *)&newObject(length, *(FlintConstUtf8 *)primTypeConstUtf8List[4], 1);
+    return *(FlintInt8Array *)&newObject(length, *primTypeConstUtf8List[4], 1);
 }
 
 FlintInt16Array &Flint::newCharArray(uint32_t length) {
-    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)primTypeConstUtf8List[1], 1);
+    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), *primTypeConstUtf8List[1], 1);
 }
 
 FlintInt16Array &Flint::newShortArray(uint32_t length) {
-    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)primTypeConstUtf8List[5], 1);
+    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), *primTypeConstUtf8List[5], 1);
 }
 
 FlintInt32Array &Flint::newIntegerArray(uint32_t length) {
-    return *(FlintInt32Array *)&newObject(length * sizeof(int32_t), *(FlintConstUtf8 *)primTypeConstUtf8List[6], 1);
+    return *(FlintInt32Array *)&newObject(length * sizeof(int32_t), *primTypeConstUtf8List[6], 1);
 }
 
 FlintFloatArray &Flint::newFloatArray(uint32_t length) {
-    return *(FlintFloatArray *)&newObject(length * sizeof(float), *(FlintConstUtf8 *)primTypeConstUtf8List[2], 1);
+    return *(FlintFloatArray *)&newObject(length * sizeof(float), *primTypeConstUtf8List[2], 1);
 }
 
 FlintInt64Array &Flint::newLongArray(uint32_t length) {
-    return *(FlintInt64Array *)&newObject(length * sizeof(int64_t), *(FlintConstUtf8 *)primTypeConstUtf8List[7], 1);
+    return *(FlintInt64Array *)&newObject(length * sizeof(int64_t), *primTypeConstUtf8List[7], 1);
 }
 
 FlintDoubleArray &Flint::newDoubleArray(uint32_t length) {
-    return *(FlintDoubleArray *)&newObject(length * sizeof(double), *(FlintConstUtf8 *)primTypeConstUtf8List[3], 1);
+    return *(FlintDoubleArray *)&newObject(length * sizeof(double), *primTypeConstUtf8List[3], 1);
 }
 
 FlintObjectArray &Flint::newObjectArray(const FlintConstUtf8 &type, uint32_t length) {
@@ -242,6 +243,10 @@ FlintJavaClass &Flint::newClass(const char *typeName, uint16_t length) {
 }
 
 FlintJavaClass &Flint::getConstClass(const char *typeName, uint16_t length) {
+    if(*typeName == 'L') {
+        length -= (typeName[length - 1] == ';') ? 2 : 1;
+        typeName++;
+    }
     for(FlintConstClass *node = constClassList; node != 0; node = node->next) {
         FlintJavaString &className = node->flintClass.getName();
         if((className.getLength() != length) || (className.getCoder() != 0))
@@ -256,6 +261,7 @@ FlintJavaClass &Flint::getConstClass(const char *typeName, uint16_t length) {
         }
         return node->flintClass;
         nextNode:
+        continue;
     }
     FlintJavaClass &classObj = newClass(typeName, length);
     FlintConstClass *newNode = (FlintConstClass *)Flint::malloc(sizeof(FlintConstClass));
@@ -409,6 +415,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         primTypeConstUtf8List[6],
         primTypeConstUtf8List[7],
         primTypeConstUtf8List[8],
+
         &mathClassName,
         &byteClassName,
         &longClassName,
@@ -422,6 +429,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &systemClassName,
         &stringClassName,
         &threadClassName,
+        &methodClassName,
         &booleanClassName,
         &integerClassName,
         &characterClassName,
@@ -430,6 +438,7 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &bigIntegerClassName,
         &printStreamClassName,
         &ioExceptionClassName,
+        &constructorClassName,
         &flintGraphicsClassName,
         &classCastExceptionClassName,
         &arrayStoreExceptionClassName,
@@ -443,8 +452,16 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &negativeArraySizeExceptionClassName,
         &unsupportedOperationExceptionClassName,
         &arrayIndexOutOfBoundsExceptionClassName,
+
         &constructorName,
         &staticConstructorName,
+
+        &nameFieldName,
+        &clazzFieldName,
+        &returnTypeFieldName,
+        &parameterTypesFieldName,
+        &exceptionTypesFieldName,
+        &modifiersFieldName,
     };
 
     uint32_t hash;
@@ -482,6 +499,15 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
     Flint::unlock();
 
     return newNode->value;
+}
+
+FlintObjectArray &Flint::getClassArray0(void) {
+    Flint::lock();
+    if(classArray0 == NULL)
+        classArray0 = &newObjectArray(classClassName, 0);
+    classArray0->prot = 0x02;
+    Flint::unlock();
+    return *classArray0;
 }
 
 FlintJavaThrowable &Flint::newThrowable(FlintJavaString *strObj, const FlintConstUtf8 &excpType) {
@@ -677,6 +703,8 @@ void Flint::garbageCollection(void) {
             }
         }
     }
+    if(classArray0 && classArray0->getProtected() == 0)
+        classArray0 = 0;
     for(FlintJavaObject *node = objectList; node != 0;) {
         FlintJavaObject *next = node->next;
         uint8_t prot = node->getProtected();
@@ -814,8 +842,8 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
     uint32_t dimensions = text - typeName;
     uint32_t len = length - dimensions;
     if(*text == 'L') {
+        len -= (text[len - 1] == ';') ? 2 : 1;
         text++;
-        len -= 2;
     }
     if((obj->dimensions >= dimensions) && compareClassName(objectClassName, text, len))
         return true;
@@ -952,6 +980,7 @@ void Flint::freeAllObject(void) {
     constClassList = 0;
     constStringList = 0;
     objectList = 0;
+    classArray0 = 0;
     objectSizeToGc = 0;
     Flint::unlock();
 }

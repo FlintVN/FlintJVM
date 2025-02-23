@@ -33,8 +33,10 @@ const FlintConstUtf8 &throwableClassName = *(const FlintConstUtf8 *)"\x13\x00\xB
 const FlintConstUtf8 &exceptionClassName = *(const FlintConstUtf8 *)"\x13\x00\xF6\xDA""java/lang/Exception";
 const FlintConstUtf8 &bigIntegerClassName = *(const FlintConstUtf8 *)"\x14\x00\x72\xF5""java/math/BigInteger";
 const FlintConstUtf8 &printStreamClassName = *(const FlintConstUtf8 *)"\x13\x00\x34\x38""java/io/PrintStream";
+const FlintConstUtf8 &methodClassName = *(const FlintConstUtf8 *)"\x18\x00\x97\x00""java/lang/reflect/Method";
 const FlintConstUtf8 &ioExceptionClassName = *(const FlintConstUtf8 *)"\x15\x00\xE3\x8E""java/lang/IOException";
 const FlintConstUtf8 &flintGraphicsClassName = *(const FlintConstUtf8 *)"\x16\x00\x9C\xA2""flint/drawing/Graphics";
+const FlintConstUtf8 &constructorClassName = *(const FlintConstUtf8 *)"\x1D\x00\x9E\x82""java/lang/reflect/Constructor";
 const FlintConstUtf8 &classCastExceptionClassName = *(const FlintConstUtf8 *)"\x1C\x00\x79\xFD""java/lang/ClassCastException";
 const FlintConstUtf8 &arrayStoreExceptionClassName = *(const FlintConstUtf8 *)"\x1D\x00\xCA\x26""java/lang/ArrayStoreException";
 const FlintConstUtf8 &arithmeticExceptionClassName = *(const FlintConstUtf8 *)"\x1D\x00\x19\x72""java/lang/ArithmeticException";
@@ -50,3 +52,10 @@ const FlintConstUtf8 &arrayIndexOutOfBoundsExceptionClassName = *(const FlintCon
 
 const FlintConstUtf8 &constructorName = *(const FlintConstUtf8 *)"\x06\x00\xCC\xF5""<init>";
 const FlintConstUtf8 &staticConstructorName = *(const FlintConstUtf8 *)"\x08\x00\xD0\xF2""<clinit>";
+
+const FlintConstUtf8 &nameFieldName = *(FlintConstUtf8 *)"\x04\x00\x5E\x56""name";
+const FlintConstUtf8 &clazzFieldName = *(FlintConstUtf8 *)"\x05\x00\xF1\xFA""clazz";
+const FlintConstUtf8 &returnTypeFieldName = *(FlintConstUtf8 *)"\x0A\x00\x5E\x42""returnType";
+const FlintConstUtf8 &parameterTypesFieldName = *(FlintConstUtf8 *)"\x0E\x00\x9B\xC1""parameterTypes";
+const FlintConstUtf8 &exceptionTypesFieldName = *(FlintConstUtf8 *)"\x0E\x00\xBD\xB7""exceptionTypes";
+const FlintConstUtf8 &modifiersFieldName = *(FlintConstUtf8 *)"\x09\x00\x0F\xC4""modifiers";

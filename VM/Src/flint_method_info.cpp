@@ -72,6 +72,14 @@ FlintNativeAttribute &FlintMethodInfo::getAttributeNative(void) const {
     throw "can't find the native attribute";
 }
 
+bool FlintMethodInfo::hasAttributeCode(void) const {
+    for(FlintAttribute *node = attributes; node != 0; node = node->next) {
+        if(node->attributeType == ATTRIBUTE_CODE)
+            return true;
+    }
+    return false;
+}
+
 FlintMethodInfo::~FlintMethodInfo(void) {
     for(FlintAttribute *node = attributes; node != 0;) {
         FlintAttribute *next = node->next;

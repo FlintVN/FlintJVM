@@ -6,11 +6,11 @@
 #include "flint.h"
 
 FlintJavaString &FlintJavaClass::getName(void) const {
-    return *(FlintJavaString *)getFields().getFieldObject(*(const FlintConstUtf8 *)"\x04\x00\x5E\x56""name").object;
+    return *(FlintJavaString *)getFields().getFieldObject(nameFieldName).object;
 }
 
 void FlintJavaClass::setName(FlintJavaString *name) {
-    getFields().getFieldObject(*(const FlintConstUtf8 *)"\x04\x00\x5E\x56""name").object = name;
+    getFields().getFieldObject(nameFieldName).object = name;
 }
 
 bool FlintJavaClass::isArray(void) const {
@@ -113,8 +113,8 @@ const FlintConstUtf8 *FlintJavaClass::getComponentTypeName(Flint &flint, uint32_
         }
     }
     else if(*typeText == 'L') {
+        typeLength -= (typeText[typeLength - 1] == ';') ? 2 : 1;
         typeText++;
-        typeLength -= 2;
     }
     if(type == NULL) {
         uint8_t atype = FlintJavaObject::convertToAType(typeText[0]);

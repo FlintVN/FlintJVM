@@ -58,6 +58,7 @@ private:
     FlintConstClass *constClassList;
     FlintConstString *constStringList;
     FlintConstUtf8Node *constUtf8List;
+    FlintObjectArray *classArray0;
     uint32_t objectSizeToGc;
 
     Flint(void);
@@ -111,6 +112,8 @@ public:
     FlintJavaString &getConstString(FlintJavaString &str);
 
     FlintConstUtf8 &getConstUtf8(const char *text, uint16_t length);
+
+    FlintObjectArray &getClassArray0(void);
 
 private:
     FlintJavaThrowable &newThrowable(FlintJavaString *strObj, const FlintConstUtf8 &excpType);

@@ -2013,7 +2013,7 @@ void FlintExecution::run(void) {
             goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
         uint8_t typeSize = FlintJavaObject::getPrimitiveTypeSize(atype);
-        FlintJavaObject &obj = flint.newObject(typeSize * count, *(FlintConstUtf8 *)primTypeConstUtf8List[atype - 4], 1);
+        FlintJavaObject &obj = flint.newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1);
         memset(obj.data, 0, obj.size);
         stackPushObject(&obj);
         pc += 2;
