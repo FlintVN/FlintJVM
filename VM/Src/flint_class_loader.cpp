@@ -784,11 +784,11 @@ FlintMethodInfo &FlintClassLoader::getMainMethodInfo(void) const {
 }
 
 FlintMethodInfo &FlintClassLoader::getStaticConstructor(void) const {
-    static const uint32_t nameAndType[] = {
-        (uint32_t)"\x08\x00\xD0\xF2""<clinit>",                 /* method name */
-        (uint32_t)"\x03\x00\x91\x99""()V",                      /* method type */
-    };
-    return getMethodInfo(*(FlintConstNameAndType *)nameAndType);
+    for(uint16_t i = 0; i < methodsCount; i++) {
+        if(staticConstructorName == methods[i].name)
+            return methods[i];
+    }
+    return *(FlintMethodInfo *)0;
 }
 
 FlintClassLoader::~FlintClassLoader(void) {

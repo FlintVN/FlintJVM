@@ -41,4 +41,7 @@ extern const FlintConstUtf8 &negativeArraySizeExceptionClassName;
 extern const FlintConstUtf8 &unsupportedOperationExceptionClassName;
 extern const FlintConstUtf8 &arrayIndexOutOfBoundsExceptionClassName;
 
+extern const FlintConstUtf8 &constructorName;
+extern const FlintConstUtf8 &staticConstructorName;
+
 #endif /* __FLINT_CONST_NAME_H */

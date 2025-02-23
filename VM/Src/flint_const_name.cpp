@@ -47,3 +47,6 @@ const FlintConstUtf8 &cloneNotSupportedExceptionClassName = *(const FlintConstUt
 const FlintConstUtf8 &negativeArraySizeExceptionClassName = *(const FlintConstUtf8 *)"\x24\x00\x7F\xE4""java/lang/NegativeArraySizeException";
 const FlintConstUtf8 &unsupportedOperationExceptionClassName = *(const FlintConstUtf8 *)"\x27\x00\xE6\x1D""java/lang/UnsupportedOperationException";
 const FlintConstUtf8 &arrayIndexOutOfBoundsExceptionClassName = *(const FlintConstUtf8 *)"\x28\x00\x90\x1F""java/lang/ArrayIndexOutOfBoundsException";
+
+const FlintConstUtf8 &constructorName = *(const FlintConstUtf8 *)"\x06\x00\xCC\xF5""<init>";
+const FlintConstUtf8 &staticConstructorName = *(const FlintConstUtf8 *)"\x08\x00\xD0\xF2""<clinit>";

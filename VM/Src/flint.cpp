@@ -443,6 +443,8 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         &negativeArraySizeExceptionClassName,
         &unsupportedOperationExceptionClassName,
         &arrayIndexOutOfBoundsExceptionClassName,
+        &constructorName,
+        &staticConstructorName,
     };
 
     uint32_t hash;
