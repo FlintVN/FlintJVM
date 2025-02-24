@@ -340,7 +340,7 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         const char *msg[] = {"Cannot invoke ", constMethod.className.text, ".", constMethod.nameAndType.name.text, " by null object"};
         throw &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
     }
-    FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
+    FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
     if(constMethod.methodInfo && constMethod.methodInfo->classLoader.getThisClass() == type)
         methodInfo = constMethod.methodInfo;
@@ -377,7 +377,7 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
         const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
         throw &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
     }
-    FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? *(FlintConstUtf8 *)&objectClassName : obj->type;
+    FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
     if(interfaceMethod.methodInfo && interfaceMethod.methodInfo->classLoader.getThisClass() == type)
         methodInfo = interfaceMethod.methodInfo;
@@ -2439,7 +2439,7 @@ bool FlintExecution::hasTerminateRequest(void) const {
 FlintJavaThread &FlintExecution::getOnwerThread(void) {
     if(onwerThread == NULL) {
         Flint::lock();
-        onwerThread = (FlintJavaThread *)&flint.newObject(*(FlintConstUtf8 *)&threadClassName);
+        onwerThread = (FlintJavaThread *)&flint.newObject(threadClassName);
         Flint::unlock();
     }
     return *onwerThread;

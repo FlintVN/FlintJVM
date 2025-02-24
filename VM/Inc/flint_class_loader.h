@@ -91,12 +91,12 @@ public:
 
     uint16_t getFieldsCount(void) const;
     FlintFieldInfo &getFieldInfo(uint8_t fieldIndex) const;
-    FlintFieldInfo &getFieldInfo(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) const;
+    FlintFieldInfo &getFieldInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const;
     FlintFieldInfo &getFieldInfo(FlintConstNameAndType &nameAndType) const;
 
     uint16_t getMethodsCount(void) const;
     FlintMethodInfo &getMethodInfo(uint8_t methodIndex) const;
-    FlintMethodInfo &getMethodInfo(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) const;
+    FlintMethodInfo &getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const;
     FlintMethodInfo &getMethodInfo(FlintConstNameAndType &nameAndType) const;
     FlintMethodInfo &getMainMethodInfo(void) const;
     FlintMethodInfo &getStaticConstructor(void) const;

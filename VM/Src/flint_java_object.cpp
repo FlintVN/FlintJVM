@@ -43,8 +43,8 @@ uint8_t FlintJavaObject::isPrimType(const FlintConstUtf8 &type) {
     return 0;
 }
 
-FlintJavaObject::FlintJavaObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions) :
-size(size), prot(0x02), type(type), dimensions(dimensions), monitorCount(0), ownId(0) {
+FlintJavaObject::FlintJavaObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions) :
+size(size), prot(0x02), type((FlintConstUtf8 &)type), dimensions(dimensions), monitorCount(0), ownId(0) {
 
 }
 

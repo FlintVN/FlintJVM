@@ -39,7 +39,7 @@ public:
     bool operator==(const FlintConstNameAndType &another) const;
     bool operator!=(const FlintConstNameAndType &another) const;
 private:
-    FlintConstNameAndType(FlintConstUtf8 &name, FlintConstUtf8 &descriptor);
+    FlintConstNameAndType(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
     FlintConstNameAndType(const FlintConstNameAndType &) = delete;
     void operator=(const FlintConstNameAndType &) = delete;
 
@@ -53,7 +53,7 @@ public:
 private:
     uint32_t fieldIndex;
 private:
-    FlintConstField(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
+    FlintConstField(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
     FlintConstField(const FlintConstField &) = delete;
     void operator=(const FlintConstField &) = delete;
 
@@ -76,8 +76,8 @@ private:
 public:
     const FlintParamInfo &getParmInfo(void);
 private:
-    FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
-    FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, uint8_t argc, uint8_t retType);
+    FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
+    FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, uint8_t argc, uint8_t retType);
     FlintConstMethod(const FlintConstMethod &) = delete;
     void operator=(const FlintConstMethod &) = delete;
 

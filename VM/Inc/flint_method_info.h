@@ -14,7 +14,7 @@ public:
 private:
     FlintAttribute *attributes;
 
-    FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, FlintConstUtf8 &name, FlintConstUtf8 &descriptor);
+    FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
 
     FlintMethodInfo(const FlintMethodInfo &) = delete;
     void operator=(const FlintMethodInfo &) = delete;

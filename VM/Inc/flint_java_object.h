@@ -34,7 +34,7 @@ private:
     void setProtected(void);
     uint8_t getProtected(void) const;
 protected:
-    FlintJavaObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions);
+    FlintJavaObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions);
     FlintJavaObject(const FlintJavaObject &) = delete;
     void operator=(const FlintJavaObject &) = delete;
 

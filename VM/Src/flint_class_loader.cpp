@@ -721,7 +721,7 @@ FlintFieldInfo &FlintClassLoader::getFieldInfo(uint8_t fieldIndex) const {
     throw "index for field info is invalid";
 }
 
-FlintFieldInfo &FlintClassLoader::getFieldInfo(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) const {
+FlintFieldInfo &FlintClassLoader::getFieldInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const {
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < fieldsCount; i++) {
@@ -753,7 +753,7 @@ FlintMethodInfo &FlintClassLoader::getMethodInfo(uint8_t methodIndex) const {
     throw "index for method info is invalid";
 }
 
-FlintMethodInfo &FlintClassLoader::getMethodInfo(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) const {
+FlintMethodInfo &FlintClassLoader::getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const {
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < methodsCount; i++) {

@@ -26,8 +26,8 @@ static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) 
     throw (FlintFindNativeError *)"can't find the native method";
 }
 
-FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, FlintConstUtf8 &name, FlintConstUtf8 &descriptor) :
-accessFlag(accessFlag), classLoader(classLoader), name(name), descriptor(descriptor), attributes(0) {
+FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) :
+accessFlag(accessFlag), classLoader(classLoader), name((FlintConstUtf8 &)name), descriptor((FlintConstUtf8 &)descriptor), attributes(0) {
 
 }
 

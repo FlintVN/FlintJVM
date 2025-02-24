@@ -56,23 +56,23 @@ bool FlintConstUtf8::operator!=(const FlintConstUtf8 &another) const {
     return true;
 }
 
-FlintConstNameAndType::FlintConstNameAndType(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) :
-name(name), descriptor(descriptor) {
+FlintConstNameAndType::FlintConstNameAndType(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) :
+name((FlintConstUtf8 &)name), descriptor((FlintConstUtf8 &)descriptor) {
 
 }
 
-FlintConstField::FlintConstField(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
-className(className), nameAndType(nameAndType), fieldIndex(0) {
+FlintConstField::FlintConstField(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
+className((FlintConstUtf8 &)className), nameAndType(nameAndType), fieldIndex(0) {
 
 }
 
-FlintConstMethod::FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
-className(className), nameAndType(nameAndType), methodInfo(0) {
+FlintConstMethod::FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
+className((FlintConstUtf8 &)className), nameAndType(nameAndType), methodInfo(0) {
     paramInfo = parseParamInfo(nameAndType.descriptor);
 }
 
-FlintConstMethod::FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, uint8_t argc, uint8_t retType) :
-className(className), nameAndType(nameAndType), methodInfo(0) {
+FlintConstMethod::FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, uint8_t argc, uint8_t retType) :
+className((FlintConstUtf8 &)className), nameAndType(nameAndType), methodInfo(0) {
     paramInfo.argc = argc;
     paramInfo.retType = retType;
 }

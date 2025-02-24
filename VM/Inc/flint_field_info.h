@@ -12,7 +12,7 @@ public:
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
 private:
-    FlintFieldInfo(FlintClassLoader &classLoader, FlintFieldAccessFlag accessFlag, FlintConstUtf8 &name, FlintConstUtf8 &descriptor);
+    FlintFieldInfo(FlintClassLoader &classLoader, FlintFieldAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
 
     FlintFieldInfo(const FlintFieldInfo &) = delete;
     void operator=(const FlintFieldInfo &) = delete;
