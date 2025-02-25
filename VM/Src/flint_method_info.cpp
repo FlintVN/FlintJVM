@@ -37,7 +37,7 @@ void FlintMethodInfo::addAttribute(FlintAttribute *attribute) {
 }
 
 FlintAttribute &FlintMethodInfo::getAttribute(FlintAttributeType type) const {
-    for(FlintAttribute *node = attributes; node != 0;) {
+    for(FlintAttribute *node = attributes; node != 0; node = node->next) {
         if(node->attributeType == type) {
             if(type != ATTRIBUTE_NATIVE)
                 return *node;
@@ -53,7 +53,7 @@ FlintAttribute &FlintMethodInfo::getAttribute(FlintAttributeType type) const {
 }
 
 FlintCodeAttribute &FlintMethodInfo::getAttributeCode(void) const {
-    for(FlintAttribute *node = attributes; node != 0;) {
+    for(FlintAttribute *node = attributes; node != 0; node = node->next) {
         if(node->attributeType == ATTRIBUTE_CODE)
             return *(FlintCodeAttribute *)node;
     }
@@ -61,7 +61,7 @@ FlintCodeAttribute &FlintMethodInfo::getAttributeCode(void) const {
 }
 
 FlintNativeAttribute &FlintMethodInfo::getAttributeNative(void) const {
-    for(FlintAttribute *node = attributes; node != 0;) {
+    for(FlintAttribute *node = attributes; node != 0; node = node->next) {
         if(node->attributeType == ATTRIBUTE_NATIVE) {
             FlintNativeAttribute *attrNative = (FlintNativeAttribute *)node;
             if(attrNative->nativeMethod == 0)
