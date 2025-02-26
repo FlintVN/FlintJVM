@@ -743,9 +743,9 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_STEP_IN:
         case DBG_CMD_STEP_OVER: {
-            if(csr & DBG_STATUS_STOP && length == 10) {
+            if(csr & DBG_STATUS_STOP) {
                 stepCodeLength = *(uint32_t *)&data[4];
-                if(stepCodeLength && execution->getStackTrace(0, &startPoint, 0)) {
+                if(length == 10 && stepCodeLength && execution->getStackTrace(0, &startPoint, 0)) {
                     if(cmd == DBG_CMD_STEP_IN) {
                         lock();
                         csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_IN;
