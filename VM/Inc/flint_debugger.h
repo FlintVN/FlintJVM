@@ -140,7 +140,7 @@ private:
     void responseStatus(void);
     void responseStackTrace(uint32_t stackIndex);
     void responseExceptionInfo(void);
-    void responseLocalVariable(bool isU64, uint32_t stackIndex, uint32_t localIndex);
+    void responseLocalVariable(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType);
     void responseField(FlintJavaObject *obj, const FlintConstUtf8 &fieldName);
     void responseArray(FlintJavaObject *array, uint32_t index, uint32_t length);
     void responseObjSizeAndType(FlintJavaObject *obj);

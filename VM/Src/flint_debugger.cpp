@@ -265,11 +265,11 @@ void FlintDebugger::responseExceptionInfo(void) {
         sendRespCode(DBG_CMD_READ_EXCP_INFO, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseLocalVariable(bool isU64, uint32_t stackIndex, uint32_t localIndex) {
+void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType) {
     if(csr & DBG_STATUS_STOP) {
-        if(!isU64) {
+        if(variableType < 2) { /* 32 bit value or object */
             uint32_t value;
-            bool isObject;
+            bool isObject = !!variableType;
             if(execution->readLocal(stackIndex, localIndex, value, isObject)) {
                 uint32_t responseSize = 8;
                 uint32_t valueSize = 4;
@@ -305,7 +305,7 @@ void FlintDebugger::responseLocalVariable(bool isU64, uint32_t stackIndex, uint3
             else
                 sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_FAIL);
         }
-        else {
+        else { /* 64 bit value */
             uint64_t value;
             if(execution->readLocal(stackIndex, localIndex, value)) {
                 initDataFrame(DBG_CMD_READ_LOCAL, DBG_RESP_OK, 12);
@@ -796,10 +796,10 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_READ_LOCAL: {
             if(length == 14) {
-                uint32_t stackIndex = (*(uint32_t *)&data[4]) & 0x7FFFFFFF;
+                uint32_t stackIndex = (*(uint32_t *)&data[4]) & 0x3FFFFFFF;
                 uint32_t localIndex = (*(uint32_t *)&data[8]);
-                bool isU64 = (data[7] & 0x80) ? true : false;
-                responseLocalVariable(isU64, stackIndex, localIndex);
+                uint8_t variableType = data[7] >> 6;
+                responseLocalVariable(stackIndex, localIndex, variableType);
             }
             else
                 sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_FAIL);
