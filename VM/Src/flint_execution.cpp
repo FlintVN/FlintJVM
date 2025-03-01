@@ -27,7 +27,6 @@ FlintExecution::FlintExecution(Flint &flint, FlintJavaThread *onwerThread) : fli
     this->startSp = sp;
     this->peakSp = sp;
     this->stack = (int32_t *)Flint::malloc(DEFAULT_STACK_SIZE);
-    this->stackType = (uint8_t *)Flint::malloc(DEFAULT_STACK_SIZE / sizeof(int32_t) / 8);
     this->onwerThread = onwerThread;
 }
 
@@ -38,73 +37,42 @@ FlintExecution::FlintExecution(Flint &flint, FlintJavaThread *onwerThread, uint3
     this->startSp = sp;
     this->peakSp = sp;
     this->stack = (int32_t *)Flint::malloc(stackSize);
-    this->stackType = (uint8_t *)Flint::malloc(stackSize / sizeof(int32_t) / 8);
     this->onwerThread = onwerThread;
 }
 
-FlintStackType FlintExecution::getStackType(uint32_t index) {
-    return (stackType[index / 8] & (1 << (index % 8))) ? STACK_TYPE_OBJECT : STACK_TYPE_NON_OBJECT;
+int32_t FlintExecution::getStackValue(uint32_t index) {
+    return stack[index];
 }
 
-FlintStackValue FlintExecution::getStackValue(uint32_t index) {
-    FlintStackValue ret = {
-        .type = (stackType[index / 8] & (1 << (index % 8))) ? STACK_TYPE_OBJECT : STACK_TYPE_NON_OBJECT,
-        .value = stack[index],
-    };
-    return ret;
-}
-
-void FlintExecution::setStackValue(uint32_t index, FlintStackValue &value) {
-    stack[index] = value.value;
-    if(value.type == STACK_TYPE_OBJECT)
-        stackType[index / 8] |= (1 << (index % 8));
-    else
-        stackType[index / 8] &= ~(1 << (index % 8));
-}
-
-void FlintExecution::stackPush(FlintStackValue &value) {
-    sp = peakSp = sp + 1;
-    stack[sp] = value.value;
-    if(value.type == STACK_TYPE_OBJECT)
-        stackType[sp / 8] |= (1 << (sp % 8));
-    else
-        stackType[sp / 8] &= ~(1 << (sp % 8));
+void FlintExecution::setStackValue(uint32_t index, int32_t &value) {
+    stack[index] = value;
 }
 
 void FlintExecution::stackPushInt32(int32_t value) {
-    sp = peakSp = sp + 1;
-    stack[sp] = value;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = value;
+    peakSp = sp;
 }
 
 void FlintExecution::stackPushInt64(int64_t value) {
-    sp = peakSp = sp + 1;
-    stack[sp] = ((uint32_t *)&value)[0];
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    sp = peakSp = sp + 1;
-    stack[sp] = ((uint32_t *)&value)[1];
-    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = ((uint32_t *)&value)[0];
+    stack[++sp] = ((uint32_t *)&value)[1];
+    peakSp = sp;
 }
 
 void FlintExecution::stackPushFloat(float value) {
-    sp = peakSp = sp + 1;
-    stack[sp] = *(uint32_t *)&value;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = *(uint32_t *)&value;
+    peakSp = sp;
 }
 
 void FlintExecution::stackPushDouble(double value) {
-    sp = peakSp = sp + 1;
-    stack[sp] = ((uint32_t *)&value)[0];
-    stackType[sp / 8] &= ~(1 << (sp % 8));
-    sp = peakSp = sp + 1;
-    stack[sp] = ((uint32_t *)&value)[1];
-    stackType[sp / 8] &= ~(1 << (sp % 8));
+    stack[++sp] = ((uint32_t *)&value)[0];
+    stack[++sp] = ((uint32_t *)&value)[1];
+    peakSp = sp;
 }
 
 void FlintExecution::stackPushObject(FlintJavaObject *obj) {
-    sp = peakSp = sp + 1;
-    stack[sp] = (int32_t)obj;
-    stackType[sp / 8] |= (1 << (sp % 8));
+    stack[++sp] = (int32_t)obj;
+    peakSp = sp;
     if(obj && (obj->getProtected() & 0x02))
         flint.clearProtectObjectNew(*obj);
 }
@@ -115,9 +83,8 @@ int32_t FlintExecution::stackPopInt32(void) {
 
 int64_t FlintExecution::stackPopInt64(void) {
     uint64_t ret;
-    sp -= 2;
-    ((uint32_t *)&ret)[0] = stack[sp + 1];
-    ((uint32_t *)&ret)[1] = stack[sp + 2];
+    ((uint32_t *)&ret)[1] = stack[sp--];
+    ((uint32_t *)&ret)[0] = stack[sp--];
     return ret;
 }
 
@@ -128,8 +95,8 @@ float FlintExecution::stackPopFloat(void) {
 double FlintExecution::stackPopDouble(void) {
     uint64_t ret;
     sp -= 2;
-    ((uint32_t *)&ret)[0] = stack[sp + 1];
-    ((uint32_t *)&ret)[1] = stack[sp + 2];
+    ((uint32_t *)&ret)[1] = stack[sp--];
+    ((uint32_t *)&ret)[0] = stack[sp--];
     return *(double *)&ret;
 }
 
@@ -169,7 +136,8 @@ bool FlintExecution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_
         return false;
     value = stack[stackTrace.baseSp + 1 + localIndex];
     uint32_t spIndex = &stack[stackTrace.baseSp + 1 + localIndex] - stack;
-    isObject = (stackType[spIndex / 8] & (1 << (spIndex % 8))) ? true : false;
+    if(isObject)
+        isObject = flint.isObject(value);
     return true;
 }
 
@@ -188,13 +156,9 @@ void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) 
 
     /* Save current context */
     stack[++sp] = (int32_t)method;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
     stack[++sp] = pc;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
     stack[++sp] = lr;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
     stack[++sp] = startSp;
-    stackType[sp / 8] &= ~(1 << (sp % 8));
     startSp = sp;
 
     method = &methodInfo;
@@ -204,7 +168,6 @@ void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) 
     for(uint32_t i = argc; i < attributeCode.maxLocals; i++) {
         uint32_t index = sp + i + 1;
         stack[index] = 0;
-        stackType[index / 8] &= ~(1 << (index % 8));
     }
     sp += attributeCode.maxLocals;
 }
@@ -212,7 +175,7 @@ void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) 
 void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
     int32_t argc = sp + 1;
     for(uint32_t i = 0; i < argc; i++) {
-        FlintStackValue stackValue = getStackValue(sp - i);
+        int32_t stackValue = getStackValue(sp - i);
         setStackValue(sp - i + 4, stackValue);
     }
     sp -= argc;
@@ -246,7 +209,7 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
     if(!(methodInfo.accessFlag & METHOD_NATIVE)) {
         peakSp = sp + 4;
         for(uint32_t i = 0; i < argc; i++) {
-            FlintStackValue stackValue = getStackValue(sp - i);
+            int32_t stackValue = getStackValue(sp - i);
             setStackValue(sp - i + 4, stackValue);
         }
         sp -= argc;
@@ -862,8 +825,6 @@ void FlintExecution::run(void) {
     op_fstore: {
         uint32_t index = code[pc + 1];
         locals[index] = stackPopInt32();
-        index = &locals[index] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc += 2;
         goto *opcodes[code[pc]];
     }
@@ -871,118 +832,80 @@ void FlintExecution::run(void) {
     op_dstore: {
         uint32_t index = code[pc + 1];
         *(uint64_t *)&locals[index] = stackPopInt64();
-        index = &locals[index] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
-        index++;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc += 2;
         goto *opcodes[code[pc]];
     }
     op_astore: {
         uint32_t index = code[pc + 1];
         locals[index] = stackPopInt32();
-        index = &locals[index] - stack;
-        stackType[index / 8] |= (1 << (index % 8));
         pc += 2;
         goto *opcodes[code[pc]];
     }
     op_istore_0:
     op_fstore_0: {
         locals[0] = stackPopInt32();
-        uint32_t index = &locals[0] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_istore_1:
     op_fstore_1: {
         locals[1] = stackPopInt32();
-        uint32_t index = &locals[1] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_istore_2:
     op_fstore_2: {
         locals[2] = stackPopInt32();
-        uint32_t index = &locals[2] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_istore_3:
     op_fstore_3: {
         locals[3] = stackPopInt32();
-        uint32_t index = &locals[3] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lstore_0:
     op_dstore_0: {
         *(uint64_t *)&locals[0] = stackPopInt64();
-        uint32_t index = &locals[3] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
-        index++;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lstore_1:
     op_dstore_1: {
         *(uint64_t *)&locals[1] = stackPopInt64();
-        uint32_t index = &locals[1] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
-        index++;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lstore_2:
     op_dstore_2: {
         *(uint64_t *)&locals[2] = stackPopInt64();
-        uint32_t index = &locals[2] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
-        index++;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lstore_3:
     op_dstore_3: {
         *(uint64_t *)&locals[3] = stackPopInt64();
-        uint32_t index = &locals[3] - stack;
-        stackType[index / 8] &= ~(1 << (index % 8));
-        index++;
-        stackType[index / 8] &= ~(1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_0: {
         locals[0] = stackPopInt32();
-        uint32_t index = &locals[0] - stack;
-        stackType[index / 8] |= (1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_1: {
         locals[1] = stackPopInt32();
-        uint32_t index = &locals[1] - stack;
-        stackType[index / 8] |= (1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_2: {
         locals[2] = stackPopInt32();
-        uint32_t index = &locals[2] - stack;
-        stackType[index / 8] |= (1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_3: {
         locals[3] = stackPopInt32();
-        uint32_t index = &locals[3] - stack;
-        stackType[index / 8] |= (1 << (index % 8));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1107,25 +1030,25 @@ void FlintExecution::run(void) {
         pc++;
         goto *opcodes[code[pc]];
     op_dup: {
-        FlintStackValue value = getStackValue(sp);
-        stackPush(value);
+        int32_t value = getStackValue(sp);
+        stackPushInt32(value);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup_x1: {
-        FlintStackValue value2 = getStackValue(sp - 1);
-        FlintStackValue value1 = getStackValue(sp - 0);
-        stackPush(value1);
+        int32_t value2 = getStackValue(sp - 1);
+        int32_t value1 = getStackValue(sp - 0);
+        stackPushInt32(value1);
         setStackValue(sp - 1, value2);
         setStackValue(sp - 2, value1);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup_x2: {
-        FlintStackValue value3 = getStackValue(sp - 2);
-        FlintStackValue value2 = getStackValue(sp - 1);
-        FlintStackValue value1 = getStackValue(sp - 0);
-        stackPush(value1);
+        int32_t value3 = getStackValue(sp - 2);
+        int32_t value2 = getStackValue(sp - 1);
+        int32_t value1 = getStackValue(sp - 0);
+        stackPushInt32(value1);
         setStackValue(sp - 1, value2);
         setStackValue(sp - 2, value3);
         setStackValue(sp - 3, value1);
@@ -1133,19 +1056,19 @@ void FlintExecution::run(void) {
         goto *opcodes[code[pc]];
     }
     op_dup2: {
-        FlintStackValue value2 = getStackValue(sp - 1);
-        FlintStackValue value1 = getStackValue(sp - 0);
-        stackPush(value2);
-        stackPush(value1);
+        int32_t value2 = getStackValue(sp - 1);
+        int32_t value1 = getStackValue(sp - 0);
+        stackPushInt32(value2);
+        stackPushInt32(value1);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup2_x1: {
-        FlintStackValue value3 = getStackValue(sp - 2);
-        FlintStackValue value2 = getStackValue(sp - 1);
-        FlintStackValue value1 = getStackValue(sp - 0);
-        stackPush(value2);
-        stackPush(value1);
+        int32_t value3 = getStackValue(sp - 2);
+        int32_t value2 = getStackValue(sp - 1);
+        int32_t value1 = getStackValue(sp - 0);
+        stackPushInt32(value2);
+        stackPushInt32(value1);
         setStackValue(sp - 2, value3);
         setStackValue(sp - 3, value1);
         setStackValue(sp - 4, value2);
@@ -1153,12 +1076,12 @@ void FlintExecution::run(void) {
         goto *opcodes[code[pc]];
     }
     op_dup2_x2: {
-        FlintStackValue value4 = getStackValue(sp - 3);
-        FlintStackValue value3 = getStackValue(sp - 2);
-        FlintStackValue value2 = getStackValue(sp - 1);
-        FlintStackValue value1 = getStackValue(sp - 0);
-        stackPush(value2);
-        stackPush(value1);
+        int32_t value4 = getStackValue(sp - 3);
+        int32_t value3 = getStackValue(sp - 2);
+        int32_t value2 = getStackValue(sp - 1);
+        int32_t value1 = getStackValue(sp - 0);
+        stackPushInt32(value2);
+        stackPushInt32(value1);
         setStackValue(sp - 2, value3);
         setStackValue(sp - 3, value4);
         setStackValue(sp - 4, value1);
@@ -2231,8 +2154,6 @@ void FlintExecution::run(void) {
             case OP_ASTORE: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
                 locals[index] = stackPopInt32();
-                index = &locals[index] - stack;
-                stackType[index / 8] |= (1 << (index % 8));
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
@@ -2240,8 +2161,6 @@ void FlintExecution::run(void) {
             case OP_ISTORE: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
                 locals[index] = stackPopInt32();
-                index = &locals[index] - stack;
-                stackType[index / 8] &= ~(1 << (index % 8));
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
@@ -2249,10 +2168,6 @@ void FlintExecution::run(void) {
             case OP_DSTORE: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
                 *(uint64_t *)&locals[index] = stackPopInt64();
-                index = &locals[index] - stack;
-                stackType[index / 8] &= ~(1 << (index % 8));
-                index++;
-                stackType[index / 8] &= ~(1 << (index % 8));
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
@@ -2447,5 +2362,4 @@ FlintJavaThread &FlintExecution::getOnwerThread(void) {
 
 FlintExecution::~FlintExecution(void) {
     Flint::free(stack);
-    Flint::free(stackType);
 }

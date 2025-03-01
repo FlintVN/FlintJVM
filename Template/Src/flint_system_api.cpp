@@ -20,6 +20,10 @@ void FlintAPI::System::free(void *p) {
     throw "FlintAPI::System::free is not implemented in VM";
 }
 
+bool FlintAPI::System::isInHeapRegion(void *addr) {
+    throw "FlintAPI::System::isInHeapRegion is not implemented in VM";
+}
+
 void FlintAPI::System::print(const char *text, uint32_t length, uint8_t coder) {
     throw "FlintAPI::System::print is not implemented in VM";
 }

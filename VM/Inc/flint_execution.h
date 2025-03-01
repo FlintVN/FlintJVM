@@ -4,7 +4,6 @@
 
 #include "flint_common.h"
 #include "flint_debugger.h"
-#include "flint_stack_info.h"
 #include "flint_const_pool.h"
 #include "flint_method_info.h"
 #include "flint_java_thread.h"
@@ -26,7 +25,6 @@ private:
     int32_t peakSp;
     int32_t *stack;
     int32_t *locals;
-    uint8_t *stackType;
     FlintJavaThread *onwerThread;
 protected:
     FlintExecution(Flint &flint, FlintJavaThread *onwerThread);
@@ -36,11 +34,8 @@ protected:
 
     ~FlintExecution(void);
 private:
-    FlintStackType getStackType(uint32_t index);
-    FlintStackValue getStackValue(uint32_t index);
-    void setStackValue(uint32_t index, FlintStackValue &value);
-
-    void stackPush(FlintStackValue &value);
+    int32_t getStackValue(uint32_t index);
+    void setStackValue(uint32_t index, int32_t &value);
 public:
     void stackPushInt32(int32_t value);
     void stackPushInt64(int64_t value);

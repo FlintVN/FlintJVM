@@ -143,9 +143,6 @@ public:
     FlintJavaLong &newLong(int64_t value = 0);
     FlintJavaDouble &newDouble(double value = 0);
 
-    void clearProtectObjectNew(FlintJavaObject &obj);
-    void garbageCollectionProtectObject(FlintJavaObject &obj);
-
     void initStaticField(ClassData &classData);
     FlintFieldsData &getStaticFields(const FlintConstUtf8 &className) const;
 
@@ -155,6 +152,11 @@ public:
     bool isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName);
     bool isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2);
 
+private:
+    void garbageCollectionProtectObject(FlintJavaObject &obj);
+public:
+    bool isObject(uint32_t address) const;
+    void clearProtectObjectNew(FlintJavaObject &obj);
     void garbageCollection(void);
 
     FlintClassLoader &load(const char *className, uint16_t length);

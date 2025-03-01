@@ -629,27 +629,6 @@ FlintJavaDouble &Flint::newDouble(double value) {
     return obj;
 }
 
-void Flint::clearProtectObjectNew(FlintJavaObject &obj) {
-    bool isPrim = FlintJavaObject::isPrimType(obj.type);
-    if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {
-        uint32_t count = obj.size / 4;
-        for(uint32_t i = 0; i < count; i++) {
-            FlintJavaObject *tmp = ((FlintJavaObject **)obj.data)[i];
-            if(tmp && (tmp->getProtected() & 0x02))
-                clearProtectObjectNew(*tmp);
-        }
-    }
-    else if(!isPrim) {
-        FlintFieldsData &fieldData = *(FlintFieldsData *)obj.data;
-        for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
-            FlintJavaObject *tmp = fieldData.fieldsObject[i].object;
-            if(tmp && (tmp->getProtected() & 0x02))
-                clearProtectObjectNew(*tmp);
-        }
-    }
-    obj.clearProtected();
-}
-
 void Flint::garbageCollectionProtectObject(FlintJavaObject &obj) {
     bool isPrim = FlintJavaObject::isPrimType(obj.type);
     obj.setProtected();
@@ -667,6 +646,55 @@ void Flint::garbageCollectionProtectObject(FlintJavaObject &obj) {
             FlintJavaObject *tmp = fieldData.fieldsObject[i].object;
             if(tmp && !tmp->getProtected())
                 garbageCollectionProtectObject(*tmp);
+        }
+    }
+}
+
+static bool checkAddressIsValid(uint32_t address) {
+    if(address & 0x03)
+        return false;
+    if(!FlintAPI::System::isInHeapRegion((void *)address))
+        return false;
+    return true;
+}
+
+bool Flint::isObject(uint32_t address) const {
+    if(!address)
+        return false;
+    if(!checkAddressIsValid(address))
+        return false;
+    FlintJavaObject *obj = (FlintJavaObject *)address;
+    if(obj->prev == 0)
+        return address != (uint32_t)objectList;
+    if(!checkAddressIsValid((uint32_t)obj->prev))
+        return false;
+    if((uint32_t)obj->prev->next != address)
+        return false;
+    if(obj->next) {
+        if(!checkAddressIsValid((uint32_t)obj->next))
+            return false;
+        return (uint32_t)obj->next->prev == address;
+    }
+    return true;
+}
+
+void Flint::clearProtectObjectNew(FlintJavaObject &obj) {
+    bool isPrim = FlintJavaObject::isPrimType(obj.type);
+    obj.clearProtected();
+    if((obj.dimensions > 1) || (obj.dimensions == 1 && !isPrim)) {
+        uint32_t count = obj.size / 4;
+        for(uint32_t i = 0; i < count; i++) {
+            FlintJavaObject *tmp = ((FlintJavaObject **)obj.data)[i];
+            if(tmp && (tmp->getProtected() & 0x02))
+                clearProtectObjectNew(*tmp);
+        }
+    }
+    else if(!isPrim) {
+        FlintFieldsData &fieldData = *(FlintFieldsData *)obj.data;
+        for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
+            FlintJavaObject *tmp = fieldData.fieldsObject[i].object;
+            if(tmp && (tmp->getProtected() & 0x02))
+                clearProtectObjectNew(*tmp);
         }
     }
 }
@@ -695,8 +723,9 @@ void Flint::garbageCollection(void) {
     for(FlintExecutionNode *node = executionList; node != 0; node = node->next) {
         if(node->onwerThread && !node->onwerThread->getProtected())
             garbageCollectionProtectObject(*node->onwerThread);
-        for(int32_t i = 0; i <= node->peakSp; i++) {
-            if(node->getStackType(i) == STACK_TYPE_OBJECT) {
+        int32_t peakSp = FLINT_MAX(node->sp, node->peakSp);
+        for(int32_t i = 0; i <= peakSp; i++) {
+            if(isObject(node->stack[i])) {
                 FlintJavaObject *obj = (FlintJavaObject *)node->stack[i];
                 if(obj && !obj->getProtected())
                     garbageCollectionProtectObject(*obj);
