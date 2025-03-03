@@ -723,13 +723,18 @@ void Flint::garbageCollection(void) {
     for(FlintExecutionNode *node = executionList; node != 0; node = node->next) {
         if(node->onwerThread && !node->onwerThread->getProtected())
             garbageCollectionProtectObject(*node->onwerThread);
-        int32_t peakSp = FLINT_MAX(node->sp, node->peakSp);
-        for(int32_t i = 0; i <= peakSp; i++) {
-            if(isObject(node->stack[i])) {
-                FlintJavaObject *obj = (FlintJavaObject *)node->stack[i];
-                if(obj && !obj->getProtected())
-                    garbageCollectionProtectObject(*obj);
+        int32_t startSp = node->startSp;
+        int32_t endSp = FLINT_MAX(node->sp, node->peakSp);
+        while(startSp >= 3) {
+            for(int32_t i = startSp; i <= endSp; i++) {
+                if(isObject(node->stack[i])) {
+                    FlintJavaObject *obj = (FlintJavaObject *)node->stack[i];
+                    if(obj && !obj->getProtected())
+                        garbageCollectionProtectObject(*obj);
+                }
             }
+            endSp = startSp - 4;
+            startSp = node->stack[startSp];
         }
     }
     if(classArray0 && classArray0->getProtected() == 0)
