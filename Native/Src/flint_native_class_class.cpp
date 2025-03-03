@@ -377,7 +377,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0C\x00\x21\x8F""getModifiers",             "\x03\x00\xD0\x51""()I",                                   nativeGetModifiers),
     NATIVE_METHOD("\x08\x00\x9C\xA3""isHidden",                 "\x03\x00\x91\x9C""()Z",                                   nativeIsHidden),
     NATIVE_METHOD("\x13\x00\x4B\x12""getDeclaredMethods0",      "\x1D\x00\x12\x57""()[Ljava/lang/reflect/Method;",         nativeGetDeclaredMethods0),
-    NATIVE_METHOD("\x18\x00\x0C\xE2""getDeclaredConstructors0", "\x23\x00\x73\x02""()[Ljava/lang/reflect/Constructors;",   nativeGetDeclaredConstructors0),
+    NATIVE_METHOD("\x18\x00\x0C\xE2""getDeclaredConstructors0", "\x22\x00\x96\xC4""()[Ljava/lang/reflect/Constructor;",    nativeGetDeclaredConstructors0),
 };
 
 const FlintNativeClass CLASS_CLASS = NATIVE_CLASS(classClassName, methods);
