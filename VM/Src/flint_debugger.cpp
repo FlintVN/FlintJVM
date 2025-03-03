@@ -323,7 +323,7 @@ void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localInd
 
 void FlintDebugger::responseField(FlintJavaObject *obj, const FlintConstUtf8 &fieldName) {
     if(csr & DBG_STATUS_STOP) {
-        if(!obj) {
+        if(!flint.isObject((uint32_t)obj)) {
             sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
             return;
         }
@@ -384,7 +384,7 @@ void FlintDebugger::responseField(FlintJavaObject *obj, const FlintConstUtf8 &fi
 
 void FlintDebugger::responseArray(FlintJavaObject *array, uint32_t index, uint32_t length) {
     if(csr & DBG_STATUS_STOP) {
-        if(array && array->dimensions > 0) {
+        if(flint.isObject((uint32_t)array) && array->dimensions > 0) {
             uint8_t atype = FlintJavaObject::isPrimType(array->type);
             uint8_t elementSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
             uint32_t arrayLength = array->size / elementSize;
