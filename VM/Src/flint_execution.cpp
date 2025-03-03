@@ -12,11 +12,14 @@
 #endif
 #include "flint_default_conf.h"
 
-#define FLOAT_NAN                   0x7FC00000
-#define DOUBLE_NAN                  0x7FF8000000000000
+#define FLOAT_NAN                           0x7FC00000
+#define DOUBLE_NAN                          0x7FF8000000000000
 
-#define ARRAY_TO_INT16(array)       (int16_t)(((array)[0] << 8) | (array)[1])
-#define ARRAY_TO_INT32(array)       (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
+#define ARRAY_TO_INT16(array)               (int16_t)(((array)[0] << 8) | (array)[1])
+#define ARRAY_TO_INT32(array)               (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
+
+#define GET_STACK_VALUE(_index)             stack[_index]
+#define SET_STACK_VALUE(_index, _value)     stack[_index] = _value
 
 static const void **opcodeLabelsExit = 0;
 
@@ -38,14 +41,6 @@ FlintExecution::FlintExecution(Flint &flint, FlintJavaThread *onwerThread, uint3
     this->peakSp = sp;
     this->stack = (int32_t *)Flint::malloc(stackSize);
     this->onwerThread = onwerThread;
-}
-
-int32_t FlintExecution::getStackValue(uint32_t index) {
-    return stack[index];
-}
-
-void FlintExecution::setStackValue(uint32_t index, int32_t &value) {
-    stack[index] = value;
 }
 
 void FlintExecution::stackPushInt32(int32_t value) {
@@ -135,7 +130,6 @@ bool FlintExecution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_
     if(!getStackTrace(stackIndex, &stackTrace, 0))
         return false;
     value = stack[stackTrace.baseSp + 1 + localIndex];
-    uint32_t spIndex = &stack[stackTrace.baseSp + 1 + localIndex] - stack;
     if(isObject)
         isObject = flint.isObject(value);
     return true;
@@ -174,10 +168,8 @@ void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) 
 
 void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
     int32_t argc = sp + 1;
-    for(uint32_t i = 0; i < argc; i++) {
-        int32_t stackValue = getStackValue(sp - i);
-        setStackValue(sp - i + 4, stackValue);
-    }
+    for(uint32_t i = 0; i < argc; i++)
+        SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
     sp -= argc;
     pc = lr = exitPc;
     initNewContext(*method, argc);
@@ -208,10 +200,8 @@ void FlintExecution::stackRestoreContext(void) {
 void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
     if(!(methodInfo.accessFlag & METHOD_NATIVE)) {
         peakSp = sp + 4;
-        for(uint32_t i = 0; i < argc; i++) {
-            int32_t stackValue = getStackValue(sp - i);
-            setStackValue(sp - i + 4, stackValue);
-        }
+        for(uint32_t i = 0; i < argc; i++)
+            SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
         sp -= argc;
         initNewContext(methodInfo, argc);
     }
@@ -1030,62 +1020,62 @@ void FlintExecution::run(void) {
         pc++;
         goto *opcodes[code[pc]];
     op_dup: {
-        int32_t value = getStackValue(sp);
+        int32_t value = GET_STACK_VALUE(sp);
         stackPushInt32(value);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup_x1: {
-        int32_t value2 = getStackValue(sp - 1);
-        int32_t value1 = getStackValue(sp - 0);
+        int32_t value2 = GET_STACK_VALUE(sp - 1);
+        int32_t value1 = GET_STACK_VALUE(sp - 0);
         stackPushInt32(value1);
-        setStackValue(sp - 1, value2);
-        setStackValue(sp - 2, value1);
+        SET_STACK_VALUE(sp - 1, value2);
+        SET_STACK_VALUE(sp - 2, value1);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup_x2: {
-        int32_t value3 = getStackValue(sp - 2);
-        int32_t value2 = getStackValue(sp - 1);
-        int32_t value1 = getStackValue(sp - 0);
+        int32_t value3 = GET_STACK_VALUE(sp - 2);
+        int32_t value2 = GET_STACK_VALUE(sp - 1);
+        int32_t value1 = GET_STACK_VALUE(sp - 0);
         stackPushInt32(value1);
-        setStackValue(sp - 1, value2);
-        setStackValue(sp - 2, value3);
-        setStackValue(sp - 3, value1);
+        SET_STACK_VALUE(sp - 1, value2);
+        SET_STACK_VALUE(sp - 2, value3);
+        SET_STACK_VALUE(sp - 3, value1);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup2: {
-        int32_t value2 = getStackValue(sp - 1);
-        int32_t value1 = getStackValue(sp - 0);
+        int32_t value2 = GET_STACK_VALUE(sp - 1);
+        int32_t value1 = GET_STACK_VALUE(sp - 0);
         stackPushInt32(value2);
         stackPushInt32(value1);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup2_x1: {
-        int32_t value3 = getStackValue(sp - 2);
-        int32_t value2 = getStackValue(sp - 1);
-        int32_t value1 = getStackValue(sp - 0);
+        int32_t value3 = GET_STACK_VALUE(sp - 2);
+        int32_t value2 = GET_STACK_VALUE(sp - 1);
+        int32_t value1 = GET_STACK_VALUE(sp - 0);
         stackPushInt32(value2);
         stackPushInt32(value1);
-        setStackValue(sp - 2, value3);
-        setStackValue(sp - 3, value1);
-        setStackValue(sp - 4, value2);
+        SET_STACK_VALUE(sp - 2, value3);
+        SET_STACK_VALUE(sp - 3, value1);
+        SET_STACK_VALUE(sp - 4, value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup2_x2: {
-        int32_t value4 = getStackValue(sp - 3);
-        int32_t value3 = getStackValue(sp - 2);
-        int32_t value2 = getStackValue(sp - 1);
-        int32_t value1 = getStackValue(sp - 0);
+        int32_t value4 = GET_STACK_VALUE(sp - 3);
+        int32_t value3 = GET_STACK_VALUE(sp - 2);
+        int32_t value2 = GET_STACK_VALUE(sp - 1);
+        int32_t value1 = GET_STACK_VALUE(sp - 0);
         stackPushInt32(value2);
         stackPushInt32(value1);
-        setStackValue(sp - 2, value3);
-        setStackValue(sp - 3, value4);
-        setStackValue(sp - 4, value1);
-        setStackValue(sp - 5, value2);
+        SET_STACK_VALUE(sp - 2, value3);
+        SET_STACK_VALUE(sp - 3, value4);
+        SET_STACK_VALUE(sp - 4, value1);
+        SET_STACK_VALUE(sp - 5, value2);
         pc++;
         goto *opcodes[code[pc]];
     }

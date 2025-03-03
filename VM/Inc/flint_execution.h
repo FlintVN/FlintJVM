@@ -33,9 +33,6 @@ protected:
     void operator=(const FlintExecution &) = delete;
 
     ~FlintExecution(void);
-private:
-    int32_t getStackValue(uint32_t index);
-    void setStackValue(uint32_t index, int32_t &value);
 public:
     void stackPushInt32(int32_t value);
     void stackPushInt64(int64_t value);
