@@ -68,8 +68,25 @@ static void nativeGetPrimitiveClass(FlintExecution &execution) {
 }
 
 static void nativeForName(FlintExecution &execution) {
-    // TODO
-    throw "forName is not implemented in VM";
+    char buff[FILE_NAME_BUFF_SIZE];
+    FlintJavaString *typeName = (FlintJavaString *)execution.stackPopObject();
+    if(typeName == NULL)
+        throw &execution.flint.newNullPointerException();
+    const char *typeText = typeName->getText();
+    uint32_t typeLength = typeName->getLength();
+    if((typeLength + sizeof(".class")) > FILE_NAME_BUFF_SIZE)
+        throw &execution.flint.newClassNotFoundException(&execution.flint.newString(STR_AND_SIZE("Class name is too long")));
+    for(uint32_t i = 0; i < typeLength; i++) {
+        if(typeText[i] != '/' && typeText[i] != '\\')
+            buff[i] = (typeText[i] == '.') ? '/' : typeText[i];
+        else
+            throw &execution.flint.newClassNotFoundException(typeName);
+    }
+    memcpy(&buff[typeLength], ".class", sizeof(".class"));
+    if(FlintAPI::IO::finfo(buff, NULL, NULL) != FILE_RESULT_OK)
+        throw &execution.flint.newClassNotFoundException(typeName);
+    FlintJavaClass &cls = execution.flint.getConstClass(buff, typeLength);
+    execution.stackPushObject(&cls);
 }
 
 static void nativeIsInstance(FlintExecution &execution) {
