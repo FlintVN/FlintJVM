@@ -719,7 +719,7 @@ bool Flint::isObject(uint32_t address) const {
         return false;
     FlintJavaObject *obj = (FlintJavaObject *)address;
     if(obj->prev == 0)
-        return address != (uint32_t)objectList;
+        return address == (uint32_t)objectList;
     if(!checkAddressIsValid((uint32_t)obj->prev))
         return false;
     if((uint32_t)obj->prev->next != address)
