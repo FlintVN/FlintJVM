@@ -112,6 +112,7 @@ public:
     FlintJavaString &getConstString(FlintJavaString &str);
 
     FlintConstUtf8 &getConstUtf8(const char *text, uint16_t length);
+    FlintConstUtf8 &getTypeNameConstUtf8(const char *typeName, uint16_t length);
 
     FlintObjectArray &getClassArray0(void);
 

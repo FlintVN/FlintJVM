@@ -63,9 +63,16 @@ uint64_t Flint_Swap64(uint64_t value) {
 }
 
 uint16_t Flint_CalcCrc(const uint8_t *data, uint32_t length) {
-    unsigned int crc = 0xFFFF;
+    uint16_t crc = 0xFFFF;
     for(uint32_t i = 0; i < length; i++)
         crc = crc16Table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
+    return ~crc;
+}
+
+uint16_t Flint_CalcTypeNameCrc(const uint8_t *typeName, uint32_t length) {
+    uint16_t crc = 0xFFFF;
+    for(uint32_t i = 0; i < length; i++)
+        crc = crc16Table[(crc ^ ((typeName[i] == '.') ? '/' : typeName[i])) & 0xFF] ^ (crc >> 8);
     return ~crc;
 }
 

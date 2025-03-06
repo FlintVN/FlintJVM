@@ -9,6 +9,65 @@ FlintAPI::Thread::LockHandle *Flint::flintLockHandle = FlintAPI::Thread::createL
 
 Flint Flint::flintInstance;
 
+static const FlintConstUtf8 *baseConstUtf8List[] = {
+    primTypeConstUtf8List[0],
+    primTypeConstUtf8List[1],
+    primTypeConstUtf8List[2],
+    primTypeConstUtf8List[3],
+    primTypeConstUtf8List[4],
+    primTypeConstUtf8List[5],
+    primTypeConstUtf8List[6],
+    primTypeConstUtf8List[7],
+    primTypeConstUtf8List[8],
+
+    &mathClassName,
+    &byteClassName,
+    &longClassName,
+    &shortClassName,
+    &arrayClassName,
+    &errorClassName,
+    &classClassName,
+    &floatClassName,
+    &doubleClassName,
+    &objectClassName,
+    &systemClassName,
+    &stringClassName,
+    &threadClassName,
+    &methodClassName,
+    &booleanClassName,
+    &integerClassName,
+    &characterClassName,
+    &throwableClassName,
+    &exceptionClassName,
+    &bigIntegerClassName,
+    &printStreamClassName,
+    &ioExceptionClassName,
+    &constructorClassName,
+    &flintGraphicsClassName,
+    &classCastExceptionClassName,
+    &arrayStoreExceptionClassName,
+    &arithmeticExceptionClassName,
+    &nullPointerExceptionClassName,
+    &unsatisfiedLinkErrorClassName,
+    &interruptedExceptionClassName,
+    &classNotFoundExceptionClassName,
+    &illegalArgumentExceptionClassName,
+    &cloneNotSupportedExceptionClassName,
+    &negativeArraySizeExceptionClassName,
+    &unsupportedOperationExceptionClassName,
+    &arrayIndexOutOfBoundsExceptionClassName,
+
+    &constructorName,
+    &staticConstructorName,
+
+    &nameFieldName,
+    &clazzFieldName,
+    &returnTypeFieldName,
+    &parameterTypesFieldName,
+    &exceptionTypesFieldName,
+    &modifiersFieldName,
+};
+
 FlintExecutionNode::FlintExecutionNode(Flint &flint, FlintJavaThread *onwerThread) : FlintExecution(flint, onwerThread) {
     prev = 0;
     next = 0;
@@ -405,65 +464,6 @@ FlintJavaString &Flint::getConstString(FlintJavaString &str) {
 }
 
 FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
-    static const FlintConstUtf8 *baseConstUtf8List[] = {
-        primTypeConstUtf8List[0],
-        primTypeConstUtf8List[1],
-        primTypeConstUtf8List[2],
-        primTypeConstUtf8List[3],
-        primTypeConstUtf8List[4],
-        primTypeConstUtf8List[5],
-        primTypeConstUtf8List[6],
-        primTypeConstUtf8List[7],
-        primTypeConstUtf8List[8],
-
-        &mathClassName,
-        &byteClassName,
-        &longClassName,
-        &shortClassName,
-        &arrayClassName,
-        &errorClassName,
-        &classClassName,
-        &floatClassName,
-        &doubleClassName,
-        &objectClassName,
-        &systemClassName,
-        &stringClassName,
-        &threadClassName,
-        &methodClassName,
-        &booleanClassName,
-        &integerClassName,
-        &characterClassName,
-        &throwableClassName,
-        &exceptionClassName,
-        &bigIntegerClassName,
-        &printStreamClassName,
-        &ioExceptionClassName,
-        &constructorClassName,
-        &flintGraphicsClassName,
-        &classCastExceptionClassName,
-        &arrayStoreExceptionClassName,
-        &arithmeticExceptionClassName,
-        &nullPointerExceptionClassName,
-        &unsatisfiedLinkErrorClassName,
-        &interruptedExceptionClassName,
-        &classNotFoundExceptionClassName,
-        &illegalArgumentExceptionClassName,
-        &cloneNotSupportedExceptionClassName,
-        &negativeArraySizeExceptionClassName,
-        &unsupportedOperationExceptionClassName,
-        &arrayIndexOutOfBoundsExceptionClassName,
-
-        &constructorName,
-        &staticConstructorName,
-
-        &nameFieldName,
-        &clazzFieldName,
-        &returnTypeFieldName,
-        &parameterTypesFieldName,
-        &exceptionTypesFieldName,
-        &modifiersFieldName,
-    };
-
     uint32_t hash;
     ((uint16_t *)&hash)[0] = length;
     ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)text, length);
@@ -501,11 +501,65 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
     return newNode->value;
 }
 
+FlintConstUtf8 &Flint::getTypeNameConstUtf8(const char *typeName, uint16_t length) {
+    uint32_t hash;
+    ((uint16_t *)&hash)[0] = length;
+    ((uint16_t *)&hash)[1] = Flint_CalcTypeNameCrc((uint8_t *)typeName, length);
+
+    for(uint32_t i = 0; i < LENGTH(baseConstUtf8List); i++) {
+        if(CONST_UTF8_HASH(baseConstUtf8List[i][0]) == hash) {
+            bool isMatch = true;
+            const char *text2 = baseConstUtf8List[i]->text;
+            for(uint16_t j = 0; j < length; j++) {
+                if((text2[j] == typeName[j]) || (typeName[j] == '.' && text2[j] == '/'))
+                    continue;
+                isMatch = false;
+                break;
+            }
+            if(isMatch)
+                return *(FlintConstUtf8 *)baseConstUtf8List[i];
+        }
+    }
+
+    Flint::lock();
+
+    for(FlintConstUtf8Node *node = constUtf8List; node != 0; node = node->next) {
+        if(CONST_UTF8_HASH(node->value) == hash) {
+            bool isMatch = true;
+            const char *text2 = node->value.text;
+            for(uint16_t j = 0; j < length; j++) {
+                if((text2[j] == typeName[j]) || (typeName[j] == '.' && text2[j] == '/'))
+                    continue;
+                isMatch = false;
+                break;
+            }
+            Flint::unlock();
+            return node->value;
+        }
+    }
+
+    FlintConstUtf8Node *newNode = (FlintConstUtf8Node *)Flint::malloc(sizeof(FlintConstUtf8Node) + length + 1);
+    *(uint16_t *)&newNode->value.length = length;
+    *(uint16_t *)&newNode->value.crc = ((uint16_t *)&hash)[1];
+    char *textBuff = (char *)newNode->value.text;
+    for(uint16_t i = 0; i < length; i++)
+        textBuff[i] = (typeName[i] == '.') ? '/' : typeName[i];
+    textBuff[length] = 0;
+
+    newNode->next = constUtf8List;
+    constUtf8List = newNode;
+
+    Flint::unlock();
+
+    return newNode->value;
+}
+
 FlintObjectArray &Flint::getClassArray0(void) {
+    if(classArray0)
+        return *classArray0;
     Flint::lock();
     if(classArray0 == NULL)
         classArray0 = &newObjectArray(classClassName, 0);
-    classArray0->prot = 0x02;
     Flint::unlock();
     return *classArray0;
 }
@@ -737,8 +791,8 @@ void Flint::garbageCollection(void) {
             startSp = node->stack[startSp];
         }
     }
-    if(classArray0 && classArray0->getProtected() == 0)
-        classArray0 = 0;
+    if(classArray0 && !classArray0->getProtected())
+        garbageCollectionProtectObject(*classArray0);
     for(FlintJavaObject *node = objectList; node != 0;) {
         FlintJavaObject *next = node->next;
         uint8_t prot = node->getProtected();

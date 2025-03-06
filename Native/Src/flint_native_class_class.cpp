@@ -88,11 +88,9 @@ static void nativeIsAssignableFrom(FlintExecution &execution) {
     if(cls == NULL || thisCls == NULL)
         throw &execution.flint.newNullPointerException();
     uint32_t clsDims, thisDims;
-    FlintConstUtf8 *clsTypeName = (FlintConstUtf8 *)cls->getComponentTypeName(execution.flint, &clsDims);
-    FlintConstUtf8 *thisTypeName = (FlintConstUtf8 *)thisCls->getComponentTypeName(execution.flint, &thisDims);
-    if(clsTypeName == NULL || thisTypeName == NULL)
-        return execution.stackPushInt32(0);
-    execution.stackPushInt32(execution.flint.isInstanceof(*clsTypeName, clsDims, *thisTypeName, thisDims) ? 1 : 0);
+    const FlintConstUtf8 &clsTypeName = cls->getBaseTypeName(execution.flint, &clsDims);
+    const FlintConstUtf8 &thisTypeName = thisCls->getBaseTypeName(execution.flint, &thisDims);
+    execution.stackPushInt32(execution.flint.isInstanceof(clsTypeName, clsDims, thisTypeName, thisDims) ? 1 : 0);
 }
 
 static void nativeIsInterface(FlintExecution &execution) {
@@ -100,10 +98,8 @@ static void nativeIsInterface(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive())
         execution.stackPushInt32(0);
     else {
-        FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
-        if(typeName == NULL)
-            return execution.stackPushInt32(0);
-        FlintClassAccessFlag modifiers = execution.flint.load(*typeName).getAccessFlag();
+        const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
+        const FlintClassAccessFlag modifiers = execution.flint.load(typeName).getAccessFlag();
         execution.stackPushInt32((modifiers & CLASS_INTERFACE) ? 1 : 0);
     }
 }
@@ -123,10 +119,8 @@ static void nativeGetSuperclass(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive())
         execution.stackPushObject(NULL);
     else {
-        FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
-        if(typeName == NULL)
-            return execution.stackPushObject(NULL);
-        FlintConstUtf8 *superClass = &execution.flint.load(*typeName).getSuperClass();
+        const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
+        const FlintConstUtf8 *superClass = &execution.flint.load(typeName).getSuperClass();
         if(superClass == NULL)
             return execution.stackPushObject(NULL);
         execution.stackPushObject(&execution.flint.getConstClass(superClass->text, superClass->length));
@@ -136,12 +130,10 @@ static void nativeGetSuperclass(FlintExecution &execution) {
 static void nativeGetInterfaces0(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive())
-        execution.stackPushObject(&execution.flint.newObjectArray(classClassName, 0));
+        execution.stackPushObject(&execution.flint.getClassArray0());
     else {
-        FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
-        if(typeName == NULL)
-            return execution.stackPushObject(&execution.flint.newObjectArray(classClassName, 0));
-        FlintClassLoader &loader = execution.flint.load(*typeName);
+        const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
+        const FlintClassLoader &loader = execution.flint.load(typeName);
         uint32_t interfaceCount = loader.getInterfacesCount();
         if(interfaceCount) {
             FlintObjectArray &clsArr = execution.flint.newObjectArray(classClassName, interfaceCount);
@@ -152,7 +144,7 @@ static void nativeGetInterfaces0(FlintExecution &execution) {
             execution.stackPushObject(&clsArr);
         }
         else
-            execution.stackPushObject(&execution.flint.newObjectArray(classClassName, 0));
+            execution.stackPushObject(&execution.flint.getClassArray0());
     }
 }
 
@@ -200,8 +192,8 @@ static void nativeGetModifiers(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive())
         modifiers = 0x0411;
     else {
-        FlintConstUtf8 *typeName = (FlintConstUtf8 *)clsObj->getComponentTypeName(execution.flint);
-        modifiers = typeName ? (execution.flint.load(*typeName).getAccessFlag() & 0xFFDF) : 0x0411;
+        const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
+        modifiers = execution.flint.load(typeName).getAccessFlag() & 0xFFDF;
     }
     execution.stackPushInt32(modifiers);
 }
@@ -299,7 +291,7 @@ static FlintObjectArray &getExceptionTypes(FlintExecution &execution, FlintMetho
 
 static void nativeGetDeclaredMethods0(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
-    FlintClassLoader &loader = (clsObj->isArray() || clsObj->isPrimitive()) ? execution.flint.load(objectClassName) : execution.flint.load(*clsObj->getComponentTypeName(execution.flint));
+    FlintClassLoader &loader = (clsObj->isArray() || clsObj->isPrimitive()) ? execution.flint.load(objectClassName) : execution.flint.load(clsObj->getBaseTypeName(execution.flint));
     uint16_t methodCount = loader.getMethodsCount();
     uint16_t count = 0;
     for(uint16_t i = 0; i < methodCount; i++) {
@@ -333,7 +325,7 @@ static void nativeGetDeclaredMethods0(FlintExecution &execution) {
 
 static void nativeGetDeclaredConstructors0(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
-    FlintClassLoader &loader = (clsObj->isArray() || clsObj->isPrimitive()) ? execution.flint.load(objectClassName) : execution.flint.load(*clsObj->getComponentTypeName(execution.flint));
+    FlintClassLoader &loader = (clsObj->isArray() || clsObj->isPrimitive()) ? execution.flint.load(objectClassName) : execution.flint.load(clsObj->getBaseTypeName(execution.flint));
     uint16_t methodCount = loader.getMethodsCount();
     uint16_t count = 0;
     for(uint16_t i = 0; i < methodCount; i++) {

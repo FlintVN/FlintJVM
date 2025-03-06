@@ -536,12 +536,12 @@ static void nativeNewArray(FlintExecution &execution) {
     checkIsClassType(execution, componentType);
     checkLength(execution, length);
     uint32_t dimensions;
-    FlintConstUtf8 *typeName = (FlintConstUtf8 *)componentType->getComponentTypeName(execution.flint, &dimensions);
-    if((typeName == NULL) || (*typeName == *primTypeConstUtf8List[8])) /* null or void */
+    const FlintConstUtf8 &typeName = componentType->getBaseTypeName(execution.flint, &dimensions);
+    if(typeName == *primTypeConstUtf8List[8]) /* void */
         throwIllegalArgumentException(execution, NULL);
-    uint8_t atype = FlintJavaObject::isPrimType(*typeName);
+    uint8_t atype = FlintJavaObject::isPrimType(typeName);
     uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
-    FlintJavaObject &array = execution.flint.newObject(typeSize * length, *typeName, dimensions + 1);
+    FlintJavaObject &array = execution.flint.newObject(typeSize * length, typeName, dimensions + 1);
     memset((void *)&array.getFields(), 0, array.size);
     execution.stackPushObject(&array);
 }
@@ -552,12 +552,12 @@ static void nativeMultiNewArray(FlintExecution &execution) {
     checkIsClassType(execution, componentType);
     checkDimensions(execution, dimensions);
     uint32_t endDims;
-    FlintConstUtf8 *typeName = (FlintConstUtf8 *)componentType->getComponentTypeName(execution.flint, &endDims);
-    if((typeName == NULL) || (*typeName == *primTypeConstUtf8List[8])) /* null or void */
+    const FlintConstUtf8 &typeName = componentType->getBaseTypeName(execution.flint, &endDims);
+    if(typeName == *primTypeConstUtf8List[8]) /* void */
         throwIllegalArgumentException(execution, NULL);
     if((dimensions->getLength() + endDims) > 255)
         throw &execution.flint.newIllegalArgumentException();
-    FlintJavaObject &array = execution.flint.newMultiArray(*typeName, dimensions->getData(), dimensions->getLength() + endDims, endDims + 1);
+    FlintJavaObject &array = execution.flint.newMultiArray(typeName, dimensions->getData(), dimensions->getLength() + endDims, endDims + 1);
     execution.stackPushObject(&array);
 }
 
