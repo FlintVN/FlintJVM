@@ -9,7 +9,7 @@ FlintAPI::Thread::LockHandle *Flint::flintLockHandle = FlintAPI::Thread::createL
 
 Flint Flint::flintInstance;
 
-static const FlintConstUtf8 *baseConstUtf8List[] = {
+static const FlintConstUtf8 * const baseConstUtf8List[] = {
     primTypeConstUtf8List[0],
     primTypeConstUtf8List[1],
     primTypeConstUtf8List[2],
@@ -28,6 +28,7 @@ static const FlintConstUtf8 *baseConstUtf8List[] = {
     &errorClassName,
     &classClassName,
     &floatClassName,
+    &fieldClassName,
     &doubleClassName,
     &objectClassName,
     &systemClassName,
@@ -61,6 +62,7 @@ static const FlintConstUtf8 *baseConstUtf8List[] = {
     &staticConstructorName,
 
     &nameFieldName,
+    &typeFieldName,
     &clazzFieldName,
     &returnTypeFieldName,
     &parameterTypesFieldName,
@@ -525,12 +527,10 @@ FlintConstUtf8 &Flint::getTypeNameConstUtf8(const char *typeName, uint16_t lengt
 
     for(FlintConstUtf8Node *node = constUtf8List; node != 0; node = node->next) {
         if(CONST_UTF8_HASH(node->value) == hash) {
-            bool isMatch = true;
             const char *text2 = node->value.text;
             for(uint16_t j = 0; j < length; j++) {
                 if((text2[j] == typeName[j]) || (typeName[j] == '.' && text2[j] == '/'))
                     continue;
-                isMatch = false;
                 break;
             }
             Flint::unlock();

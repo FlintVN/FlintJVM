@@ -14,6 +14,7 @@ extern const FlintConstUtf8 &arrayClassName;
 extern const FlintConstUtf8 &errorClassName;
 extern const FlintConstUtf8 &classClassName;
 extern const FlintConstUtf8 &floatClassName;
+extern const FlintConstUtf8 &fieldClassName;
 extern const FlintConstUtf8 &doubleClassName;
 extern const FlintConstUtf8 &objectClassName;
 extern const FlintConstUtf8 &systemClassName;
@@ -48,6 +49,7 @@ extern const FlintConstUtf8 &staticConstructorName;
 
 extern const FlintConstUtf8 &nameFieldName;
 extern const FlintConstUtf8 &clazzFieldName;
+extern const FlintConstUtf8 &typeFieldName;
 extern const FlintConstUtf8 &returnTypeFieldName;
 extern const FlintConstUtf8 &parameterTypesFieldName;
 extern const FlintConstUtf8 &exceptionTypesFieldName;

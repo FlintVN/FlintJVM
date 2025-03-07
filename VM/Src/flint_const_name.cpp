@@ -31,6 +31,7 @@ const FlintConstUtf8 &arrayClassName = *(const FlintConstUtf8 *)"\x17\x00\xBD\xB
 const FlintConstUtf8 &characterClassName = *(const FlintConstUtf8 *)"\x13\x00\x92\x49""java/lang/Character";
 const FlintConstUtf8 &throwableClassName = *(const FlintConstUtf8 *)"\x13\x00\xB7\x14""java/lang/Throwable";
 const FlintConstUtf8 &exceptionClassName = *(const FlintConstUtf8 *)"\x13\x00\xF6\xDA""java/lang/Exception";
+const FlintConstUtf8 &fieldClassName = *(const FlintConstUtf8 *)"\x17\x00\x7A\x05""java/lang/reflect/Field";
 const FlintConstUtf8 &bigIntegerClassName = *(const FlintConstUtf8 *)"\x14\x00\x72\xF5""java/math/BigInteger";
 const FlintConstUtf8 &printStreamClassName = *(const FlintConstUtf8 *)"\x13\x00\x34\x38""java/io/PrintStream";
 const FlintConstUtf8 &methodClassName = *(const FlintConstUtf8 *)"\x18\x00\x97\x00""java/lang/reflect/Method";
@@ -54,6 +55,7 @@ const FlintConstUtf8 &constructorName = *(const FlintConstUtf8 *)"\x06\x00\xCC\x
 const FlintConstUtf8 &staticConstructorName = *(const FlintConstUtf8 *)"\x08\x00\xD0\xF2""<clinit>";
 
 const FlintConstUtf8 &nameFieldName = *(FlintConstUtf8 *)"\x04\x00\x5E\x56""name";
+const FlintConstUtf8 &typeFieldName = *(FlintConstUtf8 *)"\x04\x00\xD0\x19""type";
 const FlintConstUtf8 &clazzFieldName = *(FlintConstUtf8 *)"\x05\x00\xF1\xFA""clazz";
 const FlintConstUtf8 &returnTypeFieldName = *(FlintConstUtf8 *)"\x0A\x00\x5E\x42""returnType";
 const FlintConstUtf8 &parameterTypesFieldName = *(FlintConstUtf8 *)"\x0E\x00\x9B\xC1""parameterTypes";

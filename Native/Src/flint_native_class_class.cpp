@@ -165,30 +165,30 @@ static void nativeGetInterfaces0(FlintExecution &execution) {
     }
 }
 
-static FlintJavaClass &getClass(FlintExecution &execution, const char *typeName, uint16_t length) {
+static FlintJavaClass &getClass(Flint &flint, const char *typeName, uint16_t length) {
     if(length == 1) {
         switch(*typeName) {
             case 'Z':   /* boolean */
-                return execution.flint.getConstClass("boolean", 7);
+                return flint.getConstClass("boolean", 7);
             case 'C':   /* char */
-                return execution.flint.getConstClass("char", 4);
+                return flint.getConstClass("char", 4);
             case 'F':   /* float */
-                return execution.flint.getConstClass("float", 5);
+                return flint.getConstClass("float", 5);
             case 'D':   /* double */
-                return execution.flint.getConstClass("double", 6);
+                return flint.getConstClass("double", 6);
             case 'B':   /* byte */
-                return execution.flint.getConstClass("byte", 4);
+                return flint.getConstClass("byte", 4);
             case 'S':   /* short */
-                return execution.flint.getConstClass("short", 5);
+                return flint.getConstClass("short", 5);
                 break;
             case 'I':   /* integer */
-                return execution.flint.getConstClass("int", 3);
+                return flint.getConstClass("int", 3);
             default:    /* long */
-                return execution.flint.getConstClass("long", 4);
+                return flint.getConstClass("long", 4);
         }
     }
     else
-        return execution.flint.getConstClass(typeName, length);
+        return flint.getConstClass(typeName, length);
 }
 
 static void nativeGetComponentType(FlintExecution &execution) {
@@ -198,7 +198,7 @@ static void nativeGetComponentType(FlintExecution &execution) {
     uint8_t coder = name.getCoder();
     uint32_t length = name.getLength();
     if(length > 1 && coder == 0 && text[0] == '[')
-        execution.stackPushObject(&getClass(execution, &text[1], length - 1));
+        execution.stackPushObject(&getClass(execution.flint, &text[1], length - 1));
     else
         execution.stackPushInt32(0);
 }
@@ -219,11 +219,11 @@ static void nativeIsHidden(FlintExecution &execution) {
     throw "isHidden is not implemented in VM";
 }
 
-static FlintJavaClass &getReturnType(FlintExecution &execution, FlintMethodInfo &methodInfo) {
+static FlintJavaClass &getReturnType(Flint &flint, FlintMethodInfo &methodInfo) {
     const char *text = methodInfo.descriptor.text;
     while(*text++ != ')');
     uint16_t len = methodInfo.descriptor.length - (text - methodInfo.descriptor.text);
-    return getClass(execution, text, len);
+    return getClass(flint, text, len);
 }
 
 static uint8_t getParameterCount(FlintMethodInfo &methodInfo) {
@@ -255,11 +255,11 @@ static uint8_t getParameterCount(FlintMethodInfo &methodInfo) {
     throw "descriptor is invalid";
 }
 
-static FlintObjectArray &getParameterTypes(FlintExecution &execution, FlintMethodInfo &methodInfo, FlintObjectArray &classArray0) {
+static FlintObjectArray &getParameterTypes(Flint &flint, FlintMethodInfo &methodInfo, FlintObjectArray &classArray0) {
     uint8_t count = getParameterCount(methodInfo);
     if(count == 0)
         return classArray0;
-    FlintObjectArray &array = execution.flint.newObjectArray(classClassName, count);
+    FlintObjectArray &array = flint.newObjectArray(classClassName, count);
     FlintJavaObject **data = array.getData();
     count = 0;
     const char *text = methodInfo.descriptor.text;
@@ -285,25 +285,47 @@ static FlintObjectArray &getParameterTypes(FlintExecution &execution, FlintMetho
         else
             text++;
         uint16_t len = text - start;
-        data[count++] = &getClass(execution, start, len);
+        data[count++] = &getClass(flint, start, len);
     }
     return array;
 }
 
-static FlintObjectArray &getExceptionTypes(FlintExecution &execution, FlintMethodInfo &methodInfo, FlintObjectArray &classArray0) {
+static FlintObjectArray &getExceptionTypes(Flint &flint, FlintMethodInfo &methodInfo, FlintObjectArray &classArray0) {
     if(!methodInfo.hasAttributeCode())
         return classArray0;
     FlintCodeAttribute &attributeCode = methodInfo.getAttributeCode();
     if(attributeCode.exceptionTableLength == 0)
         return classArray0;
-    FlintObjectArray &array = execution.flint.newObjectArray(classClassName, attributeCode.exceptionTableLength);
+    FlintObjectArray &array = flint.newObjectArray(classClassName, attributeCode.exceptionTableLength);
     FlintClassLoader &classLoader = methodInfo.classLoader;
     FlintJavaObject **data = array.getData();
     for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
         FlintConstUtf8 &catchType = classLoader.getConstUtf8Class(attributeCode.getException(i).catchType);
-        data[i] = &execution.flint.getConstClass(catchType.text, catchType.length);
+        data[i] = &flint.getConstClass(catchType.text, catchType.length);
     }
     return array;
+}
+
+static void nativeGetDeclaredFields0(FlintExecution &execution) {
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    FlintClassLoader &loader = (clsObj->isArray() || clsObj->isPrimitive()) ? execution.flint.load(objectClassName) : execution.flint.load(clsObj->getBaseTypeName(execution.flint));
+    uint16_t fieldCount = loader.getFieldsCount();
+    FlintObjectArray *array = (FlintObjectArray *)&execution.flint.newObjectArray(fieldClassName, fieldCount);
+    uint32_t clazzIndex = 0, nameIndex = 0, typeIndex = 0, modifiersIndex = 0;
+    for(uint16_t i = 0; i < fieldCount; i++) {
+        FlintFieldInfo &fieldInfo = loader.getFieldInfo(i);
+
+        FlintJavaObject &field = execution.flint.newObject(fieldClassName);
+        FlintFieldsData &fields = field.getFields();
+
+        fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
+        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(fieldInfo.name);
+        fields.getFieldObject(typeFieldName, &typeIndex).object = &getClass(execution.flint, fieldInfo.descriptor.text, fieldInfo.descriptor.length);
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)fieldInfo.accessFlag;
+
+        array->getData()[i] = &field;
+    }
+    execution.stackPushObject(array);
 }
 
 static void nativeGetDeclaredMethods0(FlintExecution &execution) {
@@ -330,10 +352,10 @@ static void nativeGetDeclaredMethods0(FlintExecution &execution) {
 
         fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
         fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(methodInfo.name);
-        fields.getFieldObject(returnTypeFieldName, &returnTypeIndex).object = &getReturnType(execution, methodInfo);
-        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution, methodInfo, classArray0);
-        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution, methodInfo, classArray0);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = loader.getAccessFlag();
+        fields.getFieldObject(returnTypeFieldName, &returnTypeIndex).object = &getReturnType(execution.flint, methodInfo);
+        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution.flint, methodInfo, classArray0);
+        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)methodInfo.accessFlag;
 
         array->getData()[count++] = &method;
     }
@@ -363,9 +385,9 @@ static void nativeGetDeclaredConstructors0(FlintExecution &execution) {
         FlintFieldsData &fields = constructor.getFields();
 
         fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
-        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution, methodInfo, classArray0);
-        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution, methodInfo, classArray0);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = loader.getAccessFlag();
+        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution.flint, methodInfo, classArray0);
+        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)methodInfo.accessFlag;
 
         array->getData()[count++] = &constructor;
     }
@@ -385,6 +407,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x10\x00\x95\x8C""getComponentType",         "\x13\x00\x0A\x1F""()Ljava/lang/Class;",                   nativeGetComponentType),
     NATIVE_METHOD("\x0C\x00\x21\x8F""getModifiers",             "\x03\x00\xD0\x51""()I",                                   nativeGetModifiers),
     NATIVE_METHOD("\x08\x00\x9C\xA3""isHidden",                 "\x03\x00\x91\x9C""()Z",                                   nativeIsHidden),
+    NATIVE_METHOD("\x12\x00\xDA\x76""getDeclaredFields0",       "\x1C\x00\x48\x1C""()[Ljava/lang/reflect/Field;",          nativeGetDeclaredFields0),
     NATIVE_METHOD("\x13\x00\x4B\x12""getDeclaredMethods0",      "\x1D\x00\x12\x57""()[Ljava/lang/reflect/Method;",         nativeGetDeclaredMethods0),
     NATIVE_METHOD("\x18\x00\x0C\xE2""getDeclaredConstructors0", "\x22\x00\x96\xC4""()[Ljava/lang/reflect/Constructor;",    nativeGetDeclaredConstructors0),
 };
