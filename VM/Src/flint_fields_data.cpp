@@ -322,7 +322,8 @@ ClassData::ClassData(Flint &flint, const char *fileName) : FlintClassLoader(flin
     monitorCount = 0;
     isInitializing = 0;
     staticFieldsData = 0;
-    next = 0;
+    next1 = 0;
+    next2 = 0;
 }
 
 ClassData::ClassData(Flint &flint, const char *fileName, uint16_t length) : FlintClassLoader(flint, fileName, length) {
@@ -330,7 +331,8 @@ ClassData::ClassData(Flint &flint, const char *fileName, uint16_t length) : Flin
     monitorCount = 0;
     isInitializing = 0;
     staticFieldsData = 0;
-    next = 0;
+    next1 = 0;
+    next2 = 0;
 }
 
 ClassData::ClassData(Flint &flint, const FlintConstUtf8 &fileName) : FlintClassLoader(flint, fileName) {
@@ -338,5 +340,6 @@ ClassData::ClassData(Flint &flint, const FlintConstUtf8 &fileName) : FlintClassL
     monitorCount = 0;
     isInitializing = 0;
     staticFieldsData = 0;
-    next = 0;
+    next1 = 0;
+    next2 = 0;
 }

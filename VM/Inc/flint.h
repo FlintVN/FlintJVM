@@ -53,11 +53,14 @@ private:
     static Flint flintInstance;
     FlintDebugger *dbg;
     FlintExecutionNode *executionList;
-    ClassData *classDataList;
     FlintJavaObject *objectList;
+    ClassData *classDataList;
+    ClassData *classDataMap[128];
     FlintConstClass *constClassList;
+    FlintConstClass *constClassMap[128];
     FlintConstString *constStringList;
-    FlintConstUtf8Node *constUtf8List;
+    FlintConstString *constStringMap[128];
+    FlintConstUtf8Node *constUtf8Map[128];
     FlintObjectArray *classArray0;
     uint32_t objectSizeToGc;
 

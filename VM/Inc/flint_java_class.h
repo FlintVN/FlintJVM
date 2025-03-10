@@ -20,7 +20,8 @@ protected:
 
 class FlintConstClass {
 private:
-    FlintConstClass *next;
+    FlintConstClass *next1;
+    FlintConstClass *next2;
 public:
     FlintJavaClass &flintClass;
 private:

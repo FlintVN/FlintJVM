@@ -122,6 +122,8 @@ bool FlintJavaString::equals(const char *text, uint32_t length) const {
     if((getLength() != length) || (getCoder() != 0))
         return false;
     const char *value = getText();
+    if(value == text)
+        return true;
     for(uint32_t i = 0; i < length; i++) {
         if(value[i] != text[i])
             return false;
@@ -161,25 +163,7 @@ bool FlintJavaString::equals(const FlintConstUtf8 &utf8) const {
     return true;
 }
 
-bool FlintJavaString::equals(FlintJavaString &str) const {
-    if(this == &str)
-        return true;
-    uint32_t len = getLength();
-    if(len != str.getLength())
-        return false;
-    uint8_t coder = getCoder();
-    if(coder != str.getCoder())
-        return false;
-    const char *value1 = getText();
-    const char *value2 = str.getText();
-    len <<= coder;
-    for(uint32_t i = 0; i < len; i++) {
-        if(value1[i] != value2[i])
-            return false;
-    }
-    return true;
-}
-
 FlintConstString::FlintConstString(FlintJavaString &flintString) : flintString(flintString) {
-    next = 0;
+    next1 = 0;
+    next2 = 0;
 }

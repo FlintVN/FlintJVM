@@ -84,7 +84,8 @@ private:
 
 class ClassData : public FlintClassLoader {
 private:
-    ClassData *next;
+    ClassData *next1;
+    ClassData *next2;
 public:
     uint32_t ownId;
     uint32_t monitorCount : 31;

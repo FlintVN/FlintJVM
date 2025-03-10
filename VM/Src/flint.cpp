@@ -123,11 +123,14 @@ Flint &Flint::getInstance(void) {
 Flint::Flint(void) {
     dbg = 0;
     executionList = 0;
-    classDataList = 0;
     objectList = 0;
+    classDataList = 0;
+    memset(classDataMap, 0, LENGTH(classDataMap));
     constClassList = 0;
+    memset(constClassMap, 0, LENGTH(constClassMap));
     constStringList = 0;
-    constUtf8List = 0;
+    memset(constStringMap, 0, LENGTH(constStringMap));
+    memset(constUtf8Map, 0, LENGTH(constUtf8Map));
     classArray0 = 0;
     objectSizeToGc = 0;
 }
@@ -308,7 +311,11 @@ FlintJavaClass &Flint::getConstClass(const char *typeName, uint16_t length) {
         length -= (typeName[length - 1] == ';') ? 2 : 1;
         typeName++;
     }
-    for(FlintConstClass *node = constClassList; node != 0; node = node->next) {
+    uint32_t hashIndex = Flint_CalcTypeNameCrc((uint8_t *)typeName, length) % LENGTH(constClassMap);
+
+    Flint::lock();
+
+    for(FlintConstClass *node = constClassMap[hashIndex]; node != 0; node = node->next2) {
         FlintJavaString &className = node->flintClass.getName();
         if((className.getLength() != length) || (className.getCoder() != 0))
             continue;
@@ -320,6 +327,7 @@ FlintJavaClass &Flint::getConstClass(const char *typeName, uint16_t length) {
                 continue;
             goto nextNode;
         }
+        Flint::unlock();
         return node->flintClass;
         nextNode:
         continue;
@@ -328,23 +336,40 @@ FlintJavaClass &Flint::getConstClass(const char *typeName, uint16_t length) {
     FlintConstClass *newNode = (FlintConstClass *)Flint::malloc(sizeof(FlintConstClass));
     new (newNode)FlintConstClass(classObj);
 
-    newNode->next = constClassList;
+    newNode->next1 = constClassList;
     constClassList = newNode;
+    newNode->next2 = constClassMap[hashIndex];
+    constClassMap[hashIndex] = newNode;
+
+    Flint::unlock();
 
     return classObj;
 }
 
 FlintJavaClass &Flint::getConstClass(FlintJavaString &str) {
-    for(FlintConstClass *node = constClassList; node != 0; node = node->next) {
-        if(node->flintClass.getName().equals(str))
+    Flint::lock();
+
+    FlintInt8Array *strValue = str.getValue();
+    int8_t *text = strValue->getData();
+    uint32_t length = strValue->getLength();
+    uint32_t hashIndex = Flint_CalcCrc((uint8_t *)text, length);
+
+    for(FlintConstClass *node = constClassMap[hashIndex]; node != 0; node = node->next2) {
+        if(node->flintClass.getName().equals((char *)text, length)) {
+            Flint::unlock();
             return node->flintClass;
+        }
     }
     FlintJavaClass &classObj = newClass(str);
     FlintConstClass *newNode = (FlintConstClass *)Flint::malloc(sizeof(FlintConstClass));
     new (newNode)FlintConstClass(classObj);
 
-    newNode->next = constClassList;
+    newNode->next1 = constClassList;
     constClassList = newNode;
+    newNode->next2 = constClassMap[hashIndex];
+    constClassMap[hashIndex] = newNode;
+
+    Flint::unlock();
 
     return classObj;
 }
@@ -437,30 +462,53 @@ FlintJavaString &Flint::newString(const char *latin1Str[], uint16_t count) {
 }
 
 FlintJavaString &Flint::getConstString(const FlintConstUtf8 &utf8) {
-    for(FlintConstString *node = constStringList; node != 0; node = node->next) {
-        if(node->flintString.equals(utf8))
+    uint32_t hashIndex = utf8.crc % LENGTH(constStringMap);
+
+    Flint::unlock();
+
+    for(FlintConstString *node = constStringMap[hashIndex]; node != 0; node = node->next2) {
+        if(node->flintString.equals(utf8)) {
+            Flint::unlock();
             return node->flintString;
+        }
     }
     FlintJavaString &strObj = newString(utf8.text, utf8.length, true);
     FlintConstString *newNode = (FlintConstString *)Flint::malloc(sizeof(FlintConstString));
     new (newNode)FlintConstString(strObj);
 
-    newNode->next = constStringList;
+    newNode->next1 = constStringList;
     constStringList = newNode;
+    newNode->next2 = constStringMap[hashIndex];
+    constStringMap[hashIndex] = newNode;
+
+    Flint::unlock();
 
     return strObj;
 }
 
 FlintJavaString &Flint::getConstString(FlintJavaString &str) {
-    for(FlintConstString *node = constStringList; node != 0; node = node->next) {
-        if(node->flintString.equals(str))
+    FlintInt8Array *strValue = str.getValue();
+    int8_t *text = strValue->getData();
+    uint32_t length = strValue->getLength();
+    uint32_t hashIndex = Flint_CalcCrc((uint8_t *)text, length) % LENGTH(constStringMap);
+
+    Flint::lock();
+
+    for(FlintConstString *node = constStringMap[hashIndex]; node != 0; node = node->next2) {
+        if(node->flintString.equals((char *)text, length)) {
+            Flint::unlock();
             return node->flintString;
+        }
     }
     FlintConstString *newNode = (FlintConstString *)Flint::malloc(sizeof(FlintConstString));
     new (newNode)FlintConstString(str);
 
-    newNode->next = constStringList;
+    newNode->next1 = constStringList;
     constStringList = newNode;
+    newNode->next2 = constStringMap[hashIndex];
+    constStringMap[hashIndex] = newNode;
+
+    Flint::unlock();
 
     return str;
 }
@@ -477,9 +525,11 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
         }
     }
 
+    uint32_t hashIndex = ((uint16_t *)&hash)[1] % LENGTH(constUtf8Map);
+
     Flint::lock();
 
-    for(FlintConstUtf8Node *node = constUtf8List; node != 0; node = node->next) {
+    for(FlintConstUtf8Node *node = constUtf8Map[hashIndex]; node != 0; node = node->next) {
         if(CONST_UTF8_HASH(node->value) == hash) {
             if(strncmp(node->value.text, text, length) == 0) {
                 Flint::unlock();
@@ -495,8 +545,8 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
     strncpy(textBuff, text, length);
     textBuff[length] = 0;
 
-    newNode->next = constUtf8List;
-    constUtf8List = newNode;
+    newNode->next = constUtf8Map[hashIndex];
+    constUtf8Map[hashIndex] = newNode;
 
     Flint::unlock();
 
@@ -523,9 +573,11 @@ FlintConstUtf8 &Flint::getTypeNameConstUtf8(const char *typeName, uint16_t lengt
         }
     }
 
+    uint32_t hashIndex = ((uint16_t *)&hash)[1] % LENGTH(constUtf8Map);
+
     Flint::lock();
 
-    for(FlintConstUtf8Node *node = constUtf8List; node != 0; node = node->next) {
+    for(FlintConstUtf8Node *node = constUtf8Map[hashIndex]; node != 0; node = node->next) {
         if(CONST_UTF8_HASH(node->value) == hash) {
             const char *text2 = node->value.text;
             for(uint16_t j = 0; j < length; j++) {
@@ -546,8 +598,8 @@ FlintConstUtf8 &Flint::getTypeNameConstUtf8(const char *typeName, uint16_t lengt
         textBuff[i] = (typeName[i] == '.') ? '/' : typeName[i];
     textBuff[length] = 0;
 
-    newNode->next = constUtf8List;
-    constUtf8List = newNode;
+    newNode->next = constUtf8Map[hashIndex];
+    constUtf8Map[hashIndex] = newNode;
 
     Flint::unlock();
 
@@ -756,15 +808,15 @@ void Flint::clearProtectObjectNew(FlintJavaObject &obj) {
 void Flint::garbageCollection(void) {
     Flint::lock();
     objectSizeToGc = 0;
-    for(FlintConstClass *node = constClassList; node != 0; node = node->next) {
+    for(FlintConstClass *node = constClassList; node != 0; node = node->next1) {
         if(!node->flintClass.getProtected())
             garbageCollectionProtectObject(node->flintClass);
     }
-    for(FlintConstString *node = constStringList; node != 0; node = node->next) {
+    for(FlintConstString *node = constStringList; node != 0; node = node->next1) {
         if(!node->flintString.getProtected())
             garbageCollectionProtectObject(node->flintString);
     }
-    for(ClassData *node = classDataList; node != 0; node = node->next) {
+    for(ClassData *node = classDataList; node != 0; node = node->next1) {
         FlintFieldsData *fieldsData = node->staticFieldsData;
         if(fieldsData && fieldsData->fieldsObjCount) {
             for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
@@ -819,23 +871,25 @@ FlintClassLoader &Flint::load(const char *className, uint16_t length) {
     Flint::lock();
     ClassData *newNode = 0;
     try {
-        if(classDataList) {
-            uint32_t hash;
-            ((uint16_t *)&hash)[0] = length;
-            ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)className, length);
-            for(ClassData *node = classDataList; node != 0; node = node->next) {
-                FlintConstUtf8 &name = node->getThisClass();
-                if(hash == CONST_UTF8_HASH(name) && strncmp(name.text, className, length) == 0) {
-                    Flint::unlock();
-                    return *node;
-                }
+        uint32_t hash;
+        ((uint16_t *)&hash)[0] = length;
+        ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)className, length);
+        uint32_t hashIndex = ((uint16_t *)&hash)[1] % LENGTH(classDataMap);
+
+        for(ClassData *node = classDataMap[hashIndex]; node != 0; node = node->next2) {
+            FlintConstUtf8 &name = node->getThisClass();
+            if(hash == CONST_UTF8_HASH(name) && strncmp(name.text, className, length) == 0) {
+                Flint::unlock();
+                return *node;
             }
         }
         newNode = (ClassData *)Flint::malloc(sizeof(ClassData));
         newNode->staticFieldsData = 0;
         new (newNode)ClassData(*this, className, length);
-        newNode->next = classDataList;
+        newNode->next1 = classDataList;
         classDataList = newNode;
+        newNode->next2 = classDataMap[hashIndex];
+        classDataMap[hashIndex] = newNode;
         Flint::unlock();
         return *newNode;
     }
@@ -857,7 +911,8 @@ FlintClassLoader &Flint::load(const FlintConstUtf8 &className) {
     Flint::lock();
     ClassData *newNode = 0;
     try {
-        for(ClassData *node = classDataList; node != 0; node = node->next) {
+        uint32_t hashIndex = className.crc % LENGTH(classDataMap);
+        for(ClassData *node = classDataMap[hashIndex]; node != 0; node = node->next2) {
             if(className == node->getThisClass()) {
                 Flint::unlock();
                 return *node;
@@ -866,8 +921,10 @@ FlintClassLoader &Flint::load(const FlintConstUtf8 &className) {
         newNode = (ClassData *)Flint::malloc(sizeof(ClassData));
         newNode->staticFieldsData = 0;
         new (newNode)ClassData(*this, className.text, className.length);
-        newNode->next = classDataList;
+        newNode->next1 = classDataList;
         classDataList = newNode;
+        newNode->next2 = classDataMap[hashIndex];
+        classDataMap[hashIndex] = newNode;
         Flint::unlock();
         return *newNode;
     }
@@ -882,7 +939,8 @@ FlintClassLoader &Flint::load(const FlintConstUtf8 &className) {
 }
 
 FlintFieldsData &Flint::getStaticFields(const FlintConstUtf8 &className) const {
-    for(ClassData *node = classDataList; node != 0; node = node->next) {
+    uint32_t hashIndex = className.crc % LENGTH(classDataMap);
+    for(ClassData *node = classDataMap[hashIndex]; node != 0; node = node->next2) {
         if(className == node->getThisClass())
             return *node->staticFieldsData;
     }
@@ -1042,21 +1100,27 @@ void Flint::freeObject(FlintJavaObject &obj) {
 }
 
 void Flint::clearAllStaticFields(void) {
-    for(ClassData *node = classDataList; node != 0; node = node->next)
+    for(ClassData *node = classDataList; node != 0; node = node->next1)
         node->clearStaticFields();
 }
 
 void Flint::freeAllObject(void) {
     Flint::lock();
-    for(FlintConstClass *node = constClassList; node != 0;) {
-        FlintConstClass *next = node->next;
-        Flint::free(node);
-        node = next;
+    for(uint32_t i = 0; i < LENGTH(constClassMap); i++) {
+        for(FlintConstClass *node = constClassMap[i]; node != 0;) {
+            FlintConstClass *next = node->next2;
+            Flint::free(node);
+            node = next;
+        }
+        constClassMap[i] = 0;
     }
-    for(FlintConstString *node = constStringList; node != 0;) {
-        FlintConstString *next = node->next;
-        Flint::free(node);
-        node = next;
+    for(uint32_t i = 0; i < LENGTH(constStringMap); i++) {
+        for(FlintConstString *node = constStringMap[i]; node != 0;) {
+            FlintConstString *next = node->next2;
+            Flint::free(node);
+            node = next;
+        }
+        constStringMap[i] = 0;
     }
     for(FlintJavaObject *node = objectList; node != 0;) {
         FlintJavaObject *next = node->next;
@@ -1065,8 +1129,6 @@ void Flint::freeAllObject(void) {
         Flint::free(node);
         node = next;
     }
-    constClassList = 0;
-    constStringList = 0;
     objectList = 0;
     classArray0 = 0;
     objectSizeToGc = 0;
@@ -1087,24 +1149,28 @@ void Flint::freeAllExecution(void) {
 
 void Flint::freeAllClassLoader(void) {
     Flint::lock();
-    for(ClassData *node = classDataList; node != 0;) {
-        ClassData *next = node->next;
-        node->~ClassData();
-        Flint::free(node);
-        node = next;
+    for(uint32_t i = 0; i < LENGTH(classDataMap); i++) {
+        for(ClassData *node = classDataMap[i]; node != 0;) {
+            ClassData *next = node->next2;
+            node->~ClassData();
+            Flint::free(node);
+            node = next;
+        }
+        classDataMap[i] = 0;
     }
-    classDataList = 0;
     Flint::unlock();
 }
 
 void Flint::freeAllConstUtf8(void) {
     Flint::lock();
-    for(FlintConstUtf8Node *node = constUtf8List; node != 0;) {
-        FlintConstUtf8Node *next = node->next;
-        Flint::free(node);
-        node = next;
+    for(uint32_t i = 0; i < LENGTH(constUtf8Map); i++) {
+        for(FlintConstUtf8Node *node = constUtf8Map[i]; node != 0;) {
+            FlintConstUtf8Node *next = node->next;
+            Flint::free(node);
+            node = next;
+        }
+        constUtf8Map[i] = 0;
     }
-    constUtf8List = 0;
     Flint::unlock();
 }
 
