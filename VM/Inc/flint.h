@@ -14,6 +14,10 @@
 #include "flint_out_of_memory.h"
 #include "flint_load_file_error.h"
 #include "flint_find_native_error.h"
+#include "flint_const_utf8_binary_tree.h"
+#include "flint_string_binary_tree.h"
+#include "flint_class_binary_tree.h"
+#include "flint_class_data_binary_tree.h"
 #include "flint_system_api.h"
 #include "flint_java_boolean.h"
 #include "flint_java_byte.h"
@@ -37,28 +41,18 @@ private:
     void operator=(const FlintExecutionNode &) = delete;
 };
 
-class FlintConstUtf8Node {
-public:
-    FlintConstUtf8Node *next;
-    FlintConstUtf8 value;
-private:
-    FlintConstUtf8Node(void) = delete;
-    FlintConstUtf8Node(const FlintConstUtf8Node &) = delete;
-    void operator=(const FlintConstUtf8Node &) = delete;
-};
-
 class Flint {
 private:
     static FlintAPI::Thread::LockHandle *flintLockHandle;
     static Flint flintInstance;
     FlintDebugger *dbg;
     FlintExecutionNode *executionList;
-    ClassData *classDataList;
     FlintJavaObject *objectList;
-    FlintConstClass *constClassList;
-    FlintConstString *constStringList;
-    FlintConstUtf8Node *constUtf8List;
-    FlintObjectArray *classArray0;
+    FlintClassDataBinaryTree classDataTree;
+    FlintClassBinaryTree constClassTree;
+    FlintStringBinaryTree constStringTree;
+    FlintConstUtf8BinaryTree constUtf8Tree;
+    volatile FlintObjectArray *classArray0;
     uint32_t objectSizeToGc;
 
     Flint(void);
@@ -144,8 +138,8 @@ public:
     FlintJavaLong &newLong(int64_t value = 0);
     FlintJavaDouble &newDouble(double value = 0);
 
-    void initStaticField(ClassData &classData);
-    FlintFieldsData &getStaticFields(const FlintConstUtf8 &className) const;
+    void initStaticField(FlintClassData &classData);
+    FlintFieldsData *getStaticFields(const FlintConstUtf8 &className) const;
 
     FlintMethodInfo &findMethod(FlintConstMethod &constMethod);
 
@@ -154,7 +148,7 @@ public:
     bool isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2);
 
 private:
-    void garbageCollectionProtectObject(FlintJavaObject &obj);
+    static void garbageCollectionProtectObject(FlintJavaObject &obj);
 public:
     bool isObject(uint32_t address) const;
     void clearProtectObjectNew(FlintJavaObject &obj);

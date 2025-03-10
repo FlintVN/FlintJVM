@@ -139,9 +139,7 @@ FlintFieldData32 &FlintFieldsData::getFieldData32(const char *fieldName, uint32_
         return fieldsData32[*index & 0x7FFFFFFF];
     if(fields32Count) {
         uint16_t length = strlen(fieldName);
-        uint32_t hash;
-        ((uint16_t *)&hash)[0] = length;
-        ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)fieldName, length);
+        uint32_t hash = Flint_CalcHash(fieldName, length, false);
 
         for(uint16_t i = 0; i < fields32Count; i++) {
             const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
@@ -193,9 +191,7 @@ FlintFieldData64 &FlintFieldsData::getFieldData64(const char *fieldName, uint32_
         return fieldsData64[*index & 0x7FFFFFFF];
     if(fields64Count) {
         uint16_t length = strlen(fieldName);
-        uint32_t hash;
-        ((uint16_t *)&hash)[0] = length;
-        ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)fieldName, length);
+        uint32_t hash = Flint_CalcHash(fieldName, length, false);
 
         for(uint16_t i = 0; i < fields64Count; i++) {
             const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
@@ -247,9 +243,7 @@ FlintFieldObject &FlintFieldsData::getFieldObject(const char *fieldName, uint32_
         return fieldsObject[*index & 0x7FFFFFFF];
     if(fieldsObjCount) {
         uint16_t length = strlen(fieldName);
-        uint32_t hash;
-        ((uint16_t *)&hash)[0] = length;
-        ((uint16_t *)&hash)[1] = Flint_CalcCrc((uint8_t *)fieldName, length);
+        uint32_t hash = Flint_CalcHash(fieldName, length, false);
 
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
             const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
@@ -303,40 +297,4 @@ FlintFieldsData::~FlintFieldsData(void) {
         Flint::free(fieldsData64);
     if(fieldsObject)
         Flint::free(fieldsObject);
-}
-
-void ClassData::clearStaticFields(void) {
-    if(staticFieldsData) {
-        staticFieldsData->~FlintFieldsData();
-        Flint::free(staticFieldsData);
-        staticFieldsData = 0;
-    }
-}
-
-ClassData::~ClassData() {
-    clearStaticFields();
-}
-
-ClassData::ClassData(Flint &flint, const char *fileName) : FlintClassLoader(flint, fileName) {
-    ownId = 0;
-    monitorCount = 0;
-    isInitializing = 0;
-    staticFieldsData = 0;
-    next = 0;
-}
-
-ClassData::ClassData(Flint &flint, const char *fileName, uint16_t length) : FlintClassLoader(flint, fileName, length) {
-    ownId = 0;
-    monitorCount = 0;
-    isInitializing = 0;
-    staticFieldsData = 0;
-    next = 0;
-}
-
-ClassData::ClassData(Flint &flint, const FlintConstUtf8 &fileName) : FlintClassLoader(flint, fileName) {
-    ownId = 0;
-    monitorCount = 0;
-    isInitializing = 0;
-    staticFieldsData = 0;
-    next = 0;
 }

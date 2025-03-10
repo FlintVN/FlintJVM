@@ -183,7 +183,7 @@ void FlintExecution::stackRestoreContext(void) {
             obj->monitorCount--;
         }
         else {
-            ClassData &classData = *(ClassData *)&method->classLoader;
+            FlintClassData &classData = *(FlintClassData *)&method->classLoader;
             classData.monitorCount--;
         }
         Flint::unlock();
@@ -238,7 +238,7 @@ void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
         constMethod.methodInfo = &flint.findMethod(constMethod);
     FlintMethodInfo &methodInfo = *constMethod.methodInfo;
     if(methodInfo.accessFlag & METHOD_SYNCHRONIZED) {
-        ClassData &classData = *(ClassData *)&methodInfo.classLoader;
+        FlintClassData &classData = *(FlintClassData *)&methodInfo.classLoader;
         Flint::lock();
         if(classData.monitorCount == 0 || classData.ownId == (int32_t)this) {
             classData.ownId = (int32_t)this;
@@ -458,7 +458,7 @@ void FlintExecution::run(void) {
 
     if((int32_t)&method->classLoader.getStaticConstructor() != 0) {
         try {
-            stackPushInt32((int32_t)(ClassData *)&method->classLoader);
+            stackPushInt32((int32_t)(FlintClassData *)&method->classLoader);
         }
         catch(FlintLoadFileError *file) {
             fileNotFound = file;
@@ -1541,7 +1541,7 @@ void FlintExecution::run(void) {
     op_freturn: {
         int32_t retVal = stackPopInt32();
         if((method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
-            ClassData &classData = *(ClassData *)&method->classLoader;
+            FlintClassData &classData = *(FlintClassData *)&method->classLoader;
             if(classData.isInitializing) {
                 classData.isInitializing = 0;
                 Flint::unlock();
@@ -1556,7 +1556,7 @@ void FlintExecution::run(void) {
     op_dreturn: {
         int64_t retVal = stackPopInt64();
         if((method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
-            ClassData &classData = *(ClassData *)&method->classLoader;
+            FlintClassData &classData = *(FlintClassData *)&method->classLoader;
             if(classData.isInitializing) {
                 classData.isInitializing = 0;
                 Flint::unlock();
@@ -1570,7 +1570,7 @@ void FlintExecution::run(void) {
     op_areturn: {
         int32_t retVal = (int32_t)stackPopObject();
         if((method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
-            ClassData &classData = *(ClassData *)&method->classLoader;
+            FlintClassData &classData = *(FlintClassData *)&method->classLoader;
             if(classData.isInitializing) {
                 classData.isInitializing = 0;
                 Flint::unlock();
@@ -1583,7 +1583,7 @@ void FlintExecution::run(void) {
     }
     op_return: {
         if((method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
-            ClassData &classData = *(ClassData *)&method->classLoader;
+            FlintClassData &classData = *(FlintClassData *)&method->classLoader;
             if(classData.isInitializing) {
                 classData.isInitializing = 0;
                 Flint::unlock();
@@ -1596,10 +1596,10 @@ void FlintExecution::run(void) {
     }
     op_getstatic: {
         FlintConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        FlintFieldsData &fields = flint.getStaticFields(constField.className);
-        if((int32_t)&fields == 0) {
+        FlintFieldsData *fields = flint.getStaticFields(constField.className);
+        if(fields == 0) {
             try {
-                stackPushInt32((int32_t)(ClassData *)&flint.load(constField.className));
+                stackPushInt32((int32_t)(FlintClassData *)&flint.load(constField.className));
             }
             catch(FlintLoadFileError *file) {
                 fileNotFound = file;
@@ -1610,18 +1610,18 @@ void FlintExecution::run(void) {
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'J':
             case 'D': {
-                stackPushInt64(fields.getFieldData64(constField).value);
+                stackPushInt64(fields->getFieldData64(constField).value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'L':
             case '[': {
-                stackPushObject(fields.getFieldObject(constField).object);
+                stackPushObject(fields->getFieldObject(constField).object);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             default: {
-                stackPushInt32(fields.getFieldData32(constField).value);
+                stackPushInt32(fields->getFieldData32(constField).value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -1629,10 +1629,10 @@ void FlintExecution::run(void) {
     }
     op_putstatic: {
         FlintConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        FlintFieldsData &fields = flint.getStaticFields(constField.className);
-        if((int32_t)&fields == 0) {
+        FlintFieldsData *fields = flint.getStaticFields(constField.className);
+        if(fields == 0) {
             try {
-                stackPushInt32((int32_t)(ClassData *)&flint.load(constField.className));
+                stackPushInt32((int32_t)(FlintClassData *)&flint.load(constField.className));
             }
             catch(FlintLoadFileError *file) {
                 fileNotFound = file;
@@ -1644,26 +1644,26 @@ void FlintExecution::run(void) {
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
             case 'B': {
-                fields.getFieldData32(constField).value = (int8_t)stackPopInt32();
+                fields->getFieldData32(constField).value = (int8_t)stackPopInt32();
                 goto *opcodes[code[pc]];
             }
             case 'C':
             case 'S': {
-                fields.getFieldData32(constField).value = (int16_t)stackPopInt32();
+                fields->getFieldData32(constField).value = (int16_t)stackPopInt32();
                 goto *opcodes[code[pc]];
             }
             case 'J':
             case 'D': {
-                fields.getFieldData64(constField).value = stackPopInt64();
+                fields->getFieldData64(constField).value = stackPopInt64();
                 goto *opcodes[code[pc]];
             }
             case 'L':
             case '[': {
-                fields.getFieldObject(constField).object = stackPopObject();
+                fields->getFieldObject(constField).object = stackPopObject();
                 goto *opcodes[code[pc]];
             }
             default: {
-                fields.getFieldData32(constField).value = stackPopInt32();
+                fields->getFieldData32(constField).value = stackPopInt32();
                 goto *opcodes[code[pc]];
             }
         }
@@ -1905,7 +1905,7 @@ void FlintExecution::run(void) {
         FlintJavaObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass);
         memset(obj.data, 0, sizeof(FlintFieldsData));
         try {
-            ClassData &classData = *(ClassData *)&flint.load(constClass);
+            FlintClassData &classData = *(FlintClassData *)&flint.load(constClass);
             new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);
             stackPushObject(&obj);
             pc += 3;
@@ -2205,7 +2205,7 @@ void FlintExecution::run(void) {
     op_unknow:
         throw "unknow opcode";
     init_static_field: {
-        ClassData &classDataToInit = *(ClassData *)stackPopInt32();
+        FlintClassData &classDataToInit = *(FlintClassData *)stackPopInt32();
         Flint::lock();
         if(classDataToInit.staticFieldsData) {
             Flint::unlock();
@@ -2309,7 +2309,7 @@ void FlintExecution::innerRunTask(FlintExecution *execution) {
     }
     while(execution->startSp > 3) {
         if((execution->method->accessFlag & METHOD_STATIC) == METHOD_STATIC) {
-            ClassData &classData = *(ClassData *)&execution->method->classLoader;
+            FlintClassData &classData = *(FlintClassData *)&execution->method->classLoader;
             if(classData.isInitializing) {
                 classData.isInitializing = 0;
                 Flint::unlock();

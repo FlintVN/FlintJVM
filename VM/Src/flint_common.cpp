@@ -69,11 +69,18 @@ uint16_t Flint_CalcCrc(const uint8_t *data, uint32_t length) {
     return ~crc;
 }
 
-uint16_t Flint_CalcTypeNameCrc(const uint8_t *typeName, uint32_t length) {
+static uint16_t Flint_CalcTypeNameCrc(const uint8_t *typeName, uint32_t length) {
     uint16_t crc = 0xFFFF;
     for(uint32_t i = 0; i < length; i++)
         crc = crc16Table[(crc ^ ((typeName[i] == '.') ? '/' : typeName[i])) & 0xFF] ^ (crc >> 8);
     return ~crc;
+}
+
+uint32_t Flint_CalcHash(const char *text, uint32_t length, bool isTypeName) {
+    uint32_t hash;
+    ((uint16_t *)&hash)[0] = length;
+    ((uint16_t *)&hash)[1] = isTypeName ? Flint_CalcTypeNameCrc((uint8_t *)text, length) : Flint_CalcCrc((uint8_t *)text, length);
+    return hash;
 }
 
 int64_t Flint_GetUnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {

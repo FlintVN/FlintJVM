@@ -37,9 +37,7 @@ private:
     FlintAttribute *readAttributeCode(void *file);
     FlintAttribute *readAttributeBootstrapMethods(void *file);
 protected:
-    FlintClassLoader(class Flint &flint, const char *fileName);
     FlintClassLoader(class Flint &flint, const char *fileName, uint16_t length);
-    FlintClassLoader(class Flint &flint, const FlintConstUtf8 &fileName);
 
     ~FlintClassLoader(void);
 public:

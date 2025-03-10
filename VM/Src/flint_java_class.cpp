@@ -122,5 +122,6 @@ const FlintConstUtf8 &FlintJavaClass::getBaseTypeName(Flint &flint, uint32_t *di
 }
 
 FlintConstClass::FlintConstClass(FlintJavaClass &flintClass) : flintClass(flintClass) {
-
+    next1 = 0;
+    next2 = 0;
 }

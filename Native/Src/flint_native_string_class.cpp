@@ -6,9 +6,7 @@
 
 static void nativeIntern(FlintExecution &execution) {
     FlintJavaString *obj = (FlintJavaString *)execution.stackPopObject();
-    Flint::lock();
     execution.stackPushObject(&execution.flint.getConstString(*obj));
-    Flint::unlock();
 }
 
 static const FlintNativeMethod methods[] = {

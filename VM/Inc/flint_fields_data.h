@@ -78,31 +78,8 @@ private:
     ~FlintFieldsData(void);
 
     friend class Flint;
-    friend class ClassData;
+    friend class FlintClassData;
     friend class FlintExecution;
-};
-
-class ClassData : public FlintClassLoader {
-private:
-    ClassData *next;
-public:
-    uint32_t ownId;
-    uint32_t monitorCount : 31;
-    uint32_t isInitializing : 1;
-    FlintFieldsData *staticFieldsData;
-private:
-    ClassData(class Flint &flint, const char *fileName);
-    ClassData(class Flint &flint, const char *fileName, uint16_t length);
-    ClassData(class Flint &flint, const FlintConstUtf8 &fileName);
-
-    ClassData(const ClassData &) = delete;
-    void operator=(const ClassData &) = delete;
-
-    void clearStaticFields(void);
-
-    ~ClassData(void);
-
-    friend class Flint;
 };
 
 #endif /* __FLINT_FIELD_DATA_H */

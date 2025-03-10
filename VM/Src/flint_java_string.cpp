@@ -90,11 +90,11 @@ bool FlintJavaString::isLatin1(const char *utf8) {
 }
 
 FlintInt8Array *FlintJavaString::getValue(void) const {
-    return (FlintInt8Array *)getFields().getFieldObject(*(const FlintConstUtf8 *)"\x05\x00\x2B\x6E""value").object;
+    return (FlintInt8Array *)getFields().getFieldObjectByIndex(0).object;
 }
 
 void FlintJavaString::setValue(FlintInt8Array &byteArray) {
-    getFields().getFieldObject(*(const FlintConstUtf8 *)"\x05\x00\x2B\x6E""value").object = &byteArray;
+    getFields().getFieldObjectByIndex(0).object = &byteArray;
 }
 
 const char *FlintJavaString::getText(void) const {
@@ -111,75 +111,50 @@ uint32_t FlintJavaString::getLength(void) const {
 }
 
 uint8_t FlintJavaString::getCoder(void) const {
-    return getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\xE8\x49""coder").value;
+    return getFields().getFieldData32ByIndex(0).value;
 }
 
 void FlintJavaString::setCoder(uint8_t coder) {
-    getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\xE8\x49""coder").value = coder;
+    getFields().getFieldData32ByIndex(0).value = coder;
 }
 
-bool FlintJavaString::equals(const char *text, uint32_t length) const {
-    if((getLength() != length) || (getCoder() != 0))
-        return false;
-    const char *value = getText();
-    for(uint32_t i = 0; i < length; i++) {
-        if(value[i] != text[i])
-            return false;
+int32_t FlintJavaString::compareTo(FlintJavaString &another) const {
+    if(this == &another)
+        return 0;
+    uint32_t len1 = getLength();
+    if(getLength() != another.getLength())
+        return len1 - another.getLength();
+    uint8_t coder1 = getCoder();
+    if(coder1 != another.getCoder())
+        return coder1 ? 1 : -1;
+    const char *txt1 = getText();
+    const char *txt2 = another.getText();
+    if(txt1 == txt2)
+        return 0;
+    for(uint32_t i = 0; i < len1; i++) {
+        if(txt1[i] != txt2[i])
+            return txt1[i] - txt2[i];
     }
-    return true;
+    return 0;
 }
 
-bool FlintJavaString::equals(const FlintConstUtf8 &utf8) const {
+int32_t FlintJavaString::compareTo(const FlintConstUtf8 &utf8) const {
     uint32_t len2 = utf8StrLen(utf8.text);
     if(getLength() != len2)
-        return false;
-    uint8_t coder1 = getCoder();
+        return getLength() - len2;
     uint8_t coder2 = isLatin1(utf8.text) ? 0 : 1;
-    if(coder1 != coder2)
-        return false;
-    const char *value1 = getText();
-    if(coder1 == 0) {
-        const char *value2 = utf8.text;
-        for(uint32_t i = 0; i < len2; i++) {
-            uint16_t c1 = value1[i];
-            uint16_t c2 = utf8Decode(value2);
-            if(c1 != c2)
-                return false;
-            value2 += getUtf8DecodeSize(*value2);
-        }
+    if(getCoder() != coder2)
+        return getCoder() - coder2;
+    const char *txt1 = getText();
+    const char *txt2 = utf8.text;
+    if(txt1 == txt2)
+        return 0;
+    for(uint32_t i = 0; i < len2; i++) {
+        uint16_t c1 = coder2 ? ((uint16_t *)txt1)[i] : txt1[i];
+        uint16_t c2 = utf8Decode(txt2);
+        if(c1 != c2)
+            return c1 - c2;
+        txt2 += getUtf8DecodeSize(*txt2);
     }
-    else {
-        const char *value2 = utf8.text;
-        for(uint32_t i = 0; i < len2; i++) {
-            uint16_t c1 = ((uint16_t *)value1)[i];
-            uint16_t c2 = utf8Decode(value2);
-            if(c1 != c2)
-                return false;
-            value2 += getUtf8DecodeSize(*value2);
-        }
-    }
-    return true;
-}
-
-bool FlintJavaString::equals(FlintJavaString &str) const {
-    if(this == &str)
-        return true;
-    uint32_t len = getLength();
-    if(len != str.getLength())
-        return false;
-    uint8_t coder = getCoder();
-    if(coder != str.getCoder())
-        return false;
-    const char *value1 = getText();
-    const char *value2 = str.getText();
-    len <<= coder;
-    for(uint32_t i = 0; i < len; i++) {
-        if(value1[i] != value2[i])
-            return false;
-    }
-    return true;
-}
-
-FlintConstString::FlintConstString(FlintJavaString &flintString) : flintString(flintString) {
-    next = 0;
+    return 0;
 }

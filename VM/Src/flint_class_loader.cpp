@@ -16,21 +16,6 @@ typedef struct {
     FlintJavaClass *constClass;
 } ConstClassValue;
 
-static void *ClassLoader_Open(const char *fileName) {
-    char buff[FILE_NAME_BUFF_SIZE];
-    uint32_t i = 0;
-    while(fileName[i]) {
-        buff[i] = fileName[i];
-        i++;
-    }
-    memcpy(&buff[i], ".class", sizeof(".class"));
-
-    void *file = FlintAPI::IO::fopen(buff, FLINT_FILE_READ);
-    if(file == 0)
-        throw "can not open file";
-    return file;
-}
-
 static void *ClassLoader_Open(const char *fileName, uint32_t length) {
     char buff[FILE_NAME_BUFF_SIZE];
     memcpy(buff, fileName, length);
@@ -78,27 +63,6 @@ static void ClassLoader_Seek(void *file, int32_t offset) {
         throw "read file error";
 }
 
-FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName) {
-    poolCount = 0;
-    interfacesCount = 0;
-    fieldsCount = 0;
-    methodsCount = 0;
-    attributesCount = 0;
-    attributes = 0;
-
-    void *file = ClassLoader_Open(fileName);
-
-    try {
-        readFile(flint, file);
-    }
-    catch(const char *excp) {
-        FlintAPI::IO::fclose(file);
-        throw excp;
-    }
-
-    FlintAPI::IO::fclose(file);
-}
-
 FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) {
     poolCount = 0;
     interfacesCount = 0;
@@ -118,10 +82,6 @@ FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t 
     }
 
     FlintAPI::IO::fclose(file);
-}
-
-FlintClassLoader::FlintClassLoader(Flint &flint, const FlintConstUtf8 &fileName) : FlintClassLoader(flint, fileName.text, fileName.length) {
-
 }
 
 void FlintClassLoader::readFile(Flint &flint, void *file) {
