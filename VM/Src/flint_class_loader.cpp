@@ -85,8 +85,9 @@ FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t 
 }
 
 void FlintClassLoader::readFile(Flint &flint, void *file) {
-    char *utf8Buff = 0;
-    uint16_t utf8Length = 0;
+    char buff[FILE_NAME_BUFF_SIZE];
+    char *utf8Buff = buff;
+    uint16_t utf8Length = sizeof(buff) - 1;
     magic = ClassLoader_ReadUInt32(file);
     minorVersion = ClassLoader_ReadUInt16(file);
     majorVersion = ClassLoader_ReadUInt16(file);
@@ -142,7 +143,7 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
                 throw "uknow pool type";
         }
     }
-    if(utf8Buff)
+    if(utf8Buff != buff)
         Flint::free(utf8Buff);
     accessFlags = ClassLoader_ReadUInt16(file);
     thisClass = &getConstUtf8Class(ClassLoader_ReadUInt16(file));
