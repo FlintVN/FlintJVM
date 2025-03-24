@@ -8,7 +8,7 @@ FlintStringBinaryTree::FlintStringNode::FlintStringNode(FlintJavaString &value) 
 
 }
 
-FlintStringBinaryTree::FlintStringBinaryTree(Flint *flint) : root(0), flint(*flint) {
+FlintStringBinaryTree::FlintStringBinaryTree(void) : root(0) {
 
 }
 

@@ -8,7 +8,7 @@ FlintClassBinaryTree::FlintClassNode::FlintClassNode(FlintJavaClass &value) : le
 
 }
 
-FlintClassBinaryTree::FlintClassBinaryTree(Flint *flint) : root(0), flint(*flint) {
+FlintClassBinaryTree::FlintClassBinaryTree(void) : root(0) {
 
 }
 

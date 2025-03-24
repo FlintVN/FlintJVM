@@ -120,7 +120,7 @@ Flint &Flint::getInstance(void) {
     return flintInstance;
 }
 
-Flint::Flint(void): classDataTree(this), constClassTree(this), constStringTree(this), constUtf8Tree() {
+Flint::Flint(void): classDataTree(), constClassTree(), constStringTree(), constUtf8Tree() {
     dbg = 0;
     executionList = 0;
     objectList = 0;
@@ -733,7 +733,7 @@ FlintClassLoader &Flint::load(const char *className, uint16_t length) {
     try {
         FlintClassData *classData = classDataTree.find(className, length);
         if(!classData)
-            classData = &classDataTree.add(className, length);
+            classData = &classDataTree.add(this, className, length);
         Flint::unlock();
         return *classData;
     }
@@ -752,7 +752,7 @@ FlintClassLoader &Flint::load(const FlintConstUtf8 &className) {
     try {
         FlintClassData *classData = classDataTree.find(className);
         if(!classData)
-            classData = &classDataTree.add(className);
+            classData = &classDataTree.add(this, className);
         Flint::unlock();
         return *classData;
     }

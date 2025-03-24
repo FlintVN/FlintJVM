@@ -16,7 +16,6 @@ private:
     };
 
     FlintClassNode *root;
-    class Flint &flint;
 
     FlintClassBinaryTree(const FlintClassBinaryTree &) = delete;
     void operator=(const FlintClassBinaryTree &) = delete;
@@ -33,7 +32,7 @@ private:
     void forEach(FlintClassNode *node, void (*func)(FlintJavaClass &item));
     void freeNode(FlintClassNode *node);
 public:
-    FlintClassBinaryTree(class Flint *flint);
+    FlintClassBinaryTree(void);
 
     FlintJavaClass &add(FlintJavaClass &value);
 
