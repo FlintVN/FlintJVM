@@ -51,6 +51,8 @@ private:
     void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
 
+    bool lockObject(FlintJavaObject *obj);
+
     void invoke(FlintMethodInfo &methodInfo, uint8_t argc);
     void invokeStatic(FlintConstMethod &constMethod);
     void invokeSpecial(FlintConstMethod &constMethod);

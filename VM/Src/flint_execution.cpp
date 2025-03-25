@@ -197,6 +197,22 @@ void FlintExecution::stackRestoreContext(void) {
     locals = &stack[startSp + 1];
 }
 
+bool FlintExecution::lockObject(FlintJavaObject *obj) {
+    Flint::lock();
+    if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
+        obj->ownId = (int32_t)this;
+        if(obj->monitorCount < 0xFFFFFF) {
+            obj->monitorCount++;
+            Flint::unlock();
+            return true;
+        }
+        Flint::unlock();
+        throw "monitorCount limit has been reached";
+    }
+    Flint::unlock();
+    return false;
+}
+
 void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
     if(!(methodInfo.accessFlag & METHOD_NATIVE)) {
         peakSp = sp + 4;
@@ -264,24 +280,9 @@ void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
     FlintMethodInfo &methodInfo = *constMethod.methodInfo;
-    if(methodInfo.accessFlag & METHOD_SYNCHRONIZED) {
-        FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc - 1];
-        Flint::lock();
-        if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
-            obj->ownId = (int32_t)this;
-            if(obj->monitorCount < 0xFFFFFF) {
-                obj->monitorCount++;
-                Flint::unlock();
-            }
-            else {
-                Flint::unlock();
-                throw "monitorCount limit has been reached";
-            }
-        }
-        else {
-            Flint::unlock();
-            FlintAPI::Thread::yield();
-        }
+    if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) && !lockObject((FlintJavaObject *)stack[sp - argc - 1])) {
+        FlintAPI::Thread::yield();
+        return;
     }
     invoke(methodInfo, argc);
 }
@@ -302,23 +303,9 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         constMethod.methodInfo = &flint.findMethod(virtualConstMethod);
         methodInfo = constMethod.methodInfo;
     }
-    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
-        Flint::lock();
-        if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
-            obj->ownId = (int32_t)this;
-            if(obj->monitorCount < 0xFFFFFF) {
-                obj->monitorCount++;
-                Flint::unlock();
-            }
-            else {
-                Flint::unlock();
-                throw "monitorCount limit has been reached";
-            }
-        }
-        else {
-            Flint::unlock();
-            FlintAPI::Thread::yield();
-        }
+    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
+        FlintAPI::Thread::yield();
+        return;
     }
     argc++;
     invoke(*methodInfo, argc);
@@ -339,23 +326,9 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
         interfaceMethod.methodInfo = &flint.findMethod(interfaceConstMethod);
         methodInfo = interfaceMethod.methodInfo;
     }
-    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
-        Flint::lock();
-        if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
-            obj->ownId = (int32_t)this;
-            if(obj->monitorCount < 0xFFFFFF) {
-                obj->monitorCount++;
-                Flint::unlock();
-            }
-            else {
-                Flint::unlock();
-                throw "monitorCount limit has been reached";
-            }
-        }
-        else {
-            Flint::unlock();
-            FlintAPI::Thread::yield();
-        }
+    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
+        FlintAPI::Thread::yield();
+        return;
     }
     invoke(*methodInfo, argc);
 }
@@ -2087,22 +2060,11 @@ void FlintExecution::run(void) {
             }
             goto exception_handler;
         }
-        Flint::lock();
-        if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
-            obj->ownId = (int32_t)this;
-            if(obj->monitorCount < 0xFFFFFF)
-                obj->monitorCount++;
-            else {
-                Flint::unlock();
-                throw "monitorCount limit has been reached";
-            }
-            pc++;
-            Flint::unlock();
-        }
-        else {
-            Flint::unlock();
+        if(!lockObject(obj)) {
             FlintAPI::Thread::yield();
+            goto *opcodes[code[pc]];
         }
+        pc++;
         goto *opcodes[code[pc]];
     }
     op_monitorexit: {
