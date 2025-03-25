@@ -197,6 +197,22 @@ void FlintExecution::stackRestoreContext(void) {
     locals = &stack[startSp + 1];
 }
 
+bool FlintExecution::lockClass(FlintClassData &cls) {
+    Flint::lock();
+    if(cls.monitorCount == 0 || cls.ownId == (int32_t)this) {
+        cls.ownId = (int32_t)this;
+        if(cls.monitorCount < 0x7FFFFFFF) {
+            cls.monitorCount++;
+            Flint::unlock();
+            return true;
+        }
+        Flint::unlock();
+        throw "monitorCount limit has been reached";
+    }
+    Flint::unlock();
+    return false;
+}
+
 bool FlintExecution::lockObject(FlintJavaObject *obj) {
     Flint::lock();
     if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
@@ -255,21 +271,9 @@ void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
     FlintMethodInfo &methodInfo = *constMethod.methodInfo;
     if(methodInfo.accessFlag & METHOD_SYNCHRONIZED) {
         FlintClassData &classData = *(FlintClassData *)&methodInfo.classLoader;
-        Flint::lock();
-        if(classData.monitorCount == 0 || classData.ownId == (int32_t)this) {
-            classData.ownId = (int32_t)this;
-            if(classData.monitorCount < 0x7FFFFFFF) {
-                classData.monitorCount++;
-                Flint::unlock();
-            }
-            else {
-                Flint::unlock();
-                throw "monitorCount limit has been reached";
-            }
-        }
-        else {
-            Flint::unlock();
+        if(!lockClass(classData)) {
             FlintAPI::Thread::yield();
+            return;
         }
     }
     invoke(methodInfo, constMethod.getParmInfo().argc);

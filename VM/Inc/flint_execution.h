@@ -7,6 +7,7 @@
 #include "flint_const_pool.h"
 #include "flint_method_info.h"
 #include "flint_java_thread.h"
+#include "flint_class_data_binary_tree.h"
 
 #define STR_AND_SIZE(str)           str, (sizeof(str) - 1)
 
@@ -51,6 +52,7 @@ private:
     void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
 
+    bool lockClass(FlintClassData &cls);
     bool lockObject(FlintJavaObject *obj);
 
     void invoke(FlintMethodInfo &methodInfo, uint8_t argc);
