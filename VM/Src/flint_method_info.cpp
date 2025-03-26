@@ -27,7 +27,8 @@ static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) 
 }
 
 FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) :
-accessFlag(accessFlag), classLoader(classLoader), name((FlintConstUtf8 &)name), descriptor((FlintConstUtf8 &)descriptor), attributes(0) {
+accessFlag((&name != &staticConstructorName) ? accessFlag : (FlintMethodAccessFlag)(accessFlag | METHOD_SYNCHRONIZED)),
+classLoader(classLoader), name((FlintConstUtf8 &)name), descriptor((FlintConstUtf8 &)descriptor), attributes(0) {
 
 }
 
@@ -78,6 +79,10 @@ bool FlintMethodInfo::hasAttributeCode(void) const {
             return true;
     }
     return false;
+}
+
+bool FlintMethodInfo::isStaticCtor(void) {
+    return &name == &staticConstructorName;
 }
 
 FlintMethodInfo::~FlintMethodInfo(void) {

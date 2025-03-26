@@ -10,6 +10,7 @@
 
 class FlintClassLoader {
 private:
+    uint8_t staticCtorInfo;
     uint32_t magic;
     uint16_t minorVersion;
     uint16_t majorVersion;
@@ -97,7 +98,9 @@ public:
     FlintMethodInfo &getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const;
     FlintMethodInfo &getMethodInfo(FlintConstNameAndType &nameAndType) const;
     FlintMethodInfo &getMainMethodInfo(void) const;
-    FlintMethodInfo &getStaticConstructor(void) const;
+    FlintMethodInfo &getStaticCtor(void) const;
+
+    bool hasStaticCtor(void);
 };
 
 #endif /* __FLINT_CLASS_LOADER_H */

@@ -27,6 +27,7 @@ public:
     FlintCodeAttribute &getAttributeCode(void) const;
     FlintNativeAttribute &getAttributeNative(void) const;
     bool hasAttributeCode(void) const;
+    bool isStaticCtor(void);
 
     ~FlintMethodInfo(void);
 };

@@ -762,13 +762,6 @@ FlintClassLoader &Flint::load(const FlintConstUtf8 &className) {
     }
 }
 
-FlintFieldsData *Flint::getStaticFields(const FlintConstUtf8 &className) const {
-    FlintClassData *classData = classDataTree.find(className);
-    if(classData)
-        return classData->staticFieldsData;
-    return NULL;
-}
-
 void Flint::initStaticField(FlintClassData &classData) {
     FlintFieldsData *fieldsData = (FlintFieldsData *)Flint::malloc(sizeof(FlintFieldsData));
     new (fieldsData)FlintFieldsData(*this, classData, true);
@@ -923,6 +916,7 @@ void Flint::freeObject(FlintJavaObject &obj) {
 
 void Flint::clearAllStaticFields(void) {
     classDataTree.forEach([](FlintClassData &item) {
+        item.staticInitOwnId = 0;
         item.clearStaticFields();
     });
 }

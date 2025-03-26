@@ -139,7 +139,6 @@ public:
     FlintJavaDouble &newDouble(double value = 0);
 
     void initStaticField(FlintClassData &classData);
-    FlintFieldsData *getStaticFields(const FlintConstUtf8 &className) const;
 
     FlintMethodInfo &findMethod(FlintConstMethod &constMethod);
 

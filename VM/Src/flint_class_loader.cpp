@@ -64,6 +64,7 @@ static void ClassLoader_Seek(void *file, int32_t offset) {
 }
 
 FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) {
+    staticCtorInfo = 0;
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
@@ -744,12 +745,18 @@ FlintMethodInfo &FlintClassLoader::getMainMethodInfo(void) const {
     return getMethodInfo(*(FlintConstNameAndType *)nameAndType);
 }
 
-FlintMethodInfo &FlintClassLoader::getStaticConstructor(void) const {
+FlintMethodInfo &FlintClassLoader::getStaticCtor(void) const {
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(staticConstructorName == methods[i].name)
+        if(&staticConstructorName == &methods[i].name)
             return methods[i];
     }
     return *(FlintMethodInfo *)0;
+}
+
+bool FlintClassLoader::hasStaticCtor(void) {
+    if(!staticCtorInfo)
+        staticCtorInfo = ((int32_t)&getStaticCtor() != 0) ? 0x81 : 0x80;
+    return staticCtorInfo & 0x01;
 }
 
 FlintClassLoader::~FlintClassLoader(void) {

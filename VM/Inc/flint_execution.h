@@ -53,13 +53,16 @@ private:
     void stackRestoreContext(void);
 
     bool lockClass(FlintClassData &cls);
+    void unlockClass(FlintClassData &cls);
     bool lockObject(FlintJavaObject *obj);
+    void unlockObject(FlintJavaObject *obj);
 
     void invoke(FlintMethodInfo &methodInfo, uint8_t argc);
     void invokeStatic(FlintConstMethod &constMethod);
     void invokeSpecial(FlintConstMethod &constMethod);
     void invokeVirtual(FlintConstMethod &constMethod);
     void invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc);
+    void invokeStaticCtor(FlintClassData &classData);
 
     void run(void);
     void terminateRequest(void);

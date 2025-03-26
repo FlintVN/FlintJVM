@@ -5,27 +5,36 @@
 #include "flint_fields_data.h"
 #include "flint_class_loader.h"
 
+typedef enum {
+    UNINITIALIZED = 0x00,
+    INITIALIZING = 0x01,
+    INITIALIZED = 0x02,
+} FlintInitStatus;
+
 class FlintClassData : public FlintClassLoader {
 private:
     FlintClassData *left;
     FlintClassData *right;
     uint32_t height;
-public:
+
     uint32_t ownId;
-    uint32_t monitorCount : 31;
-    uint32_t isInitializing : 1;
+    uint32_t monitorCount;
+    uint32_t staticInitOwnId;
     FlintFieldsData *staticFieldsData;
-private:
+
     FlintClassData(class Flint &flint, const char *fileName, uint16_t length);
 
     FlintClassData(const FlintClassData &) = delete;
     void operator=(const FlintClassData &) = delete;
+
+    FlintInitStatus getInitStatus(void) const;
 
     void clearStaticFields(void);
 
     ~FlintClassData(void);
 
     friend class Flint;
+    friend class FlintExecution;
     friend class FlintClassDataBinaryTree;
 };
 

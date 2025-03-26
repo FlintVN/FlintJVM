@@ -4,6 +4,14 @@
 #include "flint.h"
 #include "flint_class_data_binary_tree.h"
 
+FlintInitStatus FlintClassData::getInitStatus(void) const {
+    if(!staticFieldsData)
+        return UNINITIALIZED;
+    else if(staticInitOwnId)
+        return INITIALIZING;
+    return INITIALIZED;
+}
+
 void FlintClassData::clearStaticFields(void) {
     if(staticFieldsData) {
         staticFieldsData->~FlintFieldsData();
@@ -19,7 +27,7 @@ FlintClassData::~FlintClassData() {
 FlintClassData::FlintClassData(Flint &flint, const char *fileName, uint16_t length) : FlintClassLoader(flint, fileName, length) {
     ownId = 0;
     monitorCount = 0;
-    isInitializing = 0;
+    staticInitOwnId = 0;
     staticFieldsData = 0;
     left = 0;
     right = 0;
