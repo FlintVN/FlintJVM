@@ -995,7 +995,7 @@ void FlintDebugger::checkBreakPoint(FlintExecution *exec) {
                 if(breakPoints[i].method == method && breakPoints[i].pc == pc) {
                     execution = exec;
                     lock();
-                    csr |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                    csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
                     unlock();
                     break;
                 }
