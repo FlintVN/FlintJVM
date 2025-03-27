@@ -338,14 +338,6 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         constMethod.methodInfo = &flint.findMethod(virtualConstMethod);
         methodInfo = constMethod.methodInfo;
     }
-    FlintClassData &classData = (FlintClassData &)methodInfo->classLoader;
-    if(classData.hasStaticCtor()) {
-        FlintInitStatus initStatus = classData.getInitStatus();
-        if(initStatus == UNINITIALIZED)
-            return invokeStaticCtor(classData);
-        else if((initStatus == INITIALIZING) && (classData.staticInitOwnId != (uint32_t)this))
-            return FlintAPI::Thread::yield();
-    }
     if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
         FlintAPI::Thread::yield();
         return;
@@ -369,14 +361,6 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
         FlintConstMethod interfaceConstMethod(type, interfaceMethod.nameAndType, 0, 0);
         interfaceMethod.methodInfo = &flint.findMethod(interfaceConstMethod);
         methodInfo = interfaceMethod.methodInfo;
-    }
-    FlintClassData &classData = (FlintClassData &)methodInfo->classLoader;
-    if(classData.hasStaticCtor()) {
-        FlintInitStatus initStatus = classData.getInitStatus();
-        if(initStatus == UNINITIALIZED)
-            return invokeStaticCtor(classData);
-        else if((initStatus == INITIALIZING) && (classData.staticInitOwnId != (uint32_t)this))
-            return FlintAPI::Thread::yield();
     }
     if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
         FlintAPI::Thread::yield();
