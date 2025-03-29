@@ -373,7 +373,7 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
 void FlintExecution::invokeStaticCtor(FlintClassData &classData) {
     Flint::lock();
     if(classData.getInitStatus() != UNINITIALIZED)
-        Flint::unlock();
+        return Flint::unlock();
     classData.staticInitOwnId = (uint32_t)this;
     flint.initStaticField(classData);
     Flint::unlock();
