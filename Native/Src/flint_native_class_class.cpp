@@ -394,6 +394,22 @@ static void nativeGetDeclaredConstructors0(FlintExecution &execution) {
     execution.stackPushObject(array);
 }
 
+static void nativeGetDeclaringClass0(FlintExecution &execution) {
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    FlintJavaString &clsName = clsObj->getName();
+    const char *text = clsName.getText();
+    if(text[0] == '[')
+        return execution.stackPushObject(NULL);
+    else {
+        int32_t index = clsName.getLength() - 1;
+        while(index >= 1 && text[index] != '$')
+            index--;
+        if(text[index] == '$')
+            return execution.stackPushObject(&execution.flint.getConstClass(text, index));
+        execution.stackPushObject(NULL);
+    }
+}
+
 static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x11\x00\x0A\x98""getPrimitiveClass",        "\x25\x00\x56\xAD""(Ljava/lang/String;)Ljava/lang/Class;", nativeGetPrimitiveClass),
     NATIVE_METHOD("\x07\x00\x79\xE0""forName",                  "\x25\x00\x56\xAD""(Ljava/lang/String;)Ljava/lang/Class;", nativeForName),
@@ -410,6 +426,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x12\x00\xDA\x76""getDeclaredFields0",       "\x1C\x00\x48\x1C""()[Ljava/lang/reflect/Field;",          nativeGetDeclaredFields0),
     NATIVE_METHOD("\x13\x00\x4B\x12""getDeclaredMethods0",      "\x1D\x00\x12\x57""()[Ljava/lang/reflect/Method;",         nativeGetDeclaredMethods0),
     NATIVE_METHOD("\x18\x00\x0C\xE2""getDeclaredConstructors0", "\x22\x00\x96\xC4""()[Ljava/lang/reflect/Constructor;",    nativeGetDeclaredConstructors0),
+    NATIVE_METHOD("\x12\x00\x57\x68""getDeclaringClass0",       "\x13\x00\x0A\x1F""()Ljava/lang/Class;",                   nativeGetDeclaringClass0),
 };
 
 const FlintNativeClass CLASS_CLASS = NATIVE_CLASS(classClassName, methods);
