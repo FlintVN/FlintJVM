@@ -141,6 +141,7 @@ public:
     void initStaticField(FlintClassData &classData);
 
     FlintMethodInfo &findMethod(FlintConstMethod &constMethod);
+    FlintMethodInfo &findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
 
     bool isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length);
     bool isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName);

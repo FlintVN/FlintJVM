@@ -334,8 +334,7 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     if(constMethod.methodInfo && constMethod.methodInfo->classLoader.getThisClass() == type)
         methodInfo = constMethod.methodInfo;
     else {
-        FlintConstMethod virtualConstMethod(type, constMethod.nameAndType, 0, 0);
-        constMethod.methodInfo = &flint.findMethod(virtualConstMethod);
+        constMethod.methodInfo = &flint.findMethod(type, constMethod.nameAndType);
         methodInfo = constMethod.methodInfo;
     }
     if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
@@ -358,8 +357,7 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
     if(interfaceMethod.methodInfo && interfaceMethod.methodInfo->classLoader.getThisClass() == type)
         methodInfo = interfaceMethod.methodInfo;
     else {
-        FlintConstMethod interfaceConstMethod(type, interfaceMethod.nameAndType, 0, 0);
-        interfaceMethod.methodInfo = &flint.findMethod(interfaceConstMethod);
+        interfaceMethod.methodInfo = &flint.findMethod(type, interfaceMethod.nameAndType);
         methodInfo = interfaceMethod.methodInfo;
     }
     if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {

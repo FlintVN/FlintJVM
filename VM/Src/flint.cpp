@@ -782,6 +782,20 @@ FlintMethodInfo &Flint::findMethod(FlintConstMethod &constMethod) {
     throw "can't find the method";
 }
 
+FlintMethodInfo &Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) {
+    FlintClassLoader *loader = &load(className);
+    while(loader) {
+        FlintMethodInfo *methodInfo = &loader->getMethodInfo(nameAndType);
+        if(methodInfo) {
+            if((methodInfo->accessFlag & METHOD_BRIDGE) != METHOD_BRIDGE)
+                return *methodInfo;
+        }
+        FlintConstUtf8 *superClass = &loader->getSuperClass();
+        loader = superClass ? &load(loader->getSuperClass()) : (FlintClassLoader *)0;
+    }
+    throw "can't find the method";
+}
+
 static bool compareClassName(const FlintConstUtf8 &className1, const char *className2, uint32_t length) {
     if(className1.length != length)
         return false;
