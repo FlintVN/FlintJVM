@@ -220,35 +220,35 @@ FlintJavaObject &Flint::newObject(const FlintConstUtf8 &type) {
 }
 
 FlintInt8Array &Flint::newBooleanArray(uint32_t length) {
-    return *(FlintInt8Array *)&newObject(length, *primTypeConstUtf8List[0], 1);
+    return *(FlintInt8Array *)&newObject(length, booleanPrimTypeName, 1);
 }
 
 FlintInt8Array &Flint::newByteArray(uint32_t length) {
-    return *(FlintInt8Array *)&newObject(length, *primTypeConstUtf8List[4], 1);
+    return *(FlintInt8Array *)&newObject(length, bytePrimTypeName, 1);
 }
 
 FlintInt16Array &Flint::newCharArray(uint32_t length) {
-    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), *primTypeConstUtf8List[1], 1);
+    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), charPrimTypeName, 1);
 }
 
 FlintInt16Array &Flint::newShortArray(uint32_t length) {
-    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), *primTypeConstUtf8List[5], 1);
+    return *(FlintInt16Array *)&newObject(length * sizeof(int16_t), shortPrimTypeName, 1);
 }
 
 FlintInt32Array &Flint::newIntegerArray(uint32_t length) {
-    return *(FlintInt32Array *)&newObject(length * sizeof(int32_t), *primTypeConstUtf8List[6], 1);
+    return *(FlintInt32Array *)&newObject(length * sizeof(int32_t), integerPrimTypeName, 1);
 }
 
 FlintFloatArray &Flint::newFloatArray(uint32_t length) {
-    return *(FlintFloatArray *)&newObject(length * sizeof(float), *primTypeConstUtf8List[2], 1);
+    return *(FlintFloatArray *)&newObject(length * sizeof(float), floatPrimTypeName, 1);
 }
 
 FlintInt64Array &Flint::newLongArray(uint32_t length) {
-    return *(FlintInt64Array *)&newObject(length * sizeof(int64_t), *primTypeConstUtf8List[7], 1);
+    return *(FlintInt64Array *)&newObject(length * sizeof(int64_t), longPrimTypeName, 1);
 }
 
 FlintDoubleArray &Flint::newDoubleArray(uint32_t length) {
-    return *(FlintDoubleArray *)&newObject(length * sizeof(double), *primTypeConstUtf8List[3], 1);
+    return *(FlintDoubleArray *)&newObject(length * sizeof(double), doublePrimTypeName, 1);
 }
 
 FlintObjectArray &Flint::newObjectArray(const FlintConstUtf8 &type, uint32_t length) {

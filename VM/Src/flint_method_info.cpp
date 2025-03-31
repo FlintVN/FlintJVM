@@ -28,57 +28,32 @@ static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) 
 
 FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) :
 accessFlag((&name != &staticConstructorName) ? accessFlag : (FlintMethodAccessFlag)(accessFlag | METHOD_SYNCHRONIZED)),
-classLoader(classLoader), name((FlintConstUtf8 &)name), descriptor((FlintConstUtf8 &)descriptor), attributes(0) {
+classLoader(classLoader), name((FlintConstUtf8 &)name), descriptor((FlintConstUtf8 &)descriptor), code(0) {
 
 }
 
-void FlintMethodInfo::addAttribute(FlintAttribute *attribute) {
-    attribute->next = this->attributes;
-    this->attributes = attribute;
-}
-
-FlintAttribute &FlintMethodInfo::getAttribute(FlintAttributeType type) const {
-    for(FlintAttribute *node = attributes; node != 0; node = node->next) {
-        if(node->attributeType == type) {
-            if(type != ATTRIBUTE_NATIVE)
-                return *node;
-            else {
-                FlintNativeAttribute *attrNative = (FlintNativeAttribute *)node;
-                if(attrNative->nativeMethod == 0)
-                    *(void **)&attrNative->nativeMethod = (void *)findNativeMethod(*this);
-                return *attrNative;
-            }
-        }
-    }
-    throw "can't find the attribute";
+void FlintMethodInfo::setCode(FlintAttribute *attributeCode) {
+    code = attributeCode;
 }
 
 FlintCodeAttribute &FlintMethodInfo::getAttributeCode(void) const {
-    for(FlintAttribute *node = attributes; node != 0; node = node->next) {
-        if(node->attributeType == ATTRIBUTE_CODE)
-            return *(FlintCodeAttribute *)node;
-    }
+    if(code && code->attributeType == ATTRIBUTE_CODE)
+        return *(FlintCodeAttribute *)code;
     throw "can't find the code attribute";
 }
 
 FlintNativeAttribute &FlintMethodInfo::getAttributeNative(void) const {
-    for(FlintAttribute *node = attributes; node != 0; node = node->next) {
-        if(node->attributeType == ATTRIBUTE_NATIVE) {
-            FlintNativeAttribute *attrNative = (FlintNativeAttribute *)node;
-            if(attrNative->nativeMethod == 0)
-                *(void **)&attrNative->nativeMethod = (void *)findNativeMethod(*this);
-            return *(FlintNativeAttribute *)attrNative;
-        }
+    if(code && code->attributeType == ATTRIBUTE_NATIVE) {
+        FlintNativeAttribute *attrNative = (FlintNativeAttribute *)code;
+        if(attrNative->nativeMethod == 0)
+            *(void **)&attrNative->nativeMethod = (void *)findNativeMethod(*this);
+        return *(FlintNativeAttribute *)attrNative;
     }
     throw "can't find the native attribute";
 }
 
 bool FlintMethodInfo::hasAttributeCode(void) const {
-    for(FlintAttribute *node = attributes; node != 0; node = node->next) {
-        if(node->attributeType == ATTRIBUTE_CODE)
-            return true;
-    }
-    return false;
+    return code ? (code->attributeType == ATTRIBUTE_CODE) : false;
 }
 
 bool FlintMethodInfo::isStaticCtor(void) {
@@ -86,10 +61,8 @@ bool FlintMethodInfo::isStaticCtor(void) {
 }
 
 FlintMethodInfo::~FlintMethodInfo(void) {
-    for(FlintAttribute *node = attributes; node != 0;) {
-        FlintAttribute *next = node->next;
-        node->~FlintAttribute();
-        Flint::free(node);
-        node = next;
+    if(code) {
+        code->~FlintAttribute();
+        Flint::free(code);
     }
 }

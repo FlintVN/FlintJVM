@@ -19,22 +19,17 @@ private:
     uint16_t interfacesCount;
     uint16_t fieldsCount;
     uint16_t methodsCount;
-    uint16_t attributesCount;
     FlintConstUtf8 *thisClass;
     FlintConstUtf8 *superClass;
     FlintConstPool *poolTable;
     uint16_t *interfaces;
     FlintFieldInfo *fields;
     FlintMethodInfo *methods;
-    FlintAttribute *attributes;
 
     FlintClassLoader(const FlintClassLoader &) = delete;
     void operator=(const FlintClassLoader &) = delete;
 
-    void addAttribute(FlintAttribute *attribute);
-
     void readFile(class Flint &flint, void *file);
-    FlintAttribute *readAttribute(void *file, bool isDummy = false);
     FlintAttribute *readAttributeCode(void *file);
     FlintAttribute *readAttributeBootstrapMethods(void *file);
 protected:

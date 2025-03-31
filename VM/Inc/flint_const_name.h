@@ -4,7 +4,15 @@
 
 #include "flint_const_pool.h"
 
-extern const FlintConstUtf8 * const primTypeConstUtf8List[];
+extern const FlintConstUtf8 &booleanPrimTypeName;
+extern const FlintConstUtf8 &charPrimTypeName;
+extern const FlintConstUtf8 &floatPrimTypeName;
+extern const FlintConstUtf8 &doublePrimTypeName;
+extern const FlintConstUtf8 &bytePrimTypeName;
+extern const FlintConstUtf8 &shortPrimTypeName;
+extern const FlintConstUtf8 &integerPrimTypeName;
+extern const FlintConstUtf8 &longPrimTypeName;
+extern const FlintConstUtf8 &voidPrimTypeName;
 
 extern const FlintConstUtf8 &mathClassName;
 extern const FlintConstUtf8 &byteClassName;
@@ -54,5 +62,7 @@ extern const FlintConstUtf8 &returnTypeFieldName;
 extern const FlintConstUtf8 &parameterTypesFieldName;
 extern const FlintConstUtf8 &exceptionTypesFieldName;
 extern const FlintConstUtf8 &modifiersFieldName;
+
+extern const FlintConstUtf8 * const primTypeConstUtf8List[];
 
 #endif /* __FLINT_CONST_NAME_H */

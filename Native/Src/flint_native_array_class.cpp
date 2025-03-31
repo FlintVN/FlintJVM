@@ -52,7 +52,7 @@ static void checkDimensions(FlintExecution &execution, FlintInt32Array *dimensio
     if(
         (dimensions == NULL) ||
         (dimensions->dimensions != 1) ||
-        (dimensions->type != *primTypeConstUtf8List[6]) ||
+        (dimensions->type != integerPrimTypeName) ||
         (dimensions->getLength() == 0) ||
         (dimensions->getLength() > 255)
     ) {
@@ -537,7 +537,7 @@ static void nativeNewArray(FlintExecution &execution) {
     checkLength(execution, length);
     uint32_t dimensions;
     const FlintConstUtf8 &typeName = componentType->getBaseTypeName(execution.flint, &dimensions);
-    if(typeName == *primTypeConstUtf8List[8]) /* void */
+    if(typeName == voidPrimTypeName) /* void */
         throwIllegalArgumentException(execution, NULL);
     uint8_t atype = FlintJavaObject::isPrimType(typeName);
     uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
@@ -553,7 +553,7 @@ static void nativeMultiNewArray(FlintExecution &execution) {
     checkDimensions(execution, dimensions);
     uint32_t endDims;
     const FlintConstUtf8 &typeName = componentType->getBaseTypeName(execution.flint, &endDims);
-    if(typeName == *primTypeConstUtf8List[8]) /* void */
+    if(typeName == voidPrimTypeName) /* void */
         throwIllegalArgumentException(execution, NULL);
     if((dimensions->getLength() + endDims) > 255)
         throw &execution.flint.newIllegalArgumentException();

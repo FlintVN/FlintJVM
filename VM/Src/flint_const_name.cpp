@@ -1,17 +1,15 @@
 
 #include "flint_const_name.h"
 
-const FlintConstUtf8 * const primTypeConstUtf8List[] = {
-    (FlintConstUtf8 *)"\x01\x00\xC0\x84""Z",                 /* boolean */
-    (FlintConstUtf8 *)"\x01\x00\x01\x4E""C",                 /* char */
-    (FlintConstUtf8 *)"\x01\x00\xC1\x4D""F",                 /* float */
-    (FlintConstUtf8 *)"\x01\x00\x40\x8C""D",                 /* double */
-    (FlintConstUtf8 *)"\x01\x00\xC0\x8E""B",                 /* byte */
-    (FlintConstUtf8 *)"\x01\x00\x00\x82""S",                 /* short */
-    (FlintConstUtf8 *)"\x01\x00\x81\x49""I",                 /* integer */
-    (FlintConstUtf8 *)"\x01\x00\xC1\x48""J",                 /* long */
-    (FlintConstUtf8 *)"\x01\x00\xC0\x81""V",                 /* void */
-};
+const FlintConstUtf8 &booleanPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\xC0\x84""Z";
+const FlintConstUtf8 &charPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\x01\x4E""C";
+const FlintConstUtf8 &floatPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\xC1\x4D""F";
+const FlintConstUtf8 &doublePrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\x40\x8C""D";
+const FlintConstUtf8 &bytePrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\xC0\x8E""B";
+const FlintConstUtf8 &shortPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\x00\x82""S";
+const FlintConstUtf8 &integerPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\x81\x49""I";
+const FlintConstUtf8 &longPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\xC1\x48""J";
+const FlintConstUtf8 &voidPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\xC0\x81""V";
 
 const FlintConstUtf8 &mathClassName = *(const FlintConstUtf8 *)"\x0E\x00\x37\xC8""java/lang/Math";
 const FlintConstUtf8 &byteClassName = *(const FlintConstUtf8 *)"\x0E\x00\x75\x1E""java/lang/Byte";
@@ -54,10 +52,22 @@ const FlintConstUtf8 &arrayIndexOutOfBoundsExceptionClassName = *(const FlintCon
 const FlintConstUtf8 &constructorName = *(const FlintConstUtf8 *)"\x06\x00\xCC\xF5""<init>";
 const FlintConstUtf8 &staticConstructorName = *(const FlintConstUtf8 *)"\x08\x00\xD0\xF2""<clinit>";
 
-const FlintConstUtf8 &nameFieldName = *(FlintConstUtf8 *)"\x04\x00\x5E\x56""name";
-const FlintConstUtf8 &typeFieldName = *(FlintConstUtf8 *)"\x04\x00\xD0\x19""type";
-const FlintConstUtf8 &clazzFieldName = *(FlintConstUtf8 *)"\x05\x00\xF1\xFA""clazz";
-const FlintConstUtf8 &returnTypeFieldName = *(FlintConstUtf8 *)"\x0A\x00\x5E\x42""returnType";
-const FlintConstUtf8 &parameterTypesFieldName = *(FlintConstUtf8 *)"\x0E\x00\x9B\xC1""parameterTypes";
-const FlintConstUtf8 &exceptionTypesFieldName = *(FlintConstUtf8 *)"\x0E\x00\xBD\xB7""exceptionTypes";
-const FlintConstUtf8 &modifiersFieldName = *(FlintConstUtf8 *)"\x09\x00\x0F\xC4""modifiers";
+const FlintConstUtf8 &nameFieldName = *(const FlintConstUtf8 *)"\x04\x00\x5E\x56""name";
+const FlintConstUtf8 &typeFieldName = *(const FlintConstUtf8 *)"\x04\x00\xD0\x19""type";
+const FlintConstUtf8 &clazzFieldName = *(const FlintConstUtf8 *)"\x05\x00\xF1\xFA""clazz";
+const FlintConstUtf8 &returnTypeFieldName = *(const FlintConstUtf8 *)"\x0A\x00\x5E\x42""returnType";
+const FlintConstUtf8 &parameterTypesFieldName = *(const FlintConstUtf8 *)"\x0E\x00\x9B\xC1""parameterTypes";
+const FlintConstUtf8 &exceptionTypesFieldName = *(const FlintConstUtf8 *)"\x0E\x00\xBD\xB7""exceptionTypes";
+const FlintConstUtf8 &modifiersFieldName = *(const FlintConstUtf8 *)"\x09\x00\x0F\xC4""modifiers";
+
+const FlintConstUtf8 * const primTypeConstUtf8List[] = {
+    &booleanPrimTypeName,
+    &charPrimTypeName,
+    &floatPrimTypeName,
+    &doublePrimTypeName,
+    &bytePrimTypeName,
+    &shortPrimTypeName,
+    &integerPrimTypeName,
+    &longPrimTypeName,
+    &voidPrimTypeName,
+};

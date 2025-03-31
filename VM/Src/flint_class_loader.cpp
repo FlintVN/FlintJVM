@@ -63,14 +63,18 @@ static void ClassLoader_Seek(void *file, int32_t offset) {
         throw "read file error";
 }
 
+static void dumpAttribute(void *file) {
+    ClassLoader_Seek(file, 2); /* nameIndex */
+    uint32_t length = ClassLoader_ReadUInt32(file);
+    ClassLoader_Seek(file, length);
+}
+
 FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) {
     staticCtorInfo = 0;
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
     methodsCount = 0;
-    attributesCount = 0;
-    attributes = 0;
 
     void *file = ClassLoader_Open(fileName, length);
 
@@ -88,7 +92,7 @@ FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t 
 void FlintClassLoader::readFile(Flint &flint, void *file) {
     char buff[FILE_NAME_BUFF_SIZE];
     char *utf8Buff = buff;
-    uint16_t utf8Length = sizeof(buff) - 1;
+    uint16_t utf8Length = sizeof(buff);
     magic = ClassLoader_ReadUInt32(file);
     minorVersion = ClassLoader_ReadUInt16(file);
     majorVersion = ClassLoader_ReadUInt16(file);
@@ -203,19 +207,23 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
             uint16_t methodAttributesCount = ClassLoader_ReadUInt16(file);
             if((flag & METHOD_BRIDGE) == METHOD_BRIDGE) {
                 while(methodAttributesCount--)
-                    readAttribute(file, true);
+                    dumpAttribute(file);
             }
             else {
                 new (&methods[loadedCount])FlintMethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
                 if((flag & METHOD_NATIVE) == METHOD_NATIVE) {
                     FlintNativeAttribute *attrNative = (FlintNativeAttribute *)Flint::malloc(sizeof(FlintNativeAttribute));
                     new (attrNative)FlintNativeAttribute(0);
-                    methods[loadedCount].addAttribute(attrNative);
+                    methods[loadedCount].setCode(attrNative);
                 }
                 while(methodAttributesCount--) {
-                    FlintAttribute *attr = readAttribute(file);
-                    if(attr != 0)
-                        methods[loadedCount].addAttribute(attr);
+                    uint16_t nameIndex = ClassLoader_ReadUInt16(file);
+                    uint32_t length = ClassLoader_ReadUInt32(file);
+                    FlintAttributeType type = FlintAttribute::parseAttributeType(getConstUtf8(nameIndex));
+                    if(type == ATTRIBUTE_CODE)
+                        methods[loadedCount].setCode(readAttributeCode(file));
+                    else
+                        ClassLoader_Seek(file, length);
                 }
                 loadedCount++;
             }
@@ -230,36 +238,11 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
             methodsCount = loadedCount;
         }
     }
-    attributesCount = ClassLoader_ReadUInt16(file);
-    while(attributesCount--) {
+    /*
+    uint16_t attributesCount = ClassLoader_ReadUInt16(file);
+    while(attributesCount--)
         FlintAttribute *attr = readAttribute(file);
-        if(attr)
-            addAttribute(attr);
-    }
-}
-
-void FlintClassLoader::addAttribute(FlintAttribute *attribute) {
-    attribute->next = this->attributes;
-    this->attributes = attribute;
-}
-
-FlintAttribute *FlintClassLoader::readAttribute(void *file, bool isDummy) {
-    uint16_t nameIndex = ClassLoader_ReadUInt16(file);
-    uint32_t length = ClassLoader_ReadUInt32(file);
-    if(isDummy) {
-        ClassLoader_Seek(file, length);
-        return 0;
-    }
-    FlintAttributeType type = FlintAttribute::parseAttributeType(getConstUtf8(nameIndex));
-    switch(type) {
-        case ATTRIBUTE_CODE:
-            return readAttributeCode(file);
-        case ATTRIBUTE_BOOTSTRAP_METHODS:
-            return readAttributeBootstrapMethods(file);
-        default:
-            ClassLoader_Seek(file, length);
-            return 0;
-    }
+    */
 }
 
 FlintAttribute *FlintClassLoader::readAttributeCode(void *file) {
@@ -285,11 +268,8 @@ FlintAttribute *FlintClassLoader::readAttributeCode(void *file) {
         }
     }
     uint16_t attrbutesCount = ClassLoader_ReadUInt16(file);
-    while(attrbutesCount--) {
-        FlintAttribute *attr = readAttribute(file);
-        if(attr)
-            attribute->addAttribute(attr);
-    }
+    while(attrbutesCount--)
+        dumpAttribute(file);
     return attribute;
 }
 
@@ -798,11 +778,4 @@ FlintClassLoader::~FlintClassLoader(void) {
             methods[i].~FlintMethodInfo();
         Flint::free(methods);
     }
-    for(FlintAttribute *node = attributes; node != 0;) {
-        FlintAttribute *next = node->next;
-        node->~FlintAttribute();
-        Flint::free(node);
-        node = next;
-    }
-    Flint::free(attributes);
 }

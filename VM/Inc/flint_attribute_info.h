@@ -31,8 +31,6 @@ typedef enum : uint8_t {
 } FlintAttributeType;
 
 class FlintAttribute {
-protected:
-    FlintAttribute *next;
 public:
     const FlintAttributeType attributeType;
 private:
@@ -88,7 +86,6 @@ public:
     const uint8_t *code;
 private:
     FlintExceptionTable *exceptionTable;
-    FlintAttribute *attributes;
 
     FlintCodeAttribute(uint16_t maxStack, uint16_t maxLocals);
     FlintCodeAttribute(const FlintCodeAttribute &) = delete;
@@ -96,7 +93,6 @@ private:
 
     void setCode(uint8_t *code, uint32_t length);
     void setExceptionTable(FlintExceptionTable *exceptionTable, uint16_t length);
-    void addAttribute(FlintAttribute *attribute);
 
     ~FlintCodeAttribute(void);
 

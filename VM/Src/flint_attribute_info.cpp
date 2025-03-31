@@ -24,7 +24,7 @@ FlintAttributeType FlintAttribute::parseAttributeType(const FlintConstUtf8 &name
     return ATTRIBUTE_UNKNOW;
 }
 
-FlintAttribute::FlintAttribute(FlintAttributeType type) : next(0), attributeType(type) {
+FlintAttribute::FlintAttribute(FlintAttributeType type) : attributeType(type) {
 
 }
 
@@ -47,7 +47,7 @@ startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 FlintCodeAttribute::FlintCodeAttribute(uint16_t maxStack, uint16_t maxLocals) :
 FlintAttribute(ATTRIBUTE_CODE), maxStack(maxStack), maxLocals(maxLocals), codeLength(0),
-exceptionTableLength(0), code(0), exceptionTable(0), attributes(0) {
+exceptionTableLength(0), code(0), exceptionTable(0) {
 
 }
 
@@ -61,11 +61,6 @@ void FlintCodeAttribute::setExceptionTable(FlintExceptionTable *exceptionTable, 
     *(uint16_t *)&exceptionTableLength = length;
 }
 
-void FlintCodeAttribute::addAttribute(FlintAttribute *attribute) {
-    attribute->next = this->attributes;
-    this->attributes = attribute;
-}
-
 FlintExceptionTable &FlintCodeAttribute::getException(uint16_t index) const {
     if(index < exceptionTableLength)
         return exceptionTable[index];
@@ -77,12 +72,6 @@ FlintCodeAttribute::~FlintCodeAttribute(void) {
         Flint::free((void *)code);
     if(exceptionTable)
         Flint::free((void *)exceptionTable);
-    for(FlintAttribute *node = attributes; node != 0;) {
-        FlintAttribute *next = node->next;
-        node->~FlintAttribute();
-        Flint::free(node);
-        node = next;
-    }
 }
 
 FlintBootstrapMethod::FlintBootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments) :

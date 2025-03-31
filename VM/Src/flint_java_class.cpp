@@ -79,33 +79,33 @@ const FlintConstUtf8 &FlintJavaClass::getBaseTypeName(Flint &flint, uint32_t *di
         switch(typeLength) {
             case 3:
                 if(strncmp(typeText, "int", typeLength) == 0)
-                    return *primTypeConstUtf8List[6];
+                    return integerPrimTypeName;
                 break;
             case 4: {
                 if(strncmp(typeText, "void", typeLength) == 0)
-                    return *primTypeConstUtf8List[8];
+                    return voidPrimTypeName;
                 else if(strncmp(typeText, "byte", typeLength) == 0)
-                    return *primTypeConstUtf8List[4];
+                    return bytePrimTypeName;
                 else if(strncmp(typeText, "char", typeLength) == 0)
-                    return *primTypeConstUtf8List[1];
+                    return charPrimTypeName;
                 else if(strncmp(typeText, "long", typeLength) == 0)
-                    return *primTypeConstUtf8List[7];
+                    return longPrimTypeName;
                 break;
             }
             case 5: {
                 if(strncmp(typeText, "float", typeLength) == 0)
-                    return *primTypeConstUtf8List[2];
+                    return floatPrimTypeName;
                 else if(strncmp(typeText, "short", typeLength) == 0)
-                    return *primTypeConstUtf8List[5];
+                    return shortPrimTypeName;
                 break;
             }
             case 6:
                 if(strncmp(typeText, "double", typeLength) == 0)
-                    return *primTypeConstUtf8List[3];
+                    return doublePrimTypeName;
                 break;
             case 7:
                 if(strncmp(typeText, "boolean", typeLength) == 0)
-                    return *primTypeConstUtf8List[0];
+                    return booleanPrimTypeName;
                 break;
             default:
                 break;

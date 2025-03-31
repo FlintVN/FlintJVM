@@ -12,18 +12,17 @@ public:
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
 private:
-    FlintAttribute *attributes;
+    FlintAttribute *code;
 
     FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
 
     FlintMethodInfo(const FlintMethodInfo &) = delete;
     void operator=(const FlintMethodInfo &) = delete;
 
-    void addAttribute(FlintAttribute *attribute);
+    void setCode(FlintAttribute *attributeCode);
 
     friend class FlintClassLoader;
 public:
-    FlintAttribute &getAttribute(FlintAttributeType type) const;
     FlintCodeAttribute &getAttributeCode(void) const;
     FlintNativeAttribute &getAttributeNative(void) const;
     bool hasAttributeCode(void) const;

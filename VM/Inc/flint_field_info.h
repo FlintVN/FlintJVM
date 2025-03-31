@@ -18,8 +18,6 @@ private:
     void operator=(const FlintFieldInfo &) = delete;
 
     friend class FlintClassLoader;
-public:
-    FlintAttribute &getAttribute(FlintAttributeType type) const;
 };
 
 #endif /* __FLINT_FIELD_INFO_H */
