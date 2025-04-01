@@ -2,7 +2,7 @@
 #include <string.h>
 #include "flint.h"
 #include "flint_java_object.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_native_graphics_class.h"
 
 #define COLOR_MODE_RGB444       0

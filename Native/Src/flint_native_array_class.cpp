@@ -2,7 +2,7 @@
 #include <string.h>
 #include "flint.h"
 #include "flint_java_class.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_native_array_class.h"
 #include "flint_java_boolean.h"
 #include "flint_java_byte.h"

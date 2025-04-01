@@ -2,7 +2,7 @@
 #include "flint.h"
 #include "flint_java_object.h"
 #include "flint_system_api.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_native_system_class.h"
 
 static void nativeCurrentTimeMillis(FlintExecution &execution) {

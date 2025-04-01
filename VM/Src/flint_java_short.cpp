@@ -1,6 +1,6 @@
 
 #include "flint_java_short.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_fields_data.h"
 
 int16_t FlintJavaShort::getValue(void) const {

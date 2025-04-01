@@ -3,7 +3,7 @@
 #include "flint.h"
 #include "flint_java_thread.h"
 #include "flint_system_api.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_native_thread_class.h"
 
 static const uint32_t runnableRunFieldName[] = {

@@ -4,7 +4,7 @@
 
 #include "flint_method_info.h"
 #include "flint_java_throwable.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_system_api.h"
 
 #if __has_include("flint_conf.h")

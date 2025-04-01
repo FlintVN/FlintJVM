@@ -1,6 +1,6 @@
 
 #include <math.h>
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_native_math_class.h"
 
 static void nativeSin(FlintExecution &execution) {

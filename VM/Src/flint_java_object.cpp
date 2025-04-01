@@ -1,6 +1,6 @@
 
 #include "flint_java_object.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_fields_data.h"
 
 static const uint8_t primitiveTypeSize[9] = {

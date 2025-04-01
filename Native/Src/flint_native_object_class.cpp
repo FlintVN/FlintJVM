@@ -2,7 +2,7 @@
 #include <string.h>
 #include "flint.h"
 #include "flint_java_object.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_native_object_class.h"
 
 static void nativeGetClass(FlintExecution &execution) {

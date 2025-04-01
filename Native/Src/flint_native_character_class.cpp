@@ -1,7 +1,7 @@
 
 #include "flint.h"
 #include "flint_java_object.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_native_character_class.h"
 
 static const uint16_t letterLower[] = {

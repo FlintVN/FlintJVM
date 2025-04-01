@@ -1,5 +1,5 @@
 
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 
 const FlintConstUtf8 &booleanPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\xC0\x84""Z";
 const FlintConstUtf8 &charPrimTypeName = *(const FlintConstUtf8 *)"\x01\x00\x01\x4E""C";

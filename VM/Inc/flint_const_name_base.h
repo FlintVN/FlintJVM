@@ -1,6 +1,6 @@
 
-#ifndef __FLINT_CONST_NAME_H
-#define __FLINT_CONST_NAME_H
+#ifndef __FLINT_CONST_NAME_BASE_H
+#define __FLINT_CONST_NAME_BASE_H
 
 #include "flint_const_pool.h"
 
@@ -65,4 +65,4 @@ extern const FlintConstUtf8 &modifiersFieldName;
 
 extern const FlintConstUtf8 * const primTypeConstUtf8List[];
 
-#endif /* __FLINT_CONST_NAME_H */
+#endif /* __FLINT_CONST_NAME_BASE_H */

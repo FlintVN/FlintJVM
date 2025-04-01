@@ -4,7 +4,7 @@
 #include <iostream>
 #include "flint.h"
 #include "flint_java_class.h"
-#include "flint_const_name.h"
+#include "flint_const_name_base.h"
 #include "flint_native_biginteger_class.h"
 
 #define KARATSUBA_THRESHOLD         80
