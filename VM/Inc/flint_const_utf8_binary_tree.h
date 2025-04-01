@@ -30,11 +30,13 @@ private:
 public:
     FlintConstUtf8BinaryTree(void);
 
-    FlintConstUtf8 &add(const char *text, uint16_t length, bool isTupeName);
+    FlintConstUtf8 &add(const char *text, uint32_t hash, bool isTupeName);
 
-    FlintConstUtf8 *find(const char *text, uint16_t length, bool isTupeName) const;
+    FlintConstUtf8 *find(const char *text, uint32_t hash, bool isTupeName) const;
 
     void clear(void);
+
+    static int32_t compareConstUtf8(const char *text, uint32_t hash, FlintConstUtf8 &uft8, bool isTypeName);
 };
 
 #endif /* __FLINT_CONST_UTF8_BINARY_TREE_H */

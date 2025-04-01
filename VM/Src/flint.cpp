@@ -2,73 +2,13 @@
 #include <new>
 #include <string.h>
 #include "flint.h"
+#include "flint_const_name_base_hash_table.h"
 
 static uint32_t objectCount = 0;
 
 FlintAPI::Thread::LockHandle *Flint::flintLockHandle = FlintAPI::Thread::createLockHandle();
 
 Flint Flint::flintInstance;
-
-static const FlintConstUtf8 * const baseConstUtf8List[] = {
-    primTypeConstUtf8List[0],
-    primTypeConstUtf8List[1],
-    primTypeConstUtf8List[2],
-    primTypeConstUtf8List[3],
-    primTypeConstUtf8List[4],
-    primTypeConstUtf8List[5],
-    primTypeConstUtf8List[6],
-    primTypeConstUtf8List[7],
-    primTypeConstUtf8List[8],
-
-    &mathClassName,
-    &byteClassName,
-    &longClassName,
-    &shortClassName,
-    &arrayClassName,
-    &errorClassName,
-    &classClassName,
-    &floatClassName,
-    &fieldClassName,
-    &doubleClassName,
-    &objectClassName,
-    &systemClassName,
-    &stringClassName,
-    &threadClassName,
-    &methodClassName,
-    &booleanClassName,
-    &integerClassName,
-    &characterClassName,
-    &throwableClassName,
-    &exceptionClassName,
-    &bigIntegerClassName,
-    &printStreamClassName,
-    &ioExceptionClassName,
-    &constructorClassName,
-    &flintGraphicsClassName,
-    &classCastExceptionClassName,
-    &arrayStoreExceptionClassName,
-    &arithmeticExceptionClassName,
-    &nullPointerExceptionClassName,
-    &unsatisfiedLinkErrorClassName,
-    &interruptedExceptionClassName,
-    &classNotFoundExceptionClassName,
-    &illegalArgumentExceptionClassName,
-    &cloneNotSupportedExceptionClassName,
-    &negativeArraySizeExceptionClassName,
-    &unsupportedOperationExceptionClassName,
-    &arrayIndexOutOfBoundsExceptionClassName,
-
-    &constructorName,
-    &staticConstructorName,
-
-    &nameFieldName,
-    &typeFieldName,
-    &clazzFieldName,
-    &returnTypeFieldName,
-    &parameterTypesFieldName,
-    &exceptionTypesFieldName,
-    &modifiersFieldName,
-};
 
 FlintExecutionNode::FlintExecutionNode(Flint &flint, FlintJavaThread *onwerThread) : FlintExecution(flint, onwerThread) {
     prev = 0;
@@ -423,19 +363,36 @@ FlintJavaString &Flint::getConstString(FlintJavaString &str) {
     return *ret;
 }
 
-FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
-    uint32_t hash = Flint_CalcHash(text, length, false);
-    for(uint32_t i = 0; i < LENGTH(baseConstUtf8List); i++) {
-        if(CONST_UTF8_HASH(baseConstUtf8List[i][0]) == hash) {
-            if(strncmp(baseConstUtf8List[i]->text, text, length) == 0)
-                return *(FlintConstUtf8 *)baseConstUtf8List[i];
+static FlintConstUtf8 *getConstUtf8InBaseConstName(const char *text, uint32_t hash, bool isTypeName) {
+    uint32_t hashIndex = Flint_HashIndex(hash, LENGTH(baseConstUtf8HashTable));
+    if(baseConstUtf8HashTable[hashIndex]) {
+        int32_t left = 0;
+        int32_t right = baseConstUtf8HashTable[hashIndex]->count - 1;
+        const FlintConstUtf8 * const *constUtf8List = baseConstUtf8HashTable[hashIndex]->values;
+        while(left <= right) {
+            int32_t mid = left + (right - left) / 2;
+            int32_t compareResult = FlintConstUtf8BinaryTree::compareConstUtf8(text, hash, (FlintConstUtf8 &)*constUtf8List[mid], isTypeName);
+            if(compareResult == 0)
+                return (FlintConstUtf8 *)constUtf8List[mid];
+            else if(compareResult > 0)
+                left = mid + 1;
+            else
+                right = mid - 1;
         }
     }
+    return NULL;
+}
+
+FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
+    uint32_t hash = Flint_CalcHash(text, length, false);
+    FlintConstUtf8 *ret = getConstUtf8InBaseConstName(text, hash, false);
+    if(ret)
+        return *ret;
 
     Flint::lock();
-    FlintConstUtf8 *ret = constUtf8Tree.find(text, length, false);
+    ret = constUtf8Tree.find(text, hash, false);
     if(!ret)
-        ret = &constUtf8Tree.add(text, length, false);
+        ret = &constUtf8Tree.add(text, hash, false);
     Flint::unlock();
 
     return *ret;
@@ -443,25 +400,14 @@ FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
 
 FlintConstUtf8 &Flint::getTypeNameConstUtf8(const char *typeName, uint16_t length) {
     uint32_t hash = Flint_CalcHash(typeName, length, true);
-    for(uint32_t i = 0; i < LENGTH(baseConstUtf8List); i++) {
-        if(CONST_UTF8_HASH(baseConstUtf8List[i][0]) == hash) {
-            bool isMatch = true;
-            const char *text2 = baseConstUtf8List[i]->text;
-            for(uint16_t j = 0; j < length; j++) {
-                if((text2[j] == typeName[j]) || (typeName[j] == '.' && text2[j] == '/'))
-                    continue;
-                isMatch = false;
-                break;
-            }
-            if(isMatch)
-                return *(FlintConstUtf8 *)baseConstUtf8List[i];
-        }
-    }
+    FlintConstUtf8 *ret = getConstUtf8InBaseConstName(typeName, hash, true);
+    if(ret)
+        return *ret;
 
     Flint::lock();
-    FlintConstUtf8 *ret = constUtf8Tree.find(typeName, length, true);
+    ret = constUtf8Tree.find(typeName, hash, true);
     if(!ret)
-        ret = &constUtf8Tree.add(typeName, length, true);
+        ret = &constUtf8Tree.add(typeName, hash, true);
     Flint::unlock();
 
     return *ret;

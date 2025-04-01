@@ -83,6 +83,10 @@ uint32_t Flint_CalcHash(const char *text, uint32_t length, bool isTypeName) {
     return hash;
 }
 
+uint32_t Flint_HashIndex(uint32_t hash, uint32_t hashTableLength) {
+    return ((uint16_t *)&hash)[1] % hashTableLength;
+}
+
 int64_t Flint_GetUnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
     static const uint16_t dayCount[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
     int64_t ret = dayCount[month - 1] + day;

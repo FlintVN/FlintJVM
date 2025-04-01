@@ -73,7 +73,7 @@ FlintConstUtf8BinaryTree::FlintConstUtf8Node *FlintConstUtf8BinaryTree::balance(
     return node;
 }
 
-static int32_t compareConstUtf8(const char *text, uint32_t hash, FlintConstUtf8 &uft8, bool isTypeName) {
+int32_t FlintConstUtf8BinaryTree::compareConstUtf8(const char *text, uint32_t hash, FlintConstUtf8 &uft8, bool isTypeName) {
     uint32_t utf8Hash = CONST_UTF8_HASH(uft8);
     if(hash < utf8Hash)
         return -1;
@@ -122,7 +122,7 @@ FlintConstUtf8BinaryTree::FlintConstUtf8Node *FlintConstUtf8BinaryTree::insert(F
             *node = constUtf8Node;
         return constUtf8Node;
     }
-    int8_t compareResult = compareConstUtf8(text, hash, rootNode->value, isTypeName);
+    int32_t compareResult = compareConstUtf8(text, hash, rootNode->value, isTypeName);
     if(compareResult < 0)
         rootNode->left = insert(rootNode->left, text, hash, isTypeName, node);
     else if(compareResult > 0)
@@ -132,18 +132,16 @@ FlintConstUtf8BinaryTree::FlintConstUtf8Node *FlintConstUtf8BinaryTree::insert(F
     return balance(rootNode);
 }
 
-FlintConstUtf8 &FlintConstUtf8BinaryTree::add(const char *text, uint16_t length, bool isTypeName) {
+FlintConstUtf8 &FlintConstUtf8BinaryTree::add(const char *text, uint32_t hash, bool isTypeName) {
     FlintConstUtf8Node *newNode;
-    uint32_t hash = Flint_CalcHash(text, length, isTypeName);
     root = insert(root, text, hash, isTypeName, &newNode);
     return newNode->value;
 }
 
-FlintConstUtf8 *FlintConstUtf8BinaryTree::find(const char *text, uint16_t length, bool isTypeName) const {
-    uint32_t hash = Flint_CalcHash(text, length, isTypeName);
+FlintConstUtf8 *FlintConstUtf8BinaryTree::find(const char *text, uint32_t hash, bool isTypeName) const {
     FlintConstUtf8Node *node = root;
     while(node) {
-        int8_t compareResult = compareConstUtf8(text, hash, node->value, isTypeName);
+        int32_t compareResult = compareConstUtf8(text, hash, node->value, isTypeName);
         if(compareResult == 0)
             return &node->value;
         else if(compareResult > 0)
