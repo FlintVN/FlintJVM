@@ -1,4 +1,21 @@
 # Change Log
+## V1.1.3
+- Fix bug when calling invokevirtual invokeinterface with null object.
+- Fix bug stuck in FlintMethodInfo::getAttribute, FlintMethodInfo::getAttributeCode and FlintMethodInfo::getAttributeNative.
+- Fix bug related to object synchronization and static method synchronization.
+- Fix bug of not calling static constructor in some cases.
+- Fix breakpoint not working when doing step in/out/over.
+- Improve code and performance for VM.
+- Improve garbage collection performance and accuracy.
+- Reduced RAM usage, fixed memory leak in FlintClassLoader.
+- Verify object address in DBG_CMD_READ_FIELD and DBG_CMD_READ_ARRAY command in debugger.
+- Change command format for DBG_CMD_READ_LOCAL (Is there additional information about whether the variable is an object or not).
+- Implement some native methods for java.lang.Class
+  - Class.forName.
+  - Class.getDeclaredMethods0.
+  - Class.getDeclaredConstructors0.
+  - Class.getDeclaredFields0.
+  - Class.getDeclaringClass0.
 ## V1.1.2
 - Fix the bug in the Flint::isInstanceof method when checking with primitive and interface types. It impacts checkcast, instanceof instructions, try...catch in java and more.
 - Add method to support create IllegalArgumentException object.
