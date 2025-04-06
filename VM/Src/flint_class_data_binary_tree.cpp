@@ -205,6 +205,7 @@ void FlintClassDataBinaryTree::freeNode(FlintClassData *node) {
     if(node) {
         freeNode(node->left);
         freeNode(node->right);
+        node->~FlintClassData();
         Flint::free(node);
     }
 }
