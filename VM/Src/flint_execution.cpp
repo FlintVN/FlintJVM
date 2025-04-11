@@ -1975,7 +1975,7 @@ void FlintExecution::run(void) {
             for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
                 FlintExceptionTable &exceptionTable = attributeCode.getException(i);
                 if(exceptionTable.startPc <= tracePc && tracePc < exceptionTable.endPc) {
-                    if(flint.isInstanceof(obj, traceMethod->classLoader.getConstUtf8Class(exceptionTable.catchType))) {
+                    if(exceptionTable.catchType == 0 || flint.isInstanceof(obj, traceMethod->classLoader.getConstUtf8Class(exceptionTable.catchType))) {
                         while(startSp > traceStartSp)
                             stackRestoreContext();
                         sp = startSp + attributeCode.maxLocals;
