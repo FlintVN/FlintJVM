@@ -1,4 +1,6 @@
 # Change Log
+## V1.1.4
+- Fix bug when handling finally block in exception.
 ## V1.1.3
 - Fix bug when calling invokevirtual invokeinterface with null object.
 - Fix bug stuck in FlintMethodInfo::getAttribute, FlintMethodInfo::getAttributeCode and FlintMethodInfo::getAttributeNative.
