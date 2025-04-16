@@ -718,10 +718,8 @@ FlintMethodInfo &Flint::findMethod(FlintConstMethod &constMethod) {
     FlintClassLoader *loader = &load(constMethod.className);
     while(loader) {
         FlintMethodInfo *methodInfo = &loader->getMethodInfo(constMethod.nameAndType);
-        if(methodInfo) {
-            if((methodInfo->accessFlag & METHOD_BRIDGE) != METHOD_BRIDGE)
-                return *methodInfo;
-        }
+        if(methodInfo)
+            return *methodInfo;
         FlintConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &load(loader->getSuperClass()) : (FlintClassLoader *)0;
     }
@@ -732,21 +730,20 @@ FlintMethodInfo &Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndT
     FlintClassLoader *loader = &load(className);
     while(loader) {
         FlintMethodInfo *methodInfo = &loader->getMethodInfo(nameAndType);
-        if(methodInfo) {
-            if((methodInfo->accessFlag & METHOD_BRIDGE) != METHOD_BRIDGE)
-                return *methodInfo;
-        }
+        if(methodInfo)
+            return *methodInfo;
         FlintConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &load(loader->getSuperClass()) : (FlintClassLoader *)0;
     }
     throw "can't find the method";
 }
 
-static bool compareClassName(const FlintConstUtf8 &className1, const char *className2, uint32_t length) {
-    if(className1.length != length)
+static bool compareClassName(const FlintConstUtf8 &className1, const char *className2, uint32_t hash) {
+    if(CONST_UTF8_HASH(className1) != hash)
         return false;
     const char *txt1 = className1.text;
-    for(uint32_t i = 0; i < length; i++) {
+    uint16_t length = className1.length;
+    for(uint16_t i = 0; i < length; i++) {
         if(txt1[i] == className2[i])
             continue;
         else if((txt1[i] == '.' && className2[i] == '/') || (txt1[i] == '/' && className2[i] == '.'))
@@ -756,30 +753,36 @@ static bool compareClassName(const FlintConstUtf8 &className1, const char *class
     return true;
 }
 
-bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length) {
+static uint32_t getDimensions(const char *typeName) {
     const char *text = typeName;
     while(*text == '[')
         text++;
-    uint32_t dimensions = text - typeName;
-    uint32_t len = length - dimensions;
-    if(*text == 'L') {
-        len -= (text[len - 1] == ';') ? 2 : 1;
-        text++;
+    return (uint32_t)(text - typeName);
+}
+
+bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length) {
+    uint32_t dimensions = getDimensions(typeName);
+    typeName += dimensions;
+    length -= dimensions;
+    if(*typeName == 'L') {
+        length -= (typeName[length - 1] == ';') ? 2 : 1;
+        typeName++;
     }
-    if((obj->dimensions >= dimensions) && compareClassName(objectClassName, text, len))
+    uint32_t typeNameHash = Flint_CalcHash(typeName, length, true);
+    if((obj->dimensions >= dimensions) && compareClassName(objectClassName, typeName, typeNameHash))
         return true;
     if(dimensions != obj->dimensions)
         return false;
     FlintConstUtf8 *objType = &obj->type;
-    if(FlintJavaObject::isPrimType(*objType) || ((len == 1) && (FlintJavaObject::convertToAType(text[0]))))
-        return (len == objType->length) && (text[0] == objType->text[0]);
+    if(FlintJavaObject::isPrimType(*objType) || ((length == 1) && FlintJavaObject::convertToAType(typeName[0])))
+        return (length == objType->length) && (typeName[0] == objType->text[0]);
     while(1) {
-        if(compareClassName(*objType, text, len))
+        if(compareClassName(*objType, typeName, typeNameHash))
             return true;
         FlintClassLoader &loader = load(*objType);
         uint16_t interfacesCount = loader.getInterfacesCount();
         for(uint32_t i = 0; i < interfacesCount; i++) {
-            if(compareClassName(loader.getInterface(i), text, len))
+            if(compareClassName(loader.getInterface(i), typeName, typeNameHash))
                 return true;
         }
         objType = &loader.getSuperClass();
@@ -791,26 +794,7 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
 bool Flint::isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName) {
     if(typeName.text[0] == '[' || typeName.text[typeName.length - 1] == ';')
         return isInstanceof(obj, typeName.text, typeName.length);
-    if(typeName == objectClassName)
-        return true;
-    if(obj->dimensions > 0)
-        return false;
-    FlintConstUtf8 *objType = &obj->type;
-    if(FlintJavaObject::isPrimType(*objType) || FlintJavaObject::isPrimType(typeName))
-        return (objType->text[0] == typeName.text[0]);
-    while(1) {
-        if(*objType == typeName)
-            return true;
-        FlintClassLoader &loader = load(*objType);
-        uint16_t interfacesCount = loader.getInterfacesCount();
-        for(uint32_t i = 0; i < interfacesCount; i++) {
-            if(loader.getInterface(i) == typeName)
-                return true;
-        }
-        objType = &loader.getSuperClass();
-        if(objType == 0)
-            return false;
-    }
+    return isInstanceof(obj->type, obj->dimensions, typeName, 0);
 }
 
 bool Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2) {
