@@ -61,10 +61,7 @@ private:
     friend class FlintFieldsData;
 };
 
-typedef struct {
-    uint8_t argc;
-    uint8_t retType;
-} FlintParamInfo;
+uint8_t parseArgc(const FlintConstUtf8 &descriptor);
 
 class FlintConstMethod {
 public:
@@ -72,12 +69,11 @@ public:
     FlintConstNameAndType &nameAndType;
 private:
     class FlintMethodInfo *methodInfo;
-    FlintParamInfo paramInfo;
+    uint8_t argc;
 public:
-    const FlintParamInfo &getParmInfo(void);
+    uint8_t getArgc(void) const;
 private:
     FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
-    FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, uint8_t argc, uint8_t retType);
     FlintConstMethod(const FlintConstMethod &) = delete;
     void operator=(const FlintConstMethod &) = delete;
 

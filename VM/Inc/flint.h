@@ -146,7 +146,6 @@ public:
     bool isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length);
     bool isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName);
     bool isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2);
-
 private:
     static void garbageCollectionProtectObject(FlintJavaObject &obj);
 public:

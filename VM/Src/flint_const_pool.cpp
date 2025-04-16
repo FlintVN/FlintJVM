@@ -3,27 +3,23 @@
 #include "flint_common.h"
 #include "flint_const_pool.h"
 
-static FlintParamInfo parseParamInfo(const FlintConstUtf8 &descriptor) {
+uint8_t parseArgc(const FlintConstUtf8 &descriptor) {
     const char *text = descriptor.text;
-    FlintParamInfo retVal = {0, 0};
+    uint8_t argc = 0;
     if(*text != '(')
         throw "the descriptor is not a description of the method";
     text++;
     while(*text) {
-        if(*text == ')') {
-            retVal.retType = text[1];
-            return retVal;
-        }
+        if(*text == ')')
+            return argc;
         else if(*text == '[')
             text++;
         else {
-            retVal.argc += (*text == 'J' || *text == 'D') ? 2 : 1;
+            argc += (*text == 'J' || *text == 'D') ? 2 : 1;
             if(*text++ == 'L') {
                 while(*text) {
-                    if(*text == ')') {
-                        retVal.retType = text[1];
-                        return retVal;
-                    }
+                    if(*text == ')')
+                        return argc;
                     else if(*text == ';') {
                         text++;
                         break;
@@ -68,17 +64,11 @@ className((FlintConstUtf8 &)className), nameAndType(nameAndType), fieldIndex(0) 
 
 FlintConstMethod::FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
 className((FlintConstUtf8 &)className), nameAndType(nameAndType), methodInfo(0) {
-    paramInfo = parseParamInfo(nameAndType.descriptor);
+    argc = parseArgc(nameAndType.descriptor);
 }
 
-FlintConstMethod::FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, uint8_t argc, uint8_t retType) :
-className((FlintConstUtf8 &)className), nameAndType(nameAndType), methodInfo(0) {
-    paramInfo.argc = argc;
-    paramInfo.retType = retType;
-}
-
-const FlintParamInfo &FlintConstMethod::getParmInfo() {
-    return paramInfo;
+uint8_t FlintConstMethod::getArgc(void) const {
+    return argc;
 }
 
 bool FlintConstNameAndType::operator==(const FlintConstNameAndType &another) const {

@@ -298,11 +298,11 @@ void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
         return;
     }
     lr = pc + 3;
-    invoke(methodInfo, constMethod.getParmInfo().argc);
+    invoke(methodInfo, constMethod.getArgc());
 }
 
 void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
-    uint8_t argc = constMethod.getParmInfo().argc + 1;
+    uint8_t argc = constMethod.getArgc() + 1;
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
     FlintMethodInfo &methodInfo = *constMethod.methodInfo;
@@ -323,7 +323,7 @@ void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
 }
 
 void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
-    uint8_t argc = constMethod.getParmInfo().argc;
+    uint8_t argc = constMethod.getArgc();
     FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", constMethod.className.text, ".", constMethod.nameAndType.name.text, " by null object"};
