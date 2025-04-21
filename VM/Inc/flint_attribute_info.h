@@ -50,19 +50,6 @@ public:
 
 typedef void (*FlintNativeMethodPtr)(class FlintExecution &execution);
 
-class FlintNativeAttribute : public FlintAttribute {
-public:
-    FlintNativeMethodPtr nativeMethod;
-private:
-    FlintNativeAttribute(FlintNativeMethodPtr nativeMethod);
-    FlintNativeAttribute(const FlintNativeAttribute &) = delete;
-    void operator=(const FlintNativeAttribute &) = delete;
-
-    friend class FlintClassLoader;
-
-    ~FlintNativeAttribute(void);
-};
-
 class FlintExceptionTable {
 public:
     const uint16_t startPc;
@@ -98,41 +85,7 @@ private:
 
     friend class FlintClassLoader;
 public:
-    FlintExceptionTable &getException(uint16_t index) const;
-};
-
-class FlintBootstrapMethod {
-public:
-    const uint16_t bootstrapMethodRef;
-    const uint16_t numBootstrapArguments;
-
-    uint16_t getBootstrapArgument(uint16_t index) const;
-private:
-    uint16_t bootstrapArguments[];
-
-    FlintBootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments);
-    FlintBootstrapMethod(const FlintBootstrapMethod &) = delete;
-    void operator=(const FlintBootstrapMethod &) = delete;
-
-    friend class FlintClassLoader;
-};
-
-class AttributeBootstrapMethods : public FlintAttribute {
-public:
-    const uint16_t numBootstrapMethods;
-private:
-    FlintBootstrapMethod **bootstrapMethods;
-
-    AttributeBootstrapMethods(uint16_t numBootstrapMethods);
-    AttributeBootstrapMethods(const AttributeBootstrapMethods &) = delete;
-    void operator=(const AttributeBootstrapMethods &) = delete;
-
-    FlintBootstrapMethod &getBootstrapMethod(uint16_t index);
-    void setBootstrapMethod(uint16_t index, FlintBootstrapMethod &bootstrapMethod);
-
-    ~AttributeBootstrapMethods(void);
-
-    friend class FlintClassLoader;
+    FlintExceptionTable *getException(uint16_t index) const;
 };
 
 #endif /* __FLINT_ATTRIBUTE_INFO_H */

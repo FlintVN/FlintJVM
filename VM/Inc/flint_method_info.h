@@ -12,7 +12,7 @@ public:
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
 private:
-    FlintAttribute *code;
+    void *code;
 
     FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
 
@@ -23,9 +23,13 @@ private:
 
     friend class FlintClassLoader;
 public:
-    FlintCodeAttribute &getAttributeCode(void) const;
-    FlintNativeAttribute &getAttributeNative(void) const;
-    bool hasAttributeCode(void) const;
+    uint8_t *getCode(void);
+    uint32_t getCodeLength(void) const;
+    uint16_t getMaxLocals(void) const;
+    uint16_t getMaxStack(void) const;
+    uint16_t getExceptionLength(void) const;
+    FlintExceptionTable *getException(uint16_t index) const;
+
     bool isStaticCtor(void);
 
     ~FlintMethodInfo(void);

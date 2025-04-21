@@ -205,11 +205,6 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
             uint16_t methodDescriptorIndex = ClassLoader_ReadUInt16(file);
             uint16_t methodAttributesCount = ClassLoader_ReadUInt16(file);
             new (&methods[i])FlintMethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
-            if((flag & METHOD_NATIVE) == METHOD_NATIVE) {
-                FlintNativeAttribute *attrNative = (FlintNativeAttribute *)Flint::malloc(sizeof(FlintNativeAttribute));
-                new (attrNative)FlintNativeAttribute(0);
-                methods[i].setCode(attrNative);
-            }
             while(methodAttributesCount--) {
                 uint16_t nameIndex = ClassLoader_ReadUInt16(file);
                 uint32_t length = ClassLoader_ReadUInt32(file);
@@ -253,22 +248,6 @@ FlintAttribute *FlintClassLoader::readAttributeCode(void *file) {
     uint16_t attrbutesCount = ClassLoader_ReadUInt16(file);
     while(attrbutesCount--)
         dumpAttribute(file);
-    return attribute;
-}
-
-FlintAttribute *FlintClassLoader::readAttributeBootstrapMethods(void *file) {
-    uint16_t numBootstrapMethods = ClassLoader_ReadUInt16(file);
-    AttributeBootstrapMethods *attribute = (AttributeBootstrapMethods *)Flint::malloc(sizeof(AttributeBootstrapMethods));
-    new (attribute)AttributeBootstrapMethods(numBootstrapMethods);
-    for(uint16_t i = 0; i < numBootstrapMethods; i++) {
-        uint16_t bootstrapMethodRef = ClassLoader_ReadUInt16(file);
-        uint16_t numBootstrapArguments = ClassLoader_ReadUInt16(file);
-        FlintBootstrapMethod *bootstrapMethod = (FlintBootstrapMethod *)Flint::malloc(sizeof(FlintBootstrapMethod) + numBootstrapArguments * sizeof(uint16_t));
-        new (bootstrapMethod)FlintBootstrapMethod(bootstrapMethodRef, numBootstrapArguments);
-        uint16_t *bootstrapArguments = (uint16_t *)(((uint8_t *)bootstrapMethod) + sizeof(FlintBootstrapMethod));
-        ClassLoader_Read(file, bootstrapArguments, numBootstrapArguments * sizeof(uint16_t));
-        attribute->setBootstrapMethod(i, *bootstrapMethod);
-    }
     return attribute;
 }
 

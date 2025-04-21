@@ -36,24 +36,43 @@ void FlintMethodInfo::setCode(FlintAttribute *attributeCode) {
     code = attributeCode;
 }
 
-FlintCodeAttribute &FlintMethodInfo::getAttributeCode(void) const {
-    if(code && code->attributeType == ATTRIBUTE_CODE)
-        return *(FlintCodeAttribute *)code;
-    throw "can't find the code attribute";
-}
-
-FlintNativeAttribute &FlintMethodInfo::getAttributeNative(void) const {
-    if(code && code->attributeType == ATTRIBUTE_NATIVE) {
-        FlintNativeAttribute *attrNative = (FlintNativeAttribute *)code;
-        if(attrNative->nativeMethod == 0)
-            *(void **)&attrNative->nativeMethod = (void *)findNativeMethod(*this);
-        return *(FlintNativeAttribute *)attrNative;
+uint8_t *FlintMethodInfo::getCode(void) {
+    if(accessFlag & METHOD_NATIVE) {
+        if(code == 0)
+            code = (void *)findNativeMethod(*this);
+        return (uint8_t *)code;
     }
-    throw "can't find the native attribute";
+    return (uint8_t *)(((FlintCodeAttribute *)code)->code);
 }
 
-bool FlintMethodInfo::hasAttributeCode(void) const {
-    return code ? (code->attributeType == ATTRIBUTE_CODE) : false;
+uint32_t FlintMethodInfo::getCodeLength(void) const {
+    if(accessFlag & METHOD_NATIVE)
+        return 0;
+    return ((FlintCodeAttribute *)code)->codeLength;
+}
+
+uint16_t FlintMethodInfo::getMaxLocals(void) const {
+    if(accessFlag & METHOD_NATIVE)
+        return 0;
+    return ((FlintCodeAttribute *)code)->maxLocals;
+}
+
+uint16_t FlintMethodInfo::getMaxStack(void) const {
+    if(accessFlag & METHOD_NATIVE)
+        return 0;
+    return ((FlintCodeAttribute *)code)->maxStack;
+}
+
+uint16_t FlintMethodInfo::getExceptionLength(void) const {
+    if(accessFlag & METHOD_NATIVE)
+        return 0;
+    return ((FlintCodeAttribute *)code)->exceptionTableLength;
+}
+
+FlintExceptionTable *FlintMethodInfo::getException(uint16_t index) const {
+    if(accessFlag & METHOD_NATIVE)
+        return NULL;
+    return ((FlintCodeAttribute *)code)->getException(index);
 }
 
 bool FlintMethodInfo::isStaticCtor(void) {
@@ -61,8 +80,8 @@ bool FlintMethodInfo::isStaticCtor(void) {
 }
 
 FlintMethodInfo::~FlintMethodInfo(void) {
-    if(code) {
-        code->~FlintAttribute();
+    if((!(accessFlag & METHOD_NATIVE)) && code) {
+        ((FlintAttribute *)code)->~FlintAttribute();
         Flint::free(code);
     }
 }

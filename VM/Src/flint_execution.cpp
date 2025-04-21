@@ -144,8 +144,9 @@ bool FlintExecution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_
 }
 
 void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) {
-    FlintCodeAttribute &attributeCode = methodInfo.getAttributeCode();
-    if((sp + attributeCode.maxLocals + attributeCode.maxStack + 4) >= stackLength)
+    uint16_t maxLocals = methodInfo.getMaxLocals();
+    uint16_t maxStack = methodInfo.getMaxStack();
+    if((sp + maxLocals + maxStack + 4) >= stackLength)
         throw (FlintOutOfMemoryError *)"Stack overflow";
 
     /* Save current context */
@@ -156,14 +157,14 @@ void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) 
     startSp = sp;
 
     method = &methodInfo;
-    code = attributeCode.code;
+    code = methodInfo.getCode();
     pc = 0;
     locals = &stack[sp + 1];
-    for(uint32_t i = argc; i < attributeCode.maxLocals; i++) {
+    for(uint32_t i = argc; i < maxLocals; i++) {
         uint32_t index = sp + i + 1;
         stack[index] = 0;
     }
-    sp += attributeCode.maxLocals;
+    sp += maxLocals;
 }
 
 void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
@@ -195,7 +196,7 @@ void FlintExecution::stackRestoreContext(void) {
     lr = stackPopInt32();
     pc = stackPopInt32();
     method = (FlintMethodInfo *)stackPopInt32();
-    code = method->getAttributeCode().code;
+    code = method->getCode();
     locals = &stack[startSp + 1];
 }
 
@@ -255,8 +256,7 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
     }
     else {
         int32_t retSp = sp - argc;
-        FlintNativeAttribute &attrNative = methodInfo.getAttributeNative();
-        attrNative.nativeMethod(*this);
+        ((FlintNativeMethodPtr)methodInfo.getCode())(*this);
         uint8_t retType = methodInfo.descriptor.text[methodInfo.descriptor.length - 1];
         if(retType != 'V') {
             if(retType == 'J' || retType == 'D') {
@@ -474,7 +474,7 @@ void FlintExecution::run(void) {
 
     FlintLoadFileError *fileNotFound = 0;
 
-    stackInitExitPoint(method->getAttributeCode().codeLength);
+    stackInitExitPoint(method->getCodeLength());
 
     if(method->classLoader.hasStaticCtor()) {
         invokeStaticCtor((FlintClassData &)method->classLoader);
@@ -1971,16 +1971,16 @@ void FlintExecution::run(void) {
         if(dbg && dbg->exceptionIsEnabled())
             dbg->caughtException(this, (FlintJavaThrowable *)obj);
         while(1) {
-            FlintCodeAttribute &attributeCode = traceMethod->getAttributeCode();
-            for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
-                FlintExceptionTable &exceptionTable = attributeCode.getException(i);
-                if(exceptionTable.startPc <= tracePc && tracePc < exceptionTable.endPc) {
-                    if(exceptionTable.catchType == 0 || flint.isInstanceof(obj, traceMethod->classLoader.getConstUtf8Class(exceptionTable.catchType))) {
+            uint16_t exceptionLength = traceMethod->getExceptionLength();
+            for(uint16_t i = 0; i < exceptionLength; i++) {
+                FlintExceptionTable *exception = traceMethod->getException(i);
+                if(exception->startPc <= tracePc && tracePc < exception->endPc) {
+                    if(exception->catchType == 0 || flint.isInstanceof(obj, traceMethod->classLoader.getConstUtf8Class(exception->catchType))) {
                         while(startSp > traceStartSp)
                             stackRestoreContext();
-                        sp = startSp + attributeCode.maxLocals;
+                        sp = startSp + traceMethod->getMaxLocals();
                         stackPushObject(obj);
-                        pc = exceptionTable.handlerPc;
+                        pc = exception->handlerPc;
                         goto *opcodes[code[pc]];
                     }
                 }

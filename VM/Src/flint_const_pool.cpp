@@ -6,9 +6,8 @@
 uint8_t parseArgc(const FlintConstUtf8 &descriptor) {
     const char *text = descriptor.text;
     uint8_t argc = 0;
-    if(*text != '(')
-        throw "the descriptor is not a description of the method";
-    text++;
+    while(*text == '(')
+        text++;
     while(*text) {
         if(*text == ')')
             return argc;
@@ -29,7 +28,7 @@ uint8_t parseArgc(const FlintConstUtf8 &descriptor) {
             }
         }
     }
-    throw "descriptor is invalid";
+    return argc;
 }
 
 bool FlintConstUtf8::operator==(const FlintConstUtf8 &another) const {

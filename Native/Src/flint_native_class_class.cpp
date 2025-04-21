@@ -291,16 +291,16 @@ static FlintObjectArray &getParameterTypes(Flint &flint, FlintMethodInfo &method
 }
 
 static FlintObjectArray &getExceptionTypes(Flint &flint, FlintMethodInfo &methodInfo, FlintObjectArray &classArray0) {
-    if(!methodInfo.hasAttributeCode())
+    if(methodInfo.accessFlag & METHOD_NATIVE)
         return classArray0;
-    FlintCodeAttribute &attributeCode = methodInfo.getAttributeCode();
-    if(attributeCode.exceptionTableLength == 0)
+    uint16_t exceptionLength = methodInfo.getExceptionLength();
+    if(exceptionLength == 0)
         return classArray0;
-    FlintObjectArray &array = flint.newObjectArray(classClassName, attributeCode.exceptionTableLength);
+    FlintObjectArray &array = flint.newObjectArray(classClassName, exceptionLength);
     FlintClassLoader &classLoader = methodInfo.classLoader;
     FlintJavaObject **data = array.getData();
-    for(uint16_t i = 0; i < attributeCode.exceptionTableLength; i++) {
-        FlintConstUtf8 &catchType = classLoader.getConstUtf8Class(attributeCode.getException(i).catchType);
+    for(uint16_t i = 0; i < exceptionLength; i++) {
+        FlintConstUtf8 &catchType = classLoader.getConstUtf8Class(methodInfo.getException(i)->catchType);
         data[i] = &flint.getConstClass(catchType.text, catchType.length);
     }
     return array;

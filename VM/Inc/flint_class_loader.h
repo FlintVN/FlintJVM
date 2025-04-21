@@ -31,7 +31,6 @@ private:
 
     void readFile(class Flint &flint, void *file);
     FlintAttribute *readAttributeCode(void *file);
-    FlintAttribute *readAttributeBootstrapMethods(void *file);
 protected:
     FlintClassLoader(class Flint &flint, const char *fileName, uint16_t length);
 

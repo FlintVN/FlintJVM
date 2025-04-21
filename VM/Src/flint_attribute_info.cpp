@@ -32,14 +32,6 @@ FlintAttribute::~FlintAttribute(void) {
 
 }
 
-FlintNativeAttribute::FlintNativeAttribute(FlintNativeMethodPtr nativeMethod) : FlintAttribute(ATTRIBUTE_NATIVE), nativeMethod(nativeMethod) {
-
-}
-
-FlintNativeAttribute::~FlintNativeAttribute(void) {
-
-}
-
 FlintExceptionTable::FlintExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
 startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
@@ -61,10 +53,8 @@ void FlintCodeAttribute::setExceptionTable(FlintExceptionTable *exceptionTable, 
     *(uint16_t *)&exceptionTableLength = length;
 }
 
-FlintExceptionTable &FlintCodeAttribute::getException(uint16_t index) const {
-    if(index < exceptionTableLength)
-        return exceptionTable[index];
-    throw "index for FlintExceptionTable is invalid";
+FlintExceptionTable *FlintCodeAttribute::getException(uint16_t index) const {
+    return &exceptionTable[index];
 }
 
 FlintCodeAttribute::~FlintCodeAttribute(void) {
@@ -72,36 +62,4 @@ FlintCodeAttribute::~FlintCodeAttribute(void) {
         Flint::free((void *)code);
     if(exceptionTable)
         Flint::free((void *)exceptionTable);
-}
-
-FlintBootstrapMethod::FlintBootstrapMethod(uint16_t bootstrapMethodRef, uint16_t numBootstrapArguments) :
-bootstrapMethodRef(bootstrapMethodRef), numBootstrapArguments(numBootstrapArguments) {
-
-}
-
-uint16_t FlintBootstrapMethod::getBootstrapArgument(uint16_t index) const {
-    if(index < numBootstrapArguments)
-        return bootstrapArguments[index];
-    throw "index for BootstrapArgument is invalid";
-}
-
-AttributeBootstrapMethods::AttributeBootstrapMethods(uint16_t numBootstrapMethods) :
-FlintAttribute(ATTRIBUTE_BOOTSTRAP_METHODS), numBootstrapMethods(numBootstrapMethods) {
-    bootstrapMethods = (FlintBootstrapMethod **)Flint::malloc(numBootstrapMethods * sizeof(FlintBootstrapMethod *));
-}
-
-FlintBootstrapMethod &AttributeBootstrapMethods::getBootstrapMethod(uint16_t index) {
-    if(index < numBootstrapMethods)
-        return *bootstrapMethods[index];
-    throw "index for FlintBootstrapMethod is invalid";
-}
-
-void AttributeBootstrapMethods::setBootstrapMethod(uint16_t index, FlintBootstrapMethod &bootstrapMethod) {
-    bootstrapMethods[index] = &bootstrapMethod;
-}
-
-AttributeBootstrapMethods::~AttributeBootstrapMethods(void) {
-    for(uint16_t i = 0; i < numBootstrapMethods; i++)
-        Flint::free((void *)bootstrapMethods[i]);
-    Flint::free(bootstrapMethods);
 }
