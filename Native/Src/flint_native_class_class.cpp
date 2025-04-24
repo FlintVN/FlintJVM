@@ -220,15 +220,16 @@ static void nativeIsHidden(FlintExecution &execution) {
 }
 
 static FlintJavaClass &getReturnType(Flint &flint, FlintMethodInfo &methodInfo) {
-    const char *text = methodInfo.descriptor.text;
+    FlintConstUtf8 &methodDesc = methodInfo.getDescriptor();
+    const char *text = methodDesc.text;
     while(*text++ != ')');
-    uint16_t len = methodInfo.descriptor.length - (text - methodInfo.descriptor.text);
+    uint16_t len = methodDesc.length - (text - methodDesc.text);
     return getClass(flint, text, len);
 }
 
 static uint8_t getParameterCount(FlintMethodInfo &methodInfo) {
     uint8_t count = 0;
-    const char *text = methodInfo.descriptor.text;
+    const char *text = methodInfo.getDescriptor().text;
     if(*text != '(')
         throw "the descriptor is not a description of the method";
     text++;
@@ -262,7 +263,7 @@ static FlintObjectArray &getParameterTypes(Flint &flint, FlintMethodInfo &method
     FlintObjectArray &array = flint.newObjectArray(classClassName, count);
     FlintJavaObject **data = array.getData();
     count = 0;
-    const char *text = methodInfo.descriptor.text;
+    const char *text = methodInfo.getDescriptor().text;
     while(*text == '(')
         text++;
     while(*text) {
@@ -319,8 +320,8 @@ static void nativeGetDeclaredFields0(FlintExecution &execution) {
         FlintFieldsData &fields = field.getFields();
 
         fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
-        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(fieldInfo.name);
-        fields.getFieldObject(typeFieldName, &typeIndex).object = &getClass(execution.flint, fieldInfo.descriptor.text, fieldInfo.descriptor.length);
+        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(fieldInfo.getName());
+        fields.getFieldObject(typeFieldName, &typeIndex).object = &getClass(execution.flint, fieldInfo.getDescriptor().text, fieldInfo.getDescriptor().length);
         fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)fieldInfo.accessFlag & 0x1FFF;
 
         array->getData()[i] = &field;
@@ -335,7 +336,7 @@ static void nativeGetDeclaredMethods0(FlintExecution &execution) {
     uint16_t count = 0;
     for(uint16_t i = 0; i < methodCount; i++) {
         FlintMethodInfo &methodInfo = loader.getMethodInfoWithUnload(i);
-        if(methodInfo.name != constructorName && methodInfo.name != staticConstructorName)
+        if(methodInfo.getName() != constructorName && methodInfo.getName() != staticConstructorName)
             count++;
     }
     FlintObjectArray *array = (FlintObjectArray *)&execution.flint.newObjectArray(methodClassName, count);
@@ -344,14 +345,14 @@ static void nativeGetDeclaredMethods0(FlintExecution &execution) {
     FlintObjectArray &classArray0 = execution.flint.getClassArray0();
     for(uint16_t i = 0; i < methodCount; i++) {
         FlintMethodInfo &methodInfo = loader.getMethodInfoWithUnload(i);
-        if(methodInfo.name == constructorName || methodInfo.name == staticConstructorName)
+        if(methodInfo.getName() == constructorName || methodInfo.getName() == staticConstructorName)
             continue;
 
         FlintJavaObject &method = execution.flint.newObject(methodClassName);
         FlintFieldsData &fields = method.getFields();
 
         fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
-        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(methodInfo.name);
+        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(methodInfo.getName());
         fields.getFieldObject(returnTypeFieldName, &returnTypeIndex).object = &getReturnType(execution.flint, methodInfo);
         fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution.flint, methodInfo, classArray0);
         fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
@@ -369,7 +370,7 @@ static void nativeGetDeclaredConstructors0(FlintExecution &execution) {
     uint16_t count = 0;
     for(uint16_t i = 0; i < methodCount; i++) {
         FlintMethodInfo &methodInfo = loader.getMethodInfoWithUnload(i);
-        if(methodInfo.name == constructorName)
+        if(methodInfo.getName() == constructorName)
             count++;
     }
     FlintObjectArray *array = (FlintObjectArray *)&execution.flint.newObjectArray(constructorClassName, count);
@@ -378,7 +379,7 @@ static void nativeGetDeclaredConstructors0(FlintExecution &execution) {
     FlintObjectArray &classArray0 = execution.flint.getClassArray0();
     for(uint16_t i = 0; i < methodCount; i++) {
         FlintMethodInfo &methodInfo = loader.getMethodInfoWithUnload(i);
-        if(methodInfo.name != constructorName)
+        if(methodInfo.getName() != constructorName)
             continue;
 
         FlintJavaObject &constructor = execution.flint.newObject(constructorClassName);

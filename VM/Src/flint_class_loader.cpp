@@ -202,7 +202,7 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
                 ClassLoader_Offset(file, length);
             }
             if(!(flag & FIELD_UNLOAD)) {
-                new (&fields[loadedCount])FlintFieldInfo(*this, flag, getConstUtf8(fieldsNameIndex), getConstUtf8(fieldsDescriptorIndex));
+                new (&fields[loadedCount])FlintFieldInfo(*this, flag, fieldsNameIndex, fieldsDescriptorIndex);
                 loadedCount++;
             }
         }
@@ -226,7 +226,9 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
             uint16_t methodAttributesCount = ClassLoader_ReadUInt16(file);
             if(!(flag & METHOD_NATIVE))
                 flag = (FlintMethodAccessFlag)(flag | METHOD_UNLOADED);
-            new (&methods[i])FlintMethodInfo(*this, flag, getConstUtf8(methodNameIndex), getConstUtf8(methodDescriptorIndex));
+            else if(&getConstUtf8(methodNameIndex) == &staticConstructorName)
+                flag = (FlintMethodAccessFlag)(flag | METHOD_SYNCHRONIZED);
+            new (&methods[i])FlintMethodInfo(*this, flag, methodNameIndex, methodDescriptorIndex);
             while(methodAttributesCount--) {
                 uint16_t nameIndex = ClassLoader_ReadUInt16(file);
                 uint32_t length = ClassLoader_ReadUInt32(file);
@@ -661,12 +663,14 @@ FlintFieldInfo &FlintClassLoader::getFieldInfo(const FlintConstUtf8 &name, const
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < fieldsCount; i++) {
-        if(nameHash == CONST_UTF8_HASH(fields[i].name) && descriptorHash == CONST_UTF8_HASH(fields[i].descriptor)) {
-            if(&name == &fields[i].name && &descriptor == &fields[i].descriptor)
+        FlintConstUtf8 &fieldName = fields[i].getName();
+        FlintConstUtf8 &fieldDesc = fields[i].getDescriptor();
+        if(nameHash == CONST_UTF8_HASH(fieldName) && descriptorHash == CONST_UTF8_HASH(fieldDesc)) {
+            if(&name == &fields[i].getName() && &descriptor == &fieldDesc)
                 return fields[i];
             else if(
-                strncmp(name.text, fields[i].name.text, name.length) == 0 &&
-                strncmp(descriptor.text, fields[i].descriptor.text, descriptor.length) == 0
+                strncmp(name.text, fieldName.text, name.length) == 0 &&
+                strncmp(descriptor.text, fieldDesc.text, descriptor.length) == 0
             ) {
                 return fields[i];
             }
@@ -707,12 +711,14 @@ FlintMethodInfo &FlintClassLoader::getMethodInfo(const FlintConstUtf8 &name, con
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(nameHash == CONST_UTF8_HASH(methods[i].name) && descriptorHash == CONST_UTF8_HASH(methods[i].descriptor)) {
-            if(&name == &methods[i].name && &descriptor == &methods[i].descriptor)
+        FlintConstUtf8 &methodName = methods[i].getName();
+        FlintConstUtf8 &methodDesc = methods[i].getDescriptor();
+        if(nameHash == CONST_UTF8_HASH(methodName) && descriptorHash == CONST_UTF8_HASH(methodDesc)) {
+            if(&name == &methodName && &descriptor == &methodDesc)
                 return getMethodInfo(i);
             else if(
-                strncmp(name.text, methods[i].name.text, name.length) == 0 &&
-                strncmp(descriptor.text, methods[i].descriptor.text, descriptor.length) == 0
+                strncmp(name.text, methodName.text, name.length) == 0 &&
+                strncmp(descriptor.text, methodDesc.text, descriptor.length) == 0
             ) {
                 return getMethodInfo(i);
             }
@@ -729,12 +735,14 @@ FlintMethodInfo &FlintClassLoader::getMethodInfoWithUnload(const FlintConstUtf8 
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(nameHash == CONST_UTF8_HASH(methods[i].name) && descriptorHash == CONST_UTF8_HASH(methods[i].descriptor)) {
-            if(&name == &methods[i].name && &descriptor == &methods[i].descriptor)
+        FlintConstUtf8 &methodName = methods[i].getName();
+        FlintConstUtf8 &methodDesc = methods[i].getDescriptor();
+        if(nameHash == CONST_UTF8_HASH(methodName) && descriptorHash == CONST_UTF8_HASH(methodDesc)) {
+            if(&name == &methodName && &descriptor == &methodDesc)
                 return getMethodInfoWithUnload(i);
             else if(
-                strncmp(name.text, methods[i].name.text, name.length) == 0 &&
-                strncmp(descriptor.text, methods[i].descriptor.text, descriptor.length) == 0
+                strncmp(name.text, methodName.text, name.length) == 0 &&
+                strncmp(descriptor.text, methodDesc.text, descriptor.length) == 0
             ) {
                 return getMethodInfoWithUnload(i);
             }
@@ -753,7 +761,7 @@ FlintMethodInfo &FlintClassLoader::getMainMethodInfo(void) {
 
 FlintMethodInfo &FlintClassLoader::getStaticCtor(void) {
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(&staticConstructorName == &methods[i].name)
+        if(&staticConstructorName == &methods[i].getName())
             return getMethodInfo(i);
     }
     return *(FlintMethodInfo *)0;

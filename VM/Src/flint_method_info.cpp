@@ -12,12 +12,14 @@ startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) {
     FlintConstUtf8 &className = methodInfo.classLoader.getThisClass();
+    FlintConstUtf8 &methodName = methodInfo.getName();
+    FlintConstUtf8 &methodDesc = methodInfo.getDescriptor();
     for(uint32_t i = 0; i < LENGTH(BASE_NATIVE_CLASS_LIST); i++) {
         if(BASE_NATIVE_CLASS_LIST[i]->className == className) {
             for(uint32_t k = 0; k < BASE_NATIVE_CLASS_LIST[i]->methodCount; k++) {
                 if(
-                    BASE_NATIVE_CLASS_LIST[i]->methods[k].name == methodInfo.name &&
-                    BASE_NATIVE_CLASS_LIST[i]->methods[k].descriptor == methodInfo.descriptor
+                    BASE_NATIVE_CLASS_LIST[i]->methods[k].name == methodName &&
+                    BASE_NATIVE_CLASS_LIST[i]->methods[k].descriptor == methodDesc
                 ) {
                     return BASE_NATIVE_CLASS_LIST[i]->methods[k].nativeMathod;
                 }
@@ -31,13 +33,21 @@ static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) 
     throw (FlintFindNativeError *)"can't find the native method";
 }
 
-FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) :
-accessFlag((&name != &staticConstructorName) ? accessFlag : (FlintMethodAccessFlag)(accessFlag | METHOD_SYNCHRONIZED)),
+FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, uint16_t nameIndex, uint16_t descIndex) :
+accessFlag(accessFlag),
 classLoader(classLoader),
-name((FlintConstUtf8 &)name),
-descriptor((FlintConstUtf8 &)descriptor),
+nameIndex(nameIndex),
+descIndex(descIndex),
 code(0) {
 
+}
+
+FlintConstUtf8 &FlintMethodInfo::getName(void) const {
+    return classLoader.getConstUtf8(nameIndex);
+}
+
+FlintConstUtf8 &FlintMethodInfo::getDescriptor(void) const {
+    return classLoader.getConstUtf8(descIndex);
 }
 
 uint8_t *FlintMethodInfo::getCode(void) {
@@ -74,7 +84,7 @@ FlintExceptionTable *FlintMethodInfo::getException(uint16_t index) const {
 }
 
 bool FlintMethodInfo::isStaticCtor(void) {
-    return &name == &staticConstructorName;
+    return &getName() == &staticConstructorName;
 }
 
 FlintMethodInfo::~FlintMethodInfo(void) {

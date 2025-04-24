@@ -33,7 +33,7 @@ void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
     for(uint16_t index = 0; index < fieldsCount; index++) {
         const FlintFieldInfo &fieldInfo = classLoader.getFieldInfo(index);
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            switch(fieldInfo.descriptor.text[0]) {
+            switch(fieldInfo.getDescriptor().text[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
                     (*(uint32_t *)&fields64Count)++;
@@ -56,7 +56,7 @@ void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
     for(uint16_t index = 0; index < fieldsCount; index++) {
         const FlintFieldInfo &fieldInfo = classLoader.getFieldInfo(index);
         if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            switch(fieldInfo.descriptor.text[0]) {
+            switch(fieldInfo.getDescriptor().text[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
                     new (&fieldsData64[field64Index++])FlintFieldData64(fieldInfo);
@@ -81,7 +81,7 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
         for(uint16_t index = 0; index < fieldsCount; index++) {
             const FlintFieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                switch(fieldInfo.descriptor.text[0]) {
+                switch(fieldInfo.getDescriptor().text[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
                         (*(uint32_t *)&fields64Count)++;
@@ -114,7 +114,7 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
         for(int16_t index = fieldsCount - 1; index >= 0; index--) {
             const FlintFieldInfo &fieldInfo = loader->getFieldInfo(index);
             if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                switch(fieldInfo.descriptor.text[0]) {
+                switch(fieldInfo.getDescriptor().text[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
                         new (&fieldsData64[--field64Index])FlintFieldData64(fieldInfo);
@@ -143,8 +143,8 @@ FlintFieldData32 &FlintFieldsData::getFieldData32(const char *fieldName, uint32_
 
         for(uint16_t i = 0; i < fields32Count; i++) {
             const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
-            if(CONST_UTF8_HASH(fieldInfo.name) == hash) {
-                if(strncmp(fieldInfo.name.text, fieldName, length) == 0) {
+            if(CONST_UTF8_HASH(fieldInfo.getName()) == hash) {
+                if(strncmp(fieldInfo.getName().text, fieldName, length) == 0) {
                     if(index)
                         *index = i | 0x80000000;
                     return fieldsData32[i];
@@ -160,7 +160,7 @@ FlintFieldData32 &FlintFieldsData::getFieldData32(const FlintConstUtf8 &fieldNam
         return fieldsData32[*index & 0x7FFFFFFF];
     for(uint16_t i = 0; i < fields32Count; i++) {
         const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
-        if(fieldInfo.name == fieldName) {
+        if(fieldInfo.getName() == fieldName) {
             if(index)
                 *index = i | 0x80000000;
             return fieldsData32[i];
@@ -173,7 +173,7 @@ FlintFieldData32 &FlintFieldsData::getFieldData32(FlintConstField &constField) c
     if(constField.fieldIndex == 0 && fields32Count) {
         for(uint16_t i = 0; i < fields32Count; i++) {
             const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
-            if(fieldInfo.name == constField.nameAndType.name && fieldInfo.descriptor == constField.nameAndType.descriptor)
+            if(fieldInfo.getName() == constField.nameAndType.name && fieldInfo.getDescriptor() == constField.nameAndType.descriptor)
                 constField.fieldIndex = i | 0x80000000;
         }
         if(constField.fieldIndex == 0)
@@ -195,8 +195,8 @@ FlintFieldData64 &FlintFieldsData::getFieldData64(const char *fieldName, uint32_
 
         for(uint16_t i = 0; i < fields64Count; i++) {
             const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
-            if(CONST_UTF8_HASH(fieldInfo.name) == hash) {
-                if(strncmp(fieldInfo.name.text, fieldName, length) == 0) {
+            if(CONST_UTF8_HASH(fieldInfo.getName()) == hash) {
+                if(strncmp(fieldInfo.getName().text, fieldName, length) == 0) {
                     if(index)
                         *index = i | 0x80000000;
                     return fieldsData64[i];
@@ -212,7 +212,7 @@ FlintFieldData64 &FlintFieldsData::getFieldData64(const FlintConstUtf8 &fieldNam
         return fieldsData64[*index & 0x7FFFFFFF];
     for(uint16_t i = 0; i < fields64Count; i++) {
         const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
-        if(fieldInfo.name == fieldName) {
+        if(fieldInfo.getName() == fieldName) {
             if(index)
                 *index = i | 0x80000000;
             return fieldsData64[i];
@@ -225,7 +225,7 @@ FlintFieldData64 &FlintFieldsData::getFieldData64(FlintConstField &constField) c
     if(constField.fieldIndex == 0 && fields64Count) {
         for(uint16_t i = 0; i < fields64Count; i++) {
             const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
-            if(fieldInfo.name == constField.nameAndType.name && fieldInfo.descriptor == constField.nameAndType.descriptor)
+            if(fieldInfo.getName() == constField.nameAndType.name && fieldInfo.getDescriptor() == constField.nameAndType.descriptor)
                 constField.fieldIndex = i | 0x80000000;
         }
         if(constField.fieldIndex == 0)
@@ -247,8 +247,8 @@ FlintFieldObject &FlintFieldsData::getFieldObject(const char *fieldName, uint32_
 
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
             const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
-            if(CONST_UTF8_HASH(fieldInfo.name) == hash) {
-                if(strncmp(fieldInfo.name.text, fieldName, length) == 0) {
+            if(CONST_UTF8_HASH(fieldInfo.getName()) == hash) {
+                if(strncmp(fieldInfo.getName().text, fieldName, length) == 0) {
                     if(index)
                         *index = i | 0x80000000;
                     return fieldsObject[i];
@@ -264,7 +264,7 @@ FlintFieldObject &FlintFieldsData::getFieldObject(const FlintConstUtf8 &fieldNam
         return fieldsObject[*index & 0x7FFFFFFF];
     for(uint16_t i = 0; i < fieldsObjCount; i++) {
         const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
-        if(fieldInfo.name == fieldName) {
+        if(fieldInfo.getName() == fieldName) {
             if(index)
                 *index = i | 0x80000000;
             return fieldsObject[i];
@@ -277,7 +277,7 @@ FlintFieldObject &FlintFieldsData::getFieldObject(FlintConstField &constField) c
     if(constField.fieldIndex == 0 && fieldsObjCount) {
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
             const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
-            if(fieldInfo.name == constField.nameAndType.name && fieldInfo.descriptor == constField.nameAndType.descriptor)
+            if(fieldInfo.getName() == constField.nameAndType.name && fieldInfo.getDescriptor() == constField.nameAndType.descriptor)
                 constField.fieldIndex = i | 0x80000000;
         }
         if(constField.fieldIndex == 0)

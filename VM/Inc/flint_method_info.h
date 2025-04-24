@@ -37,18 +37,22 @@ class FlintMethodInfo {
 public:
     FlintMethodAccessFlag accessFlag;
     class FlintClassLoader &classLoader;
-    FlintConstUtf8 &name;
-    FlintConstUtf8 &descriptor;
+private:
+    uint16_t nameIndex;
+    uint16_t descIndex;
 private:
     uint8_t *code;
 
-    FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
+    FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, uint16_t nameIndex, uint16_t descIndex);
 
     FlintMethodInfo(const FlintMethodInfo &) = delete;
     void operator=(const FlintMethodInfo &) = delete;
 
     friend class FlintClassLoader;
 public:
+    FlintConstUtf8 &getName(void) const;
+    FlintConstUtf8 &getDescriptor(void) const;
+
     uint8_t *getCode(void);
     uint32_t getCodeLength(void) const;
     uint16_t getMaxLocals(void) const;

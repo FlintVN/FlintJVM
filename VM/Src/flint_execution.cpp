@@ -179,7 +179,7 @@ void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
 void FlintExecution::stackRestoreContext(void) {
     if(method->accessFlag & METHOD_SYNCHRONIZED) {
         if(method->accessFlag & METHOD_STATIC) {
-            if(&method->name == &staticConstructorName) {
+            if(&method->getName() == &staticConstructorName) {
                 FlintClassData &classData = (FlintClassData &)method->classLoader;
                 Flint::lock();
                 classData.staticInitOwnId = 0;
@@ -257,7 +257,8 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
     else {
         int32_t retSp = sp - argc;
         ((FlintNativeMethodPtr)methodInfo.getCode())(*this);
-        uint8_t retType = methodInfo.descriptor.text[methodInfo.descriptor.length - 1];
+        FlintConstUtf8 &methodDesc = methodInfo.getDescriptor();
+        uint8_t retType = methodDesc.text[methodDesc.length - 1];
         if(retType != 'V') {
             if(retType == 'J' || retType == 'D') {
                 int64_t ret = stackPopInt64();

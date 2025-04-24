@@ -8,13 +8,17 @@ class FlintFieldInfo {
 public:
     const FlintFieldAccessFlag accessFlag;
     class FlintClassLoader &classLoader;
-    FlintConstUtf8 &name;
-    FlintConstUtf8 &descriptor;
+    uint16_t nameIndex;
+    uint16_t descIndex;
 private:
-    FlintFieldInfo(FlintClassLoader &classLoader, FlintFieldAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
+    FlintFieldInfo(FlintClassLoader &classLoader, FlintFieldAccessFlag accessFlag, uint16_t nameIndex, uint16_t descIndex);
 
     FlintFieldInfo(const FlintFieldInfo &) = delete;
     void operator=(const FlintFieldInfo &) = delete;
+
+public:
+    FlintConstUtf8 &getName(void) const;
+    FlintConstUtf8 &getDescriptor(void) const;
 
     friend class FlintClassLoader;
 };

@@ -203,18 +203,20 @@ void FlintDebugger::responseStackTrace(uint32_t stackIndex) {
         if(execution->getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
             FlintMethodInfo &method = stackTrace.method;
             FlintConstUtf8 &className = method.classLoader.getThisClass();
+            FlintConstUtf8 &methodName = method.getName();
+            FlintConstUtf8 &methodDesc = method.getDescriptor();
 
             uint32_t responseSize = 8;
             responseSize += sizeof(FlintConstUtf8) + className.length + 1;
-            responseSize += sizeof(FlintConstUtf8) + method.name.length + 1;
-            responseSize += sizeof(FlintConstUtf8) + method.descriptor.length + 1;
+            responseSize += sizeof(FlintConstUtf8) + methodName.length + 1;
+            responseSize += sizeof(FlintConstUtf8) + methodDesc.length + 1;
 
             initDataFrame(DBG_CMD_READ_STACK_TRACE, DBG_RESP_OK, responseSize);
             if(!dataFrameAppend((uint32_t)(stackIndex | (isEndStack << 31)))) return;
             if(!dataFrameAppend((uint32_t)stackTrace.pc)) return;
             if(!dataFrameAppend(className)) return;
-            if(!dataFrameAppend(method.name)) return;
-            if(!dataFrameAppend(method.descriptor)) return;
+            if(!dataFrameAppend(methodName)) return;
+            if(!dataFrameAppend(methodDesc)) return;
             dataFrameFinish();
         }
         else
