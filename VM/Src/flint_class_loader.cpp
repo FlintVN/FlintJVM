@@ -231,7 +231,7 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
                 uint16_t nameIndex = ClassLoader_ReadUInt16(file);
                 uint32_t length = ClassLoader_ReadUInt32(file);
                 FlintAttributeType type = parseAttributeType(getConstUtf8(nameIndex));
-                if(type == ATTRIBUTE_CODE)
+                if(type == ATTRIBUTE_CODE && !(flag & METHOD_NATIVE))
                     methods[i].code = (uint8_t *)FlintAPI::IO::ftell(file);
                 ClassLoader_Offset(file, length);
             }
@@ -248,14 +248,20 @@ void FlintClassLoader::readAttributeCode(void *file, FlintMethodInfo &method) {
     uint16_t maxStack = ClassLoader_ReadUInt16(file);
     uint16_t maxLocals = ClassLoader_ReadUInt16(file);
     uint32_t codeLength = ClassLoader_ReadUInt32(file);
-    uint8_t *code = (uint8_t *)Flint::malloc(codeLength + 1);
-    ClassLoader_Read(file, code, codeLength);
-    code[codeLength] = OP_EXIT;
-    method.setCode(code, codeLength, maxStack, maxLocals);
+    uint32_t codePos = FlintAPI::IO::ftell(file);
 
+    ClassLoader_Offset(file, codeLength);
     uint16_t exceptionTableLength = ClassLoader_ReadUInt16(file);
+
+    uint32_t codeAttrSize = sizeof(FlintCodeAttribute) + exceptionTableLength * sizeof(FlintExceptionTable) + codeLength + 1;
+    FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)Flint::malloc(codeAttrSize);
+    codeAttr->maxStack = maxStack;
+    codeAttr->maxLocals = maxLocals;
+    codeAttr->codeLength = codeLength;
+    codeAttr->exceptionLength = exceptionTableLength;
+
     if(exceptionTableLength) {
-        FlintExceptionTable *exceptionTable = (FlintExceptionTable *)Flint::malloc(exceptionTableLength * sizeof(FlintExceptionTable));
+        FlintExceptionTable *exceptionTable = (FlintExceptionTable *)codeAttr->data;
         for(uint16_t i = 0; i < exceptionTableLength; i++) {
             uint16_t startPc = ClassLoader_ReadUInt16(file);
             uint16_t endPc = ClassLoader_ReadUInt16(file);
@@ -263,12 +269,18 @@ void FlintClassLoader::readAttributeCode(void *file, FlintMethodInfo &method) {
             uint16_t catchType = ClassLoader_ReadUInt16(file);
             new (&exceptionTable[i])FlintExceptionTable(startPc, endPc, handlerPc, catchType);
         }
-        method.setException(exceptionTable, exceptionTableLength);
     }
 
     uint16_t attrbutesCount = ClassLoader_ReadUInt16(file);
     while(attrbutesCount--)
         dumpAttribute(file);
+
+    FlintAPI::IO::fseek(file, codePos);
+    uint8_t *code = (uint8_t *)&((FlintExceptionTable *)codeAttr->data)[exceptionTableLength];
+    ClassLoader_Read(file, code, codeLength);
+    code[codeLength] = OP_EXIT;
+
+    method.code = (uint8_t *)codeAttr;
 }
 
 uint32_t FlintClassLoader::getMagic(void) const {

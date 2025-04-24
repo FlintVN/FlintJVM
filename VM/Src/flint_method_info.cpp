@@ -32,29 +32,12 @@ static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) 
 }
 
 FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) :
+accessFlag((&name != &staticConstructorName) ? accessFlag : (FlintMethodAccessFlag)(accessFlag | METHOD_SYNCHRONIZED)),
 classLoader(classLoader),
 name((FlintConstUtf8 &)name),
 descriptor((FlintConstUtf8 &)descriptor),
-accessFlag((&name != &staticConstructorName) ? accessFlag : (FlintMethodAccessFlag)(accessFlag | METHOD_SYNCHRONIZED)),
-maxStack(0),
-code(0),
-maxLocals(0),
-exceptionLength(0),
-codeLength(0),
-exceptionTable(0) {
+code(0) {
 
-}
-
-void FlintMethodInfo::setCode(uint8_t *code, uint32_t codeLength, uint16_t maxStack, uint16_t maxLocals) {
-    this->code = code;
-    this->maxStack = maxStack;
-    this->maxLocals = maxLocals;
-    this->codeLength = codeLength;
-}
-
-void FlintMethodInfo::setException(FlintExceptionTable *exceptionTable, uint16_t exceptionLength) {
-    this->exceptionTable = exceptionTable;
-    this->exceptionLength = exceptionLength;
 }
 
 uint8_t *FlintMethodInfo::getCode(void) {
@@ -63,27 +46,31 @@ uint8_t *FlintMethodInfo::getCode(void) {
             code = (uint8_t *)findNativeMethod(*this);
         return (uint8_t *)code;
     }
-    return code;
+    FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)code;
+    return (uint8_t *)&((FlintExceptionTable *)codeAttr->data)[codeAttr->exceptionLength];
 }
 
 uint32_t FlintMethodInfo::getCodeLength(void) const {
-    return (accessFlag & METHOD_NATIVE) ? 0 : codeLength;
+    return (accessFlag & METHOD_NATIVE) ? 0 : ((FlintCodeAttribute *)code)->codeLength;
 }
 
 uint16_t FlintMethodInfo::getMaxLocals(void) const {
-    return (accessFlag & METHOD_NATIVE) ? 0 : maxLocals;
+    return (accessFlag & METHOD_NATIVE) ? 0 : ((FlintCodeAttribute *)code)->maxLocals;
 }
 
 uint16_t FlintMethodInfo::getMaxStack(void) const {
-    return (accessFlag & METHOD_NATIVE) ? 0 : maxStack;
+    return (accessFlag & METHOD_NATIVE) ? 0 : ((FlintCodeAttribute *)code)->maxStack;
 }
 
 uint16_t FlintMethodInfo::getExceptionLength(void) const {
-    return (accessFlag & METHOD_NATIVE) ? 0 : exceptionLength;
+    return (accessFlag & METHOD_NATIVE) ? 0 : ((FlintCodeAttribute *)code)->exceptionLength;
 }
 
 FlintExceptionTable *FlintMethodInfo::getException(uint16_t index) const {
-    return (accessFlag & METHOD_NATIVE) ? NULL : &exceptionTable[index];
+    if(accessFlag & METHOD_NATIVE)
+        return NULL;
+    FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)code;
+    return &((FlintExceptionTable *)codeAttr->data)[index];
 }
 
 bool FlintMethodInfo::isStaticCtor(void) {
@@ -94,7 +81,5 @@ FlintMethodInfo::~FlintMethodInfo(void) {
     if(!(accessFlag & (METHOD_NATIVE | METHOD_UNLOADED))) {
         if(code)
             Flint::free(code);
-        if(exceptionTable)
-            Flint::free(exceptionTable);
     }
 }

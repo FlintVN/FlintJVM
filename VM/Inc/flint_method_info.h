@@ -18,27 +18,34 @@ private:
     friend class FlintClassLoader;
 };
 
+class FlintCodeAttribute {
+private:
+    uint16_t maxStack;
+    uint16_t maxLocals;
+    uint32_t codeLength;
+    uint16_t exceptionLength;
+    uint8_t data[];
+
+    FlintCodeAttribute(const FlintCodeAttribute &) = delete;
+    void operator=(const FlintCodeAttribute &) = delete;
+
+    friend class FlintMethodInfo;
+    friend class FlintClassLoader;
+};
+
 class FlintMethodInfo {
 public:
+    FlintMethodAccessFlag accessFlag;
     class FlintClassLoader &classLoader;
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
-    FlintMethodAccessFlag accessFlag;
 private:
-    uint16_t maxStack;
     uint8_t *code;
-    uint16_t maxLocals;
-    uint16_t exceptionLength;
-    uint32_t codeLength;
-    FlintExceptionTable *exceptionTable;
 
     FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
 
     FlintMethodInfo(const FlintMethodInfo &) = delete;
     void operator=(const FlintMethodInfo &) = delete;
-
-    void setCode(uint8_t *code, uint32_t codeLength, uint16_t maxStack, uint16_t maxLocals);
-    void setException(FlintExceptionTable *exceptionTable, uint16_t exceptionLength);
 
     friend class FlintClassLoader;
 public:
