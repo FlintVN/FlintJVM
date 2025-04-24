@@ -23,7 +23,7 @@ public:
     class FlintClassLoader &classLoader;
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
-    const FlintMethodAccessFlag accessFlag;
+    FlintMethodAccessFlag accessFlag;
 private:
     uint16_t maxStack;
     uint8_t *code;

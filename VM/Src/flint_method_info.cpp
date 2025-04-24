@@ -35,7 +35,7 @@ FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAcces
 classLoader(classLoader),
 name((FlintConstUtf8 &)name),
 descriptor((FlintConstUtf8 &)descriptor),
-accessFlag((FlintMethodAccessFlag)(((&name != &staticConstructorName) ? (uint32_t)accessFlag : (accessFlag | METHOD_SYNCHRONIZED)) | METHOD_UNLOADED)),
+accessFlag((&name != &staticConstructorName) ? accessFlag : (FlintMethodAccessFlag)(accessFlag | METHOD_SYNCHRONIZED)),
 maxStack(0),
 code(0),
 maxLocals(0),
@@ -91,7 +91,7 @@ bool FlintMethodInfo::isStaticCtor(void) {
 }
 
 FlintMethodInfo::~FlintMethodInfo(void) {
-    if(!(accessFlag & METHOD_NATIVE)) {
+    if(!(accessFlag & (METHOD_NATIVE | METHOD_UNLOADED))) {
         if(code)
             Flint::free(code);
         if(exceptionTable)

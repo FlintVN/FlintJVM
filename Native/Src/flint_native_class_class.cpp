@@ -334,7 +334,7 @@ static void nativeGetDeclaredMethods0(FlintExecution &execution) {
     uint16_t methodCount = loader.getMethodsCount();
     uint16_t count = 0;
     for(uint16_t i = 0; i < methodCount; i++) {
-        FlintMethodInfo &methodInfo = loader.getMethodInfo(i);
+        FlintMethodInfo &methodInfo = loader.getMethodInfoWithUnload(i);
         if(methodInfo.name != constructorName && methodInfo.name != staticConstructorName)
             count++;
     }
@@ -343,7 +343,7 @@ static void nativeGetDeclaredMethods0(FlintExecution &execution) {
     uint32_t clazzIndex = 0, nameIndex = 0, returnTypeIndex = 0, parameterTypesIndex = 0, exceptionTypesIndex = 0, modifiersIndex = 0;
     FlintObjectArray &classArray0 = execution.flint.getClassArray0();
     for(uint16_t i = 0; i < methodCount; i++) {
-        FlintMethodInfo &methodInfo = loader.getMethodInfo(i);
+        FlintMethodInfo &methodInfo = loader.getMethodInfoWithUnload(i);
         if(methodInfo.name == constructorName || methodInfo.name == staticConstructorName)
             continue;
 
@@ -368,7 +368,7 @@ static void nativeGetDeclaredConstructors0(FlintExecution &execution) {
     uint16_t methodCount = loader.getMethodsCount();
     uint16_t count = 0;
     for(uint16_t i = 0; i < methodCount; i++) {
-        FlintMethodInfo &methodInfo = loader.getMethodInfo(i);
+        FlintMethodInfo &methodInfo = loader.getMethodInfoWithUnload(i);
         if(methodInfo.name == constructorName)
             count++;
     }
@@ -377,7 +377,7 @@ static void nativeGetDeclaredConstructors0(FlintExecution &execution) {
     uint32_t clazzIndex = 0, parameterTypesIndex = 0, exceptionTypesIndex = 0, modifiersIndex = 0;
     FlintObjectArray &classArray0 = execution.flint.getClassArray0();
     for(uint16_t i = 0; i < methodCount; i++) {
-        FlintMethodInfo &methodInfo = loader.getMethodInfo(i);
+        FlintMethodInfo &methodInfo = loader.getMethodInfoWithUnload(i);
         if(methodInfo.name != constructorName)
             continue;
 
