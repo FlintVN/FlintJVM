@@ -30,7 +30,7 @@ private:
     void operator=(const FlintClassLoader &) = delete;
 
     void readFile(class Flint &flint, void *file);
-    FlintAttribute *readAttributeCode(void *file);
+    void readAttributeCode(void *file, FlintMethodInfo &method);
 protected:
     FlintClassLoader(class Flint &flint, const char *fileName, uint16_t length);
 

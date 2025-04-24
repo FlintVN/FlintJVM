@@ -69,6 +69,26 @@ static void dumpAttribute(void *file) {
     ClassLoader_Seek(file, length);
 }
 
+static FlintAttributeType parseAttributeType(const FlintConstUtf8 &name) {
+    switch(name.length) {
+        case 4:
+            if(strncmp(name.text, "Code", name.length) == 0)
+                return ATTRIBUTE_CODE;
+            break;
+        case 13:
+            if(strncmp(name.text, "ConstantValue", name.length) == 0)
+                return ATTRIBUTE_CONSTANT_VALUE;
+            break;
+        case 16:
+            if(strncmp(name.text, "BootstrapMethods", name.length) == 0)
+                return ATTRIBUTE_BOOTSTRAP_METHODS;
+            break;
+        default:
+            break;
+    }
+    return ATTRIBUTE_UNKNOW;
+}
+
 FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) {
     staticCtorInfo = 0;
     poolCount = 0;
@@ -172,7 +192,7 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
             while(fieldsAttributesCount--) {
                 uint16_t nameIndex = ClassLoader_ReadUInt16(file);
                 uint32_t length = ClassLoader_ReadUInt32(file);
-                FlintAttributeType type = FlintAttribute::parseAttributeType(getConstUtf8(nameIndex));
+                FlintAttributeType type = parseAttributeType(getConstUtf8(nameIndex));
                 if(
                     type == ATTRIBUTE_CONSTANT_VALUE &&
                     (FlintFieldAccessFlag)(flag & (FIELD_STATIC | FIELD_FINAL)) == (FIELD_STATIC | FIELD_FINAL)
@@ -208,9 +228,9 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
             while(methodAttributesCount--) {
                 uint16_t nameIndex = ClassLoader_ReadUInt16(file);
                 uint32_t length = ClassLoader_ReadUInt32(file);
-                FlintAttributeType type = FlintAttribute::parseAttributeType(getConstUtf8(nameIndex));
+                FlintAttributeType type = parseAttributeType(getConstUtf8(nameIndex));
                 if(type == ATTRIBUTE_CODE)
-                    methods[i].setCode(readAttributeCode(file));
+                    readAttributeCode(file, methods[i]);
                 else
                     ClassLoader_Seek(file, length);
             }
@@ -223,20 +243,18 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
     */
 }
 
-FlintAttribute *FlintClassLoader::readAttributeCode(void *file) {
-    FlintCodeAttribute *attribute = (FlintCodeAttribute *)Flint::malloc(sizeof(FlintCodeAttribute));
+void FlintClassLoader::readAttributeCode(void *file, FlintMethodInfo &method) {
     uint16_t maxStack = ClassLoader_ReadUInt16(file);
     uint16_t maxLocals = ClassLoader_ReadUInt16(file);
     uint32_t codeLength = ClassLoader_ReadUInt32(file);
     uint8_t *code = (uint8_t *)Flint::malloc(codeLength + 1);
-    new (attribute)FlintCodeAttribute(maxStack, maxLocals);
     ClassLoader_Read(file, code, codeLength);
     code[codeLength] = OP_EXIT;
-    attribute->setCode(code, codeLength);
+    method.setCode(code, codeLength, maxStack, maxLocals);
+
     uint16_t exceptionTableLength = ClassLoader_ReadUInt16(file);
     if(exceptionTableLength) {
         FlintExceptionTable *exceptionTable = (FlintExceptionTable *)Flint::malloc(exceptionTableLength * sizeof(FlintExceptionTable));
-        attribute->setExceptionTable(exceptionTable, exceptionTableLength);
         for(uint16_t i = 0; i < exceptionTableLength; i++) {
             uint16_t startPc = ClassLoader_ReadUInt16(file);
             uint16_t endPc = ClassLoader_ReadUInt16(file);
@@ -244,11 +262,12 @@ FlintAttribute *FlintClassLoader::readAttributeCode(void *file) {
             uint16_t catchType = ClassLoader_ReadUInt16(file);
             new (&exceptionTable[i])FlintExceptionTable(startPc, endPc, handlerPc, catchType);
         }
+        method.setException(exceptionTable, exceptionTableLength);
     }
+
     uint16_t attrbutesCount = ClassLoader_ReadUInt16(file);
     while(attrbutesCount--)
         dumpAttribute(file);
-    return attribute;
 }
 
 uint32_t FlintClassLoader::getMagic(void) const {
@@ -652,9 +671,7 @@ uint16_t FlintClassLoader::getMethodsCount(void) const {
 }
 
 FlintMethodInfo &FlintClassLoader::getMethodInfo(uint8_t methodIndex) const {
-    if(methodIndex < methodsCount)
-        return methods[methodIndex];
-    throw "index for method info is invalid";
+    return methods[methodIndex];
 }
 
 FlintMethodInfo &FlintClassLoader::getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const {
@@ -663,12 +680,12 @@ FlintMethodInfo &FlintClassLoader::getMethodInfo(const FlintConstUtf8 &name, con
     for(uint16_t i = 0; i < methodsCount; i++) {
         if(nameHash == CONST_UTF8_HASH(methods[i].name) && descriptorHash == CONST_UTF8_HASH(methods[i].descriptor)) {
             if(&name == &methods[i].name && &descriptor == &methods[i].descriptor)
-                return methods[i];
+                return getMethodInfo(i);
             else if(
                 strncmp(name.text, methods[i].name.text, name.length) == 0 &&
                 strncmp(descriptor.text, methods[i].descriptor.text, descriptor.length) == 0
             ) {
-                return methods[i];
+                return getMethodInfo(i);
             }
         }
     }
@@ -690,7 +707,7 @@ FlintMethodInfo &FlintClassLoader::getMainMethodInfo(void) const {
 FlintMethodInfo &FlintClassLoader::getStaticCtor(void) const {
     for(uint16_t i = 0; i < methodsCount; i++) {
         if(&staticConstructorName == &methods[i].name)
-            return methods[i];
+            return getMethodInfo(i);
     }
     return *(FlintMethodInfo *)0;
 }

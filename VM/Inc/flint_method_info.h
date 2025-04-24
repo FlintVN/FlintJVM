@@ -3,23 +3,42 @@
 #define __FLINT_METHOD_INFO_H
 
 #include "flint_const_pool.h"
-#include "flint_attribute_info.h"
+
+class FlintExceptionTable {
+public:
+    const uint16_t startPc;
+    const uint16_t endPc;
+    const uint16_t handlerPc;
+    const uint16_t catchType;
+private:
+    FlintExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType);
+    FlintExceptionTable(const FlintExceptionTable &) = delete;
+    void operator=(const FlintExceptionTable &) = delete;
+
+    friend class FlintClassLoader;
+};
 
 class FlintMethodInfo {
 public:
-    const FlintMethodAccessFlag accessFlag;
     class FlintClassLoader &classLoader;
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
+    const FlintMethodAccessFlag accessFlag;
 private:
-    void *code;
+    uint16_t maxStack;
+    uint8_t *code;
+    uint16_t maxLocals;
+    uint16_t exceptionLength;
+    uint32_t codeLength;
+    FlintExceptionTable *exceptionTable;
 
     FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
 
     FlintMethodInfo(const FlintMethodInfo &) = delete;
     void operator=(const FlintMethodInfo &) = delete;
 
-    void setCode(FlintAttribute *attributeCode);
+    void setCode(uint8_t *code, uint32_t codeLength, uint16_t maxStack, uint16_t maxLocals);
+    void setException(FlintExceptionTable *exceptionTable, uint16_t exceptionLength);
 
     friend class FlintClassLoader;
 public:

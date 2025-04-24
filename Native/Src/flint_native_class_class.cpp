@@ -321,7 +321,7 @@ static void nativeGetDeclaredFields0(FlintExecution &execution) {
         fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
         fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(fieldInfo.name);
         fields.getFieldObject(typeFieldName, &typeIndex).object = &getClass(execution.flint, fieldInfo.descriptor.text, fieldInfo.descriptor.length);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)fieldInfo.accessFlag;
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)fieldInfo.accessFlag & 0x1FFF;
 
         array->getData()[i] = &field;
     }
@@ -355,7 +355,7 @@ static void nativeGetDeclaredMethods0(FlintExecution &execution) {
         fields.getFieldObject(returnTypeFieldName, &returnTypeIndex).object = &getReturnType(execution.flint, methodInfo);
         fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution.flint, methodInfo, classArray0);
         fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)methodInfo.accessFlag;
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)methodInfo.accessFlag & 0x1FFF;
 
         array->getData()[count++] = &method;
     }
@@ -387,7 +387,7 @@ static void nativeGetDeclaredConstructors0(FlintExecution &execution) {
         fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
         fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution.flint, methodInfo, classArray0);
         fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)methodInfo.accessFlag;
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)methodInfo.accessFlag & 0x1FFF;
 
         array->getData()[count++] = &constructor;
     }

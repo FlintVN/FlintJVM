@@ -4,7 +4,6 @@
 
 #include <stdint.h>
 #include "flint_method_info.h"
-#include "flint_attribute_info.h"
 
 #define	FLINT_FILE_ATTR_RDO         0x01
 #define	FLINT_FILE_ATTR_HID         0x02

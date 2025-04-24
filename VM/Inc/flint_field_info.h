@@ -3,7 +3,6 @@
 #define __FLINT_FIELD_INFO_H
 
 #include "flint_const_pool.h"
-#include "flint_attribute_info.h"
 
 class FlintFieldInfo {
 public:

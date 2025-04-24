@@ -5,7 +5,6 @@
 #include "flint_common.h"
 #include "flint_execution.h"
 #include "flint_const_pool.h"
-#include "flint_attribute_info.h"
 
 #define NATIVE_CLASS(_className, _methods) {                \
     .className = *(FlintConstUtf8 *)&_className,            \
