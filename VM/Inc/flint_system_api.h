@@ -39,7 +39,7 @@ namespace FlintAPI {
         bool isInHeapRegion(void *addr);
         void print(const char *text, uint32_t length, uint8_t coder);
         uint64_t getNanoTime(void);
-        FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo);
+        FlintNativeMethodPtr findNativeMethod(FlintMethodInfo *methodInfo);
     };
 
     namespace IO {

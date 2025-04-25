@@ -47,7 +47,7 @@ public:
     double stackPopDouble(void);
     FlintJavaObject *stackPopObject(void);
 private:
-    void initNewContext(FlintMethodInfo &methodInfo, uint16_t argc);
+    void initNewContext(FlintMethodInfo *methodInfo, uint16_t argc);
 
     void stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
@@ -57,7 +57,7 @@ private:
     bool lockObject(FlintJavaObject *obj);
     void unlockObject(FlintJavaObject *obj);
 
-    void invoke(FlintMethodInfo &methodInfo, uint8_t argc);
+    void invoke(FlintMethodInfo *methodInfo, uint8_t argc);
     void invokeStatic(FlintConstMethod &constMethod);
     void invokeSpecial(FlintConstMethod &constMethod);
     void invokeVirtual(FlintConstMethod &constMethod);
@@ -73,7 +73,7 @@ private:
     static void runTask(FlintExecution *execution);
     static void innerRunTask(FlintExecution *execution);
 public:
-    bool run(FlintMethodInfo &method);
+    bool run(FlintMethodInfo *method);
     bool hasTerminateRequest(void) const;
     FlintJavaThread &getOnwerThread(void);
 

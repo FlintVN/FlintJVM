@@ -88,13 +88,13 @@ public:
     FlintFieldInfo &getFieldInfo(FlintConstNameAndType &nameAndType) const;
 
     uint16_t getMethodsCount(void) const;
-    FlintMethodInfo &getMethodInfo(uint8_t methodIndex);
-    FlintMethodInfo &getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
-    FlintMethodInfo &getMethodInfo(FlintConstNameAndType &nameAndType);
-    FlintMethodInfo &getMethodInfoWithUnload(uint8_t methodIndex);
-    FlintMethodInfo &getMethodInfoWithUnload(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
-    FlintMethodInfo &getMainMethodInfo(void);
-    FlintMethodInfo &getStaticCtor(void);
+    FlintMethodInfo *getMethodInfo(uint8_t methodIndex);
+    FlintMethodInfo *getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
+    FlintMethodInfo *getMethodInfo(FlintConstNameAndType &nameAndType);
+    FlintMethodInfo *getMethodInfoWithUnload(uint8_t methodIndex);
+    FlintMethodInfo *getMethodInfoWithUnload(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
+    FlintMethodInfo *getMainMethodInfo(void);
+    FlintMethodInfo *getStaticCtor(void);
 
     bool hasStaticCtor(void);
 };

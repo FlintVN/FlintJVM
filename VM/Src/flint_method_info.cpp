@@ -10,10 +10,10 @@ startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 }
 
-static FlintNativeMethodPtr findNativeMethod(const FlintMethodInfo &methodInfo) {
-    FlintConstUtf8 &className = methodInfo.classLoader.getThisClass();
-    FlintConstUtf8 &methodName = methodInfo.getName();
-    FlintConstUtf8 &methodDesc = methodInfo.getDescriptor();
+static FlintNativeMethodPtr findNativeMethod(FlintMethodInfo *methodInfo) {
+    FlintConstUtf8 &className = methodInfo->classLoader.getThisClass();
+    FlintConstUtf8 &methodName = methodInfo->getName();
+    FlintConstUtf8 &methodDesc = methodInfo->getDescriptor();
     for(uint32_t i = 0; i < LENGTH(BASE_NATIVE_CLASS_LIST); i++) {
         if(BASE_NATIVE_CLASS_LIST[i]->className == className) {
             for(uint32_t k = 0; k < BASE_NATIVE_CLASS_LIST[i]->methodCount; k++) {
@@ -53,7 +53,7 @@ FlintConstUtf8 &FlintMethodInfo::getDescriptor(void) const {
 uint8_t *FlintMethodInfo::getCode(void) {
     if(accessFlag & METHOD_NATIVE) {
         if(code == 0)
-            code = (uint8_t *)findNativeMethod(*this);
+            code = (uint8_t *)findNativeMethod(this);
         return (uint8_t *)code;
     }
     FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)code;

@@ -143,9 +143,9 @@ bool FlintExecution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_
     return true;
 }
 
-void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) {
-    uint16_t maxLocals = methodInfo.getMaxLocals();
-    uint16_t maxStack = methodInfo.getMaxStack();
+void FlintExecution::initNewContext(FlintMethodInfo *methodInfo, uint16_t argc) {
+    uint16_t maxLocals = methodInfo->getMaxLocals();
+    uint16_t maxStack = methodInfo->getMaxStack();
     if((sp + maxLocals + maxStack + 4) >= stackLength)
         throw (FlintOutOfMemoryError *)"Stack overflow";
 
@@ -156,8 +156,8 @@ void FlintExecution::initNewContext(FlintMethodInfo &methodInfo, uint16_t argc) 
     stack[++sp] = startSp;
     startSp = sp;
 
-    method = &methodInfo;
-    code = methodInfo.getCode();
+    method = methodInfo;
+    code = methodInfo->getCode();
     pc = 0;
     locals = &stack[sp + 1];
     for(uint32_t i = argc; i < maxLocals; i++) {
@@ -173,7 +173,7 @@ void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
         SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
     sp -= argc;
     pc = lr = exitPc;
-    initNewContext(*method, argc);
+    initNewContext(method, argc);
 }
 
 void FlintExecution::stackRestoreContext(void) {
@@ -246,8 +246,8 @@ void FlintExecution::unlockObject(FlintJavaObject *obj) {
     Flint::unlock();
 }
 
-void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
-    if(!(methodInfo.accessFlag & METHOD_NATIVE)) {
+void FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
+    if(!(methodInfo->accessFlag & METHOD_NATIVE)) {
         peakSp = sp + 4;
         for(uint32_t i = 0; i < argc; i++)
             SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
@@ -256,8 +256,8 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
     }
     else {
         int32_t retSp = sp - argc;
-        ((FlintNativeMethodPtr)methodInfo.getCode())(*this);
-        FlintConstUtf8 &methodDesc = methodInfo.getDescriptor();
+        ((FlintNativeMethodPtr)methodInfo->getCode())(*this);
+        FlintConstUtf8 &methodDesc = methodInfo->getDescriptor();
         uint8_t retType = methodDesc.text[methodDesc.length - 1];
         if(retType != 'V') {
             if(retType == 'J' || retType == 'D') {
@@ -285,8 +285,8 @@ void FlintExecution::invoke(FlintMethodInfo &methodInfo, uint8_t argc) {
 void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
-    FlintMethodInfo &methodInfo = *constMethod.methodInfo;
-    FlintClassData &classData = (FlintClassData &)methodInfo.classLoader;
+    FlintMethodInfo *methodInfo = constMethod.methodInfo;
+    FlintClassData &classData = (FlintClassData &)methodInfo->classLoader;
     if(classData.hasStaticCtor()) {
         FlintInitStatus initStatus = classData.getInitStatus();
         if(initStatus == UNINITIALIZED)
@@ -294,7 +294,7 @@ void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
         else if((initStatus == INITIALIZING) && (classData.staticInitOwnId != (uint32_t)this))
             return FlintAPI::Thread::yield();
     }
-    if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) && !lockClass(classData)) {
+    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockClass(classData)) {
         FlintAPI::Thread::yield();
         return;
     }
@@ -306,8 +306,8 @@ void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getArgc() + 1;
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
-    FlintMethodInfo &methodInfo = *constMethod.methodInfo;
-    FlintClassData &classData = (FlintClassData &)methodInfo.classLoader;
+    FlintMethodInfo *methodInfo = constMethod.methodInfo;
+    FlintClassData &classData = (FlintClassData &)methodInfo->classLoader;
     if(classData.hasStaticCtor()) {
         FlintInitStatus initStatus = classData.getInitStatus();
         if(initStatus == UNINITIALIZED)
@@ -315,7 +315,7 @@ void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
         else if((initStatus == INITIALIZING) && (classData.staticInitOwnId != (uint32_t)this))
             return FlintAPI::Thread::yield();
     }
-    if((methodInfo.accessFlag & METHOD_SYNCHRONIZED) && !lockObject((FlintJavaObject *)stack[sp - argc - 1])) {
+    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject((FlintJavaObject *)stack[sp - argc - 1])) {
         FlintAPI::Thread::yield();
         return;
     }
@@ -344,7 +344,7 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     }
     argc++;
     lr = pc + 3;
-    invoke(*methodInfo, argc);
+    invoke(methodInfo, argc);
 }
 
 void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc) {
@@ -366,7 +366,7 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
         return;
     }
     lr = pc + 5;
-    invoke(*methodInfo, argc);
+    invoke(methodInfo, argc);
 }
 
 void FlintExecution::invokeStaticCtor(FlintClassData &classData) {
@@ -376,7 +376,7 @@ void FlintExecution::invokeStaticCtor(FlintClassData &classData) {
     classData.staticInitOwnId = (uint32_t)this;
     flint.initStaticField(classData);
     Flint::unlock();
-    FlintMethodInfo &ctorMethod = classData.getStaticCtor();
+    FlintMethodInfo *ctorMethod = classData.getStaticCtor();
     lr = pc;
     invoke(ctorMethod, 0);
 }
@@ -2276,8 +2276,8 @@ void FlintExecution::runTask(FlintExecution *execution) {
     innerRunTask(execution);
 }
 
-bool FlintExecution::run(FlintMethodInfo &method) {
-    this->method = &method;
+bool FlintExecution::run(FlintMethodInfo *method) {
+    this->method = method;
     if(!opcodes)
         return (FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this) != 0);
     return false;

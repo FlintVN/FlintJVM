@@ -927,7 +927,7 @@ bool FlintDebugger::addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, 
     try {
         if(breakPointCount < LENGTH(breakPoints)) {
             FlintClassLoader &loader = flint.load(className);
-            FlintMethodInfo *method = &loader.getMethodInfoWithUnload(methodName, descriptor);
+            FlintMethodInfo *method = loader.getMethodInfoWithUnload(methodName, descriptor);
             if(method) {
                 for(uint8_t i = 0; i < breakPointCount; i++) {
                     if(method == breakPoints[i].method && pc == breakPoints[i].pc)
@@ -949,7 +949,7 @@ bool FlintDebugger::removeBreakPoint(uint32_t pc, const FlintConstUtf8 &classNam
     try {
         if(breakPointCount) {
             FlintClassLoader &loader = flint.load(className);
-            FlintMethodInfo *method = &loader.getMethodInfoWithUnload(methodName, descriptor);
+            FlintMethodInfo *method = loader.getMethodInfoWithUnload(methodName, descriptor);
             if(method) {
                 for(uint8_t i = 0; i < breakPointCount; i++) {
                     if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
