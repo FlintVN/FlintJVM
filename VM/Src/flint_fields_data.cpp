@@ -31,9 +31,9 @@ void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
     uint16_t fieldObjIndex = 0;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
-        const FlintFieldInfo &fieldInfo = classLoader.getFieldInfo(index);
-        if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            switch(fieldInfo.getDescriptor().text[0]) {
+        FlintFieldInfo *fieldInfo = classLoader.getFieldInfo(index);
+        if((fieldInfo->accessFlag & FIELD_STATIC) == FIELD_STATIC) {
+            switch(fieldInfo->getDescriptor().text[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
                     (*(uint32_t *)&fields64Count)++;
@@ -54,19 +54,19 @@ void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
     fieldsObject = (fieldsObjCount) ? (FlintFieldObject *)Flint::malloc(fieldsObjCount * sizeof(FlintFieldObject)) : 0;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
-        const FlintFieldInfo &fieldInfo = classLoader.getFieldInfo(index);
-        if((fieldInfo.accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            switch(fieldInfo.getDescriptor().text[0]) {
+        FlintFieldInfo *fieldInfo = classLoader.getFieldInfo(index);
+        if((fieldInfo->accessFlag & FIELD_STATIC) == FIELD_STATIC) {
+            switch(fieldInfo->getDescriptor().text[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
-                    new (&fieldsData64[field64Index++])FlintFieldData64(fieldInfo);
+                    new (&fieldsData64[field64Index++])FlintFieldData64(*fieldInfo);
                     break;
                 case 'L':   /* An instance of class ClassName */
                 case '[':   /* Array */
-                    new (&fieldsObject[fieldObjIndex++])FlintFieldObject(fieldInfo);
+                    new (&fieldsObject[fieldObjIndex++])FlintFieldObject(*fieldInfo);
                     break;
                 default:
-                    new (&fieldsData32[field32Index++])FlintFieldData32(fieldInfo);
+                    new (&fieldsData32[field32Index++])FlintFieldData32(*fieldInfo);
                     break;
             }
         }
@@ -79,9 +79,9 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
     while(loader) {
         uint16_t fieldsCount = loader->getFieldsCount();
         for(uint16_t index = 0; index < fieldsCount; index++) {
-            const FlintFieldInfo &fieldInfo = loader->getFieldInfo(index);
-            if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                switch(fieldInfo.getDescriptor().text[0]) {
+            FlintFieldInfo *fieldInfo = loader->getFieldInfo(index);
+            if((fieldInfo->accessFlag & FIELD_STATIC) != FIELD_STATIC) {
+                switch(fieldInfo->getDescriptor().text[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
                         (*(uint32_t *)&fields64Count)++;
@@ -112,19 +112,19 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
     while(loader) {
         uint16_t fieldsCount = loader->getFieldsCount();
         for(int16_t index = fieldsCount - 1; index >= 0; index--) {
-            const FlintFieldInfo &fieldInfo = loader->getFieldInfo(index);
-            if((fieldInfo.accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                switch(fieldInfo.getDescriptor().text[0]) {
+            FlintFieldInfo *fieldInfo = loader->getFieldInfo(index);
+            if((fieldInfo->accessFlag & FIELD_STATIC) != FIELD_STATIC) {
+                switch(fieldInfo->getDescriptor().text[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
-                        new (&fieldsData64[--field64Index])FlintFieldData64(fieldInfo);
+                        new (&fieldsData64[--field64Index])FlintFieldData64(*fieldInfo);
                         break;
                     case 'L':   /* An instance of class ClassName */
                     case '[':   /* Array */
-                        new (&fieldsObject[--fieldObjIndex])FlintFieldObject(fieldInfo);
+                        new (&fieldsObject[--fieldObjIndex])FlintFieldObject(*fieldInfo);
                         break;
                     default:
-                        new (&fieldsData32[--field32Index])FlintFieldData32(fieldInfo);
+                        new (&fieldsData32[--field32Index])FlintFieldData32(*fieldInfo);
                         break;
                 }
             }

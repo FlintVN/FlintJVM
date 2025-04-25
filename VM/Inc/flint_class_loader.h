@@ -83,9 +83,9 @@ public:
     FlintConstUtf8 &getInterface(uint8_t interfaceIndex) const;
 
     uint16_t getFieldsCount(void) const;
-    FlintFieldInfo &getFieldInfo(uint8_t fieldIndex) const;
-    FlintFieldInfo &getFieldInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const;
-    FlintFieldInfo &getFieldInfo(FlintConstNameAndType &nameAndType) const;
+    FlintFieldInfo *getFieldInfo(uint8_t fieldIndex) const;
+    FlintFieldInfo *getFieldInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const;
+    FlintFieldInfo *getFieldInfo(FlintConstNameAndType &nameAndType) const;
 
     uint16_t getMethodsCount(void) const;
     FlintMethodInfo *getMethodInfo(uint8_t methodIndex);

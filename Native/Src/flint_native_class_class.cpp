@@ -314,15 +314,15 @@ static void nativeGetDeclaredFields0(FlintExecution &execution) {
     FlintObjectArray *array = (FlintObjectArray *)&execution.flint.newObjectArray(fieldClassName, fieldCount);
     uint32_t clazzIndex = 0, nameIndex = 0, typeIndex = 0, modifiersIndex = 0;
     for(uint16_t i = 0; i < fieldCount; i++) {
-        FlintFieldInfo &fieldInfo = loader.getFieldInfo(i);
+        FlintFieldInfo *fieldInfo = loader.getFieldInfo(i);
 
         FlintJavaObject &field = execution.flint.newObject(fieldClassName);
         FlintFieldsData &fields = field.getFields();
 
         fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
-        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(fieldInfo.getName());
-        fields.getFieldObject(typeFieldName, &typeIndex).object = &getClass(execution.flint, fieldInfo.getDescriptor().text, fieldInfo.getDescriptor().length);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)fieldInfo.accessFlag & 0x1FFF;
+        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(fieldInfo->getName());
+        fields.getFieldObject(typeFieldName, &typeIndex).object = &getClass(execution.flint, fieldInfo->getDescriptor().text, fieldInfo->getDescriptor().length);
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)fieldInfo->accessFlag & 0x1FFF;
 
         array->getData()[i] = &field;
     }

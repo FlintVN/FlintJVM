@@ -654,13 +654,11 @@ uint16_t FlintClassLoader::getFieldsCount(void) const {
     return fieldsCount;
 }
 
-FlintFieldInfo &FlintClassLoader::getFieldInfo(uint8_t fieldIndex) const {
-    if(fieldIndex < fieldsCount)
-        return fields[fieldIndex];
-    throw "index for field info is invalid";
+FlintFieldInfo *FlintClassLoader::getFieldInfo(uint8_t fieldIndex) const {
+    return &fields[fieldIndex];
 }
 
-FlintFieldInfo &FlintClassLoader::getFieldInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const {
+FlintFieldInfo *FlintClassLoader::getFieldInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const {
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < fieldsCount; i++) {
@@ -668,19 +666,19 @@ FlintFieldInfo &FlintClassLoader::getFieldInfo(const FlintConstUtf8 &name, const
         FlintConstUtf8 &fieldDesc = fields[i].getDescriptor();
         if(nameHash == CONST_UTF8_HASH(fieldName) && descriptorHash == CONST_UTF8_HASH(fieldDesc)) {
             if(&name == &fields[i].getName() && &descriptor == &fieldDesc)
-                return fields[i];
+                return &fields[i];
             else if(
                 strncmp(name.text, fieldName.text, name.length) == 0 &&
                 strncmp(descriptor.text, fieldDesc.text, descriptor.length) == 0
             ) {
-                return fields[i];
+                return &fields[i];
             }
         }
     }
-    return *(FlintFieldInfo *)0;
+    return NULL;
 }
 
-FlintFieldInfo &FlintClassLoader::getFieldInfo(FlintConstNameAndType &nameAndType) const {
+FlintFieldInfo *FlintClassLoader::getFieldInfo(FlintConstNameAndType &nameAndType) const {
     return getFieldInfo(nameAndType.name, nameAndType.descriptor);
 }
 
