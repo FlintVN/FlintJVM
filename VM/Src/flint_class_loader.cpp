@@ -224,10 +224,11 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
             uint16_t methodNameIndex = ClassLoader_ReadUInt16(file);
             uint16_t methodDescriptorIndex = ClassLoader_ReadUInt16(file);
             uint16_t methodAttributesCount = ClassLoader_ReadUInt16(file);
-            if(!(flag & METHOD_NATIVE))
+            if(!(flag & METHOD_NATIVE)) {
                 flag = (FlintMethodAccessFlag)(flag | METHOD_UNLOADED);
-            else if(&getConstUtf8(methodNameIndex) == &staticConstructorName)
-                flag = (FlintMethodAccessFlag)(flag | METHOD_SYNCHRONIZED);
+                if(&getConstUtf8(methodNameIndex) == &staticConstructorName)
+                    flag = (FlintMethodAccessFlag)(flag | METHOD_SYNCHRONIZED);
+            }
             new (&methods[i])FlintMethodInfo(*this, flag, methodNameIndex, methodDescriptorIndex);
             while(methodAttributesCount--) {
                 uint16_t nameIndex = ClassLoader_ReadUInt16(file);
