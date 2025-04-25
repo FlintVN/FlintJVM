@@ -113,6 +113,16 @@ typedef enum : uint8_t {
     ATTRIBUTE_UNKNOW = 0xFF
 } FlintAttributeType;
 
+typedef enum : uint8_t {
+    ERR_OK = 0,
+    ERR_THROW,
+    ERR_OUT_OF_MEMORY,
+    ERR_CLASS_LOAD_FAIL,
+    ERR_CLASS_NOT_FOUND,
+    ERR_FIELD_NOT_FOUND,
+    ERR_METHOD_NOT_FOUND,
+} FlintError;
+
 typedef void (*FlintNativeMethodPtr)(class FlintExecution &execution);
 
 #endif /* __FLINT_TYPE_H */
