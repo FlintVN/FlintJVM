@@ -47,9 +47,9 @@ public:
     double stackPopDouble(void);
     FlintJavaObject *stackPopObject(void);
 private:
-    void initNewContext(FlintMethodInfo *methodInfo, uint16_t argc);
+    FlintError initNewContext(FlintMethodInfo *methodInfo, uint16_t argc);
 
-    void stackInitExitPoint(uint32_t exitPc);
+    FlintError stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
 
     bool lockClass(FlintClassData &cls);
@@ -57,14 +57,14 @@ private:
     bool lockObject(FlintJavaObject *obj);
     void unlockObject(FlintJavaObject *obj);
 
-    void invoke(FlintMethodInfo *methodInfo, uint8_t argc);
-    void invokeStatic(FlintConstMethod &constMethod);
-    void invokeSpecial(FlintConstMethod &constMethod);
-    void invokeVirtual(FlintConstMethod &constMethod);
-    void invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc);
-    void invokeStaticCtor(FlintClassData &classData);
+    FlintError invoke(FlintMethodInfo *methodInfo, uint8_t argc);
+    FlintError invokeStatic(FlintConstMethod &constMethod);
+    FlintError invokeSpecial(FlintConstMethod &constMethod);
+    FlintError invokeVirtual(FlintConstMethod &constMethod);
+    FlintError invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc);
+    FlintError invokeStaticCtor(FlintClassData &classData);
 
-    void run(void);
+    FlintError run(void);
     void terminateRequest(void);
     bool getStackTrace(uint32_t index, FlintStackFrame *stackTrace, bool *isEndStack) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const;

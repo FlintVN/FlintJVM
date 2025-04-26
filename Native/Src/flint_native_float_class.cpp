@@ -4,14 +4,16 @@
 #include "flint_const_name_base.h"
 #include "flint_native_float_class.h"
 
-static void nativeFloatToRawIntBits(FlintExecution &execution) {
+static FlintError nativeFloatToRawIntBits(FlintExecution &execution) {
     float value = execution.stackPopFloat();
     execution.stackPushInt32(*(int32_t *)&value);
+    return ERR_OK;
 }
 
-static void nativeIntBitsToFloat(FlintExecution &execution) {
+static FlintError nativeIntBitsToFloat(FlintExecution &execution) {
     int32_t bits = execution.stackPopInt32();
     execution.stackPushFloat(*(float *)&bits);
+    return ERR_OK;
 }
 
 static const FlintNativeMethod methods[] = {

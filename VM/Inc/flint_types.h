@@ -117,12 +117,14 @@ typedef enum : uint8_t {
     ERR_OK = 0,
     ERR_THROW,
     ERR_OUT_OF_MEMORY,
+    ERR_STACK_OVERFLOW,
     ERR_CLASS_LOAD_FAIL,
     ERR_CLASS_NOT_FOUND,
     ERR_FIELD_NOT_FOUND,
     ERR_METHOD_NOT_FOUND,
+    ERR_VM_ERROR,
 } FlintError;
 
-typedef void (*FlintNativeMethodPtr)(class FlintExecution &execution);
+typedef FlintError (*FlintNativeMethodPtr)(class FlintExecution &execution);
 
 #endif /* __FLINT_TYPE_H */

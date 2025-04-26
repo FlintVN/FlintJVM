@@ -5,13 +5,14 @@
 #include "flint_system_api.h"
 #include "flint_const_name_base.h"
 #include "flint_native_thread_class.h"
+#include "flint_throw_support.h"
 
 static const uint32_t runnableRunFieldName[] = {
     (uint32_t)"\x03\x00\x89\x58""run",              /* field name */
     (uint32_t)"\x03\x00\x91\x99""()V"               /* field type */
 };
 
-static void nativeStart0(FlintExecution &execution) {
+static FlintError nativeStart0(FlintExecution &execution) {
     Flint &flint = execution.flint;
     FlintJavaThread *threadObj = (FlintJavaThread *)execution.stackPopObject();
     FlintJavaObject *task = threadObj->getTask();
@@ -20,33 +21,37 @@ static void nativeStart0(FlintExecution &execution) {
         task = threadObj;
     threadExecution.stackPushObject(task);
     threadExecution.run(flint.load(task->type).getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName));
+    return ERR_OK;
 }
 
-static void nativeYield0(FlintExecution &execution) {
+static FlintError nativeYield0(FlintExecution &execution) {
     FlintAPI::Thread::yield();
+    return ERR_OK;
 }
 
-static void nativeInterrupt0(FlintExecution &execution) {
+static FlintError nativeInterrupt0(FlintExecution &execution) {
     FlintJavaThread *threadObj = (FlintJavaThread *)execution.stackPopObject();
     // TODO
-    throw "interrupt0 is not implemented in VM";
+    return throwUnsupportedOperationException(execution, "interrupt0 is not implemented in VM");
 }
 
-static void nativeCurrentThread(FlintExecution &execution) {
+static FlintError nativeCurrentThread(FlintExecution &execution) {
     execution.stackPushObject(&execution.getOnwerThread());
+    return ERR_OK;
 }
 
-static void nativeSleep0(FlintExecution &execution) {
+static FlintError nativeSleep0(FlintExecution &execution) {
     uint64_t startTime = FlintAPI::System::getNanoTime() / 1000000;
     int64_t millis = execution.stackPopInt64();
     while((int64_t)((FlintAPI::System::getNanoTime() / 1000000) - startTime) < (millis - 100)) {
         FlintAPI::Thread::sleep(100);
         if(execution.hasTerminateRequest())
-            throw &execution.flint.newInterruptedException();
+            return throwInterruptedException(execution);
     }
     int64_t remaining = millis - ((FlintAPI::System::getNanoTime() / 1000000) - startTime);
     if(remaining > 0)
         FlintAPI::Thread::sleep((uint32_t)remaining);
+    return ERR_OK;
 }
 
 static const FlintNativeMethod methods[] = {
