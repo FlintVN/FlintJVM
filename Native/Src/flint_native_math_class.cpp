@@ -3,68 +3,83 @@
 #include "flint_const_name_base.h"
 #include "flint_native_math_class.h"
 
-static void nativeSin(FlintExecution &execution) {
+static FlintError nativeSin(FlintExecution &execution) {
     execution.stackPushDouble(sin(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeCos(FlintExecution &execution) {
+static FlintError nativeCos(FlintExecution &execution) {
     execution.stackPushDouble(cos(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeTan(FlintExecution &execution) {
+static FlintError nativeTan(FlintExecution &execution) {
     execution.stackPushDouble(tan(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeAsin(FlintExecution &execution) {
+static FlintError nativeAsin(FlintExecution &execution) {
     execution.stackPushDouble(asin(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeAcos(FlintExecution &execution) {
+static FlintError nativeAcos(FlintExecution &execution) {
     execution.stackPushDouble(acos(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeAtan(FlintExecution &execution) {
+static FlintError nativeAtan(FlintExecution &execution) {
     execution.stackPushDouble(atan(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeLog(FlintExecution &execution) {
+static FlintError nativeLog(FlintExecution &execution) {
     execution.stackPushDouble(log(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeLog10(FlintExecution &execution) {
+static FlintError nativeLog10(FlintExecution &execution) {
     execution.stackPushDouble(log10(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeSqrt(FlintExecution &execution) {
+static FlintError nativeSqrt(FlintExecution &execution) {
     execution.stackPushDouble(sqrt(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeCbrt(FlintExecution &execution) {
+static FlintError nativeCbrt(FlintExecution &execution) {
     execution.stackPushDouble(cbrt(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeAtan2(FlintExecution &execution) {
+static FlintError nativeAtan2(FlintExecution &execution) {
     double x = execution.stackPopDouble();
     double y = execution.stackPopDouble();
     execution.stackPushDouble(atan2(y, x));
+    return ERR_OK;
 }
 
-static void nativePow(FlintExecution &execution) {
+static FlintError nativePow(FlintExecution &execution) {
     double b = execution.stackPopDouble();
     double a = execution.stackPopDouble();
     execution.stackPushDouble(pow(a, b));
+    return ERR_OK;
 }
 
-static void nativeSinh(FlintExecution &execution) {
+static FlintError nativeSinh(FlintExecution &execution) {
     execution.stackPushDouble(sinh(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeCosh(FlintExecution &execution) {
+static FlintError nativeCosh(FlintExecution &execution) {
     execution.stackPushDouble(cosh(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
-static void nativeTanh(FlintExecution &execution) {
+static FlintError nativeTanh(FlintExecution &execution) {
     execution.stackPushDouble(tanh(execution.stackPopDouble()));
+    return ERR_OK;
 }
 
 static const FlintNativeMethod methods[] = {

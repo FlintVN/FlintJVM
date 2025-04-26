@@ -4,14 +4,16 @@
 #include "flint_const_name_base.h"
 #include "flint_native_double_class.h"
 
-static void nativeDoubleToRawLongBits(FlintExecution &execution) {
+static FlintError nativeDoubleToRawLongBits(FlintExecution &execution) {
     double value = execution.stackPopDouble();
     execution.stackPushInt64(*(int64_t *)&value);
+    return ERR_OK;
 }
 
-static void nativeLongBitsToDouble(FlintExecution &execution) {
+static FlintError nativeLongBitsToDouble(FlintExecution &execution) {
     int64_t bits = execution.stackPopInt64();
     execution.stackPushDouble(*(double *)&bits);
+    return ERR_OK;
 }
 
 static const FlintNativeMethod methods[] = {

@@ -13,7 +13,6 @@
 #include "flint_fields_data.h"
 #include "flint_out_of_memory.h"
 #include "flint_load_file_error.h"
-#include "flint_find_native_error.h"
 #include "flint_const_utf8_binary_tree.h"
 #include "flint_string_binary_tree.h"
 #include "flint_class_binary_tree.h"
@@ -71,7 +70,13 @@ public:
     FlintDebugger *getDebugger(void) const;
     void setDebugger(FlintDebugger *dbg);
 
+    void print(const char *text);
+    void print(const FlintConstUtf8 &utf8);
+    void print(FlintJavaString *str);
     void print(const char *text, uint32_t length, uint8_t coder);
+    void println(const char *text);
+    void println(const FlintConstUtf8 &utf8);
+    void println(FlintJavaString *str);
 
     FlintExecution &newExecution(FlintJavaThread *onwerThread = 0);
     FlintExecution &newExecution(FlintJavaThread *onwerThread, uint32_t stackSize);

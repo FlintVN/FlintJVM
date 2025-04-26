@@ -6,6 +6,7 @@
 #include "flint_execution.h"
 #include "flint_const_name_base.h"
 #include "flint_system_api.h"
+#include "flint_throw_support.h"
 
 #if __has_include("flint_conf.h")
 #include "flint_conf.h"
@@ -143,11 +144,11 @@ bool FlintExecution::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_
     return true;
 }
 
-void FlintExecution::initNewContext(FlintMethodInfo *methodInfo, uint16_t argc) {
+FlintError FlintExecution::initNewContext(FlintMethodInfo *methodInfo, uint16_t argc) {
     uint16_t maxLocals = methodInfo->getMaxLocals();
     uint16_t maxStack = methodInfo->getMaxStack();
     if((sp + maxLocals + maxStack + 4) >= stackLength)
-        throw (FlintOutOfMemoryError *)"Stack overflow";
+        return ERR_STACK_OVERFLOW;
 
     /* Save current context */
     stack[++sp] = (int32_t)method;
@@ -165,15 +166,16 @@ void FlintExecution::initNewContext(FlintMethodInfo *methodInfo, uint16_t argc) 
         stack[index] = 0;
     }
     sp += maxLocals;
+    return ERR_OK;
 }
 
-void FlintExecution::stackInitExitPoint(uint32_t exitPc) {
+FlintError FlintExecution::stackInitExitPoint(uint32_t exitPc) {
     int32_t argc = sp + 1;
     for(uint32_t i = 0; i < argc; i++)
         SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
     sp -= argc;
     pc = lr = exitPc;
-    initNewContext(method, argc);
+    return initNewContext(method, argc);
 }
 
 void FlintExecution::stackRestoreContext(void) {
@@ -246,17 +248,28 @@ void FlintExecution::unlockObject(FlintJavaObject *obj) {
     Flint::unlock();
 }
 
-void FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
+FlintError FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
     if(!(methodInfo->accessFlag & METHOD_NATIVE)) {
         peakSp = sp + 4;
         for(uint32_t i = 0; i < argc; i++)
             SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
         sp -= argc;
-        initNewContext(methodInfo, argc);
+        return initNewContext(methodInfo, argc);
     }
     else {
         int32_t retSp = sp - argc;
-        ((FlintNativeMethodPtr)methodInfo->getCode())(*this);
+        FlintError err = ((FlintNativeMethodPtr)methodInfo->getCode())(*this);
+        if(err != ERR_OK) {
+            if(err == ERR_THROW) {
+                FlintJavaObject *excp = stackPopObject();
+                sp = retSp;
+                stackPushObject(excp);
+            }
+            else
+                sp = retSp;
+            pc = lr;
+            return err;
+        }
         FlintConstUtf8 &methodDesc = methodInfo->getDescriptor();
         uint8_t retType = methodDesc.text[methodDesc.length - 1];
         if(retType != 'V') {
@@ -279,10 +292,11 @@ void FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
         else
             sp = retSp;
         pc = lr;
+        return ERR_OK;
     }
 }
 
-void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
+FlintError FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
     FlintMethodInfo *methodInfo = constMethod.methodInfo;
@@ -291,18 +305,20 @@ void FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
         FlintInitStatus initStatus = classData.getInitStatus();
         if(initStatus == UNINITIALIZED)
             return invokeStaticCtor(classData);
-        else if((initStatus == INITIALIZING) && (classData.staticInitOwnId != (uint32_t)this))
-            return FlintAPI::Thread::yield();
+        else if((initStatus == INITIALIZING) && (classData.staticInitOwnId != (uint32_t)this)) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
     }
     if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockClass(classData)) {
         FlintAPI::Thread::yield();
-        return;
+        return ERR_OK;
     }
     lr = pc + 3;
-    invoke(methodInfo, constMethod.getArgc());
+    return invoke(methodInfo, constMethod.getArgc());
 }
 
-void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
+FlintError FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getArgc() + 1;
     if(constMethod.methodInfo == 0)
         constMethod.methodInfo = &flint.findMethod(constMethod);
@@ -312,23 +328,27 @@ void FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
         FlintInitStatus initStatus = classData.getInitStatus();
         if(initStatus == UNINITIALIZED)
             return invokeStaticCtor(classData);
-        else if((initStatus == INITIALIZING) && (classData.staticInitOwnId != (uint32_t)this))
-            return FlintAPI::Thread::yield();
+        else if((initStatus == INITIALIZING) && (classData.staticInitOwnId != (uint32_t)this)) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
     }
     if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject((FlintJavaObject *)stack[sp - argc - 1])) {
         FlintAPI::Thread::yield();
-        return;
+        return ERR_OK;
     }
     lr = pc + 3;
-    invoke(methodInfo, argc);
+    return invoke(methodInfo, argc);
 }
 
-void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
+FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getArgc();
     FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", constMethod.className.text, ".", constMethod.nameAndType.name.text, " by null object"};
-        throw &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
+        FlintJavaThrowable *excp = &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
+        stackPushObject(excp);
+        return ERR_THROW;
     }
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
@@ -340,18 +360,20 @@ void FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     }
     if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
         FlintAPI::Thread::yield();
-        return;
+        return ERR_OK;
     }
     argc++;
     lr = pc + 3;
-    invoke(methodInfo, argc);
+    return invoke(methodInfo, argc);
 }
 
-void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc) {
+FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc + 1];
     if(obj == 0) {
         const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
-        throw &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
+        FlintJavaThrowable *excp = &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
+        stackPushObject(excp);
+        return ERR_THROW;
     }
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
@@ -363,25 +385,27 @@ void FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod,
     }
     if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
         FlintAPI::Thread::yield();
-        return;
+        return ERR_OK;
     }
     lr = pc + 5;
-    invoke(methodInfo, argc);
+    return invoke(methodInfo, argc);
 }
 
-void FlintExecution::invokeStaticCtor(FlintClassData &classData) {
+FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
     Flint::lock();
-    if(classData.getInitStatus() != UNINITIALIZED)
-        return Flint::unlock();
+    if(classData.getInitStatus() != UNINITIALIZED) {
+        Flint::unlock();
+        return ERR_OK;
+    }
     classData.staticInitOwnId = (uint32_t)this;
     flint.initStaticField(classData);
     Flint::unlock();
     FlintMethodInfo *ctorMethod = classData.getStaticCtor();
     lr = pc;
-    invoke(ctorMethod, 0);
+    return invoke(ctorMethod, 0);
 }
 
-void FlintExecution::run(void) {
+FlintError FlintExecution::run(void) {
     static const void *opcodeLabels[256] = {
         &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
         &&op_lconst_0, &&op_lconst_1, &&op_fconst_0, &&op_fconst_1, &&op_fconst_2, &&op_dconst_0, &&op_dconst_1, &&op_bipush, &&op_sipush,
@@ -473,12 +497,15 @@ void FlintExecution::run(void) {
     FlintDebugger *dbg = flint.getDebugger();
     opcodes = dbg ? opcodeLabelsDebug : opcodeLabels;
 
-    FlintLoadFileError *fileNotFound = 0;
-
     stackInitExitPoint(method->getCodeLength());
 
     if(method->classLoader.hasStaticCtor()) {
-        invokeStaticCtor((FlintClassData &)method->classLoader);
+        FlintError err = invokeStaticCtor((FlintClassData &)method->classLoader);
+        if(err != ERR_OK) {
+            if(err == ERR_THROW)
+                goto exception_handler;
+            return err;
+        }
         goto *opcodes[code[pc]];
     }
 
@@ -578,7 +605,7 @@ void FlintExecution::run(void) {
                 // TODO
                 goto *opcodes[code[pc]];
             default:
-                throw "unkown the const pool tag";
+                return ERR_VM_ERROR; // "unkown the const pool tag"
         }
     }
     op_ldc_w: {
@@ -605,7 +632,7 @@ void FlintExecution::run(void) {
                 // TODO
                 goto *opcodes[code[pc]];
             default:
-                throw "unkown the const pool tag";
+                return ERR_VM_ERROR; // "unkown the const pool tag"
         }
     }
     op_ldc2_w: {
@@ -620,7 +647,7 @@ void FlintExecution::run(void) {
                 stackPushDouble(method->classLoader.getConstDouble(constPool));
                 goto *opcodes[code[pc]];
             default:
-                throw "unkown the const pool tag";
+            return ERR_VM_ERROR; // "unkown the const pool tag"
         }
     }
     op_iload:
@@ -706,14 +733,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         stackPushInt32(((int32_t *)obj->data)[index]);
@@ -733,14 +754,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         stackPushInt64(((int64_t *)obj->data)[index]);
@@ -759,14 +774,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         stackPushObject(((FlintJavaObject **)obj->data)[index]);
@@ -785,14 +794,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         stackPushInt32(((int8_t *)obj->data)[index]);
@@ -812,14 +815,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         stackPushInt32(((int16_t *)obj->data)[index]);
@@ -929,14 +926,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         ((int32_t *)obj->data)[index] = value;
@@ -957,14 +948,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         ((int64_t *)obj->data)[index] = value;
@@ -984,14 +969,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         ((int8_t *)obj->data)[index] = value;
@@ -1012,14 +991,8 @@ void FlintExecution::run(void) {
             sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
             const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         ((int16_t *)obj->data)[index] = value;
@@ -1583,14 +1556,7 @@ void FlintExecution::run(void) {
     }
     op_getstatic: {
         FlintConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        FlintClassData *classData;
-        try {
-            classData = (FlintClassData *)&flint.load(constField.className);
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
+        FlintClassData *classData = (FlintClassData *)&flint.load(constField.className);
         FlintInitStatus initStatus = classData->getInitStatus();
         if(initStatus == INITIALIZED || (initStatus == INITIALIZING && classData->staticInitOwnId == (uint32_t)this)) {
             FlintFieldsData *fields = classData->staticFieldsData;
@@ -1612,20 +1578,19 @@ void FlintExecution::run(void) {
                 }
             }
         }
-        else if(initStatus == UNINITIALIZED)
-            invokeStaticCtor(*classData);
+        else if(initStatus == UNINITIALIZED) {
+            FlintError err = invokeStaticCtor(*classData);
+            if(err != ERR_OK) {
+                if(err == ERR_THROW)
+                    goto exception_handler;
+                return err;
+            }
+        }
         goto *opcodes[code[pc]];
     }
     op_putstatic: {
         FlintConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        FlintClassData *classData;
-        try {
-            classData = (FlintClassData *)&flint.load(constField.className);
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
+        FlintClassData *classData = (FlintClassData *)&flint.load(constField.className);
         FlintInitStatus initStatus = classData->getInitStatus();
         if(initStatus == INITIALIZED || (initStatus == INITIALIZING && classData->staticInitOwnId == (uint32_t)this)) {
             FlintFieldsData *fields = classData->staticFieldsData;
@@ -1657,8 +1622,14 @@ void FlintExecution::run(void) {
                 }
             }
         }
-        else if(initStatus == UNINITIALIZED)
-            invokeStaticCtor(*classData);
+        else if(initStatus == UNINITIALIZED) {
+            FlintError err = invokeStaticCtor(*classData);
+            if(err != ERR_OK) {
+                if(err == ERR_THROW)
+                    goto exception_handler;
+                return err;
+            }
+        }
         goto *opcodes[code[pc]];
     }
     op_getfield: {
@@ -1692,14 +1663,8 @@ void FlintExecution::run(void) {
         getfield_null_excp: {
             const char *msg[] = {"Cannot read field '", constField.nameAndType.name.text, "' from null object"};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
     }
@@ -1755,137 +1720,58 @@ void FlintExecution::run(void) {
         putfield_null_excp: {
             const char *msg[] = {"Cannot assign field '", constField.nameAndType.name.text, "' for null object"};
             FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            try {
-                FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
     }
     op_invokevirtual: {
         FlintConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        try {
-            invokeVirtual(constMethod);
-        }
-        catch(FlintJavaThrowable *ex) {
-            stackPushObject(ex);
-            goto exception_handler;
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
-        catch(FlintFindNativeError *err) {
-            const char *msg[] = {err->getMessage(), " ", constMethod.nameAndType.name.text};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(&strObj);
-            stackPushObject(&excpObj);
-            goto exception_handler;
-        }
-        catch(const char *msg) {
-            FlintJavaThrowable &excpObj = flint.newException(&flint.newString(msg, strlen(msg)));
-            stackPushObject(&excpObj);
-            goto exception_handler;
+        FlintError err = invokeVirtual(constMethod);
+        if(err != ERR_OK) {
+            if(err == ERR_THROW)
+                goto exception_handler;
+            return err;
         }
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
         FlintConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        try {
-            invokeSpecial(constMethod);
-        }
-        catch(FlintJavaThrowable *ex) {
-            stackPushObject(ex);
-            goto exception_handler;
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
-        catch(FlintFindNativeError *err) {
-            const char *msg[] = {err->getMessage(), " ", constMethod.nameAndType.name.text};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(&strObj);
-            stackPushObject(&excpObj);
-            goto exception_handler;
-        }
-        catch(const char *msg) {
-            FlintJavaThrowable &excpObj = flint.newException(&flint.newString(msg, strlen(msg)));
-            stackPushObject(&excpObj);
-            goto exception_handler;
+        FlintError err = invokeSpecial(constMethod);
+        if(err != ERR_OK) {
+            if(err == ERR_THROW)
+                goto exception_handler;
+            return err;
         }
         goto *opcodes[code[pc]];
     }
     op_invokestatic: {
         FlintConstMethod &constMethod = method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]));
-        try {
-            invokeStatic(constMethod);
-        }
-        catch(FlintJavaThrowable *ex) {
-            stackPushObject(ex);
-            goto exception_handler;
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
-        catch(FlintFindNativeError *err) {
-            const char *msg[] = {err->getMessage(), " ", constMethod.nameAndType.name.text};
-            FlintJavaThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(&flint.newString(msg, LENGTH(msg)));
-            stackPushObject(&excpObj);
-            goto exception_handler;
-        }
-        catch(const char *msg) {
-            FlintJavaThrowable &excpObj = flint.newException(&flint.newString(msg, strlen(msg)));
-            stackPushObject(&excpObj);
-            goto exception_handler;
+        FlintError err = invokeStatic(constMethod);
+        if(err != ERR_OK) {
+            if(err == ERR_THROW)
+                goto exception_handler;
+            return err;
         }
         goto *opcodes[code[pc]];
     }
     op_invokeinterface: {
         FlintConstInterfaceMethod &interfaceMethod = method->classLoader.getConstInterfaceMethod(ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t count = code[pc + 3];
-        try {
-            invokeInterface(interfaceMethod, count);
-        }
-        catch(FlintJavaThrowable *ex) {
-            stackPushObject(ex);
-            goto exception_handler;
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
-        catch(FlintFindNativeError *err) {
-            const char *msg[] = {err->getMessage(), " ", interfaceMethod.nameAndType.name.text};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newUnsatisfiedLinkErrorException(&strObj);
-            stackPushObject(&excpObj);
-            goto exception_handler;
-        }
-        catch(const char *msg) {
-            FlintJavaThrowable &excpObj = flint.newException(&flint.newString(msg, strlen(msg)));
-            stackPushObject(&excpObj);
-            goto exception_handler;
+        FlintError err = invokeInterface(interfaceMethod, count);
+        if(err != ERR_OK) {
+            if(err == ERR_THROW)
+                goto exception_handler;
+            return err;
         }
         goto *opcodes[code[pc]];
     }
     op_invokedynamic: {
         // TODO
         // goto *opcodes[code[pc]];
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Invokedynamic instructions are not supported"));
-        try {
-            FlintJavaThrowable &excpObj = flint.newUnsupportedOperationException(&strObj);
-            stackPushObject(&excpObj);
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
+        FlintJavaString *strObj = &flint.newString(STR_AND_SIZE("Invokedynamic instructions are not supported"));
+        FlintJavaThrowable *excpObj = &flint.newUnsupportedOperationException(strObj);
+        stackPushObject(excpObj);
         goto exception_handler;
     }
     op_new: {
@@ -1893,17 +1779,11 @@ void FlintExecution::run(void) {
         FlintConstUtf8 &constClass = method->classLoader.getConstUtf8Class(poolIndex);
         FlintJavaObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass);
         memset(obj.data, 0, sizeof(FlintFieldsData));
-        try {
-            FlintClassData &classData = (FlintClassData &)flint.load(constClass);
-            new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);
-            stackPushObject(&obj);
-            pc += 3;
-            goto *opcodes[code[pc]];
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
+        FlintClassData &classData = (FlintClassData &)flint.load(constClass);
+        new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);
+        stackPushObject(&obj);
+        pc += 3;
+        goto *opcodes[code[pc]];
     }
     op_newarray: {
         int32_t count = stackPopInt32();
@@ -1933,14 +1813,8 @@ void FlintExecution::run(void) {
         FlintJavaObject *obj = stackPopObject();
         if(obj == 0) {
             FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot read the array length from null object"));
-            try {
-                FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         stackPushInt32(obj->size / obj->parseTypeSize());
@@ -1952,14 +1826,8 @@ void FlintExecution::run(void) {
         if(obj == 0) {
             stackPopObject();
             FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot throw exception by null object"));
-            try {
-                FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         goto exception_handler;
@@ -1989,7 +1857,8 @@ void FlintExecution::run(void) {
             if(traceStartSp < 0) {
                 if(dbg && !dbg->exceptionIsEnabled())
                     dbg->caughtException(this, (FlintJavaThrowable *)obj);
-                throw (FlintJavaThrowable *)obj;
+                stackPushObject(obj);
+                return ERR_THROW;
             }
             traceMethod = (FlintMethodInfo *)stack[traceStartSp - 3];
             tracePc = stack[traceStartSp - 2];
@@ -2000,14 +1869,7 @@ void FlintExecution::run(void) {
         FlintJavaObject *obj = (FlintJavaObject *)stack[sp];
         FlintConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         if(obj != 0) {
-            bool isInsOf;
-            try {
-                isInsOf = flint.isInstanceof(obj, type);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            bool isInsOf = flint.isInstanceof(obj, type);
             if(!isInsOf) {
                 uint32_t len = 7 + obj->type.length + 27 + type.length + 1;
                 bool isPrimType = FlintJavaObject::isPrimType(obj->type);
@@ -2031,14 +1893,8 @@ void FlintExecution::run(void) {
                 memcpy(&strBuff[index], type.text, type.length);
                 index += type.length;
                 strBuff[index] = '\'';
-                try {
-                    FlintJavaThrowable &excpObj = flint.newClassCastException(&strObj);
-                    stackPushObject(&excpObj);
-                }
-                catch(FlintLoadFileError *file) {
-                    fileNotFound = file;
-                    goto file_not_found_excp;
-                }
+                FlintJavaThrowable &excpObj = flint.newClassCastException(&strObj);
+                stackPushObject(&excpObj);
                 goto exception_handler;
             }
         }
@@ -2048,13 +1904,7 @@ void FlintExecution::run(void) {
     op_instanceof: {
         FlintJavaObject *obj = stackPopObject();
         FlintConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
-        try {
-            stackPushInt32(flint.isInstanceof(obj, type));
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
+        stackPushInt32(flint.isInstanceof(obj, type));
         pc += 3;
         goto *opcodes[code[pc]];
     }
@@ -2062,14 +1912,8 @@ void FlintExecution::run(void) {
         FlintJavaObject *obj = stackPopObject();
         if(obj == 0) {
             FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot enter synchronized block by null object"));
-            try {
-                FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-                stackPushObject(&excpObj);
-            }
-            catch(FlintLoadFileError *file) {
-                fileNotFound = file;
-                goto file_not_found_excp;
-            }
+            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
+            stackPushObject(&excpObj);
             goto exception_handler;
         }
         if(!lockObject(obj)) {
@@ -2147,27 +1991,21 @@ void FlintExecution::run(void) {
         uint8_t dimensions = code[pc + 3];
         const char *typeNameText = typeName->text;
         uint32_t length = typeName->length - dimensions;
-        try {
-            if(typeNameText[dimensions] != 'L') {
-                uint8_t atype = FlintJavaObject::convertToAType(typeNameText[dimensions]);
-                if(atype == 0)
-                    throw "invalid primative type";
-                typeName = (FlintConstUtf8 *)primTypeConstUtf8List[atype - 4];
-            }
-            else
-                typeName = &flint.load(&typeNameText[dimensions + 1], length - 2).getThisClass();
-            sp -= dimensions - 1;
-            for(int32_t i = 0; i < dimensions; i++) {
-                if(stack[sp + i] < 0)
-                    goto negative_array_size_excp;
-            }
-            FlintJavaObject &array = flint.newMultiArray(*typeName, &stack[sp], dimensions);
-            stackPushObject(&array);
+        if(typeNameText[dimensions] != 'L') {
+            uint8_t atype = FlintJavaObject::convertToAType(typeNameText[dimensions]);
+            if(atype == 0)
+                return throwIllegalArgumentException(*this, "invalid primative type");
+            typeName = (FlintConstUtf8 *)primTypeConstUtf8List[atype - 4];
         }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
+        else
+            typeName = &flint.load(&typeNameText[dimensions + 1], length - 2).getThisClass();
+        sp -= dimensions - 1;
+        for(int32_t i = 0; i < dimensions; i++) {
+            if(stack[sp + i] < 0)
+                goto negative_array_size_excp;
         }
+        FlintJavaObject &array = flint.newMultiArray(*typeName, &stack[sp], dimensions);
+        stackPushObject(&array);
         pc += 4;
         goto *opcodes[code[pc]];
     }
@@ -2175,86 +2013,85 @@ void FlintExecution::run(void) {
         pc++;
         goto *opcodes[code[pc]];
     op_unknow:
-        throw "unknow opcode";
+        return ERR_VM_ERROR; // "unknow opcode"
     divided_by_zero_excp: {
         FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Divided by zero"));
-        try {
-            FlintJavaThrowable &excpObj = flint.newArithmeticException(&strObj);
-            stackPushObject(&excpObj);
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
+        FlintJavaThrowable &excpObj = flint.newArithmeticException(&strObj);
+        stackPushObject(&excpObj);
         goto exception_handler;
     }
     negative_array_size_excp: {
         FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Size of the array is a negative number"));
-        try {
-            FlintJavaThrowable &excpObj = flint.newNegativeArraySizeException(&strObj);
-            stackPushObject(&excpObj);
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
+        FlintJavaThrowable &excpObj = flint.newNegativeArraySizeException(&strObj);
+        stackPushObject(&excpObj);
         goto exception_handler;
     }
     load_null_array_excp: {
         FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot load from null array object"));
-        try {
-            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-            stackPushObject(&excpObj);
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
+        FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
+        stackPushObject(&excpObj);
         goto exception_handler;
     }
     store_null_array_excp: {
         FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot store to null array object"));
-        try {
-            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-            stackPushObject(&excpObj);
-        }
-        catch(FlintLoadFileError *file) {
-            fileNotFound = file;
-            goto file_not_found_excp;
-        }
-        goto exception_handler;
-    }
-    file_not_found_excp: {
-        const char *msg[] = {"Could not find or load class ", fileNotFound->getFileName(), ".class"};
-        FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-        FlintJavaThrowable &excpObj = flint.newClassNotFoundException(&strObj);
+        FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
         stackPushObject(&excpObj);
         goto exception_handler;
     }
     op_exit:
-        return;
+        return ERR_OK;
 }
 
 void FlintExecution::innerRunTask(FlintExecution *execution) {
     try {
-        execution->run();
+        FlintError err = execution->run();
+        switch(err) {
+            case ERR_OK:
+                break;
+            case ERR_THROW: {
+                FlintJavaThrowable *ex = (FlintJavaThrowable *)execution->stackPopObject();
+                FlintJavaString *str = ex->getDetailMessage();
+                if(str)
+                    execution->flint.println(str);
+                else
+                    execution->flint.println(ex->type);
+                break;
+            }
+            case ERR_OUT_OF_MEMORY:
+                execution->flint.println("Out of memory");
+                break;
+            case ERR_STACK_OVERFLOW:
+                execution->flint.println("Stack overflow");
+                break;
+            case ERR_CLASS_LOAD_FAIL:
+                break;
+            case ERR_CLASS_NOT_FOUND:
+                break;
+            case ERR_FIELD_NOT_FOUND:
+                break;
+            case ERR_METHOD_NOT_FOUND:
+                break;
+            case ERR_VM_ERROR:
+                execution->flint.println("VM error");
+                break;
+            default:
+                break;
+        }
     }
     catch(FlintJavaThrowable *ex) {
         FlintJavaString *str = ex->getDetailMessage();
         if(str)
-            execution->flint.print(str->getText(), str->getLength(), str->getCoder());
+            execution->flint.println(str);
         else
-            execution->flint.print(ex->type.text, ex->type.length, 0);
-        execution->flint.print("\n", 1, 0);
+            execution->flint.println(ex->type);
     }
     catch(FlintOutOfMemoryError *err) {
         const char *msg = err->getMessage();
-        execution->flint.print(msg, strlen(msg), 0);
-        execution->flint.print("\n", 1, 0);
+        execution->flint.println(msg);
     }
     catch(FlintLoadFileError *file) {
         const char *fileName = file->getFileName();
-        execution->flint.print("Could not find or load class ", 29, 0);
+        execution->flint.print("Could not find or load class ");
         while(*fileName) {
             execution->flint.print((*fileName == '/') ? "." : fileName, 1, 0);
             fileName++;
@@ -2262,8 +2099,7 @@ void FlintExecution::innerRunTask(FlintExecution *execution) {
         execution->flint.print("\n", 1, 0);
     }
     catch(const char *msg) {
-        execution->flint.print(msg, strlen(msg), 0);
-        execution->flint.print("\n", 1, 0);
+        execution->flint.println(msg);
     }
     while(execution->startSp > 3)
         execution->stackRestoreContext();

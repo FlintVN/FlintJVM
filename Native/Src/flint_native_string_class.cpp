@@ -4,9 +4,10 @@
 #include "flint_const_name_base.h"
 #include "flint_native_string_class.h"
 
-static void nativeIntern(FlintExecution &execution) {
+static FlintError nativeIntern(FlintExecution &execution) {
     FlintJavaString *obj = (FlintJavaString *)execution.stackPopObject();
     execution.stackPushObject(&execution.flint.getConstString(*obj));
+    return ERR_OK;
 }
 
 static const FlintNativeMethod methods[] = {
