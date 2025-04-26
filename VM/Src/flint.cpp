@@ -76,6 +76,19 @@ void Flint::setDebugger(FlintDebugger *dbg) {
     this->dbg = dbg;
 }
 
+void Flint::print(const char *text) {
+    uint32_t len = strlen(text);
+    print(text, len, 0);
+}
+
+void Flint::print(const FlintConstUtf8 &utf8) {
+    print(utf8.text, utf8.length, 0);
+}
+
+void Flint::print(FlintJavaString &str) {
+    print(str.getText(), str.getLength(), str.getCoder());
+}
+
 void Flint::print(const char *text, uint32_t length, uint8_t coder) {
     if(dbg)
         dbg->print(text, length, coder);

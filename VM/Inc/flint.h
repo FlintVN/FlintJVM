@@ -71,6 +71,9 @@ public:
     FlintDebugger *getDebugger(void) const;
     void setDebugger(FlintDebugger *dbg);
 
+    void print(const char *text);
+    void print(const FlintConstUtf8 &utf8);
+    void print(FlintJavaString &str);
     void print(const char *text, uint32_t length, uint8_t coder);
 
     FlintExecution &newExecution(FlintJavaThread *onwerThread = 0);
