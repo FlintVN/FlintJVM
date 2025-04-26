@@ -75,6 +75,9 @@ public:
     void print(const FlintConstUtf8 &utf8);
     void print(FlintJavaString &str);
     void print(const char *text, uint32_t length, uint8_t coder);
+    void println(const char *text);
+    void println(const FlintConstUtf8 &utf8);
+    void println(FlintJavaString &str);
 
     FlintExecution &newExecution(FlintJavaThread *onwerThread = 0);
     FlintExecution &newExecution(FlintJavaThread *onwerThread, uint32_t stackSize);
