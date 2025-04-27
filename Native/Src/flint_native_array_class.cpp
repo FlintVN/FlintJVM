@@ -97,7 +97,7 @@ static FlintError nativeGet(FlintExecution &execution) {
             }
             case 'C': { /* char */
                 int16_t value = ((FlintInt16Array *)obj)->getData()[index];
-                execution.stackPushObject(&execution.flint.newShort(value));
+                execution.stackPushObject(&execution.flint.newCharacter(value));
                 return ERR_OK;
             }
             case 'S': { /* short */
