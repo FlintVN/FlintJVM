@@ -1769,7 +1769,7 @@ FlintError FlintExecution::run(void) {
     op_invokedynamic: {
         // TODO
         // goto *opcodes[code[pc]];
-        FlintJavaString *strObj = &flint.newString(STR_AND_SIZE("Invokedynamic instructions are not supported"));
+        FlintJavaString *strObj = &flint.newString("Invokedynamic instructions are not supported");
         FlintJavaThrowable *excpObj = &flint.newUnsupportedOperationException(strObj);
         stackPushObject(excpObj);
         goto exception_handler;
@@ -1777,7 +1777,7 @@ FlintError FlintExecution::run(void) {
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         FlintConstUtf8 &constClass = method->classLoader.getConstUtf8Class(poolIndex);
-        FlintJavaObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass);
+        FlintJavaObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass, 0);
         memset(obj.data, 0, sizeof(FlintFieldsData));
         FlintClassData &classData = (FlintClassData &)flint.load(constClass);
         new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);
@@ -1812,7 +1812,7 @@ FlintError FlintExecution::run(void) {
     op_arraylength: {
         FlintJavaObject *obj = stackPopObject();
         if(obj == 0) {
-            FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot read the array length from null object"));
+            FlintJavaString &strObj = flint.newString("Cannot read the array length from null object");
             FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
             stackPushObject(&excpObj);
             goto exception_handler;
@@ -1825,7 +1825,7 @@ FlintError FlintExecution::run(void) {
         FlintJavaObject *obj = (FlintJavaObject *)stack[sp];
         if(obj == 0) {
             stackPopObject();
-            FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot throw exception by null object"));
+            FlintJavaString &strObj = flint.newString("Cannot throw exception by null object");
             FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
             stackPushObject(&excpObj);
             goto exception_handler;
@@ -1911,7 +1911,7 @@ FlintError FlintExecution::run(void) {
     op_monitorenter: {
         FlintJavaObject *obj = stackPopObject();
         if(obj == 0) {
-            FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot enter synchronized block by null object"));
+            FlintJavaString &strObj = flint.newString("Cannot enter synchronized block by null object");
             FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
             stackPushObject(&excpObj);
             goto exception_handler;
@@ -2004,7 +2004,7 @@ FlintError FlintExecution::run(void) {
             if(stack[sp + i] < 0)
                 goto negative_array_size_excp;
         }
-        FlintJavaObject &array = flint.newMultiArray(*typeName, &stack[sp], dimensions);
+        FlintJavaObject &array = flint.newMultiArray(*typeName, &stack[sp], dimensions, 1);
         stackPushObject(&array);
         pc += 4;
         goto *opcodes[code[pc]];
@@ -2015,25 +2015,25 @@ FlintError FlintExecution::run(void) {
     op_unknow:
         return ERR_VM_ERROR; // "unknow opcode"
     divided_by_zero_excp: {
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Divided by zero"));
+        FlintJavaString &strObj = flint.newString("Divided by zero");
         FlintJavaThrowable &excpObj = flint.newArithmeticException(&strObj);
         stackPushObject(&excpObj);
         goto exception_handler;
     }
     negative_array_size_excp: {
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Size of the array is a negative number"));
+        FlintJavaString &strObj = flint.newString("Size of the array is a negative number");
         FlintJavaThrowable &excpObj = flint.newNegativeArraySizeException(&strObj);
         stackPushObject(&excpObj);
         goto exception_handler;
     }
     load_null_array_excp: {
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot load from null array object"));
+        FlintJavaString &strObj = flint.newString("Cannot load from null array object");
         FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
         stackPushObject(&excpObj);
         goto exception_handler;
     }
     store_null_array_excp: {
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot store to null array object"));
+        FlintJavaString &strObj = flint.newString("Cannot store to null array object");
         FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
         stackPushObject(&excpObj);
         goto exception_handler;

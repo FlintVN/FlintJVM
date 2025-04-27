@@ -256,7 +256,7 @@ FlintJavaClass &Flint::newClass(FlintJavaString &typeName) {
 
 FlintJavaClass &Flint::newClass(const char *typeName, uint16_t length) {
     /* create String object to store typeName */
-    FlintJavaString &name = newString(typeName, length);
+    FlintJavaString &name = newString(typeName, length, false);
 
     /* replace '/' to '.' */
     char *text = (char *)name.getText();
@@ -297,13 +297,18 @@ FlintJavaString &Flint::newString(uint16_t length, uint8_t coder) {
     FlintInt8Array &byteArray = newByteArray(length << (coder ? 1 : 0));
 
     /* create new string object */
-    FlintJavaString &strObj = *(FlintJavaString *)&newObject(stringClassName);
+    FlintJavaString &str = *(FlintJavaString *)&newObject(stringClassName);
     /* set value for value field */
-    strObj.setValue(byteArray);
+    str.setValue(byteArray);
     /* set value for coder field */
-    strObj.setCoder(coder);
+    str.setCoder(coder);
 
-    return strObj;
+    return str;
+}
+
+FlintJavaString &Flint::newString(const char *text) {
+    uint32_t len = strlen(text);
+    return newString(text, len, false);
 }
 
 FlintJavaString &Flint::newString(const char *text, uint16_t size, bool isUtf8) {
@@ -338,13 +343,13 @@ FlintJavaString &Flint::newString(const char *text, uint16_t size, bool isUtf8) 
     }
 
     /* create new string object */
-    FlintJavaString &strObj = *(FlintJavaString *)&newObject(stringClassName);
+    FlintJavaString &str = *(FlintJavaString *)&newObject(stringClassName);
     /* set value for value field */
-    strObj.setValue(byteArray);
+    str.setValue(byteArray);
     /* set value for coder field */
-    strObj.setCoder(isLatin1 ? 0 : 1);
+    str.setCoder(isLatin1 ? 0 : 1);
 
-    return strObj;
+    return str;
 }
 
 FlintJavaString &Flint::newString(const char *latin1Str[], uint16_t count) {
@@ -367,11 +372,11 @@ FlintJavaString &Flint::newString(const char *latin1Str[], uint16_t count) {
     }
 
     /* create new string object */
-    FlintJavaString &strObj = *(FlintJavaString *)&newObject(stringClassName);
+    FlintJavaString &str = *(FlintJavaString *)&newObject(stringClassName);
     /* set value for value field */
-    strObj.setValue(byteArray);
+    str.setValue(byteArray);
 
-    return strObj;
+    return str;
 }
 
 FlintJavaString &Flint::getConstString(const FlintConstUtf8 &utf8) {
@@ -452,75 +457,75 @@ FlintObjectArray &Flint::getClassArray0(void) {
     return *(FlintObjectArray *)classArray0;
 }
 
-FlintJavaThrowable &Flint::newThrowable(FlintJavaString *strObj, const FlintConstUtf8 &excpType) {
+FlintJavaThrowable &Flint::newThrowable(FlintJavaString *str, const FlintConstUtf8 &excpType) {
     /* create new exception object */
     FlintJavaThrowable &obj = *(FlintJavaThrowable *)&newObject(excpType);
 
     /* set detailMessage value */
-    if(strObj)
-        obj.setDetailMessage(*strObj);
+    if(str)
+        obj.setDetailMessage(*str);
 
     return obj;
 }
 
-FlintJavaThrowable &Flint::newException(FlintJavaString *strObj) {
-    return newThrowable(strObj, exceptionClassName);
+FlintJavaThrowable &Flint::newException(FlintJavaString *str) {
+    return newThrowable(str, exceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newIOException(FlintJavaString *strObj) {
-    return newThrowable(strObj, exceptionClassName);
+FlintJavaThrowable &Flint::newIOException(FlintJavaString *str) {
+    return newThrowable(str, exceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newErrorException(FlintJavaString *strObj) {
-    return newThrowable(strObj, errorClassName);
+FlintJavaThrowable &Flint::newErrorException(FlintJavaString *str) {
+    return newThrowable(str, errorClassName);
 }
 
-FlintJavaThrowable &Flint::newClassCastException(FlintJavaString *strObj) {
-    return newThrowable(strObj, classCastExceptionClassName);
+FlintJavaThrowable &Flint::newClassCastException(FlintJavaString *str) {
+    return newThrowable(str, classCastExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newArrayStoreException(FlintJavaString *strObj) {
-    return newThrowable(strObj, arrayStoreExceptionClassName);
+FlintJavaThrowable &Flint::newArrayStoreException(FlintJavaString *str) {
+    return newThrowable(str, arrayStoreExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newArithmeticException(FlintJavaString *strObj) {
-    return newThrowable(strObj, arithmeticExceptionClassName);
+FlintJavaThrowable &Flint::newArithmeticException(FlintJavaString *str) {
+    return newThrowable(str, arithmeticExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newNullPointerException(FlintJavaString *strObj) {
-    return newThrowable(strObj, nullPointerExceptionClassName);
+FlintJavaThrowable &Flint::newNullPointerException(FlintJavaString *str) {
+    return newThrowable(str, nullPointerExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newInterruptedException(FlintJavaString *strObj) {
-    return newThrowable(strObj, interruptedExceptionClassName);
+FlintJavaThrowable &Flint::newInterruptedException(FlintJavaString *str) {
+    return newThrowable(str, interruptedExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newClassNotFoundException(FlintJavaString *strObj) {
-    return newThrowable(strObj, classNotFoundExceptionClassName);
+FlintJavaThrowable &Flint::newClassNotFoundException(FlintJavaString *str) {
+    return newThrowable(str, classNotFoundExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newIllegalArgumentException(FlintJavaString *strObj) {
-    return newThrowable(strObj, illegalArgumentExceptionClassName);
+FlintJavaThrowable &Flint::newIllegalArgumentException(FlintJavaString *str) {
+    return newThrowable(str, illegalArgumentExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newCloneNotSupportedException(FlintJavaString *strObj) {
-    return newThrowable(strObj, cloneNotSupportedExceptionClassName);
+FlintJavaThrowable &Flint::newCloneNotSupportedException(FlintJavaString *str) {
+    return newThrowable(str, cloneNotSupportedExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newNegativeArraySizeException(FlintJavaString *strObj) {
-    return newThrowable(strObj, negativeArraySizeExceptionClassName);
+FlintJavaThrowable &Flint::newNegativeArraySizeException(FlintJavaString *str) {
+    return newThrowable(str, negativeArraySizeExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newArrayIndexOutOfBoundsException(FlintJavaString *strObj) {
-    return newThrowable(strObj, arrayIndexOutOfBoundsExceptionClassName);
+FlintJavaThrowable &Flint::newArrayIndexOutOfBoundsException(FlintJavaString *str) {
+    return newThrowable(str, arrayIndexOutOfBoundsExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newUnsupportedOperationException(FlintJavaString *strObj) {
-    return newThrowable(strObj, unsupportedOperationExceptionClassName);
+FlintJavaThrowable &Flint::newUnsupportedOperationException(FlintJavaString *str) {
+    return newThrowable(str, unsupportedOperationExceptionClassName);
 }
 
-FlintJavaThrowable &Flint::newUnsatisfiedLinkErrorException(FlintJavaString *strObj) {
-    return newThrowable(strObj, unsatisfiedLinkErrorClassName);
+FlintJavaThrowable &Flint::newUnsatisfiedLinkErrorException(FlintJavaString *str) {
+    return newThrowable(str, unsatisfiedLinkErrorClassName);
 }
 
 FlintJavaBoolean &Flint::newBoolean(bool value) {

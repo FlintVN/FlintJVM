@@ -83,7 +83,7 @@ public:
     FlintExecution *getExcutionByThread(FlintJavaThread &thread) const;
     void freeExecution(FlintExecution &execution);
 
-    FlintJavaObject &newObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions = 0);
+    FlintJavaObject &newObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions);
     FlintJavaObject &newObject(const FlintConstUtf8 &type);
     FlintInt8Array &newBooleanArray(uint32_t length);
     FlintInt8Array &newByteArray(uint32_t length);
@@ -95,8 +95,7 @@ public:
     FlintDoubleArray &newDoubleArray(uint32_t length);
     FlintObjectArray &newObjectArray(const FlintConstUtf8 &type, uint32_t length);
 
-    FlintJavaObject &newMultiArray(const FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims = 1);
-
+    FlintJavaObject &newMultiArray(const FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims);
 private:
     FlintJavaClass &newClass(FlintJavaString &typeName);
     FlintJavaClass &newClass(const char *typeName, uint16_t length);
@@ -105,7 +104,8 @@ public:
     FlintJavaClass &getConstClass(FlintJavaString &str);
 
     FlintJavaString &newString(uint16_t length, uint8_t coder);
-    FlintJavaString &newString(const char *text, uint16_t size, bool isUtf8 = false);
+    FlintJavaString &newString(const char *text);
+    FlintJavaString &newString(const char *text, uint16_t size, bool isUtf8);
     FlintJavaString &newString(const char *latin1Str[], uint16_t count);
     FlintJavaString &getConstString(const FlintConstUtf8 &utf8);
     FlintJavaString &getConstString(FlintJavaString &str);
@@ -114,25 +114,24 @@ public:
     FlintConstUtf8 &getTypeNameConstUtf8(const char *typeName, uint16_t length);
 
     FlintObjectArray &getClassArray0(void);
-
 private:
-    FlintJavaThrowable &newThrowable(FlintJavaString *strObj, const FlintConstUtf8 &excpType);
+    FlintJavaThrowable &newThrowable(FlintJavaString *str, const FlintConstUtf8 &excpType);
 public:
-    FlintJavaThrowable &newException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newIOException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newErrorException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newClassCastException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newArrayStoreException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newArithmeticException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newNullPointerException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newInterruptedException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newClassNotFoundException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newIllegalArgumentException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newCloneNotSupportedException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newNegativeArraySizeException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newArrayIndexOutOfBoundsException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newUnsupportedOperationException(FlintJavaString *strObj = 0);
-    FlintJavaThrowable &newUnsatisfiedLinkErrorException(FlintJavaString *strObj = 0);
+    FlintJavaThrowable &newException(FlintJavaString *str);
+    FlintJavaThrowable &newIOException(FlintJavaString *str);
+    FlintJavaThrowable &newErrorException(FlintJavaString *str);
+    FlintJavaThrowable &newClassCastException(FlintJavaString *str);
+    FlintJavaThrowable &newArrayStoreException(FlintJavaString *str);
+    FlintJavaThrowable &newArithmeticException(FlintJavaString *str);
+    FlintJavaThrowable &newNullPointerException(FlintJavaString *str);
+    FlintJavaThrowable &newInterruptedException(FlintJavaString *str);
+    FlintJavaThrowable &newClassNotFoundException(FlintJavaString *str);
+    FlintJavaThrowable &newIllegalArgumentException(FlintJavaString *str);
+    FlintJavaThrowable &newCloneNotSupportedException(FlintJavaString *str);
+    FlintJavaThrowable &newNegativeArraySizeException(FlintJavaString *str);
+    FlintJavaThrowable &newArrayIndexOutOfBoundsException(FlintJavaString *str);
+    FlintJavaThrowable &newUnsupportedOperationException(FlintJavaString *str);
+    FlintJavaThrowable &newUnsatisfiedLinkErrorException(FlintJavaString *str);
 
     FlintJavaBoolean &newBoolean(bool value = false);
     FlintJavaByte &newByte(int8_t value = 0);
