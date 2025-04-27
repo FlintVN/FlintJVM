@@ -5,7 +5,7 @@
 
 FlintError throwIllegalArgumentException(FlintExecution &execution, const char *msg = 0);
 FlintError throwNullPointerException(FlintExecution &execution, const char *msg = 0);
-FlintError throwArrayIndexOutOfBoundsException(FlintExecution &execution);
+FlintError throwArrayIndexOutOfBoundsException(FlintExecution &execution, int32_t index, int32_t length);
 FlintError throwNegativeArraySizeException(FlintExecution &execution);
 FlintError throwClassNotFoundException(FlintExecution &execution, FlintJavaString *msg);
 FlintError throwClassNotFoundException(FlintExecution &execution, const char *msg);

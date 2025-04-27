@@ -821,8 +821,10 @@ static FlintError nativeDrawPolyline(FlintExecution &execution) {
         return throwNullPointerException(execution);
     uint32_t color = colorObj->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
-    if((nPoints > xPoints->getLength()) || (nPoints > yPoints->getLength()))
-        return throwArrayIndexOutOfBoundsException(execution);
+    if(nPoints > xPoints->getLength())
+        return throwArrayIndexOutOfBoundsException(execution, nPoints, xPoints->getLength());
+    if(nPoints > yPoints->getLength())
+        return throwArrayIndexOutOfBoundsException(execution, nPoints, yPoints->getLength());
     g.drawPolyline(xPoints->getData(), yPoints->getData(), nPoints);
     return ERR_OK;
 }
@@ -836,8 +838,10 @@ static FlintError nativeDrawPolygon(FlintExecution &execution) {
         return throwNullPointerException(execution);
     uint32_t color = colorObj->getValue();
     FlintGraphics g(execution.stackPopObject(), color);
-    if((nPoints > xPoints->getLength()) || (nPoints > yPoints->getLength()))
-        return throwArrayIndexOutOfBoundsException(execution);
+    if(nPoints > xPoints->getLength())
+        return throwArrayIndexOutOfBoundsException(execution, nPoints, xPoints->getLength());
+    if(nPoints > yPoints->getLength())
+        return throwArrayIndexOutOfBoundsException(execution, nPoints, yPoints->getLength());
     g.drawPolygon(xPoints->getData(), yPoints->getData(), nPoints);
     return ERR_OK;
 }
