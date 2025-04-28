@@ -124,7 +124,10 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
             case CONST_UTF8: {
                 uint16_t length = ClassLoader_ReadUInt16(file);
                 if(length > utf8Length) {
-                    utf8Buff = (char *)Flint::realloc(utf8Buff, length);
+                    if(utf8Buff == buff)
+                        utf8Buff = (char *)Flint::malloc(length);
+                    else
+                        utf8Buff = (char *)Flint::realloc(utf8Buff, length);
                     utf8Length = length;
                 }
                 ClassLoader_Read(file, utf8Buff, length);

@@ -33,7 +33,7 @@ static FlintError checkIsClassType(FlintExecution &execution, FlintJavaObject *o
 static FlintError checkIndex(FlintExecution &execution, FlintJavaObject *obj, int32_t index) {
     int32_t length = obj->size / obj->parseTypeSize();
     if((index < 0) || (index >= length))
-        return throwArrayIndexOutOfBoundsException(execution);
+        return throwArrayIndexOutOfBoundsException(execution, index, length);
     return ERR_OK;
 }
 
@@ -97,7 +97,7 @@ static FlintError nativeGet(FlintExecution &execution) {
             }
             case 'C': { /* char */
                 int16_t value = ((FlintInt16Array *)obj)->getData()[index];
-                execution.stackPushObject(&execution.flint.newShort(value));
+                execution.stackPushObject(&execution.flint.newCharacter(value));
                 return ERR_OK;
             }
             case 'S': { /* short */

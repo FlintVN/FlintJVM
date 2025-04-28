@@ -52,9 +52,9 @@ private:
     FlintError stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
 
-    bool lockClass(FlintClassData &cls);
+    FlintError lockClass(FlintClassData &cls);
     void unlockClass(FlintClassData &cls);
-    bool lockObject(FlintJavaObject *obj);
+    FlintError lockObject(FlintJavaObject *obj);
     void unlockObject(FlintJavaObject *obj);
 
     FlintError invoke(FlintMethodInfo *methodInfo, uint8_t argc);

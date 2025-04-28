@@ -32,8 +32,12 @@ static FlintError nativeArraycopy(FlintExecution &execution) {
     else if(src->type == dest->type) {
         uint8_t atype = FlintJavaObject::isPrimType(src->type);
         uint8_t elementSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
-        if((length < 0) || ((length + srcPos) > src->size / elementSize) || ((length + destPos) > dest->size / elementSize))
-            return throwArrayIndexOutOfBoundsException(execution);
+        if(length < 0)
+            return throwArrayIndexOutOfBoundsException(execution, 0, length);
+        if((length + srcPos) > src->size / elementSize)
+            return throwArrayIndexOutOfBoundsException(execution, length + srcPos, src->size / elementSize);
+        if((length + destPos) > dest->size / elementSize)
+            return throwArrayIndexOutOfBoundsException(execution, length + destPos, dest->size / elementSize);
         void *srcVal = ((FlintInt8Array *)src)->getData();
         void *dstVal = ((FlintInt8Array *)dest)->getData();
         switch(elementSize) {

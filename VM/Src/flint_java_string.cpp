@@ -97,9 +97,9 @@ void FlintJavaString::setValue(FlintInt8Array &byteArray) {
     getFields().getFieldObjectByIndex(0).object = &byteArray;
 }
 
-const char *FlintJavaString::getText(void) const {
+char *FlintJavaString::getText(void) const {
     FlintInt8Array *byteArray = getValue();
-    return (const char *)byteArray->getData();
+    return (char *)byteArray->getData();
 }
 
 uint32_t FlintJavaString::getLength(void) const {

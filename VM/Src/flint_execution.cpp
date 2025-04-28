@@ -202,20 +202,20 @@ void FlintExecution::stackRestoreContext(void) {
     locals = &stack[startSp + 1];
 }
 
-bool FlintExecution::lockClass(FlintClassData &cls) {
+FlintError FlintExecution::lockClass(FlintClassData &cls) {
     Flint::lock();
     if(cls.monitorCount == 0 || cls.ownId == (int32_t)this) {
         cls.ownId = (int32_t)this;
         if(cls.monitorCount < 0xFFFFFFFF) {
             cls.monitorCount++;
             Flint::unlock();
-            return true;
+            return ERR_OK;
         }
         Flint::unlock();
-        throw "monitorCount limit has been reached";
+        return ERR_LOCK_LIMIT;
     }
     Flint::unlock();
-    return false;
+    return ERR_LOCK_FAIL;
 }
 
 void FlintExecution::unlockClass(FlintClassData &cls) {
@@ -225,20 +225,20 @@ void FlintExecution::unlockClass(FlintClassData &cls) {
     Flint::unlock();
 }
 
-bool FlintExecution::lockObject(FlintJavaObject *obj) {
+FlintError FlintExecution::lockObject(FlintJavaObject *obj) {
     Flint::lock();
     if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
         obj->ownId = (int32_t)this;
         if(obj->monitorCount < 0xFFFFFF) {
             obj->monitorCount++;
             Flint::unlock();
-            return true;
+            return ERR_OK;
         }
         Flint::unlock();
-        throw "monitorCount limit has been reached";
+        return ERR_LOCK_LIMIT;
     }
     Flint::unlock();
-    return false;
+    return ERR_LOCK_FAIL;
 }
 
 void FlintExecution::unlockObject(FlintJavaObject *obj) {
@@ -310,9 +310,13 @@ FlintError FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
             return ERR_OK;
         }
     }
-    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockClass(classData)) {
-        FlintAPI::Thread::yield();
-        return ERR_OK;
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        FlintError err = lockClass(classData);
+        if(err == ERR_LOCK_FAIL) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
+        RETURN_IF_ERR(err);
     }
     lr = pc + 3;
     return invoke(methodInfo, constMethod.getArgc());
@@ -333,9 +337,13 @@ FlintError FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
             return ERR_OK;
         }
     }
-    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject((FlintJavaObject *)stack[sp - argc - 1])) {
-        FlintAPI::Thread::yield();
-        return ERR_OK;
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        FlintError err = lockObject((FlintJavaObject *)stack[sp - argc - 1]);
+        if(err == ERR_LOCK_FAIL) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
+        RETURN_IF_ERR(err);
     }
     lr = pc + 3;
     return invoke(methodInfo, argc);
@@ -344,12 +352,8 @@ FlintError FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
 FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getArgc();
     FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc];
-    if(obj == 0) {
-        const char *msg[] = {"Cannot invoke ", constMethod.className.text, ".", constMethod.nameAndType.name.text, " by null object"};
-        FlintJavaThrowable *excp = &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
-        stackPushObject(excp);
-        return ERR_THROW;
-    }
+    if(obj == 0)
+        return throwNullPointerException(*this, constMethod);
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
     if(constMethod.methodInfo && constMethod.methodInfo->classLoader.getThisClass() == type)
@@ -358,9 +362,13 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         constMethod.methodInfo = &flint.findMethod(type, constMethod.nameAndType);
         methodInfo = constMethod.methodInfo;
     }
-    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
-        FlintAPI::Thread::yield();
-        return ERR_OK;
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        FlintError err = lockObject(obj);
+        if(err == ERR_LOCK_FAIL) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
+        RETURN_IF_ERR(err);
     }
     argc++;
     lr = pc + 3;
@@ -369,12 +377,8 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
 
 FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc) {
     FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc + 1];
-    if(obj == 0) {
-        const char *msg[] = {"Cannot invoke ", interfaceMethod.className.text, ".", interfaceMethod.nameAndType.name.text, " by null object"};
-        FlintJavaThrowable *excp = &flint.newNullPointerException(&flint.newString(msg, LENGTH(msg)));
-        stackPushObject(excp);
-        return ERR_THROW;
-    }
+    if(obj == 0)
+        return throwNullPointerException(*this, (FlintConstMethod &)interfaceMethod);
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
     FlintMethodInfo *methodInfo;
     if(interfaceMethod.methodInfo && interfaceMethod.methodInfo->classLoader.getThisClass() == type)
@@ -383,9 +387,13 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
         interfaceMethod.methodInfo = &flint.findMethod(type, interfaceMethod.nameAndType);
         methodInfo = interfaceMethod.methodInfo;
     }
-    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
-        FlintAPI::Thread::yield();
-        return ERR_OK;
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        FlintError err = lockObject(obj);
+        if(err == ERR_LOCK_FAIL) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
+        RETURN_IF_ERR(err);
     }
     lr = pc + 5;
     return invoke(methodInfo, argc);
@@ -727,14 +735,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         stackPushInt32(((int32_t *)obj->data)[index]);
@@ -748,14 +750,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int64_t))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int64_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         stackPushInt64(((int64_t *)obj->data)[index]);
@@ -768,14 +764,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         stackPushObject(((FlintJavaObject **)obj->data)[index]);
@@ -788,14 +778,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int8_t))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int8_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         stackPushInt32(((int8_t *)obj->data)[index]);
@@ -809,14 +793,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int16_t))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int16_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         stackPushInt32(((int16_t *)obj->data)[index]);
@@ -920,14 +898,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int32_t)))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int32_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         ((int32_t *)obj->data)[index] = value;
@@ -942,14 +914,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int64_t)))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int64_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int64_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         ((int64_t *)obj->data)[index] = value;
@@ -963,14 +929,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int8_t)))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int8_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int8_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         ((int8_t *)obj->data)[index] = value;
@@ -985,14 +945,8 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int16_t)))) {
-            char indexStrBuff[11];
-            char lengthStrBuff[11];
-            sprintf(indexStrBuff, "%d", (int)index);
-            sprintf(lengthStrBuff, "%d", obj->size / sizeof(int16_t));
-            const char *msg[] = {"Index ", indexStrBuff, " out of bounds for length ", lengthStrBuff};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newArrayIndexOutOfBoundsException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int16_t));
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         ((int16_t *)obj->data)[index] = value;
@@ -1661,10 +1615,8 @@ FlintError FlintExecution::run(void) {
             }
         }
         getfield_null_excp: {
-            const char *msg[] = {"Cannot read field '", constField.nameAndType.name.text, "' from null object"};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwNullPointerException(*this, constField);
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
     }
@@ -1718,10 +1670,8 @@ FlintError FlintExecution::run(void) {
             }
         }
         putfield_null_excp: {
-            const char *msg[] = {"Cannot assign field '", constField.nameAndType.name.text, "' for null object"};
-            FlintJavaString &strObj = flint.newString(msg, LENGTH(msg));
-            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwNullPointerException(*this, constField);
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
     }
@@ -1769,15 +1719,14 @@ FlintError FlintExecution::run(void) {
     op_invokedynamic: {
         // TODO
         // goto *opcodes[code[pc]];
-        FlintJavaString *strObj = &flint.newString(STR_AND_SIZE("Invokedynamic instructions are not supported"));
-        FlintJavaThrowable *excpObj = &flint.newUnsupportedOperationException(strObj);
-        stackPushObject(excpObj);
+        FlintError err = throwUnsupportedOperationException(*this, "Invokedynamic instructions are not supported");
+        RETURN_IF_NOT_THROW(err);
         goto exception_handler;
     }
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         FlintConstUtf8 &constClass = method->classLoader.getConstUtf8Class(poolIndex);
-        FlintJavaObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass);
+        FlintJavaObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass, 0);
         memset(obj.data, 0, sizeof(FlintFieldsData));
         FlintClassData &classData = (FlintClassData &)flint.load(constClass);
         new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);
@@ -1812,9 +1761,8 @@ FlintError FlintExecution::run(void) {
     op_arraylength: {
         FlintJavaObject *obj = stackPopObject();
         if(obj == 0) {
-            FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot read the array length from null object"));
-            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwNullPointerException(*this, "Cannot read the array length from null object");
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
         stackPushInt32(obj->size / obj->parseTypeSize());
@@ -1825,10 +1773,8 @@ FlintError FlintExecution::run(void) {
         FlintJavaObject *obj = (FlintJavaObject *)stack[sp];
         if(obj == 0) {
             stackPopObject();
-            FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot throw exception by null object"));
-            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-            stackPushObject(&excpObj);
-            goto exception_handler;
+            FlintError err = throwNullPointerException(*this, "Cannot throw exception by null object");
+            RETURN_IF_NOT_THROW(err);
         }
         goto exception_handler;
     }
@@ -1871,30 +1817,8 @@ FlintError FlintExecution::run(void) {
         if(obj != 0) {
             bool isInsOf = flint.isInstanceof(obj, type);
             if(!isInsOf) {
-                uint32_t len = 7 + obj->type.length + 27 + type.length + 1;
-                bool isPrimType = FlintJavaObject::isPrimType(obj->type);
-                len += obj->dimensions;
-                if(!isPrimType)
-                    len += 2;
-                FlintJavaString &strObj = flint.newString(len, 0);
-                int8_t *strBuff = strObj.getValue()->getData();
-                memcpy(&strBuff[0], "Class '", 7);
-                uint32_t index = 7;
-                for(uint32_t i = 0; i < obj->dimensions; i++)
-                    strBuff[index++] = '[';
-                if(!isPrimType)
-                    strBuff[index++] = 'L';
-                memcpy(&strBuff[index], obj->type.text, obj->type.length);
-                index += obj->type.length;
-                if(!isPrimType)
-                    strBuff[index++] = ';';
-                memcpy(&strBuff[index], "' cannot be cast to class '", 27);
-                index += 27;
-                memcpy(&strBuff[index], type.text, type.length);
-                index += type.length;
-                strBuff[index] = '\'';
-                FlintJavaThrowable &excpObj = flint.newClassCastException(&strObj);
-                stackPushObject(&excpObj);
+                FlintError err = throwClassCastException(*this, obj, type);
+                RETURN_IF_NOT_THROW(err);
                 goto exception_handler;
             }
         }
@@ -1911,15 +1835,16 @@ FlintError FlintExecution::run(void) {
     op_monitorenter: {
         FlintJavaObject *obj = stackPopObject();
         if(obj == 0) {
-            FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot enter synchronized block by null object"));
-            FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-            stackPushObject(&excpObj);
+            FlintError err = throwNullPointerException(*this, "Cannot enter synchronized block by null object");
+            RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
-        if(!lockObject(obj)) {
+        FlintError err = lockObject(obj);
+        if(err == ERR_LOCK_FAIL) {
             FlintAPI::Thread::yield();
             goto *opcodes[code[pc]];
         }
+        RETURN_IF_ERR(err);
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -2004,7 +1929,7 @@ FlintError FlintExecution::run(void) {
             if(stack[sp + i] < 0)
                 goto negative_array_size_excp;
         }
-        FlintJavaObject &array = flint.newMultiArray(*typeName, &stack[sp], dimensions);
+        FlintJavaObject &array = flint.newMultiArray(*typeName, &stack[sp], dimensions, 1);
         stackPushObject(&array);
         pc += 4;
         goto *opcodes[code[pc]];
@@ -2015,27 +1940,23 @@ FlintError FlintExecution::run(void) {
     op_unknow:
         return ERR_VM_ERROR; // "unknow opcode"
     divided_by_zero_excp: {
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Divided by zero"));
-        FlintJavaThrowable &excpObj = flint.newArithmeticException(&strObj);
-        stackPushObject(&excpObj);
+        FlintError err = throwArithmeticException(*this, "Divided by zero");
+        RETURN_IF_NOT_THROW(err);
         goto exception_handler;
     }
     negative_array_size_excp: {
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Size of the array is a negative number"));
-        FlintJavaThrowable &excpObj = flint.newNegativeArraySizeException(&strObj);
-        stackPushObject(&excpObj);
+        FlintError err = throwNegativeArraySizeException(*this, "Size of the array is a negative number");
+        RETURN_IF_NOT_THROW(err);
         goto exception_handler;
     }
     load_null_array_excp: {
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot load from null array object"));
-        FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-        stackPushObject(&excpObj);
+        FlintError err = throwNullPointerException(*this, "Cannot load from null array object");
+        RETURN_IF_NOT_THROW(err);
         goto exception_handler;
     }
     store_null_array_excp: {
-        FlintJavaString &strObj = flint.newString(STR_AND_SIZE("Cannot store to null array object"));
-        FlintJavaThrowable &excpObj = flint.newNullPointerException(&strObj);
-        stackPushObject(&excpObj);
+        FlintError err = throwNullPointerException(*this, "Cannot store to null array object");
+        RETURN_IF_NOT_THROW(err);
         goto exception_handler;
     }
     op_exit:

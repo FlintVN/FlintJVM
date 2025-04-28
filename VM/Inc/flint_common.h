@@ -4,23 +4,26 @@
 
 #include <stdint.h>
 
-#define FLINT_VERSION_MAJOR     1
-#define FLINT_VERSION_MINOR     1
-#define FLINT_VERSION_PATCH     4
+#define FLINT_VERSION_MAJOR         1
+#define FLINT_VERSION_MINOR         1
+#define FLINT_VERSION_PATCH         4
 
-#define KILO_BYTE(_value)       ((_value) * 1024)
-#define MEGA_BYTE(_value)       ((_value) * KILO_BYTE(1024))
+#define KILO_BYTE(_value)           ((_value) * 1024)
+#define MEGA_BYTE(_value)           ((_value) * KILO_BYTE(1024))
 
-#define FLINT_MAX(_a, _b)       ((_a) > (_b) ? (_a) : (_b))
-#define FLINT_MIN(_a, _b)       ((_a) < (_b) ? (_a) : (_b))
-#define FLINT_ABS(_val)         (((_val) < 0) ? -(_val) : (_val))
-#define FLINT_SWAP(_a, _b) {    \
-    int32_t tmp = _a;           \
-    _a = _b;                    \
-    _b = tmp;                   \
+#define FLINT_MAX(_a, _b)           ((_a) > (_b) ? (_a) : (_b))
+#define FLINT_MIN(_a, _b)           ((_a) < (_b) ? (_a) : (_b))
+#define FLINT_ABS(_val)             (((_val) < 0) ? -(_val) : (_val))
+#define FLINT_SWAP(_a, _b) {        \
+    int32_t tmp = _a;               \
+    _a = _b;                        \
+    _b = tmp;                       \
 }
 
-#define LENGTH(_array)          (sizeof(_array) / sizeof(_array[0]))
+#define LENGTH(_array)              (sizeof(_array) / sizeof(_array[0]))
+
+#define RETURN_IF_ERR(err)          if(err != ERR_OK) return (err);
+#define RETURN_IF_NOT_THROW(err)    if(err != ERR_THROW) return (err);
 
 uint16_t Flint_Swap16(uint16_t value);
 uint32_t Flint_Swap32(uint32_t value);

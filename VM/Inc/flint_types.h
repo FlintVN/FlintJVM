@@ -116,6 +116,8 @@ typedef enum : uint8_t {
 typedef enum : uint8_t {
     ERR_OK = 0,
     ERR_THROW,
+    ERR_LOCK_FAIL,
+    ERR_LOCK_LIMIT,
     ERR_OUT_OF_MEMORY,
     ERR_STACK_OVERFLOW,
     ERR_CLASS_LOAD_FAIL,
