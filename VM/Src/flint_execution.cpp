@@ -202,20 +202,20 @@ void FlintExecution::stackRestoreContext(void) {
     locals = &stack[startSp + 1];
 }
 
-bool FlintExecution::lockClass(FlintClassData &cls) {
+FlintError FlintExecution::lockClass(FlintClassData &cls) {
     Flint::lock();
     if(cls.monitorCount == 0 || cls.ownId == (int32_t)this) {
         cls.ownId = (int32_t)this;
         if(cls.monitorCount < 0xFFFFFFFF) {
             cls.monitorCount++;
             Flint::unlock();
-            return true;
+            return ERR_OK;
         }
         Flint::unlock();
-        throw "monitorCount limit has been reached";
+        return ERR_LOCK_LIMIT;
     }
     Flint::unlock();
-    return false;
+    return ERR_LOCK_FAIL;
 }
 
 void FlintExecution::unlockClass(FlintClassData &cls) {
@@ -225,20 +225,20 @@ void FlintExecution::unlockClass(FlintClassData &cls) {
     Flint::unlock();
 }
 
-bool FlintExecution::lockObject(FlintJavaObject *obj) {
+FlintError FlintExecution::lockObject(FlintJavaObject *obj) {
     Flint::lock();
     if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
         obj->ownId = (int32_t)this;
         if(obj->monitorCount < 0xFFFFFF) {
             obj->monitorCount++;
             Flint::unlock();
-            return true;
+            return ERR_OK;
         }
         Flint::unlock();
-        throw "monitorCount limit has been reached";
+        return ERR_LOCK_LIMIT;
     }
     Flint::unlock();
-    return false;
+    return ERR_LOCK_FAIL;
 }
 
 void FlintExecution::unlockObject(FlintJavaObject *obj) {
@@ -310,9 +310,13 @@ FlintError FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
             return ERR_OK;
         }
     }
-    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockClass(classData)) {
-        FlintAPI::Thread::yield();
-        return ERR_OK;
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        FlintError err = lockClass(classData);
+        if(err == ERR_LOCK_FAIL) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
+        RETURN_IF_ERR(err);
     }
     lr = pc + 3;
     return invoke(methodInfo, constMethod.getArgc());
@@ -333,9 +337,13 @@ FlintError FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
             return ERR_OK;
         }
     }
-    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject((FlintJavaObject *)stack[sp - argc - 1])) {
-        FlintAPI::Thread::yield();
-        return ERR_OK;
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        FlintError err = lockObject((FlintJavaObject *)stack[sp - argc - 1]);
+        if(err == ERR_LOCK_FAIL) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
+        RETURN_IF_ERR(err);
     }
     lr = pc + 3;
     return invoke(methodInfo, argc);
@@ -354,9 +362,13 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         constMethod.methodInfo = &flint.findMethod(type, constMethod.nameAndType);
         methodInfo = constMethod.methodInfo;
     }
-    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
-        FlintAPI::Thread::yield();
-        return ERR_OK;
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        FlintError err = lockObject(obj);
+        if(err == ERR_LOCK_FAIL) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
+        RETURN_IF_ERR(err);
     }
     argc++;
     lr = pc + 3;
@@ -375,9 +387,13 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
         interfaceMethod.methodInfo = &flint.findMethod(type, interfaceMethod.nameAndType);
         methodInfo = interfaceMethod.methodInfo;
     }
-    if((methodInfo->accessFlag & METHOD_SYNCHRONIZED) && !lockObject(obj)) {
-        FlintAPI::Thread::yield();
-        return ERR_OK;
+    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+        FlintError err = lockObject(obj);
+        if(err == ERR_LOCK_FAIL) {
+            FlintAPI::Thread::yield();
+            return ERR_OK;
+        }
+        RETURN_IF_ERR(err);
     }
     lr = pc + 5;
     return invoke(methodInfo, argc);
@@ -1823,10 +1839,12 @@ FlintError FlintExecution::run(void) {
             RETURN_IF_NOT_THROW(err);
             goto exception_handler;
         }
-        if(!lockObject(obj)) {
+        FlintError err = lockObject(obj);
+        if(err == ERR_LOCK_FAIL) {
             FlintAPI::Thread::yield();
             goto *opcodes[code[pc]];
         }
+        RETURN_IF_ERR(err);
         pc++;
         goto *opcodes[code[pc]];
     }
