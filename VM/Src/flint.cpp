@@ -352,33 +352,6 @@ FlintJavaString &Flint::newString(const char *text, uint16_t size, bool isUtf8) 
     return str;
 }
 
-FlintJavaString &Flint::newString(const char *latin1Str[], uint16_t count) {
-    uint16_t index = 0;
-    uint16_t length = 0;
-    for(uint16_t i = 0; i < count; i++)
-        length += strlen(latin1Str[i]);
-
-    /* create new byte array to store string */
-    FlintInt8Array &byteArray = newByteArray(length);
-    uint8_t *byteArrayData = (uint8_t *)byteArray.getData();
-    for(uint16_t i = 0; i < count; i++) {
-        const char *buff = latin1Str[i];
-        while(*buff) {
-            uint32_t c = FlintJavaString::utf8Decode(buff);
-            byteArrayData[index] = c;
-            buff += FlintJavaString::getUtf8DecodeSize(*buff);
-            index++;
-        }
-    }
-
-    /* create new string object */
-    FlintJavaString &str = *(FlintJavaString *)&newObject(stringClassName);
-    /* set value for value field */
-    str.setValue(byteArray);
-
-    return str;
-}
-
 FlintJavaString &Flint::getConstString(const FlintConstUtf8 &utf8) {
     Flint::lock();
     FlintJavaString *ret = constStringTree.find(utf8);
@@ -466,66 +439,6 @@ FlintJavaThrowable &Flint::newThrowable(FlintJavaString *str, const FlintConstUt
         obj.setDetailMessage(*str);
 
     return obj;
-}
-
-FlintJavaThrowable &Flint::newException(FlintJavaString *str) {
-    return newThrowable(str, exceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newIOException(FlintJavaString *str) {
-    return newThrowable(str, exceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newErrorException(FlintJavaString *str) {
-    return newThrowable(str, errorClassName);
-}
-
-FlintJavaThrowable &Flint::newClassCastException(FlintJavaString *str) {
-    return newThrowable(str, classCastExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newArrayStoreException(FlintJavaString *str) {
-    return newThrowable(str, arrayStoreExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newArithmeticException(FlintJavaString *str) {
-    return newThrowable(str, arithmeticExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newNullPointerException(FlintJavaString *str) {
-    return newThrowable(str, nullPointerExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newInterruptedException(FlintJavaString *str) {
-    return newThrowable(str, interruptedExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newClassNotFoundException(FlintJavaString *str) {
-    return newThrowable(str, classNotFoundExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newIllegalArgumentException(FlintJavaString *str) {
-    return newThrowable(str, illegalArgumentExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newCloneNotSupportedException(FlintJavaString *str) {
-    return newThrowable(str, cloneNotSupportedExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newNegativeArraySizeException(FlintJavaString *str) {
-    return newThrowable(str, negativeArraySizeExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newArrayIndexOutOfBoundsException(FlintJavaString *str) {
-    return newThrowable(str, arrayIndexOutOfBoundsExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newUnsupportedOperationException(FlintJavaString *str) {
-    return newThrowable(str, unsupportedOperationExceptionClassName);
-}
-
-FlintJavaThrowable &Flint::newUnsatisfiedLinkErrorException(FlintJavaString *str) {
-    return newThrowable(str, unsatisfiedLinkErrorClassName);
 }
 
 FlintJavaBoolean &Flint::newBoolean(bool value) {

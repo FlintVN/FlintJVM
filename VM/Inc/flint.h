@@ -106,7 +106,6 @@ public:
     FlintJavaString &newString(uint16_t length, uint8_t coder);
     FlintJavaString &newString(const char *text);
     FlintJavaString &newString(const char *text, uint16_t size, bool isUtf8);
-    FlintJavaString &newString(const char *latin1Str[], uint16_t count);
     FlintJavaString &getConstString(const FlintConstUtf8 &utf8);
     FlintJavaString &getConstString(FlintJavaString &str);
 
@@ -114,24 +113,8 @@ public:
     FlintConstUtf8 &getTypeNameConstUtf8(const char *typeName, uint16_t length);
 
     FlintObjectArray &getClassArray0(void);
-private:
+
     FlintJavaThrowable &newThrowable(FlintJavaString *str, const FlintConstUtf8 &excpType);
-public:
-    FlintJavaThrowable &newException(FlintJavaString *str);
-    FlintJavaThrowable &newIOException(FlintJavaString *str);
-    FlintJavaThrowable &newErrorException(FlintJavaString *str);
-    FlintJavaThrowable &newClassCastException(FlintJavaString *str);
-    FlintJavaThrowable &newArrayStoreException(FlintJavaString *str);
-    FlintJavaThrowable &newArithmeticException(FlintJavaString *str);
-    FlintJavaThrowable &newNullPointerException(FlintJavaString *str);
-    FlintJavaThrowable &newInterruptedException(FlintJavaString *str);
-    FlintJavaThrowable &newClassNotFoundException(FlintJavaString *str);
-    FlintJavaThrowable &newIllegalArgumentException(FlintJavaString *str);
-    FlintJavaThrowable &newCloneNotSupportedException(FlintJavaString *str);
-    FlintJavaThrowable &newNegativeArraySizeException(FlintJavaString *str);
-    FlintJavaThrowable &newArrayIndexOutOfBoundsException(FlintJavaString *str);
-    FlintJavaThrowable &newUnsupportedOperationException(FlintJavaString *str);
-    FlintJavaThrowable &newUnsatisfiedLinkErrorException(FlintJavaString *str);
 
     FlintJavaBoolean &newBoolean(bool value = false);
     FlintJavaByte &newByte(int8_t value = 0);

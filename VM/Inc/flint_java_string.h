@@ -9,7 +9,7 @@ class FlintJavaString : public FlintJavaObject {
 public:
     FlintInt8Array *getValue(void) const;
     void setValue(FlintInt8Array &byteArray);
-    const char *getText(void) const;
+    char *getText(void) const;
     uint32_t getLength(void) const;
     uint8_t getCoder(void) const;
     void setCoder(uint8_t coder);
