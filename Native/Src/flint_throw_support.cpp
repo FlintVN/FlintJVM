@@ -33,7 +33,7 @@ static uint32_t sprint(char *buff, uint32_t index, const char *txt) {
         buff[index + i] = txt[i];
         i++;
     }
-    return i;
+    return i + index;
 }
 
 static uint32_t sprint(char *buff, uint32_t index, const char *txt, char oldChar, char newChar) {
@@ -42,7 +42,7 @@ static uint32_t sprint(char *buff, uint32_t index, const char *txt, char oldChar
         buff[index + i] = (txt[i] == oldChar) ? newChar : txt[i];
         i++;
     }
-    return i;
+    return i + index;
 }
 
 static uint32_t sprint(char *buff, uint32_t index, int32_t num) {
@@ -57,7 +57,7 @@ static uint32_t sprint(char *buff, uint32_t index, int32_t num) {
     } while(tmp);
     if(num < 0)
         buff[--index] = '-';
-    return count;
+    return count + index;
 }
 
 FlintError throwException(FlintExecution &execution, const char *msg) {
@@ -73,7 +73,7 @@ FlintError throwErrorException(FlintExecution &execution, const char *msg) {
 }
 
 FlintError throwClassCastException(FlintExecution &execution, FlintJavaObject *obj, const FlintConstUtf8 &type) {
-    uint32_t strLen = strlen("Class '") + obj->dimensions + obj->type.length + strlen("' cannot be cast to class '") + strlen("'");
+    uint32_t strLen = strlen("Class '") + obj->dimensions + obj->type.length + strlen("' cannot be cast to class '") + type.length + strlen("'");
     bool isPrimType = FlintJavaObject::isPrimType(obj->type);
     if(!isPrimType)
         strLen += 2;
