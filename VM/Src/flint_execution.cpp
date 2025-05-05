@@ -297,8 +297,14 @@ FlintError FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
 }
 
 FlintError FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
-    if(constMethod.methodInfo == 0)
-        constMethod.methodInfo = &flint.findMethod(constMethod);
+    if(constMethod.methodInfo == 0) {
+        FlintError err = flint.findMethod(constMethod, constMethod.methodInfo);
+        if(err != ERR_OK) {
+            if(err == ERR_METHOD_NOT_FOUND)
+                return throwNoSuchMethodError(*this, constMethod);
+            return err;
+        }
+    }
     FlintMethodInfo *methodInfo = constMethod.methodInfo;
     FlintClassData &classData = (FlintClassData &)methodInfo->classLoader;
     if(classData.hasStaticCtor()) {
@@ -324,8 +330,14 @@ FlintError FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
 
 FlintError FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
     uint8_t argc = constMethod.getArgc() + 1;
-    if(constMethod.methodInfo == 0)
-        constMethod.methodInfo = &flint.findMethod(constMethod);
+    if(constMethod.methodInfo == 0) {
+        FlintError err = flint.findMethod(constMethod, constMethod.methodInfo);
+        if(err != ERR_OK) {
+            if(err == ERR_METHOD_NOT_FOUND)
+                return throwNoSuchMethodError(*this, constMethod);
+            return err;
+        }
+    }
     FlintMethodInfo *methodInfo = constMethod.methodInfo;
     FlintClassData &classData = (FlintClassData &)methodInfo->classLoader;
     if(classData.hasStaticCtor()) {
@@ -355,13 +367,15 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     if(obj == 0)
         return throwNullPointerException(*this, constMethod);
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
-    FlintMethodInfo *methodInfo;
-    if(constMethod.methodInfo && constMethod.methodInfo->classLoader.getThisClass() == type)
-        methodInfo = constMethod.methodInfo;
-    else {
-        constMethod.methodInfo = &flint.findMethod(type, constMethod.nameAndType);
-        methodInfo = constMethod.methodInfo;
+    if((!constMethod.methodInfo) || (constMethod.methodInfo->classLoader.getThisClass() != type)) {
+        FlintError err = flint.findMethod(type, constMethod.nameAndType, constMethod.methodInfo);
+        if(err != ERR_OK) {
+            if(err == ERR_METHOD_NOT_FOUND)
+                return throwNoSuchMethodError(*this, constMethod);
+            return err;
+        }
     }
+    FlintMethodInfo *methodInfo = constMethod.methodInfo;
     if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
         FlintError err = lockObject(obj);
         if(err == ERR_LOCK_FAIL) {
@@ -380,13 +394,15 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
     if(obj == 0)
         return throwNullPointerException(*this, (FlintConstMethod &)interfaceMethod);
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
-    FlintMethodInfo *methodInfo;
-    if(interfaceMethod.methodInfo && interfaceMethod.methodInfo->classLoader.getThisClass() == type)
-        methodInfo = interfaceMethod.methodInfo;
-    else {
-        interfaceMethod.methodInfo = &flint.findMethod(type, interfaceMethod.nameAndType);
-        methodInfo = interfaceMethod.methodInfo;
+    if((!interfaceMethod.methodInfo) || (interfaceMethod.methodInfo->classLoader.getThisClass() != type)) {
+        FlintError err = flint.findMethod(type, interfaceMethod.nameAndType, interfaceMethod.methodInfo);
+        if(err != ERR_OK) {
+            if(err == ERR_METHOD_NOT_FOUND)
+                return throwNoSuchMethodError(*this, (FlintConstMethod &)interfaceMethod);
+            return err;
+        }
     }
+    FlintMethodInfo *methodInfo = interfaceMethod.methodInfo;
     if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
         FlintError err = lockObject(obj);
         if(err == ERR_LOCK_FAIL) {
@@ -409,6 +425,8 @@ FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
     flint.initStaticField(classData);
     Flint::unlock();
     FlintMethodInfo *ctorMethod = classData.getStaticCtor();
+    if(ctorMethod == NULL)
+        return throwNoSuchMethodError(*this, classData);
     lr = pc;
     return invoke(ctorMethod, 0);
 }
