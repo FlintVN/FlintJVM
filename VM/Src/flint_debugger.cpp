@@ -330,13 +330,13 @@ void FlintDebugger::responseField(FlintJavaObject *obj, const FlintConstUtf8 &fi
             return;
         }
         uint8_t fieldType = 0;
-        void *fieldData = (void *)&obj->getFields().getFieldData32(fieldName);
+        void *fieldData = obj->getFields().getFieldData32(fieldName);
         if(!fieldData) {
             fieldType = 1;
-            fieldData = (void *)&obj->getFields().getFieldData64(fieldName);
+            fieldData = obj->getFields().getFieldData64(fieldName);
             if(!fieldData) {
                 fieldType = 2;
-                fieldData = (void *)&obj->getFields().getFieldObject(fieldName);
+                fieldData = obj->getFields().getFieldObject(fieldName);
             }
         }
         if(fieldData) {

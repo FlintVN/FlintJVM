@@ -21,5 +21,9 @@ FlintError throwNegativeArraySizeException(FlintExecution &execution, const char
 FlintError throwArrayIndexOutOfBoundsException(FlintExecution &execution, int32_t index, int32_t length);
 FlintError throwUnsupportedOperationException(FlintExecution &execution, const char *msg = 0);
 FlintError throwUnsatisfiedLinkErrorException(FlintExecution &execution, const char *msg = 0);
+FlintError throwNoSuchMethodError(FlintExecution &execution, FlintConstMethod &constMethod);
+FlintError throwNoSuchMethodError(FlintExecution &execution, FlintClassData &classData);
+FlintError throwNoSuchFieldError(FlintExecution &execution, FlintConstField &constField);
+FlintError throwNoSuchFieldError(FlintExecution &execution, FlintConstUtf8 &className, const char *fieldName);
 
 #endif /* __FLINT_THROW_SUPPORT_H */

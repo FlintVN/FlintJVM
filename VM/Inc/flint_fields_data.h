@@ -48,21 +48,20 @@ public:
     const uint16_t fields64Count;
     const uint16_t fieldsObjCount;
 
-    FlintFieldData32 &getFieldData32(const char *fieldName, uint32_t *index = 0) const;
-    FlintFieldData32 &getFieldData32(const FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
-    FlintFieldData32 &getFieldData32(FlintConstField &constField) const;
-    FlintFieldData32 &getFieldData32ByIndex(int32_t index) const;
+    FlintFieldData32 *getFieldData32(const char *fieldName, uint32_t *index = 0) const;
+    FlintFieldData32 *getFieldData32(const FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
+    FlintFieldData32 *getFieldData32(FlintConstField &constField) const;
+    FlintFieldData32 *getFieldData32ByIndex(int32_t index) const;
 
-    FlintFieldData64 &getFieldData64(const char *fieldName, uint32_t *index = 0) const;
-    FlintFieldData64 &getFieldData64(const FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
-    FlintFieldData64 &getFieldData64(FlintConstField &constField) const;
-    FlintFieldData64 &getFieldData64ByIndex(int32_t index) const;
+    FlintFieldData64 *getFieldData64(const char *fieldName, uint32_t *index = 0) const;
+    FlintFieldData64 *getFieldData64(const FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
+    FlintFieldData64 *getFieldData64(FlintConstField &constField) const;
+    FlintFieldData64 *getFieldData64ByIndex(int32_t index) const;
 
-    FlintFieldObject &getFieldObject(const char *fieldName, uint32_t *index = 0) const;
-    FlintFieldObject &getFieldObject(const FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
-    FlintFieldObject &getFieldObject(FlintConstField &constField) const;
-    FlintFieldObject &getFieldObjectByIndex(int32_t index) const;
-
+    FlintFieldObject *getFieldObject(const char *fieldName, uint32_t *index = 0) const;
+    FlintFieldObject *getFieldObject(const FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
+    FlintFieldObject *getFieldObject(FlintConstField &constField) const;
+    FlintFieldObject *getFieldObjectByIndex(int32_t index) const;
 private:
     FlintFieldData32 *fieldsData32;
     FlintFieldData64 *fieldsData64;

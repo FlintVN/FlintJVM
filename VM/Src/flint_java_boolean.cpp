@@ -4,9 +4,9 @@
 #include "flint_fields_data.h"
 
 bool FlintJavaBoolean::getValue(void) const {
-    return (bool)getFields().getFieldData32ByIndex(0).value;
+    return (bool)getFields().getFieldData32ByIndex(0)->value;
 }
 
 void FlintJavaBoolean::setValue(bool value) {
-    getFields().getFieldData32ByIndex(0).value = value;
+    getFields().getFieldData32ByIndex(0)->value = value;
 }

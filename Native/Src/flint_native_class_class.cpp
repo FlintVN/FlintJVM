@@ -144,7 +144,7 @@ static FlintError nativeGetSuperclass(FlintExecution &execution) {
         execution.stackPushObject(NULL);
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
-        const FlintConstUtf8 *superClass = &execution.flint.load(typeName).getSuperClass();
+        const FlintConstUtf8 *superClass = execution.flint.load(typeName).getSuperClass();
         if(superClass == NULL) {
             execution.stackPushObject(NULL);
             return ERR_OK;
@@ -331,10 +331,10 @@ static FlintError nativeGetDeclaredFields0(FlintExecution &execution) {
         FlintJavaObject &field = execution.flint.newObject(fieldClassName);
         FlintFieldsData &fields = field.getFields();
 
-        fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
-        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(fieldInfo->getName());
-        fields.getFieldObject(typeFieldName, &typeIndex).object = &getClass(execution.flint, fieldInfo->getDescriptor().text, fieldInfo->getDescriptor().length);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)fieldInfo->accessFlag & 0x1FFF;
+        fields.getFieldObject(clazzFieldName, &clazzIndex)->object = clsObj;
+        fields.getFieldObject(nameFieldName, &nameIndex)->object = &execution.flint.getConstString(fieldInfo->getName());
+        fields.getFieldObject(typeFieldName, &typeIndex)->object = &getClass(execution.flint, fieldInfo->getDescriptor().text, fieldInfo->getDescriptor().length);
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex)->value = (int32_t)fieldInfo->accessFlag & 0x1FFF;
 
         array->getData()[i] = &field;
     }
@@ -364,12 +364,12 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution &execution) {
         FlintJavaObject &method = execution.flint.newObject(methodClassName);
         FlintFieldsData &fields = method.getFields();
 
-        fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
-        fields.getFieldObject(nameFieldName, &nameIndex).object = &execution.flint.getConstString(methodInfo->getName());
-        fields.getFieldObject(returnTypeFieldName, &returnTypeIndex).object = &getReturnType(execution.flint, methodInfo);
-        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution.flint, methodInfo, classArray0);
-        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)methodInfo->accessFlag & 0x1FFF;
+        fields.getFieldObject(clazzFieldName, &clazzIndex)->object = clsObj;
+        fields.getFieldObject(nameFieldName, &nameIndex)->object = &execution.flint.getConstString(methodInfo->getName());
+        fields.getFieldObject(returnTypeFieldName, &returnTypeIndex)->object = &getReturnType(execution.flint, methodInfo);
+        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex)->object = &getParameterTypes(execution.flint, methodInfo, classArray0);
+        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex)->object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex)->value = (int32_t)methodInfo->accessFlag & 0x1FFF;
 
         array->getData()[count++] = &method;
     }
@@ -399,10 +399,10 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution &execution) {
         FlintJavaObject &constructor = execution.flint.newObject(constructorClassName);
         FlintFieldsData &fields = constructor.getFields();
 
-        fields.getFieldObject(clazzFieldName, &clazzIndex).object = clsObj;
-        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex).object = &getParameterTypes(execution.flint, methodInfo, classArray0);
-        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex).object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex).value = (int32_t)methodInfo->accessFlag & 0x1FFF;
+        fields.getFieldObject(clazzFieldName, &clazzIndex)->object = clsObj;
+        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex)->object = &getParameterTypes(execution.flint, methodInfo, classArray0);
+        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex)->object = &getExceptionTypes(execution.flint, methodInfo, classArray0);
+        fields.getFieldData32(modifiersFieldName, &modifiersIndex)->value = (int32_t)methodInfo->accessFlag & 0x1FFF;
 
         array->getData()[count++] = &constructor;
     }
