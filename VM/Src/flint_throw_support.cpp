@@ -214,3 +214,31 @@ FlintError throwNoSuchMethodError(FlintExecution &execution, FlintClassData &cla
 
     return throwThrowable(execution, noSuchMethodErrorExceptionClassName, str);
 }
+
+FlintError throwNoSuchFieldError(FlintExecution &execution, FlintConstField &constField) {
+    uint32_t strLen = strlen("Could not find the field ") + constField.className.length + strlen(".") + constField.nameAndType.name.length;
+    FlintJavaString *str = &execution.flint.newString(strLen, 0);
+
+    uint32_t i = 0;
+    char *txt = str->getText();
+    i = sprint(txt, i, "Could not find the field ");
+    i = sprint(txt, i,  constField.className.text, '/', '.');
+    i = sprint(txt, i, ".");
+    i = sprint(txt, i, constField.nameAndType.name.text);
+
+    return throwThrowable(execution, noSuchFieldErrorExceptionClassName, str);
+}
+
+FlintError throwNoSuchFieldError(FlintExecution &execution, FlintConstUtf8 &className, const char *fieldName) {
+    uint32_t strLen = strlen("Could not find the field ") + className.length + strlen(".") + strlen(fieldName);
+    FlintJavaString *str = &execution.flint.newString(strLen, 0);
+
+    uint32_t i = 0;
+    char *txt = str->getText();
+    i = sprint(txt, i, "Could not find the field ");
+    i = sprint(txt, i,  className.text, '/', '.');
+    i = sprint(txt, i, ".");
+    i = sprint(txt, i, fieldName);
+
+    return throwThrowable(execution, noSuchFieldErrorExceptionClassName, str);
+}

@@ -42,6 +42,7 @@ const FlintConstUtf8 &arithmeticExceptionClassName = *(const FlintConstUtf8 *)"\
 const FlintConstUtf8 &nullPointerExceptionClassName = *(const FlintConstUtf8 *)"\x1E\x00\x0F\xCB""java/lang/NullPointerException";
 const FlintConstUtf8 &unsatisfiedLinkErrorClassName = *(const FlintConstUtf8 *)"\x1E\x00\x77\x94""java/lang/UnsatisfiedLinkError";
 const FlintConstUtf8 &interruptedExceptionClassName = *(const FlintConstUtf8 *)"\x1E\x00\x19\x97""java/lang/InterruptedException";
+const FlintConstUtf8 &noSuchFieldErrorExceptionClassName = *(const FlintConstUtf8 *)"\x1A\x00\xF5\x2A""java/lang/NoSuchFieldError";
 const FlintConstUtf8 &noSuchMethodErrorExceptionClassName = *(const FlintConstUtf8 *)"\x1B\x00\xDE\x86""java/lang/NoSuchMethodError";
 const FlintConstUtf8 &classNotFoundExceptionClassName = *(const FlintConstUtf8 *)"\x20\x00\xFD\xFC""java/lang/ClassNotFoundException";
 const FlintConstUtf8 &illegalArgumentExceptionClassName = *(const FlintConstUtf8 *)"\x22\x00\x6D\x2A""java/lang/IllegalArgumentException";
