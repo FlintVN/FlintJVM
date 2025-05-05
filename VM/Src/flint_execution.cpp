@@ -367,7 +367,7 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     if(obj == 0)
         return throwNullPointerException(*this, constMethod);
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
-    if((!constMethod.methodInfo) || (*constMethod.methodInfo->classLoader.thisClass != type)) {
+    if((!constMethod.methodInfo) || (constMethod.methodInfo->classLoader.thisClass != &type)) {
         FlintError err = flint.findMethod(type, constMethod.nameAndType, constMethod.methodInfo);
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
@@ -393,7 +393,7 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
     if(obj == 0)
         return throwNullPointerException(*this, (FlintConstMethod &)interfaceMethod);
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
-    if((!interfaceMethod.methodInfo) || (*interfaceMethod.methodInfo->classLoader.thisClass != type)) {
+    if((!interfaceMethod.methodInfo) || (interfaceMethod.methodInfo->classLoader.thisClass != &type)) {
         FlintError err = flint.findMethod(type, interfaceMethod.nameAndType, interfaceMethod.methodInfo);
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
