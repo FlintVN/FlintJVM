@@ -314,16 +314,16 @@ public:
     FlintGraphics(FlintJavaObject *g, uint32_t color) {
         uint8_t alpha = color >> 24;
         FlintFieldsData &fields = g->getFields();
-        FlintInt8Array *buffer = (FlintInt8Array *)fields.getFieldObjectByIndex(0).object;
-        colorMode = (uint8_t)fields.getFieldData32ByIndex(0).value;
+        FlintInt8Array *buffer = (FlintInt8Array *)fields.getFieldObjectByIndex(0)->object;
+        colorMode = (uint8_t)fields.getFieldData32ByIndex(0)->value;
         colorBuffer = (uint8_t *)buffer->getData();
-        originX = fields.getFieldData32ByIndex(1).value;
-        originY = fields.getFieldData32ByIndex(2).value;
-        gwidth = fields.getFieldData32ByIndex(3).value;
-        clipX = fields.getFieldData32ByIndex(4).value - originX;
-        clipY = fields.getFieldData32ByIndex(5).value - originY;
-        clipWidth = fields.getFieldData32ByIndex(6).value;
-        clipHeight = fields.getFieldData32ByIndex(7).value;
+        originX = fields.getFieldData32ByIndex(1)->value;
+        originY = fields.getFieldData32ByIndex(2)->value;
+        gwidth = fields.getFieldData32ByIndex(3)->value;
+        clipX = fields.getFieldData32ByIndex(4)->value - originX;
+        clipY = fields.getFieldData32ByIndex(5)->value - originY;
+        clipWidth = fields.getFieldData32ByIndex(6)->value;
+        clipHeight = fields.getFieldData32ByIndex(7)->value;
 
         switch (colorMode) {
             case COLOR_MODE_RGB444:
@@ -663,13 +663,13 @@ public:
 class FlintJavaColor : public FlintJavaObject {
 public:
     uint32_t getValue(void) const {
-        return getFields().getFieldData32(*(const FlintConstUtf8 *)"\x05\x00\x2B\x6E""value").value;
+        return getFields().getFieldData32ByIndex(0)->value;
     }
 };
 
 static FlintError nativeClear(FlintExecution &execution) {
     FlintJavaObject *g = execution.stackPopObject();
-    FlintInt8Array *colorBuffer = (FlintInt8Array *)g->getFields().getFieldObject(*(const FlintConstUtf8 *)"\x0B\x00\x05\xB6""colorBuffer").object;
+    FlintInt8Array *colorBuffer = (FlintInt8Array *)g->getFields().getFieldObjectByIndex(0)->object;
     memset(colorBuffer->getData(), 0, colorBuffer->getLength());
     return ERR_OK;
 }

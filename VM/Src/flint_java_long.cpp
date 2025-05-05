@@ -4,9 +4,9 @@
 #include "flint_fields_data.h"
 
 int64_t FlintJavaLong::getValue(void) const {
-    return getFields().getFieldData64ByIndex(0).value;
+    return getFields().getFieldData64ByIndex(0)->value;
 }
 
 void FlintJavaLong::setValue(int64_t value) {
-    getFields().getFieldData64ByIndex(0).value = value;
+    getFields().getFieldData64ByIndex(0)->value = value;
 }

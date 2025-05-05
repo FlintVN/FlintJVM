@@ -6,11 +6,11 @@
 #include "flint.h"
 
 FlintJavaString &FlintJavaClass::getName(void) const {
-    return *(FlintJavaString *)getFields().getFieldObject(nameFieldName).object;
+    return *(FlintJavaString *)getFields().getFieldObject(nameFieldName)->object;
 }
 
 void FlintJavaClass::setName(FlintJavaString *name) {
-    getFields().getFieldObject(nameFieldName).object = name;
+    getFields().getFieldObject(nameFieldName)->object = name;
 }
 
 bool FlintJavaClass::isArray(void) const {

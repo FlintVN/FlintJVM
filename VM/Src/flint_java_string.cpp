@@ -90,11 +90,11 @@ bool FlintJavaString::isLatin1(const char *utf8) {
 }
 
 FlintInt8Array *FlintJavaString::getValue(void) const {
-    return (FlintInt8Array *)getFields().getFieldObjectByIndex(0).object;
+    return (FlintInt8Array *)getFields().getFieldObjectByIndex(0)->object;
 }
 
 void FlintJavaString::setValue(FlintInt8Array &byteArray) {
-    getFields().getFieldObjectByIndex(0).object = &byteArray;
+    getFields().getFieldObjectByIndex(0)->object = &byteArray;
 }
 
 char *FlintJavaString::getText(void) const {
@@ -111,11 +111,11 @@ uint32_t FlintJavaString::getLength(void) const {
 }
 
 uint8_t FlintJavaString::getCoder(void) const {
-    return getFields().getFieldData32ByIndex(0).value;
+    return getFields().getFieldData32ByIndex(0)->value;
 }
 
 void FlintJavaString::setCoder(uint8_t coder) {
-    getFields().getFieldData32ByIndex(0).value = coder;
+    getFields().getFieldData32ByIndex(0)->value = coder;
 }
 
 int32_t FlintJavaString::compareTo(FlintJavaString &another) const {
