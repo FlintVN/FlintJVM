@@ -11,7 +11,7 @@ startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 }
 
 static FlintNativeMethodPtr findNativeMethod(FlintMethodInfo *methodInfo) {
-    FlintConstUtf8 &className = methodInfo->classLoader.getThisClass();
+    FlintConstUtf8 &className = *methodInfo->classLoader.thisClass;
     FlintConstUtf8 &methodName = methodInfo->getName();
     FlintConstUtf8 &methodDesc = methodInfo->getDescriptor();
     for(uint32_t i = 0; i < LENGTH(BASE_NATIVE_CLASS_LIST); i++) {

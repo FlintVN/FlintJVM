@@ -202,7 +202,7 @@ void FlintDebugger::responseStackTrace(uint32_t stackIndex) {
         bool isEndStack = false;
         if(execution->getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
             FlintMethodInfo &method = stackTrace.method;
-            FlintConstUtf8 &className = method.classLoader.getThisClass();
+            FlintConstUtf8 &className = *method.classLoader.thisClass;
             FlintConstUtf8 &methodName = method.getName();
             FlintConstUtf8 &methodDesc = method.getDescriptor();
 

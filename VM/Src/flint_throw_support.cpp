@@ -202,13 +202,13 @@ FlintError throwNoSuchMethodError(FlintExecution &execution, FlintConstMethod &c
 }
 
 FlintError throwNoSuchMethodError(FlintExecution &execution, FlintClassData &classData) {
-    uint32_t strLen = strlen("Could not find the method ") + classData.getThisClass().length + strlen(".") + staticConstructorName.length;
+    uint32_t strLen = strlen("Could not find the method ") + classData.thisClass->length + strlen(".") + staticConstructorName.length;
     FlintJavaString *str = &execution.flint.newString(strLen, 0);
 
     uint32_t i = 0;
     char *txt = str->getText();
     i = sprint(txt, i, "Could not find the method ");
-    i = sprint(txt, i, classData.getThisClass().text, '/', '.');
+    i = sprint(txt, i, classData.thisClass->text, '/', '.');
     i = sprint(txt, i, ".");
     i = sprint(txt, i, staticConstructorName.text);
 

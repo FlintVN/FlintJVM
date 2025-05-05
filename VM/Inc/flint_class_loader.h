@@ -21,8 +21,10 @@ private:
     uint16_t interfacesCount;
     uint16_t fieldsCount;
     uint16_t methodsCount;
-    FlintConstUtf8 *thisClass;
-    FlintConstUtf8 *superClass;
+public:
+    FlintConstUtf8 * const thisClass;
+    FlintConstUtf8 * const superClass;
+private:
     class Flint &flint;
     FlintConstPool *poolTable;
     uint16_t *interfaces;
@@ -80,9 +82,6 @@ public:
     FlintConstInterfaceMethod &getConstInterfaceMethod(FlintConstPool &constPool);
 
     FlintClassAccessFlag getAccessFlag(void) const;
-
-    FlintConstUtf8 &getThisClass(void) const;
-    FlintConstUtf8 *getSuperClass(void) const;
 
     uint16_t getInterfacesCount(void) const;
     FlintConstUtf8 &getInterface(uint8_t interfaceIndex) const;

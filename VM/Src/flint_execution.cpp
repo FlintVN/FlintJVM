@@ -367,7 +367,7 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     if(obj == 0)
         return throwNullPointerException(*this, constMethod);
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
-    if((!constMethod.methodInfo) || (constMethod.methodInfo->classLoader.getThisClass() != type)) {
+    if((!constMethod.methodInfo) || (*constMethod.methodInfo->classLoader.thisClass != type)) {
         FlintError err = flint.findMethod(type, constMethod.nameAndType, constMethod.methodInfo);
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
@@ -375,8 +375,7 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
             return err;
         }
     }
-    FlintMethodInfo *methodInfo = constMethod.methodInfo;
-    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+    if(constMethod.methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
         FlintError err = lockObject(obj);
         if(err == ERR_LOCK_FAIL) {
             FlintAPI::Thread::yield();
@@ -386,7 +385,7 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
     }
     argc++;
     lr = pc + 3;
-    return invoke(methodInfo, argc);
+    return invoke(constMethod.methodInfo, argc);
 }
 
 FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc) {
@@ -394,7 +393,7 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
     if(obj == 0)
         return throwNullPointerException(*this, (FlintConstMethod &)interfaceMethod);
     FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
-    if((!interfaceMethod.methodInfo) || (interfaceMethod.methodInfo->classLoader.getThisClass() != type)) {
+    if((!interfaceMethod.methodInfo) || (*interfaceMethod.methodInfo->classLoader.thisClass != type)) {
         FlintError err = flint.findMethod(type, interfaceMethod.nameAndType, interfaceMethod.methodInfo);
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
@@ -402,8 +401,7 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
             return err;
         }
     }
-    FlintMethodInfo *methodInfo = interfaceMethod.methodInfo;
-    if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
+    if(interfaceMethod.methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
         FlintError err = lockObject(obj);
         if(err == ERR_LOCK_FAIL) {
             FlintAPI::Thread::yield();
@@ -412,7 +410,7 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
         RETURN_IF_ERR(err);
     }
     lr = pc + 5;
-    return invoke(methodInfo, argc);
+    return invoke(interfaceMethod.methodInfo, argc);
 }
 
 FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
@@ -2063,7 +2061,7 @@ FlintError FlintExecution::run(void) {
             typeName = (FlintConstUtf8 *)primTypeConstUtf8List[atype - 4];
         }
         else
-            typeName = &flint.load(&typeNameText[dimensions + 1], length - 2).getThisClass();
+            typeName = flint.load(&typeNameText[dimensions + 1], length - 2).thisClass;
         sp -= dimensions - 1;
         for(int32_t i = 0; i < dimensions; i++) {
             if(stack[sp + i] < 0)

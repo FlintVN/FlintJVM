@@ -89,7 +89,7 @@ static FlintAttributeType parseAttributeType(const FlintConstUtf8 &name) {
     return ATTRIBUTE_UNKNOW;
 }
 
-FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) : flint(flint) {
+FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) : thisClass(NULL), superClass(NULL), flint(flint) {
     staticCtorInfo = 0;
     poolCount = 0;
     interfacesCount = 0;
@@ -174,9 +174,9 @@ void FlintClassLoader::readFile(void *file) {
     if(utf8Buff != buff)
         Flint::free(utf8Buff);
     accessFlags = ClassLoader_ReadUInt16(file);
-    thisClass = &getConstUtf8Class(ClassLoader_ReadUInt16(file));
+    *(FlintConstUtf8 **)&thisClass = &getConstUtf8Class(ClassLoader_ReadUInt16(file));
     uint16_t superClassIndex = ClassLoader_ReadUInt16(file);
-    superClass = (superClassIndex != 0) ? &getConstUtf8Class(superClassIndex) : 0;
+    *(FlintConstUtf8 **)&superClass = (superClassIndex != 0) ? &getConstUtf8Class(superClassIndex) : 0;
     interfacesCount = ClassLoader_ReadUInt16(file);
     if(interfacesCount) {
         interfaces = (uint16_t *)Flint::malloc(interfacesCount * sizeof(uint16_t));
@@ -641,14 +641,6 @@ FlintClassAccessFlag FlintClassLoader::getAccessFlag(void) const {
     return (FlintClassAccessFlag)accessFlags;
 }
 
-FlintConstUtf8 &FlintClassLoader::getThisClass(void) const {
-    return *thisClass;
-}
-
-FlintConstUtf8 *FlintClassLoader::getSuperClass(void) const {
-    return superClass;
-}
-
 uint16_t FlintClassLoader::getInterfacesCount(void) const {
     return interfacesCount;
 }
@@ -704,8 +696,7 @@ FlintMethodInfo *FlintClassLoader::getMethodInfo(uint8_t methodIndex) {
     if(method.accessFlag & METHOD_UNLOADED) {
         Flint::lock();
         if(method.accessFlag & METHOD_UNLOADED) {
-            FlintConstUtf8 &thisCls = getThisClass();
-            void *file = ClassLoader_Open(thisCls.text, thisCls.length);
+            void *file = ClassLoader_Open(thisClass->text, thisClass->length);
             FlintAPI::IO::fseek(file, (uint32_t)method.code);
             readAttributeCode(file, method);
             FlintAPI::IO::fclose(file);

@@ -135,7 +135,7 @@ FlintClassData *FlintClassDataBinaryTree::insert(Flint *flint, FlintClassData *r
             throw;
         }
     }
-    int8_t compareResult = compareConstUtf8(text, hash, rootNode->getThisClass());
+    int8_t compareResult = compareConstUtf8(text, hash, *rootNode->thisClass);
     if(compareResult < 0)
         rootNode->left = insert(flint, rootNode->left, text, hash, node);
     else if(compareResult > 0)
@@ -163,7 +163,7 @@ FlintClassData *FlintClassDataBinaryTree::find(const char *text, uint16_t length
     uint32_t hash = Flint_CalcHash(text, length, false);
     FlintClassData *node = root;
     while(node) {
-        int8_t compareResult = compareConstUtf8(text, hash, node->getThisClass());
+        int8_t compareResult = compareConstUtf8(text, hash, *node->thisClass);
         if(compareResult == 0)
             return node;
         else if(compareResult > 0)
@@ -178,7 +178,7 @@ FlintClassData *FlintClassDataBinaryTree::find(const FlintConstUtf8 &utf8) const
     uint32_t hash = CONST_UTF8_HASH(utf8);
     FlintClassData *node = root;
     while(node) {
-        int8_t compareResult = compareConstUtf8(utf8.text, hash, node->getThisClass());
+        int8_t compareResult = compareConstUtf8(utf8.text, hash, *node->thisClass);
         if(compareResult == 0)
             return node;
         else if(compareResult > 0)

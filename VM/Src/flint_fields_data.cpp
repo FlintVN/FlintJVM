@@ -96,7 +96,7 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
                 }
             }
         }
-        FlintConstUtf8 *superClass = loader->getSuperClass();
+        FlintConstUtf8 *superClass = loader->superClass;
         loader = superClass ? &flint.load(*superClass) : 0;
     }
 
@@ -129,7 +129,7 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
                 }
             }
         }
-        FlintConstUtf8 *superClass = loader->getSuperClass();
+        FlintConstUtf8 *superClass = loader->superClass;
         loader = superClass ? &flint.load(*superClass) : 0;
     }
 }

@@ -664,7 +664,7 @@ FlintError Flint::findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&me
         methodInfo = loader->getMethodInfo(constMethod.nameAndType);
         if(methodInfo)
             return ERR_OK;
-        FlintConstUtf8 *superClass = loader->getSuperClass();
+        FlintConstUtf8 *superClass = loader->superClass;
         loader = superClass ? &load(*superClass) : NULL;
     }
     return ERR_METHOD_NOT_FOUND;
@@ -676,7 +676,7 @@ FlintError Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &n
         methodInfo = loader->getMethodInfo(nameAndType);
         if(methodInfo)
             return ERR_OK;
-        FlintConstUtf8 *superClass = loader->getSuperClass();
+        FlintConstUtf8 *superClass = loader->superClass;
         loader = superClass ? &load(*superClass) : NULL;
     }
     return ERR_METHOD_NOT_FOUND;
@@ -729,7 +729,7 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
             if(compareClassName(loader.getInterface(i), typeName, typeNameHash))
                 return true;
         }
-        objType = loader.getSuperClass();
+        objType = loader.superClass;
         if(objType == NULL)
             return false;
     }
@@ -758,7 +758,7 @@ bool Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, 
             if(loader.getInterface(i) == typeName2)
                 return true;
         }
-        objType = loader.getSuperClass();
+        objType = loader.superClass;
         if(objType == NULL)
             return false;
     }
