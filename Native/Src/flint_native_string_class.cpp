@@ -6,7 +6,9 @@
 
 static FlintError nativeIntern(FlintExecution &execution) {
     FlintJavaString *obj = (FlintJavaString *)execution.stackPopObject();
-    execution.stackPushObject(&execution.flint.getConstString(*obj));
+    FlintJavaString *strIntern;
+    RETURN_IF_ERR(execution.flint.getConstString(*obj, strIntern));
+    execution.stackPushObject(strIntern);
     return ERR_OK;
 }
 

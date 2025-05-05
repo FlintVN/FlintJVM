@@ -22,8 +22,8 @@
 
 #define LENGTH(_array)              (sizeof(_array) / sizeof(_array[0]))
 
-#define RETURN_IF_ERR(err)          if(err != ERR_OK) return (err);
-#define RETURN_IF_NOT_THROW(err)    if(err != ERR_THROW) return (err);
+#define RETURN_IF_ERR(expr)         if(FlintError _err = (expr); _err != ERR_OK) return (_err)
+#define RETURN_IF_NOT_THROW(expr)   if(FlintError _err = (expr); _err != ERR_THROW) return (_err)
 
 uint16_t Flint_Swap16(uint16_t value);
 uint32_t Flint_Swap32(uint32_t value);

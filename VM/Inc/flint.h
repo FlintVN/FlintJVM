@@ -11,7 +11,6 @@
 #include "flint_class_loader.h"
 #include "flint_array_object.h"
 #include "flint_fields_data.h"
-#include "flint_out_of_memory.h"
 #include "flint_load_file_error.h"
 #include "flint_const_utf8_binary_tree.h"
 #include "flint_string_binary_tree.h"
@@ -83,49 +82,49 @@ public:
     FlintExecution *getExcutionByThread(FlintJavaThread &thread) const;
     void freeExecution(FlintExecution &execution);
 
-    FlintJavaObject &newObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions);
-    FlintJavaObject &newObject(const FlintConstUtf8 &type);
-    FlintInt8Array &newBooleanArray(uint32_t length);
-    FlintInt8Array &newByteArray(uint32_t length);
-    FlintInt16Array &newCharArray(uint32_t length);
-    FlintInt16Array &newShortArray(uint32_t length);
-    FlintInt32Array &newIntegerArray(uint32_t length);
-    FlintFloatArray &newFloatArray(uint32_t length);
-    FlintInt64Array &newLongArray(uint32_t length);
-    FlintDoubleArray &newDoubleArray(uint32_t length);
-    FlintObjectArray &newObjectArray(const FlintConstUtf8 &type, uint32_t length);
+    FlintError newObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions, FlintJavaObject *&obj);
+    FlintError newObject(const FlintConstUtf8 &type, FlintJavaObject *&obj);
+    FlintError newBooleanArray(uint32_t length, FlintInt8Array *&array);
+    FlintError newByteArray(uint32_t length, FlintInt8Array *&array);
+    FlintError newCharArray(uint32_t length, FlintInt16Array *&array);
+    FlintError newShortArray(uint32_t length, FlintInt16Array *&array);
+    FlintError newIntegerArray(uint32_t length, FlintInt32Array *&array);
+    FlintError newFloatArray(uint32_t length, FlintFloatArray *&array);
+    FlintError newLongArray(uint32_t length, FlintInt64Array *&array);
+    FlintError newDoubleArray(uint32_t length, FlintDoubleArray *&array);
+    FlintError newObjectArray(const FlintConstUtf8 &type, uint32_t length, FlintObjectArray *&array);
 
-    FlintJavaObject &newMultiArray(const FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims);
+    FlintError newMultiArray(const FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims, FlintJavaObject *&array);
 private:
-    FlintJavaClass &newClass(FlintJavaString &typeName);
-    FlintJavaClass &newClass(const char *typeName, uint16_t length);
+    FlintError newClass(FlintJavaString &typeName, FlintJavaClass *&cls);
+    FlintError newClass(const char *typeName, uint16_t length, FlintJavaClass *&cls);
 public:
-    FlintJavaClass &getConstClass(const char *text, uint16_t length);
-    FlintJavaClass &getConstClass(FlintJavaString &str);
+    FlintError getConstClass(const char *text, uint16_t length, FlintJavaClass *&cls);
+    FlintError getConstClass(FlintJavaString &str, FlintJavaClass *&cls);
 
-    FlintJavaString &newString(uint16_t length, uint8_t coder);
-    FlintJavaString &newString(const char *text);
-    FlintJavaString &newString(const char *text, uint16_t size, bool isUtf8);
-    FlintJavaString &getConstString(const FlintConstUtf8 &utf8);
-    FlintJavaString &getConstString(FlintJavaString &str);
+    FlintError newString(uint16_t length, uint8_t coder, FlintJavaString *&str);
+    FlintError newString(const char *text, FlintJavaString *&str);
+    FlintError newString(const char *text, uint16_t size, bool isUtf8, FlintJavaString *&str);
+    FlintError getConstString(const FlintConstUtf8 &utf8, FlintJavaString *&str);
+    FlintError getConstString(FlintJavaString &str, FlintJavaString *&strRet);
 
     FlintConstUtf8 &getConstUtf8(const char *text, uint16_t length);
     FlintConstUtf8 &getTypeNameConstUtf8(const char *typeName, uint16_t length);
 
-    FlintObjectArray &getClassArray0(void);
+    FlintError getClassArray0(FlintObjectArray *&obj);
 
-    FlintJavaThrowable &newThrowable(FlintJavaString *str, const FlintConstUtf8 &excpType);
+    FlintError newThrowable(FlintJavaString *str, const FlintConstUtf8 &excpType, FlintJavaThrowable *&excp);
 
-    FlintJavaBoolean &newBoolean(bool value = false);
-    FlintJavaByte &newByte(int8_t value = 0);
-    FlintJavaCharacter &newCharacter(uint16_t value = 0);
-    FlintJavaShort &newShort(int16_t value = 0);
-    FlintJavaInteger &newInteger(int32_t value = 0);
-    FlintJavaFloat &newFloat(float value = 0);
-    FlintJavaLong &newLong(int64_t value = 0);
-    FlintJavaDouble &newDouble(double value = 0);
+    FlintError newBoolean(bool value, FlintJavaBoolean *&obj);
+    FlintError newByte(int8_t value, FlintJavaByte *&obj);
+    FlintError newCharacter(uint16_t value, FlintJavaCharacter *&obj);
+    FlintError newShort(int16_t value, FlintJavaShort *&obj);
+    FlintError newInteger(int32_t value, FlintJavaInteger *&obj);
+    FlintError newFloat(float value, FlintJavaFloat *&obj);
+    FlintError newLong(int64_t value, FlintJavaLong *&obj);
+    FlintError newDouble(double value, FlintJavaDouble *&obj);
 
-    void initStaticField(FlintClassData &classData);
+    FlintError initStaticField(FlintClassData &classData);
 
     FlintError findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&methodInfo);
     FlintError findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo);

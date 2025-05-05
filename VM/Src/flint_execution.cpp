@@ -420,7 +420,7 @@ FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
         return ERR_OK;
     }
     classData.staticInitOwnId = (uint32_t)this;
-    flint.initStaticField(classData);
+    RETURN_IF_ERR(flint.initStaticField(classData));
     Flint::unlock();
     FlintMethodInfo *ctorMethod = classData.getStaticCtor();
     if(ctorMethod == NULL)
@@ -616,12 +616,18 @@ FlintError FlintExecution::run(void) {
             case CONST_FLOAT:
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
-            case CONST_STRING:
-                stackPushObject(&method->classLoader.getConstString(constPool));
+            case CONST_STRING: {
+                FlintJavaString *str;
+                RETURN_IF_ERR(method->classLoader.getConstString(constPool, str));
+                stackPushObject(str);
                 goto *opcodes[code[pc]];
-            case CONST_CLASS:
-                stackPushObject(&method->classLoader.getConstClass(constPool));
+            }
+            case CONST_CLASS: {
+                FlintJavaClass *cls;
+                RETURN_IF_ERR(method->classLoader.getConstClass(constPool, cls));
+                stackPushObject(cls);
                 goto *opcodes[code[pc]];
+            }
             case CONST_METHOD_TYPE:
                 // TODO
                 goto *opcodes[code[pc]];
@@ -643,12 +649,18 @@ FlintError FlintExecution::run(void) {
             case CONST_FLOAT:
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
-            case CONST_STRING:
-                stackPushObject(&method->classLoader.getConstString(constPool));
+            case CONST_STRING: {
+                FlintJavaString *str;
+                RETURN_IF_ERR(method->classLoader.getConstString(constPool, str));
+                stackPushObject(str);
                 goto *opcodes[code[pc]];
-            case CONST_CLASS:
-                stackPushObject(&method->classLoader.getConstClass(constPool));
+            }
+            case CONST_CLASS: {
+                FlintJavaClass *cls;
+                RETURN_IF_ERR(method->classLoader.getConstClass(constPool, cls));
+                stackPushObject(cls);
                 goto *opcodes[code[pc]];
+            }
             case CONST_METHOD_TYPE:
                 // TODO
                 goto *opcodes[code[pc]];
@@ -751,8 +763,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
         stackPushInt32(((int32_t *)obj->data)[index]);
@@ -766,8 +777,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int64_t))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int64_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int64_t)));
             goto exception_handler;
         }
         stackPushInt64(((int64_t *)obj->data)[index]);
@@ -780,8 +790,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
         stackPushObject(((FlintJavaObject **)obj->data)[index]);
@@ -794,8 +803,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int8_t))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int8_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int8_t)));
             goto exception_handler;
         }
         stackPushInt32(((int8_t *)obj->data)[index]);
@@ -809,8 +817,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int16_t))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int16_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int16_t)));
             goto exception_handler;
         }
         stackPushInt32(((int16_t *)obj->data)[index]);
@@ -914,8 +921,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int32_t)))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
         ((int32_t *)obj->data)[index] = value;
@@ -930,8 +936,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int64_t)))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int64_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int64_t)));
             goto exception_handler;
         }
         ((int64_t *)obj->data)[index] = value;
@@ -945,8 +950,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int8_t)))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int8_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int8_t)));
             goto exception_handler;
         }
         ((int8_t *)obj->data)[index] = value;
@@ -961,8 +965,7 @@ FlintError FlintExecution::run(void) {
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int16_t)))) {
-            FlintError err = throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int16_t));
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(*this, index, obj->size / sizeof(int16_t)));
             goto exception_handler;
         }
         ((int16_t *)obj->data)[index] = value;
@@ -1535,8 +1538,7 @@ FlintError FlintExecution::run(void) {
                 case 'D': {
                     FlintFieldData64 *fieldData = fields->getFieldData64(constField);
                     if(fieldData == NULL) {
-                        FlintError err = throwNoSuchFieldError(*this, constField);
-                        RETURN_IF_NOT_THROW(err);
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                         goto exception_handler;
                     }
                     stackPushInt64(fieldData->value);
@@ -1547,8 +1549,7 @@ FlintError FlintExecution::run(void) {
                 case '[': {
                     FlintFieldObject *fieldData = fields->getFieldObject(constField);
                     if(fieldData == NULL) {
-                        FlintError err = throwNoSuchFieldError(*this, constField);
-                        RETURN_IF_NOT_THROW(err);
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                         goto exception_handler;
                     }
                     stackPushObject(fieldData->object);
@@ -1558,8 +1559,7 @@ FlintError FlintExecution::run(void) {
                 default: {
                     FlintFieldData32 *fieldData = fields->getFieldData32(constField);
                     if(fieldData == NULL) {
-                        FlintError err = throwNoSuchFieldError(*this, constField);
-                        RETURN_IF_NOT_THROW(err);
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                         goto exception_handler;
                     }
                     stackPushInt32(fieldData->value);
@@ -1589,8 +1589,7 @@ FlintError FlintExecution::run(void) {
                 case 'B': {
                     FlintFieldData32 *fieldData = fields->getFieldData32(constField);
                     if(fieldData == NULL) {
-                        FlintError err = throwNoSuchFieldError(*this, constField);
-                        RETURN_IF_NOT_THROW(err);
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                         goto exception_handler;
                     }
                     fieldData->value = (int8_t)stackPopInt32();
@@ -1601,8 +1600,7 @@ FlintError FlintExecution::run(void) {
                 case 'S': {
                     FlintFieldData32 *fieldData = fields->getFieldData32(constField);
                     if(fieldData == NULL) {
-                        FlintError err = throwNoSuchFieldError(*this, constField);
-                        RETURN_IF_NOT_THROW(err);
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                         goto exception_handler;
                     }
                     fieldData->value = (int16_t)stackPopInt32();
@@ -1613,8 +1611,7 @@ FlintError FlintExecution::run(void) {
                 case 'D': {
                     FlintFieldData64 *fieldData = fields->getFieldData64(constField);
                     if(fieldData == NULL) {
-                        FlintError err = throwNoSuchFieldError(*this, constField);
-                        RETURN_IF_NOT_THROW(err);
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                         goto exception_handler;
                     }
                     fieldData->value = stackPopInt64();
@@ -1625,8 +1622,7 @@ FlintError FlintExecution::run(void) {
                 case '[': {
                     FlintFieldObject *fieldData = fields->getFieldObject(constField);
                     if(fieldData == NULL) {
-                        FlintError err = throwNoSuchFieldError(*this, constField);
-                        RETURN_IF_NOT_THROW(err);
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                         goto exception_handler;
                     }
                     fieldData->object = stackPopObject();
@@ -1636,8 +1632,7 @@ FlintError FlintExecution::run(void) {
                 default: {
                     FlintFieldData32 *fieldData = fields->getFieldData32(constField);
                     if(fieldData == NULL) {
-                        FlintError err = throwNoSuchFieldError(*this, constField);
-                        RETURN_IF_NOT_THROW(err);
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                         goto exception_handler;
                     }
                     fieldData->value = stackPopInt32();
@@ -1663,14 +1658,12 @@ FlintError FlintExecution::run(void) {
             case 'D': {
                 FlintJavaObject *obj = stackPopObject();
                 if(obj == 0) {
-                    FlintError err = throwNullPointerException(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNullPointerException(*this, constField));
                     goto exception_handler;
                 }
                 FlintFieldData64 *fieldData = obj->getFields().getFieldData64(constField);
                 if(fieldData == NULL) {
-                    FlintError err = throwNoSuchFieldError(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                     goto exception_handler;
                 }
                 stackPushInt64(fieldData->value);
@@ -1681,14 +1674,12 @@ FlintError FlintExecution::run(void) {
             case '[': {
                 FlintJavaObject *obj = stackPopObject();
                 if(obj == 0) {
-                    FlintError err = throwNullPointerException(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNullPointerException(*this, constField));
                     goto exception_handler;
                 }
                 FlintFieldObject *fieldData = obj->getFields().getFieldObject(constField);
                 if(fieldData == NULL) {
-                    FlintError err = throwNoSuchFieldError(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                     goto exception_handler;
                 }
                 stackPushObject(fieldData->object);
@@ -1698,14 +1689,11 @@ FlintError FlintExecution::run(void) {
             default: {
                 FlintJavaObject *obj = stackPopObject();
                 if(obj == 0) {
-                    FlintError err = throwNullPointerException(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
-                    goto exception_handler;
+                    RETURN_IF_NOT_THROW(throwNullPointerException(*this, constField));
                 }
                 FlintFieldData32 *fieldData = obj->getFields().getFieldData32(constField);
                 if(fieldData == NULL) {
-                    FlintError err = throwNoSuchFieldError(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                     goto exception_handler;
                 }
                 stackPushInt32(fieldData->value);
@@ -1722,14 +1710,12 @@ FlintError FlintExecution::run(void) {
                 int32_t value = stackPopInt32();
                 FlintJavaObject *obj = stackPopObject();
                 if(obj == 0) {
-                    FlintError err = throwNullPointerException(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNullPointerException(*this, constField));
                     goto exception_handler;
                 }
                 FlintFieldData32 *fieldData = obj->getFields().getFieldData32(constField);
                 if(fieldData == NULL) {
-                    FlintError err = throwNoSuchFieldError(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                     goto exception_handler;
                 }
                 fieldData->value = (int8_t)value;
@@ -1741,14 +1727,12 @@ FlintError FlintExecution::run(void) {
                 int32_t value = stackPopInt32();
                 FlintJavaObject *obj = stackPopObject();
                 if(obj == 0) {
-                    FlintError err = throwNullPointerException(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNullPointerException(*this, constField));
                     goto exception_handler;
                 }
                 FlintFieldData32 *fieldData = obj->getFields().getFieldData32(constField);
                 if(fieldData == NULL) {
-                    FlintError err = throwNoSuchFieldError(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                     goto exception_handler;
                 }
                 fieldData->value = (int16_t)value;
@@ -1760,14 +1744,12 @@ FlintError FlintExecution::run(void) {
                 int64_t value = stackPopInt64();
                 FlintJavaObject *obj = stackPopObject();
                 if(obj == 0) {
-                    FlintError err = throwNullPointerException(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNullPointerException(*this, constField));
                     goto exception_handler;
                 }
                 FlintFieldData64 *fieldData = obj->getFields().getFieldData64(constField);
                 if(fieldData == NULL) {
-                    FlintError err = throwNoSuchFieldError(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                     goto exception_handler;
                 }
                 fieldData->value = value;
@@ -1779,14 +1761,12 @@ FlintError FlintExecution::run(void) {
                 FlintJavaObject *value = stackPopObject();
                 FlintJavaObject *obj = stackPopObject();
                 if(obj == 0) {
-                    FlintError err = throwNullPointerException(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNullPointerException(*this, constField));
                     goto exception_handler;
                 }
                 FlintFieldObject *fieldData = obj->getFields().getFieldObject(constField);
                 if(fieldData == NULL) {
-                    FlintError err = throwNoSuchFieldError(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                     goto exception_handler;
                 }
                 fieldData->object = value;
@@ -1797,14 +1777,12 @@ FlintError FlintExecution::run(void) {
                 int32_t value = stackPopInt32();
                 FlintJavaObject *obj = stackPopObject();
                 if(obj == 0) {
-                    FlintError err = throwNullPointerException(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNullPointerException(*this, constField));
                     goto exception_handler;
                 }
                 FlintFieldData32 *fieldData = obj->getFields().getFieldData32(constField);
                 if(fieldData == NULL) {
-                    FlintError err = throwNoSuchFieldError(*this, constField);
-                    RETURN_IF_NOT_THROW(err);
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
                     goto exception_handler;
                 }
                 fieldData->value = value;
@@ -1857,18 +1835,18 @@ FlintError FlintExecution::run(void) {
     op_invokedynamic: {
         // TODO
         // goto *opcodes[code[pc]];
-        FlintError err = throwUnsupportedOperationException(*this, "Invokedynamic instructions are not supported");
-        RETURN_IF_NOT_THROW(err);
+        RETURN_IF_NOT_THROW(throwUnsupportedOperationException(*this, "Invokedynamic instructions are not supported"));
         goto exception_handler;
     }
     op_new: {
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         FlintConstUtf8 &constClass = method->classLoader.getConstUtf8Class(poolIndex);
-        FlintJavaObject &obj = flint.newObject(sizeof(FlintFieldsData), constClass, 0);
-        memset(obj.data, 0, sizeof(FlintFieldsData));
+        FlintJavaObject *obj;
+        RETURN_IF_ERR(flint.newObject(sizeof(FlintFieldsData), constClass, 0, obj));
+        memset(obj->data, 0, sizeof(FlintFieldsData));
         FlintClassData &classData = (FlintClassData &)flint.load(constClass);
-        new ((FlintFieldsData *)obj.data)FlintFieldsData(flint, classData, false);
-        stackPushObject(&obj);
+        new ((FlintFieldsData *)obj->data)FlintFieldsData(flint, classData, false);
+        stackPushObject(obj);
         pc += 3;
         goto *opcodes[code[pc]];
     }
@@ -1878,9 +1856,10 @@ FlintError FlintExecution::run(void) {
             goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
         uint8_t typeSize = FlintJavaObject::getPrimitiveTypeSize(atype);
-        FlintJavaObject &obj = flint.newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1);
-        memset(obj.data, 0, obj.size);
-        stackPushObject(&obj);
+        FlintJavaObject *obj;
+        RETURN_IF_ERR(flint.newObject(typeSize * count, *primTypeConstUtf8List[atype - 4], 1, obj));
+        memset(obj->data, 0, obj->size);
+        stackPushObject(obj);
         pc += 2;
         goto *opcodes[code[pc]];
     }
@@ -1890,17 +1869,17 @@ FlintError FlintExecution::run(void) {
             goto negative_array_size_excp;
         uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
         FlintConstUtf8 &constClass = method->classLoader.getConstUtf8Class(poolIndex);
-        FlintJavaObject &obj = flint.newObjectArray(constClass, count);
-        memset(obj.data, 0, obj.size);
-        stackPushObject(&obj);
+        FlintObjectArray *array;
+        RETURN_IF_ERR(flint.newObjectArray(constClass, count, array));
+        memset(array->data, 0, array->size);
+        stackPushObject(array);
         pc += 3;
         goto *opcodes[code[pc]];
     }
     op_arraylength: {
         FlintJavaObject *obj = stackPopObject();
         if(obj == 0) {
-            FlintError err = throwNullPointerException(*this, "Cannot read the array length from null object");
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwNullPointerException(*this, "Cannot read the array length from null object"));
             goto exception_handler;
         }
         stackPushInt32(obj->size / obj->parseTypeSize());
@@ -1911,8 +1890,7 @@ FlintError FlintExecution::run(void) {
         FlintJavaObject *obj = (FlintJavaObject *)stack[sp];
         if(obj == 0) {
             stackPopObject();
-            FlintError err = throwNullPointerException(*this, "Cannot throw exception by null object");
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwNullPointerException(*this, "Cannot throw exception by null object"));
         }
         goto exception_handler;
     }
@@ -1955,8 +1933,7 @@ FlintError FlintExecution::run(void) {
         if(obj != 0) {
             bool isInsOf = flint.isInstanceof(obj, type);
             if(!isInsOf) {
-                FlintError err = throwClassCastException(*this, obj, type);
-                RETURN_IF_NOT_THROW(err);
+                RETURN_IF_NOT_THROW(throwClassCastException(*this, obj, type));
                 goto exception_handler;
             }
         }
@@ -1973,8 +1950,7 @@ FlintError FlintExecution::run(void) {
     op_monitorenter: {
         FlintJavaObject *obj = stackPopObject();
         if(obj == 0) {
-            FlintError err = throwNullPointerException(*this, "Cannot enter synchronized block by null object");
-            RETURN_IF_NOT_THROW(err);
+            RETURN_IF_NOT_THROW(throwNullPointerException(*this, "Cannot enter synchronized block by null object"));
             goto exception_handler;
         }
         FlintError err = lockObject(obj);
@@ -2067,8 +2043,9 @@ FlintError FlintExecution::run(void) {
             if(stack[sp + i] < 0)
                 goto negative_array_size_excp;
         }
-        FlintJavaObject &array = flint.newMultiArray(*typeName, &stack[sp], dimensions, 1);
-        stackPushObject(&array);
+        FlintJavaObject *array;
+        RETURN_IF_ERR(flint.newMultiArray(*typeName, &stack[sp], dimensions, 1, array));
+        stackPushObject(array);
         pc += 4;
         goto *opcodes[code[pc]];
     }
@@ -2078,23 +2055,19 @@ FlintError FlintExecution::run(void) {
     op_unknow:
         return ERR_VM_ERROR; // "unknow opcode"
     divided_by_zero_excp: {
-        FlintError err = throwArithmeticException(*this, "Divided by zero");
-        RETURN_IF_NOT_THROW(err);
+        RETURN_IF_NOT_THROW(throwArithmeticException(*this, "Divided by zero"));
         goto exception_handler;
     }
     negative_array_size_excp: {
-        FlintError err = throwNegativeArraySizeException(*this, "Size of the array is a negative number");
-        RETURN_IF_NOT_THROW(err);
+        RETURN_IF_NOT_THROW(throwNegativeArraySizeException(*this, "Size of the array is a negative number"));
         goto exception_handler;
     }
     load_null_array_excp: {
-        FlintError err = throwNullPointerException(*this, "Cannot load from null array object");
-        RETURN_IF_NOT_THROW(err);
+        RETURN_IF_NOT_THROW(throwNullPointerException(*this, "Cannot load from null array object"));
         goto exception_handler;
     }
     store_null_array_excp: {
-        FlintError err = throwNullPointerException(*this, "Cannot store to null array object");
-        RETURN_IF_NOT_THROW(err);
+        RETURN_IF_NOT_THROW(throwNullPointerException(*this, "Cannot store to null array object"));
         goto exception_handler;
     }
     op_exit:
@@ -2122,13 +2095,20 @@ void FlintExecution::innerRunTask(FlintExecution *execution) {
             case ERR_STACK_OVERFLOW:
                 execution->flint.println("Stack overflow");
                 break;
+            case ERR_CLASS_FILE_ERROR:
+                execution->flint.println("Class file error");
+                break;
             case ERR_CLASS_LOAD_FAIL:
+                execution->flint.println("Class load fail");
                 break;
             case ERR_CLASS_NOT_FOUND:
+                execution->flint.println("Class not found");
                 break;
             case ERR_FIELD_NOT_FOUND:
+                execution->flint.println("Field not found");
                 break;
             case ERR_METHOD_NOT_FOUND:
+                execution->flint.println("Method not found");
                 break;
             case ERR_VM_ERROR:
                 execution->flint.println("VM error");
@@ -2143,10 +2123,6 @@ void FlintExecution::innerRunTask(FlintExecution *execution) {
             execution->flint.println(str);
         else
             execution->flint.println(ex->type);
-    }
-    catch(FlintOutOfMemoryError *err) {
-        const char *msg = err->getMessage();
-        execution->flint.println(msg);
     }
     catch(FlintLoadFileError *file) {
         const char *fileName = file->getFileName();
@@ -2186,13 +2162,14 @@ bool FlintExecution::hasTerminateRequest(void) const {
     return (opcodes == opcodeLabelsExit);
 }
 
-FlintJavaThread &FlintExecution::getOnwerThread(void) {
+FlintError FlintExecution::getOnwerThread(FlintJavaThread *&thread) {
+    FlintError err = ERR_OK;
     if(onwerThread == NULL) {
         Flint::lock();
-        onwerThread = (FlintJavaThread *)&flint.newObject(threadClassName);
+        err = flint.newObject(threadClassName, (FlintJavaObject *&)onwerThread);
         Flint::unlock();
     }
-    return *onwerThread;
+    return err;
 }
 
 FlintExecution::~FlintExecution(void) {

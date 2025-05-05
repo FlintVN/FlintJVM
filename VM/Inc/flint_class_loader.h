@@ -63,11 +63,11 @@ public:
 
     FlintConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstUtf8Class(FlintConstPool &constPool) const;
-    FlintJavaClass &getConstClass( uint16_t poolIndex);
-    FlintJavaClass &getConstClass(FlintConstPool &constPool);
+    FlintError getConstClass( uint16_t poolIndex, FlintJavaClass *&cls);
+    FlintError getConstClass(FlintConstPool &constPool, FlintJavaClass *&cls);
 
-    FlintJavaString &getConstString(uint16_t poolIndex);
-    FlintJavaString &getConstString(FlintConstPool &constPool);
+    FlintError getConstString(uint16_t poolIndex, FlintJavaString *&str);
+    FlintError getConstString(FlintConstPool &constPool, FlintJavaString *&str);
 
     FlintConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstMethodType(FlintConstPool &constPool) const;
