@@ -661,11 +661,9 @@ void Flint::initStaticField(FlintClassData &classData) {
 FlintError Flint::findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&methodInfo) {
     FlintClassLoader *loader = &load(constMethod.className);
     while(loader) {
-        FlintMethodInfo *methodInfo = loader->getMethodInfo(constMethod.nameAndType);
-        if(methodInfo) {
-            methodInfo = methodInfo;
+        methodInfo = loader->getMethodInfo(constMethod.nameAndType);
+        if(methodInfo)
             return ERR_OK;
-        }
         FlintConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &load(loader->getSuperClass()) : (FlintClassLoader *)0;
     }
@@ -675,11 +673,9 @@ FlintError Flint::findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&me
 FlintError Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo) {
     FlintClassLoader *loader = &load(className);
     while(loader) {
-        FlintMethodInfo *methodInfo = loader->getMethodInfo(nameAndType);
-        if(methodInfo) {
-            methodInfo = methodInfo;
+        methodInfo = loader->getMethodInfo(nameAndType);
+        if(methodInfo)
             return ERR_OK;
-        }
         FlintConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &load(loader->getSuperClass()) : (FlintClassLoader *)0;
     }

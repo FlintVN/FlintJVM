@@ -4,9 +4,9 @@
 #include "flint_fields_data.h"
 
 uint16_t FlintJavaCharacter::getValue(void) const {
-    return (uint16_t)getFields().getFieldData32ByIndex(0).value;
+    return (uint16_t)getFields().getFieldData32ByIndex(0)->value;
 }
 
 void FlintJavaCharacter::setValue(uint16_t value) {
-    getFields().getFieldData32ByIndex(0).value = value;
+    getFields().getFieldData32ByIndex(0)->value = value;
 }

@@ -4,9 +4,9 @@
 #include "flint_fields_data.h"
 
 float FlintJavaFloat::getValue(void) const {
-    return *(float *)&getFields().getFieldData32ByIndex(0).value;
+    return *(float *)&getFields().getFieldData32ByIndex(0)->value;
 }
 
 void FlintJavaFloat::setValue(float value) {
-    getFields().getFieldData32ByIndex(0).value = *(float *)&value;
+    getFields().getFieldData32ByIndex(0)->value = *(float *)&value;
 }
