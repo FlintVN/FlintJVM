@@ -36,7 +36,9 @@ static FlintError nativeInterrupt0(FlintExecution &execution) {
 }
 
 static FlintError nativeCurrentThread(FlintExecution &execution) {
-    execution.stackPushObject(&execution.getOnwerThread());
+    FlintJavaThread *thread;
+    RETURN_IF_ERR(execution.getOnwerThread(thread));
+    execution.stackPushObject(thread);
     return ERR_OK;
 }
 

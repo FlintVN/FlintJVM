@@ -75,7 +75,7 @@ private:
 public:
     bool run(FlintMethodInfo *method);
     bool hasTerminateRequest(void) const;
-    FlintJavaThread &getOnwerThread(void);
+    FlintError getOnwerThread(FlintJavaThread *&thread);
 
     friend class Flint;
     friend class FlintDebugger;
