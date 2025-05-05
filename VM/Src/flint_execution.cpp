@@ -1532,7 +1532,6 @@ FlintError FlintExecution::run(void) {
         FlintInitStatus initStatus = classData->getInitStatus();
         if(initStatus == INITIALIZED || (initStatus == INITIALIZING && classData->staticInitOwnId == (uint32_t)this)) {
             FlintFieldsData *fields = classData->staticFieldsData;
-            pc += 3;
             switch(constField.nameAndType.descriptor.text[0]) {
                 case 'J':
                 case 'D': {
@@ -1543,6 +1542,7 @@ FlintError FlintExecution::run(void) {
                         goto exception_handler;
                     }
                     stackPushInt64(fieldData->value);
+                    pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'L':
@@ -1554,6 +1554,7 @@ FlintError FlintExecution::run(void) {
                         goto exception_handler;
                     }
                     stackPushObject(fieldData->object);
+                    pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 default: {
@@ -1564,6 +1565,7 @@ FlintError FlintExecution::run(void) {
                         goto exception_handler;
                     }
                     stackPushInt32(fieldData->value);
+                    pc += 3;
                     goto *opcodes[code[pc]];
                 }
             }
@@ -1584,7 +1586,6 @@ FlintError FlintExecution::run(void) {
         FlintInitStatus initStatus = classData->getInitStatus();
         if(initStatus == INITIALIZED || (initStatus == INITIALIZING && classData->staticInitOwnId == (uint32_t)this)) {
             FlintFieldsData *fields = classData->staticFieldsData;
-            pc += 3;
             switch(constField.nameAndType.descriptor.text[0]) {
                 case 'Z':
                 case 'B': {
@@ -1595,6 +1596,7 @@ FlintError FlintExecution::run(void) {
                         goto exception_handler;
                     }
                     fieldData->value = (int8_t)stackPopInt32();
+                    pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'C':
@@ -1606,6 +1608,7 @@ FlintError FlintExecution::run(void) {
                         goto exception_handler;
                     }
                     fieldData->value = (int16_t)stackPopInt32();
+                    pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'J':
@@ -1617,6 +1620,7 @@ FlintError FlintExecution::run(void) {
                         goto exception_handler;
                     }
                     fieldData->value = stackPopInt64();
+                    pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'L':
@@ -1628,6 +1632,7 @@ FlintError FlintExecution::run(void) {
                         goto exception_handler;
                     }
                     fieldData->object = stackPopObject();
+                    pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 default: {
@@ -1638,6 +1643,7 @@ FlintError FlintExecution::run(void) {
                         goto exception_handler;
                     }
                     fieldData->value = stackPopInt32();
+                    pc += 3;
                     goto *opcodes[code[pc]];
                 }
             }
@@ -1654,7 +1660,6 @@ FlintError FlintExecution::run(void) {
     }
     op_getfield: {
         FlintConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        pc += 3;
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'J':
             case 'D': {
@@ -1671,6 +1676,7 @@ FlintError FlintExecution::run(void) {
                     goto exception_handler;
                 }
                 stackPushInt64(fieldData->value);
+                pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'L':
@@ -1688,6 +1694,7 @@ FlintError FlintExecution::run(void) {
                     goto exception_handler;
                 }
                 stackPushObject(fieldData->object);
+                pc += 3;
                 goto *opcodes[code[pc]];
             }
             default: {
@@ -1704,13 +1711,13 @@ FlintError FlintExecution::run(void) {
                     goto exception_handler;
                 }
                 stackPushInt32(fieldData->value);
+                pc += 3;
                 goto *opcodes[code[pc]];
             }
         }
     }
     op_putfield: {
         FlintConstField &constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
-        pc += 3;
         switch(constField.nameAndType.descriptor.text[0]) {
             case 'Z':
             case 'B': {
@@ -1728,6 +1735,7 @@ FlintError FlintExecution::run(void) {
                     goto exception_handler;
                 }
                 fieldData->value = (int8_t)value;
+                pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'C':
@@ -1746,6 +1754,7 @@ FlintError FlintExecution::run(void) {
                     goto exception_handler;
                 }
                 fieldData->value = (int16_t)value;
+                pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'J':
@@ -1764,6 +1773,7 @@ FlintError FlintExecution::run(void) {
                     goto exception_handler;
                 }
                 fieldData->value = value;
+                pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'L':
@@ -1782,6 +1792,7 @@ FlintError FlintExecution::run(void) {
                     goto exception_handler;
                 }
                 fieldData->object = value;
+                pc += 3;
                 goto *opcodes[code[pc]];
             }
             default: {
@@ -1799,6 +1810,7 @@ FlintError FlintExecution::run(void) {
                     goto exception_handler;
                 }
                 fieldData->value = value;
+                pc += 3;
                 goto *opcodes[code[pc]];
             }
         }
