@@ -333,10 +333,7 @@ FlintJavaString &Flint::newString(const char *text, uint16_t size, bool isUtf8) 
         }
         else while(*text) {
             uint32_t c = FlintJavaString::utf8Decode(text);
-            if(c <= 0xFFFFFF)
-                ((uint16_t *)byteArrayData)[index] = c;
-            else
-                throw "Characters are not supported";
+            ((uint16_t *)byteArrayData)[index] = c;
             text += FlintJavaString::getUtf8DecodeSize(*text);
             index++;
         }
@@ -661,28 +658,32 @@ void Flint::initStaticField(FlintClassData &classData) {
     classData.staticFieldsData = fieldsData;
 }
 
-FlintMethodInfo &Flint::findMethod(FlintConstMethod &constMethod) {
+FlintError Flint::findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&methodInfo) {
     FlintClassLoader *loader = &load(constMethod.className);
     while(loader) {
         FlintMethodInfo *methodInfo = loader->getMethodInfo(constMethod.nameAndType);
-        if(methodInfo)
-            return *methodInfo;
+        if(methodInfo) {
+            methodInfo = methodInfo;
+            return ERR_OK;
+        }
         FlintConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &load(loader->getSuperClass()) : (FlintClassLoader *)0;
     }
-    throw "can't find the method";
+    return ERR_METHOD_NOT_FOUND;
 }
 
-FlintMethodInfo &Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) {
+FlintError Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo) {
     FlintClassLoader *loader = &load(className);
     while(loader) {
         FlintMethodInfo *methodInfo = loader->getMethodInfo(nameAndType);
-        if(methodInfo)
-            return *methodInfo;
+        if(methodInfo) {
+            methodInfo = methodInfo;
+            return ERR_OK;
+        }
         FlintConstUtf8 *superClass = &loader->getSuperClass();
         loader = superClass ? &load(loader->getSuperClass()) : (FlintClassLoader *)0;
     }
-    throw "can't find the method";
+    return ERR_METHOD_NOT_FOUND;
 }
 
 static bool compareClassName(const FlintConstUtf8 &className1, const char *className2, uint32_t hash) {

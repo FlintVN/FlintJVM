@@ -23,7 +23,6 @@ static FlintError nativeArraycopy(FlintExecution &execution) {
     int32_t srcPos = execution.stackPopInt32();
     FlintJavaObject *src = execution.stackPopObject();
     if(src->dimensions == 0 || dest->dimensions == 0) {
-        FlintJavaString *strObj;
         if(src->dimensions == 0)
             return throwArrayStoreException(execution, "Source object is not a array");
         else
