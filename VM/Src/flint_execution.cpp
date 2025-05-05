@@ -159,6 +159,8 @@ FlintError FlintExecution::initNewContext(FlintMethodInfo *methodInfo, uint16_t 
 
     method = methodInfo;
     code = methodInfo->getCode();
+    if(code == NULL)
+        return throwNoSuchMethodError(*this, methodInfo->classLoader.thisClass->text, methodInfo->getName().text);
     pc = 0;
     locals = &stack[sp + 1];
     for(uint32_t i = argc; i < maxLocals; i++) {
@@ -301,7 +303,7 @@ FlintError FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
         FlintError err = flint.findMethod(constMethod, constMethod.methodInfo);
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
-                return throwNoSuchMethodError(*this, constMethod);
+                return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
             return err;
         }
     }
@@ -334,7 +336,7 @@ FlintError FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
         FlintError err = flint.findMethod(constMethod, constMethod.methodInfo);
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
-                return throwNoSuchMethodError(*this, constMethod);
+                return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
             return err;
         }
     }
@@ -371,7 +373,7 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         FlintError err = flint.findMethod(type, constMethod.nameAndType, constMethod.methodInfo);
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
-                return throwNoSuchMethodError(*this, constMethod);
+                return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
             return err;
         }
     }
@@ -397,7 +399,7 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
         FlintError err = flint.findMethod(type, interfaceMethod.nameAndType, interfaceMethod.methodInfo);
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
-                return throwNoSuchMethodError(*this, (FlintConstMethod &)interfaceMethod);
+                return throwNoSuchMethodError(*this, interfaceMethod.className.text, interfaceMethod.nameAndType.name.text);
             return err;
         }
     }
@@ -424,7 +426,7 @@ FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
     Flint::unlock();
     FlintMethodInfo *ctorMethod = classData.getStaticCtor();
     if(ctorMethod == NULL)
-        return throwNoSuchMethodError(*this, classData);
+        return throwNoSuchMethodError(*this, classData.thisClass->text, staticConstructorName.text);
     lr = pc;
     return invoke(ctorMethod, 0);
 }
@@ -1538,7 +1540,7 @@ FlintError FlintExecution::run(void) {
                 case 'D': {
                     FlintFieldData64 *fieldData = fields->getFieldData64(constField);
                     if(fieldData == NULL) {
-                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                         goto exception_handler;
                     }
                     stackPushInt64(fieldData->value);
@@ -1549,7 +1551,7 @@ FlintError FlintExecution::run(void) {
                 case '[': {
                     FlintFieldObject *fieldData = fields->getFieldObject(constField);
                     if(fieldData == NULL) {
-                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                         goto exception_handler;
                     }
                     stackPushObject(fieldData->object);
@@ -1559,7 +1561,7 @@ FlintError FlintExecution::run(void) {
                 default: {
                     FlintFieldData32 *fieldData = fields->getFieldData32(constField);
                     if(fieldData == NULL) {
-                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                         goto exception_handler;
                     }
                     stackPushInt32(fieldData->value);
@@ -1589,7 +1591,7 @@ FlintError FlintExecution::run(void) {
                 case 'B': {
                     FlintFieldData32 *fieldData = fields->getFieldData32(constField);
                     if(fieldData == NULL) {
-                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                         goto exception_handler;
                     }
                     fieldData->value = (int8_t)stackPopInt32();
@@ -1600,7 +1602,7 @@ FlintError FlintExecution::run(void) {
                 case 'S': {
                     FlintFieldData32 *fieldData = fields->getFieldData32(constField);
                     if(fieldData == NULL) {
-                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                         goto exception_handler;
                     }
                     fieldData->value = (int16_t)stackPopInt32();
@@ -1611,7 +1613,7 @@ FlintError FlintExecution::run(void) {
                 case 'D': {
                     FlintFieldData64 *fieldData = fields->getFieldData64(constField);
                     if(fieldData == NULL) {
-                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                         goto exception_handler;
                     }
                     fieldData->value = stackPopInt64();
@@ -1622,7 +1624,7 @@ FlintError FlintExecution::run(void) {
                 case '[': {
                     FlintFieldObject *fieldData = fields->getFieldObject(constField);
                     if(fieldData == NULL) {
-                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                         goto exception_handler;
                     }
                     fieldData->object = stackPopObject();
@@ -1632,7 +1634,7 @@ FlintError FlintExecution::run(void) {
                 default: {
                     FlintFieldData32 *fieldData = fields->getFieldData32(constField);
                     if(fieldData == NULL) {
-                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                        RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                         goto exception_handler;
                     }
                     fieldData->value = stackPopInt32();
@@ -1663,7 +1665,7 @@ FlintError FlintExecution::run(void) {
                 }
                 FlintFieldData64 *fieldData = obj->getFields().getFieldData64(constField);
                 if(fieldData == NULL) {
-                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                     goto exception_handler;
                 }
                 stackPushInt64(fieldData->value);
@@ -1679,7 +1681,7 @@ FlintError FlintExecution::run(void) {
                 }
                 FlintFieldObject *fieldData = obj->getFields().getFieldObject(constField);
                 if(fieldData == NULL) {
-                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                     goto exception_handler;
                 }
                 stackPushObject(fieldData->object);
@@ -1693,7 +1695,7 @@ FlintError FlintExecution::run(void) {
                 }
                 FlintFieldData32 *fieldData = obj->getFields().getFieldData32(constField);
                 if(fieldData == NULL) {
-                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                     goto exception_handler;
                 }
                 stackPushInt32(fieldData->value);
@@ -1715,7 +1717,7 @@ FlintError FlintExecution::run(void) {
                 }
                 FlintFieldData32 *fieldData = obj->getFields().getFieldData32(constField);
                 if(fieldData == NULL) {
-                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                     goto exception_handler;
                 }
                 fieldData->value = (int8_t)value;
@@ -1732,7 +1734,7 @@ FlintError FlintExecution::run(void) {
                 }
                 FlintFieldData32 *fieldData = obj->getFields().getFieldData32(constField);
                 if(fieldData == NULL) {
-                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                     goto exception_handler;
                 }
                 fieldData->value = (int16_t)value;
@@ -1749,7 +1751,7 @@ FlintError FlintExecution::run(void) {
                 }
                 FlintFieldData64 *fieldData = obj->getFields().getFieldData64(constField);
                 if(fieldData == NULL) {
-                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                     goto exception_handler;
                 }
                 fieldData->value = value;
@@ -1766,7 +1768,7 @@ FlintError FlintExecution::run(void) {
                 }
                 FlintFieldObject *fieldData = obj->getFields().getFieldObject(constField);
                 if(fieldData == NULL) {
-                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                     goto exception_handler;
                 }
                 fieldData->object = value;
@@ -1782,7 +1784,7 @@ FlintError FlintExecution::run(void) {
                 }
                 FlintFieldData32 *fieldData = obj->getFields().getFieldData32(constField);
                 if(fieldData == NULL) {
-                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField));
+                    RETURN_IF_NOT_THROW(throwNoSuchFieldError(*this, constField.className.text, constField.nameAndType.name.text));
                     goto exception_handler;
                 }
                 fieldData->value = value;

@@ -27,10 +27,7 @@ static FlintNativeMethodPtr findNativeMethod(FlintMethodInfo *methodInfo) {
             break;
         }
     }
-    FlintNativeMethodPtr nativeMethod = FlintAPI::System::findNativeMethod(methodInfo);
-    if(nativeMethod)
-        return nativeMethod;
-    throw "can't find the native method";
+    return FlintAPI::System::findNativeMethod(methodInfo);
 }
 
 FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, uint16_t nameIndex, uint16_t descIndex) :
