@@ -89,7 +89,7 @@ static FlintAttributeType parseAttributeType(const FlintConstUtf8 &name) {
     return ATTRIBUTE_UNKNOW;
 }
 
-FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) {
+FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) : flint(flint) {
     staticCtorInfo = 0;
     poolCount = 0;
     interfacesCount = 0;
@@ -99,7 +99,7 @@ FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t 
     void *file = ClassLoader_Open(fileName, length);
 
     try {
-        readFile(flint, file);
+        readFile(file);
     }
     catch(const char *excp) {
         FlintAPI::IO::fclose(file);
@@ -109,13 +109,13 @@ FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t 
     FlintAPI::IO::fclose(file);
 }
 
-void FlintClassLoader::readFile(Flint &flint, void *file) {
+void FlintClassLoader::readFile(void *file) {
     char buff[FILE_NAME_BUFF_SIZE];
     char *utf8Buff = buff;
     uint16_t utf8Length = sizeof(buff);
-    magic = ClassLoader_ReadUInt32(file);
-    minorVersion = ClassLoader_ReadUInt16(file);
-    majorVersion = ClassLoader_ReadUInt16(file);
+    /* magic = */ ClassLoader_ReadUInt32(file);
+    /* minorVersion = */ ClassLoader_ReadUInt16(file);
+    /* majorVersion = */ ClassLoader_ReadUInt16(file);
     poolCount = ClassLoader_ReadUInt16(file) - 1;
     poolTable = (FlintConstPool *)Flint::malloc(poolCount * sizeof(FlintConstPool));
     for(uint32_t i = 0; i < poolCount; i++) {
@@ -174,9 +174,8 @@ void FlintClassLoader::readFile(Flint &flint, void *file) {
     if(utf8Buff != buff)
         Flint::free(utf8Buff);
     accessFlags = ClassLoader_ReadUInt16(file);
-    thisClass = &getConstUtf8Class(ClassLoader_ReadUInt16(file));
-    uint16_t superClassIndex = ClassLoader_ReadUInt16(file);
-    superClass = (superClassIndex != 0) ? &getConstUtf8Class(superClassIndex) : 0;
+    thisClass = ClassLoader_ReadUInt16(file);
+    superClass = ClassLoader_ReadUInt16(file);
     interfacesCount = ClassLoader_ReadUInt16(file);
     if(interfacesCount) {
         interfaces = (uint16_t *)Flint::malloc(interfacesCount * sizeof(uint16_t));
@@ -289,17 +288,23 @@ void FlintClassLoader::readAttributeCode(void *file, FlintMethodInfo &method) {
     method.code = (uint8_t *)codeAttr;
 }
 
+/*
 uint32_t FlintClassLoader::getMagic(void) const {
     return magic;
 }
+*/
 
+/*
 uint16_t FlintClassLoader::getMinorVersion(void) const {
     return minorVersion;
 }
+*/
 
+/*
 uint16_t FlintClassLoader::getMajorversion(void) const {
     return majorVersion;
 }
+*/
 
 FlintConstPool &FlintClassLoader::getConstPool(uint16_t poolIndex) const {
     poolIndex--;
@@ -404,7 +409,7 @@ FlintConstUtf8 &FlintClassLoader::getConstUtf8Class(FlintConstPool &constPool) c
     throw "const pool tag is not class tag";
 }
 
-FlintJavaClass &FlintClassLoader::getConstClass(Flint &flint, uint16_t poolIndex) {
+FlintJavaClass &FlintClassLoader::getConstClass(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_CLASS) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -430,7 +435,7 @@ FlintJavaClass &FlintClassLoader::getConstClass(Flint &flint, uint16_t poolIndex
     throw "index for const class is invalid";
 }
 
-FlintJavaClass &FlintClassLoader::getConstClass(Flint &flint, FlintConstPool &constPool) {
+FlintJavaClass &FlintClassLoader::getConstClass(FlintConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_CLASS) {
         if(constPool.tag & 0x80) {
             Flint::lock();
@@ -455,7 +460,7 @@ FlintJavaClass &FlintClassLoader::getConstClass(Flint &flint, FlintConstPool &co
     throw "const pool tag is not class tag";
 }
 
-FlintJavaString &FlintClassLoader::getConstString(Flint &flint, uint16_t poolIndex) {
+FlintJavaString &FlintClassLoader::getConstString(uint16_t poolIndex) {
     poolIndex--;
     if(poolIndex < poolCount && (poolTable[poolIndex].tag & 0x7F) == CONST_STRING) {
         if(poolTable[poolIndex].tag & 0x80) {
@@ -479,7 +484,7 @@ FlintJavaString &FlintClassLoader::getConstString(Flint &flint, uint16_t poolInd
     throw "index for const string is invalid";
 }
 
-FlintJavaString &FlintClassLoader::getConstString(Flint &flint, FlintConstPool &constPool) {
+FlintJavaString &FlintClassLoader::getConstString(FlintConstPool &constPool) {
     if((constPool.tag & 0x7F) == CONST_STRING) {
         if(constPool.tag & 0x80) {
             Flint::lock();
@@ -636,11 +641,11 @@ FlintClassAccessFlag FlintClassLoader::getAccessFlag(void) const {
 }
 
 FlintConstUtf8 &FlintClassLoader::getThisClass(void) const {
-    return *thisClass;
+    return getConstUtf8Class(thisClass);
 }
 
-FlintConstUtf8 &FlintClassLoader::getSuperClass(void) const {
-    return *superClass;
+FlintConstUtf8 *FlintClassLoader::getSuperClass(void) const {
+    return superClass ? &getConstUtf8Class(superClass) : NULL;
 }
 
 uint16_t FlintClassLoader::getInterfacesCount(void) const {
@@ -698,7 +703,8 @@ FlintMethodInfo *FlintClassLoader::getMethodInfo(uint8_t methodIndex) {
     if(method.accessFlag & METHOD_UNLOADED) {
         Flint::lock();
         if(method.accessFlag & METHOD_UNLOADED) {
-            void *file = ClassLoader_Open(thisClass->text, thisClass->length);
+            FlintConstUtf8 &thisCls = getThisClass();
+            void *file = ClassLoader_Open(thisCls.text, thisCls.length);
             FlintAPI::IO::fseek(file, (uint32_t)method.code);
             readAttributeCode(file, method);
             FlintAPI::IO::fclose(file);

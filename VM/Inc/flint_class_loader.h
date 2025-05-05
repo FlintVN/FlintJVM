@@ -11,16 +11,19 @@
 class FlintClassLoader {
 private:
     uint8_t staticCtorInfo;
+    /*
     uint32_t magic;
     uint16_t minorVersion;
     uint16_t majorVersion;
+    */
     uint16_t poolCount;
     uint16_t accessFlags;
     uint16_t interfacesCount;
     uint16_t fieldsCount;
     uint16_t methodsCount;
-    FlintConstUtf8 *thisClass;
-    FlintConstUtf8 *superClass;
+    uint16_t thisClass;
+    uint16_t superClass;
+    class Flint &flint;
     FlintConstPool *poolTable;
     uint16_t *interfaces;
     FlintFieldInfo *fields;
@@ -29,16 +32,18 @@ private:
     FlintClassLoader(const FlintClassLoader &) = delete;
     void operator=(const FlintClassLoader &) = delete;
 
-    void readFile(class Flint &flint, void *file);
+    void readFile(void *file);
     void readAttributeCode(void *file, FlintMethodInfo &method);
 protected:
     FlintClassLoader(class Flint &flint, const char *fileName, uint16_t length);
 
     ~FlintClassLoader(void);
 public:
+    /*
     uint32_t getMagic(void) const;
     uint16_t getMinorVersion(void) const;
     uint16_t getMajorversion(void) const;
+    */
 
     FlintConstPool &getConstPool(uint16_t index) const;
 
@@ -56,11 +61,11 @@ public:
 
     FlintConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstUtf8Class(FlintConstPool &constPool) const;
-    FlintJavaClass &getConstClass(class Flint &flint, uint16_t poolIndex);
-    FlintJavaClass &getConstClass(class Flint &flint, FlintConstPool &constPool);
+    FlintJavaClass &getConstClass( uint16_t poolIndex);
+    FlintJavaClass &getConstClass(FlintConstPool &constPool);
 
-    FlintJavaString &getConstString(class Flint &flint, uint16_t poolIndex);
-    FlintJavaString &getConstString(class Flint &flint, FlintConstPool &constPool);
+    FlintJavaString &getConstString(uint16_t poolIndex);
+    FlintJavaString &getConstString(FlintConstPool &constPool);
 
     FlintConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstMethodType(FlintConstPool &constPool) const;
@@ -77,7 +82,7 @@ public:
     FlintClassAccessFlag getAccessFlag(void) const;
 
     FlintConstUtf8 &getThisClass(void) const;
-    FlintConstUtf8 &getSuperClass(void) const;
+    FlintConstUtf8 *getSuperClass(void) const;
 
     uint16_t getInterfacesCount(void) const;
     FlintConstUtf8 &getInterface(uint8_t interfaceIndex) const;

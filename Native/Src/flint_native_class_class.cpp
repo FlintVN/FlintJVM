@@ -144,7 +144,7 @@ static FlintError nativeGetSuperclass(FlintExecution &execution) {
         execution.stackPushObject(NULL);
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
-        const FlintConstUtf8 *superClass = &execution.flint.load(typeName).getSuperClass();
+        const FlintConstUtf8 *superClass = execution.flint.load(typeName).getSuperClass();
         if(superClass == NULL) {
             execution.stackPushObject(NULL);
             return ERR_OK;

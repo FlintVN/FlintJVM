@@ -619,10 +619,10 @@ FlintError FlintExecution::run(void) {
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
             case CONST_STRING:
-                stackPushObject(&method->classLoader.getConstString(flint, constPool));
+                stackPushObject(&method->classLoader.getConstString(constPool));
                 goto *opcodes[code[pc]];
             case CONST_CLASS:
-                stackPushObject(&method->classLoader.getConstClass(flint, constPool));
+                stackPushObject(&method->classLoader.getConstClass(constPool));
                 goto *opcodes[code[pc]];
             case CONST_METHOD_TYPE:
                 // TODO
@@ -646,10 +646,10 @@ FlintError FlintExecution::run(void) {
                 stackPushFloat(method->classLoader.getConstFloat(constPool));
                 goto *opcodes[code[pc]];
             case CONST_STRING:
-                stackPushObject(&method->classLoader.getConstString(flint, constPool));
+                stackPushObject(&method->classLoader.getConstString(constPool));
                 goto *opcodes[code[pc]];
             case CONST_CLASS:
-                stackPushObject(&method->classLoader.getConstClass(flint, constPool));
+                stackPushObject(&method->classLoader.getConstClass(constPool));
                 goto *opcodes[code[pc]];
             case CONST_METHOD_TYPE:
                 // TODO
