@@ -47,6 +47,7 @@ extern const FlintConstUtf8 &unsatisfiedLinkErrorClassName;
 extern const FlintConstUtf8 &interruptedExceptionClassName;
 extern const FlintConstUtf8 &classNotFoundExceptionClassName;
 extern const FlintConstUtf8 &illegalArgumentExceptionClassName;
+extern const FlintConstUtf8 &noSuchMethodErrorExceptionClassName;
 extern const FlintConstUtf8 &cloneNotSupportedExceptionClassName;
 extern const FlintConstUtf8 &negativeArraySizeExceptionClassName;
 extern const FlintConstUtf8 &unsupportedOperationExceptionClassName;
