@@ -25,9 +25,9 @@
 #define RETURN_IF_ERR(expr)         if(FlintError _err = (expr); _err != ERR_OK) return (_err)
 #define RETURN_IF_NOT_THROW(expr)   if(FlintError _err = (expr); _err != ERR_THROW) return (_err)
 
-uint16_t Flint_Swap16(uint16_t value);
-uint32_t Flint_Swap32(uint32_t value);
-uint64_t Flint_Swap64(uint64_t value);
+#define SWAP16(value)               (((value) << 8) | ((value) >> 8))
+uint32_t SWAP32(uint32_t value);
+uint64_t SWAP64(uint64_t value);
 
 uint16_t Flint_CalcCrc(const uint8_t *data, uint32_t length);
 uint32_t Flint_CalcHash(const char *text, uint32_t length, bool isTypeName);

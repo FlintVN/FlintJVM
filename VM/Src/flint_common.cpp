@@ -36,11 +36,7 @@ static const uint16_t crc16Table[] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-uint16_t Flint_Swap16(uint16_t value) {
-    return (value << 8) | (value >> 8);
-}
-
-uint32_t Flint_Swap32(uint32_t value) {
+uint32_t SWAP32(uint32_t value) {
     uint32_t ret;
     ((uint8_t *)&ret)[0] = ((uint8_t *)&value)[3];
     ((uint8_t *)&ret)[1] = ((uint8_t *)&value)[2];
@@ -49,7 +45,7 @@ uint32_t Flint_Swap32(uint32_t value) {
     return ret;
 }
 
-uint64_t Flint_Swap64(uint64_t value) {
+uint64_t SWAP64(uint64_t value) {
     uint64_t ret;
     ((uint8_t *)&ret)[0] = ((uint8_t *)&value)[7];
     ((uint8_t *)&ret)[1] = ((uint8_t *)&value)[6];

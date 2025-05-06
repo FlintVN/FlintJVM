@@ -43,19 +43,19 @@ static uint8_t ClassLoader_ReadUInt8(void *file) {
 static uint16_t ClassLoader_ReadUInt16(void *file) {
     uint16_t temp;
     ClassLoader_Read(file, &temp, sizeof(temp));
-    return Flint_Swap16(temp);
+    return SWAP16(temp);
 }
 
 static uint32_t ClassLoader_ReadUInt32(void *file) {
     uint32_t temp;
     ClassLoader_Read(file, &temp, sizeof(temp));
-    return Flint_Swap32(temp);
+    return SWAP32(temp);
 }
 
 static uint64_t ClassLoader_ReadUInt64(void *file) {
     uint64_t temp;
     ClassLoader_Read(file, &temp, sizeof(temp));
-    return Flint_Swap64(temp);
+    return SWAP64(temp);
 }
 
 static void ClassLoader_Offset(void *file, int32_t offset) {
