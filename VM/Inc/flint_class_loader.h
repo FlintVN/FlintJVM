@@ -51,13 +51,9 @@ public:
 
     FlintConstPool &getConstPool(uint16_t index) const;
 
-    int32_t getConstInteger(uint16_t poolIndex) const;
     int32_t getConstInteger(FlintConstPool &constPool) const;
-    float getConstFloat(uint16_t poolIndex) const;
     float getConstFloat(FlintConstPool &constPool) const;
-    int64_t getConstLong(uint16_t poolIndex) const;
     int64_t getConstLong(FlintConstPool &constPool) const;
-    double getConstDouble(uint16_t poolIndex) const;
     double getConstDouble(FlintConstPool &constPool) const;
 
     FlintConstUtf8 &getConstUtf8(uint16_t poolIndex) const;
@@ -65,23 +61,16 @@ public:
 
     FlintConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstUtf8Class(FlintConstPool &constPool) const;
-    FlintError getConstClass( uint16_t poolIndex, FlintJavaClass *&cls);
     FlintError getConstClass(FlintConstPool &constPool, FlintJavaClass *&cls);
 
-    FlintError getConstString(uint16_t poolIndex, FlintJavaString *&str);
     FlintError getConstString(FlintConstPool &constPool, FlintJavaString *&str);
 
-    FlintConstUtf8 &getConstMethodType(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstMethodType(FlintConstPool &constPool) const;
 
     FlintConstNameAndType &getConstNameAndType(uint16_t poolIndex);
-    FlintConstNameAndType &getConstNameAndType(FlintConstPool &constPool);
     FlintConstField &getConstField(uint16_t poolIndex);
-    FlintConstField &getConstField(FlintConstPool &constPool);
     FlintConstMethod &getConstMethod(uint16_t poolIndex);
-    FlintConstMethod &getConstMethod(FlintConstPool &constPool);
     FlintConstInterfaceMethod &getConstInterfaceMethod(uint16_t poolIndex);
-    FlintConstInterfaceMethod &getConstInterfaceMethod(FlintConstPool &constPool);
 
     FlintClassAccessFlag getAccessFlag(void) const;
 
