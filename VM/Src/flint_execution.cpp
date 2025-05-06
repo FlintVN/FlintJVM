@@ -424,11 +424,15 @@ FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
     classData.staticInitOwnId = (uint32_t)this;
     RETURN_IF_ERR(flint.initStaticField(classData));
     Flint::unlock();
-    FlintMethodInfo *ctorMethod = classData.getStaticCtor();
-    if(ctorMethod == NULL)
+    FlintMethodInfo *ctorMethod;
+    FlintError err = classData.getStaticCtor(ctorMethod);
+    if(err == ERR_OK) {
+        lr = pc;
+        return invoke(ctorMethod, 0);
+    }
+    if(err == ERR_METHOD_NOT_FOUND)
         return throwNoSuchMethodError(*this, classData.thisClass->text, staticConstructorName.text);
-    lr = pc;
-    return invoke(ctorMethod, 0);
+    return err;
 }
 
 FlintError FlintExecution::run(void) {

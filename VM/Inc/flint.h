@@ -143,8 +143,8 @@ public:
     FlintClassLoader &load(const char *className);
     FlintClassLoader &load(const FlintConstUtf8 &className);
 
-    void runToMain(const char *mainClass);
-    void runToMain(const char *mainClass, uint32_t stackSize);
+    FlintError runToMain(const char *mainClass);
+    FlintError runToMain(const char *mainClass, uint32_t stackSize);
 
     bool isRunning(void) const;
     void terminateRequest(void);

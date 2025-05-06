@@ -711,9 +711,11 @@ FlintError Flint::initStaticField(FlintClassData &classData) {
 FlintError Flint::findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&methodInfo) {
     FlintClassLoader *loader = &load(constMethod.className);
     while(loader) {
-        methodInfo = loader->getMethodInfo(constMethod.nameAndType);
-        if(methodInfo)
+        FlintError err = loader->getMethodInfo(constMethod.nameAndType, methodInfo);
+        if(err == ERR_OK)
             return ERR_OK;
+        else if(err != ERR_METHOD_NOT_FOUND)
+            return err;
         FlintConstUtf8 *superClass = loader->superClass;
         loader = superClass ? &load(*superClass) : NULL;
     }
@@ -723,9 +725,11 @@ FlintError Flint::findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&me
 FlintError Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo) {
     FlintClassLoader *loader = &load(className);
     while(loader) {
-        methodInfo = loader->getMethodInfo(nameAndType);
-        if(methodInfo)
+        FlintError err = loader->getMethodInfo(nameAndType, methodInfo);
+        if(err == ERR_OK)
             return ERR_OK;
+        else if(err != ERR_METHOD_NOT_FOUND)
+            return err;
         FlintConstUtf8 *superClass = loader->superClass;
         loader = superClass ? &load(*superClass) : NULL;
     }
@@ -814,12 +818,20 @@ bool Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, 
     }
 }
 
-void Flint::runToMain(const char *mainClass) {
-    newExecution().run(load(mainClass).getMainMethodInfo());
+FlintError Flint::runToMain(const char *mainClass) {
+    FlintMethodInfo *mainMethodInfo;
+    FlintClassLoader *loader = &load(mainClass);
+    RETURN_IF_ERR(loader->getMainMethodInfo(mainMethodInfo));
+    newExecution().run(mainMethodInfo);
+    return ERR_OK;
 }
 
-void Flint::runToMain(const char *mainClass, uint32_t stackSize) {
-    newExecution(NULL, stackSize).run(load(mainClass).getMainMethodInfo());
+FlintError Flint::runToMain(const char *mainClass, uint32_t stackSize) {
+    FlintMethodInfo *mainMethodInfo;
+    FlintClassLoader *loader = &load(mainClass);
+    RETURN_IF_ERR(loader->getMainMethodInfo(mainMethodInfo));
+    newExecution(NULL, stackSize).run(mainMethodInfo);
+    return ERR_OK;
 }
 
 bool Flint::isRunning(void) const {

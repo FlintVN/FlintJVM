@@ -34,10 +34,12 @@ private:
     FlintClassLoader(const FlintClassLoader &) = delete;
     void operator=(const FlintClassLoader &) = delete;
 
-    void readFile(void *file);
-    void readAttributeCode(void *file, FlintMethodInfo &method);
+    FlintError load(void *file);
+    FlintError readAttributeCode(void *file, FlintMethodInfo &method);
 protected:
     FlintClassLoader(class Flint &flint, const char *fileName, uint16_t length);
+
+    FlintError load(const char *fileName, uint16_t length);
 
     ~FlintClassLoader(void);
 public:
@@ -92,13 +94,13 @@ public:
     FlintFieldInfo *getFieldInfo(FlintConstNameAndType &nameAndType) const;
 
     uint16_t getMethodsCount(void) const;
-    FlintMethodInfo *getMethodInfo(uint8_t methodIndex);
-    FlintMethodInfo *getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
-    FlintMethodInfo *getMethodInfo(FlintConstNameAndType &nameAndType);
+    FlintError getMethodInfo(uint8_t methodIndex, FlintMethodInfo *&methodInfo);
+    FlintError getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor, FlintMethodInfo *&methodInfo);
+    FlintError getMethodInfo(FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo);
     FlintMethodInfo *getMethodInfoWithUnload(uint8_t methodIndex);
     FlintMethodInfo *getMethodInfoWithUnload(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
-    FlintMethodInfo *getMainMethodInfo(void);
-    FlintMethodInfo *getStaticCtor(void);
+    FlintError getMainMethodInfo(FlintMethodInfo *&methodInfo);
+    FlintError getStaticCtor(FlintMethodInfo *&methodInfo);
 
     bool hasStaticCtor(void);
 };
