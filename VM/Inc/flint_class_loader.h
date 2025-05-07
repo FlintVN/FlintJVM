@@ -67,10 +67,10 @@ public:
 
     FlintConstUtf8 &getConstMethodType(FlintConstPool &constPool) const;
 
-    FlintConstNameAndType &getConstNameAndType(uint16_t poolIndex);
-    FlintConstField &getConstField(uint16_t poolIndex);
-    FlintConstMethod &getConstMethod(uint16_t poolIndex);
-    FlintConstInterfaceMethod &getConstInterfaceMethod(uint16_t poolIndex);
+    FlintError getConstNameAndType(uint16_t poolIndex, FlintConstNameAndType *&constNameAndType);
+    FlintError getConstField(uint16_t poolIndex, FlintConstField *&constField);
+    FlintError getConstMethod(uint16_t poolIndex, FlintConstMethod *&constMethod);
+    FlintError getConstInterfaceMethod(uint16_t poolIndex, FlintConstInterfaceMethod *&constInterfaceMethod);
 
     FlintClassAccessFlag getAccessFlag(void) const;
 
