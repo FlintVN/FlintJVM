@@ -23,5 +23,6 @@ FlintError throwUnsupportedOperationException(FlintExecution &execution, const c
 FlintError throwUnsatisfiedLinkErrorException(FlintExecution &execution, const char *msg = 0);
 FlintError throwNoSuchMethodError(FlintExecution &execution, const char *className, const char *methodName);
 FlintError throwNoSuchFieldError(FlintExecution &execution, const char *className, const char *fieldName);
+FlintError throwClassFormatError(FlintExecution &execution, const char *className);
 
 #endif /* __FLINT_THROW_SUPPORT_H */

@@ -231,3 +231,16 @@ FlintError throwNoSuchFieldError(FlintExecution &execution, const char *classNam
 
     return throwThrowable(execution, noSuchFieldErrorExceptionClassName, str);
 }
+
+FlintError throwClassFormatError(FlintExecution &execution, const char *className) {
+    uint32_t strLen = strlen("Invalid class file format: ") + strlen(className);
+    FlintJavaString *str;
+    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+
+    uint32_t i = 0;
+    char *txt = str->getText();
+    i = sprint(txt, i, "Invalid class file format: ");
+    i = sprint(txt, i, className, '/', '.');
+
+    return throwThrowable(execution, classFormatErrorExceptionClassName, str);
+}
