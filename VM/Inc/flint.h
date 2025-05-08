@@ -11,7 +11,6 @@
 #include "flint_class_loader.h"
 #include "flint_array_object.h"
 #include "flint_fields_data.h"
-#include "flint_load_file_error.h"
 #include "flint_const_utf8_binary_tree.h"
 #include "flint_string_binary_tree.h"
 #include "flint_class_binary_tree.h"
@@ -139,9 +138,12 @@ public:
     void clearProtectObjectNew(FlintJavaObject &obj);
     void garbageCollection(void);
 
-    FlintClassLoader &load(const char *className, uint16_t length);
-    FlintClassLoader &load(const char *className);
-    FlintClassLoader &load(const FlintConstUtf8 &className);
+private:
+    FlintError createFlintClassData(Flint *flint, const char *className, uint16_t length, FlintClassData *&classData);
+public:
+    FlintError load(const char *className, uint16_t length, FlintClassLoader *&loader);
+    FlintError load(const char *className, FlintClassLoader *&loader);
+    FlintError load(const FlintConstUtf8 &className, FlintClassLoader *&loader);
 
     FlintError runToMain(const char *mainClass);
     FlintError runToMain(const char *mainClass, uint32_t stackSize);

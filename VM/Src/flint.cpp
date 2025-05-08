@@ -181,9 +181,22 @@ FlintError Flint::newObject(const FlintConstUtf8 &type, FlintJavaObject *&obj) {
     RETURN_IF_ERR(newObject(sizeof(FlintFieldsData), type, 0, obj));
     memset(obj->data, 0, sizeof(FlintFieldsData));
 
+    FlintClassLoader *loader;
+    FlintError err = load(type, loader);
+    if(err != ERR_OK) {
+        freeObject(*obj);
+        return err;
+    }
+
     /* init field data */
     FlintFieldsData *fields = (FlintFieldsData *)obj->data;
-    new (fields)FlintFieldsData(*this, load(type), false);
+    new (fields)FlintFieldsData();
+    FlintConstUtf8 *classError;
+    err = fields->loadNonStatic(*this, *loader, classError);
+    if(err != ERR_OK) {
+        obj = (FlintJavaObject *)classError;
+        return err;
+    }
 
     return ERR_OK;
 }
@@ -665,73 +678,101 @@ void Flint::garbageCollection(void) {
     Flint::unlock();
 }
 
-FlintClassLoader &Flint::load(const char *className, uint16_t length) {
-    Flint::lock();
-    try {
-        FlintClassData *classData = classDataTree.find(className, length);
-        if(!classData)
-            classData = &classDataTree.add(this, className, length);
-        Flint::unlock();
-        return *classData;
-    }
-    catch(const char *msg) {
-        Flint::unlock();
-        throw (FlintLoadFileError *)className;
-    }
+FlintError Flint::createFlintClassData(Flint *flint, const char *className, uint16_t length, FlintClassData *&classData) {
+    classData = (FlintClassData *)Flint::malloc(sizeof(FlintClassData));
+    if(classData == NULL)
+        return ERR_OUT_OF_MEMORY;
+    classData->staticFieldsData = 0;
+    new (classData)FlintClassData(*flint, className, length);
+    return ERR_OK;
 }
 
-FlintClassLoader &Flint::load(const char *className) {
-    return load(className, strlen(className));
+FlintError Flint::load(const char *className, uint16_t length, FlintClassLoader *&loader) {
+    Flint::lock();
+    loader = (FlintClassLoader *)classDataTree.find(className, length);
+    if(!loader) {
+        FlintError err = createFlintClassData(this, className, length, (FlintClassData *&)loader);
+        if(err != ERR_OK) {
+            Flint::unlock();
+            return err;
+        }
+        classDataTree.add(*(FlintClassData *)loader);
+    }
+    Flint::unlock();
+    return ERR_OK;
 }
 
-FlintClassLoader &Flint::load(const FlintConstUtf8 &className) {
+FlintError Flint::load(const char *className, FlintClassLoader *&loader) {
+    return load(className, strlen(className), loader);
+}
+
+FlintError Flint::load(const FlintConstUtf8 &className, FlintClassLoader *&loader) {
     Flint::lock();
-    try {
-        FlintClassData *classData = classDataTree.find(className);
-        if(!classData)
-            classData = &classDataTree.add(this, className);
-        Flint::unlock();
-        return *classData;
+    loader = (FlintClassLoader *)classDataTree.find(className);
+    if(!loader) {
+        FlintError err = createFlintClassData(this, className.text, className.length, (FlintClassData *&)loader);
+        if(err != ERR_OK) {
+            Flint::unlock();
+            return err;
+        }
+        classDataTree.add(*(FlintClassData *)loader);
     }
-    catch(const char *msg) {
-        Flint::unlock();
-        throw (FlintLoadFileError *)className.text;
-    }
+    Flint::unlock();
+    return ERR_OK;
 }
 
 FlintError Flint::initStaticField(FlintClassData &classData) {
     FlintFieldsData *fieldsData = (FlintFieldsData *)Flint::malloc(sizeof(FlintFieldsData));
     if(fieldsData == NULL)
         return ERR_OUT_OF_MEMORY;
-    new (fieldsData)FlintFieldsData(*this, classData, true);
+    new (fieldsData)FlintFieldsData();
+    fieldsData->loadStatic(classData);
     classData.staticFieldsData = fieldsData;
     return ERR_OK;
 }
 
 FlintError Flint::findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&methodInfo) {
-    FlintClassLoader *loader = &load(constMethod.className);
+    FlintClassLoader *loader;
+    RETURN_IF_ERR(load(constMethod.className, loader));
     while(loader) {
         FlintError err = loader->getMethodInfo(constMethod.nameAndType, methodInfo);
         if(err == ERR_OK)
             return ERR_OK;
-        else if(err != ERR_METHOD_NOT_FOUND)
+        else if(err != ERR_METHOD_NOT_FOUND) {
+            methodInfo = (FlintMethodInfo *)loader->thisClass;
             return err;
+        }
         FlintConstUtf8 *superClass = loader->superClass;
-        loader = superClass ? &load(*superClass) : NULL;
+        if(!superClass)
+            return ERR_METHOD_NOT_FOUND;
+        err = load(*superClass, loader);
+        if(err != ERR_OK) {
+            methodInfo = (FlintMethodInfo *)superClass;
+            return err;
+        }
     }
     return ERR_METHOD_NOT_FOUND;
 }
 
 FlintError Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo) {
-    FlintClassLoader *loader = &load(className);
+    FlintClassLoader *loader;
+    RETURN_IF_ERR(load(className, loader));
     while(loader) {
         FlintError err = loader->getMethodInfo(nameAndType, methodInfo);
         if(err == ERR_OK)
             return ERR_OK;
-        else if(err != ERR_METHOD_NOT_FOUND)
+        else if(err != ERR_METHOD_NOT_FOUND) {
+            methodInfo = (FlintMethodInfo *)loader->thisClass;
             return err;
+        }
         FlintConstUtf8 *superClass = loader->superClass;
-        loader = superClass ? &load(*superClass) : NULL;
+        if(!superClass)
+            return ERR_METHOD_NOT_FOUND;
+        err = load(*superClass, loader);
+        if(err != ERR_OK) {
+            methodInfo = (FlintMethodInfo *)superClass;
+            return err;
+        }
     }
     return ERR_METHOD_NOT_FOUND;
 }
@@ -777,13 +818,15 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
     while(1) {
         if(compareClassName(*objType, typeName, typeNameHash))
             return true;
-        FlintClassLoader &loader = load(*objType);
-        uint16_t interfacesCount = loader.getInterfacesCount();
+        FlintClassLoader *loader;
+        // TODO - Check err
+        FlintError err = load(*objType, loader);
+        uint16_t interfacesCount = loader->getInterfacesCount();
         for(uint32_t i = 0; i < interfacesCount; i++) {
-            if(compareClassName(loader.getInterface(i), typeName, typeNameHash))
+            if(compareClassName(loader->getInterface(i), typeName, typeNameHash))
                 return true;
         }
-        objType = loader.superClass;
+        objType = loader->superClass;
         if(objType == NULL)
             return false;
     }
@@ -806,13 +849,15 @@ bool Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, 
     while(1) {
         if(*objType == typeName2)
             return true;
-        FlintClassLoader &loader = load(*objType);
-        uint16_t interfacesCount = loader.getInterfacesCount();
+        FlintClassLoader *loader;
+        // TODO - Check err
+        FlintError err = load(*objType, loader);
+        uint16_t interfacesCount = loader->getInterfacesCount();
         for(uint32_t i = 0; i < interfacesCount; i++) {
-            if(loader.getInterface(i) == typeName2)
+            if(loader->getInterface(i) == typeName2)
                 return true;
         }
-        objType = loader.superClass;
+        objType = loader->superClass;
         if(objType == NULL)
             return false;
     }
@@ -820,7 +865,8 @@ bool Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, 
 
 FlintError Flint::runToMain(const char *mainClass) {
     FlintMethodInfo *mainMethodInfo;
-    FlintClassLoader *loader = &load(mainClass);
+    FlintClassLoader *loader;
+    RETURN_IF_ERR(load(mainClass, loader));
     RETURN_IF_ERR(loader->getMainMethodInfo(mainMethodInfo));
     newExecution().run(mainMethodInfo);
     return ERR_OK;
@@ -828,7 +874,8 @@ FlintError Flint::runToMain(const char *mainClass) {
 
 FlintError Flint::runToMain(const char *mainClass, uint32_t stackSize) {
     FlintMethodInfo *mainMethodInfo;
-    FlintClassLoader *loader = &load(mainClass);
+    FlintClassLoader *loader;
+    RETURN_IF_ERR(load(mainClass, loader));
     RETURN_IF_ERR(loader->getMainMethodInfo(mainMethodInfo));
     newExecution(NULL, stackSize).run(mainMethodInfo);
     return ERR_OK;

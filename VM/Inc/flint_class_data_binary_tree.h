@@ -51,15 +51,14 @@ private:
     static FlintClassData *rotateRight(FlintClassData *y);
     static FlintClassData *rotateLeft(FlintClassData *x);
     static FlintClassData *balance(FlintClassData *node);
-    static FlintClassData *insert(class Flint *flint, FlintClassData *rootNode, const char *text, uint32_t hash, FlintClassData **node);
+    static FlintClassData *insert(FlintClassData *rootNode, FlintClassData &classData);
 
     void forEach(FlintClassData *node, void (*func)(FlintClassData &item));
     void freeNode(FlintClassData *node);
 public:
     FlintClassDataBinaryTree(void);
 
-    FlintClassData &add(class Flint *flint, const char *className, uint16_t length);
-    FlintClassData &add(class Flint *flint, const FlintConstUtf8 &utf8);
+    void add(FlintClassData &classData);
 
     FlintClassData *find(const char *className, uint16_t length) const;
     FlintClassData *find(const FlintConstUtf8 &utf8) const;
