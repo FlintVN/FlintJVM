@@ -98,7 +98,7 @@ static FlintError nativeIsInstance(FlintExecution &execution) {
             execution.stackPushInt32((err == ERR_OK) ? 1 : 0);
             return ERR_OK;
         }
-        return checkAndThrowForFlintLoadError(execution, err, classError);
+        return checkAndThrowForFlintError(execution, err, classError);
     }
     else
         execution.stackPushInt32(0);
@@ -119,7 +119,7 @@ static FlintError nativeIsAssignableFrom(FlintExecution &execution) {
         execution.stackPushInt32((err == ERR_OK) ? 1 : 0);
         return ERR_OK;
     }
-    return checkAndThrowForFlintLoadError(execution, err, classError);
+    return checkAndThrowForFlintError(execution, err, classError);
 }
 
 static FlintError nativeIsInterface(FlintExecution &execution) {
@@ -131,7 +131,7 @@ static FlintError nativeIsInterface(FlintExecution &execution) {
         FlintClassLoader *loader;
         FlintError err = execution.flint.load(typeName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &typeName);
+            return checkAndThrowForFlintError(execution, err, &typeName);
         const FlintClassAccessFlag modifiers = loader->getAccessFlag();
         execution.stackPushInt32((modifiers & CLASS_INTERFACE) ? 1 : 0);
     }
@@ -159,7 +159,7 @@ static FlintError nativeGetSuperclass(FlintExecution &execution) {
         FlintClassLoader *loader;
         FlintError err = execution.flint.load(typeName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &typeName);
+            return checkAndThrowForFlintError(execution, err, &typeName);
         const FlintConstUtf8 *superClass = loader->superClass;
         if(superClass == NULL) {
             execution.stackPushObject(NULL);
@@ -184,13 +184,13 @@ static FlintError nativeGetInterfaces0(FlintExecution &execution) {
         FlintClassLoader *loader;
         FlintError err = execution.flint.load(typeName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &typeName);
+            return checkAndThrowForFlintError(execution, err, &typeName);
         uint32_t interfaceCount = loader->getInterfacesCount();
         if(interfaceCount) {
             FlintObjectArray *clsArr;
             err = execution.flint.newObjectArray(classClassName, interfaceCount, clsArr);
             if(err != ERR_OK)
-                return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)clsArr);
+                return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)clsArr);
             for(uint32_t i = 0; i < interfaceCount; i++) {
                 FlintConstUtf8 &interfaceName = loader->getInterface(i);
                 err = execution.flint.getConstClass(interfaceName.text, interfaceName.length, (FlintJavaClass *&)clsArr->getData()[i]);
@@ -261,7 +261,7 @@ static FlintError nativeGetModifiers(FlintExecution &execution) {
         FlintClassLoader *loader;
         FlintError err = execution.flint.load(typeName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &typeName);
+            return checkAndThrowForFlintError(execution, err, &typeName);
         modifiers = loader->getAccessFlag() & 0xFFDF;
     }
     execution.stackPushInt32(modifiers);
@@ -384,13 +384,13 @@ static FlintError nativeGetDeclaredFields0(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         FlintError err = execution.flint.load(objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &objectClassName);
+            return checkAndThrowForFlintError(execution, err, &objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
         FlintError err = execution.flint.load(typeName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &typeName);
+            return checkAndThrowForFlintError(execution, err, &typeName);
     }
     uint16_t fieldCount = loader->getFieldsCount();
     FlintObjectArray *array;
@@ -403,7 +403,7 @@ static FlintError nativeGetDeclaredFields0(FlintExecution &execution) {
         FlintError err = execution.flint.newObject(fieldClassName, field);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
-            return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)field);
+            return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)field);
         }
         FlintFieldsData &fields = field->getFields();
 
@@ -437,13 +437,13 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         FlintError err = execution.flint.load(objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &objectClassName);
+            return checkAndThrowForFlintError(execution, err, &objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
         FlintError err = execution.flint.load(typeName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &typeName);
+            return checkAndThrowForFlintError(execution, err, &typeName);
     }
     uint16_t methodCount = loader->getMethodsCount();
     uint16_t count = 0;
@@ -467,7 +467,7 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution &execution) {
         FlintError err = execution.flint.newObject(methodClassName, method);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
-            return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)method);
+            return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)method);
         }
         FlintFieldsData &fields = method->getFields();
 
@@ -513,13 +513,13 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         FlintError err = execution.flint.load(objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &objectClassName);
+            return checkAndThrowForFlintError(execution, err, &objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
         FlintError err = execution.flint.load(typeName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, &typeName);
+            return checkAndThrowForFlintError(execution, err, &typeName);
     }
     uint16_t methodCount = loader->getMethodsCount();
     uint16_t count = 0;
@@ -543,7 +543,7 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution &execution) {
         FlintError err = execution.flint.newObject(constructorClassName, constructor);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
-            return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)constructor);
+            return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)constructor);
         }
         FlintFieldsData &fields = constructor->getFields();
 

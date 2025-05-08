@@ -245,11 +245,11 @@ FlintError throwClassFormatError(FlintExecution &execution, const char *classNam
     return throwThrowable(execution, classFormatErrorExceptionClassName, str);
 }
 
-FlintError checkAndThrowForFlintLoadError(FlintExecution &execution, FlintError err, const FlintConstUtf8 *className) {
-    return checkAndThrowForFlintLoadError(execution, err, className->text, className->length);
+FlintError checkAndThrowForFlintError(FlintExecution &execution, FlintError err, const FlintConstUtf8 *className) {
+    return checkAndThrowForFlintError(execution, err, className->text, className->length);
 }
 
-FlintError checkAndThrowForFlintLoadError(FlintExecution &execution, FlintError err, const char *className, uint16_t length) {
+FlintError checkAndThrowForFlintError(FlintExecution &execution, FlintError err, const char *className, uint16_t length) {
     if(err == ERR_CLASS_NOT_FOUND || err == ERR_CLASS_LOAD_FAIL) {
         FlintJavaString *str;
         RETURN_IF_ERR(execution.flint.newString(length, 0, str));

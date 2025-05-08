@@ -25,7 +25,7 @@ static FlintError nativeStart0(FlintExecution &execution) {
     FlintClassLoader *loader;
     FlintError err = flint.load(task->type, loader);
     if(err != ERR_OK)
-        return checkAndThrowForFlintLoadError(execution, err, &task->type);
+        return checkAndThrowForFlintError(execution, err, &task->type);
     err = loader->getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName, method);
     if(err != ERR_OK) {
         if(err == ERR_METHOD_NOT_FOUND)
