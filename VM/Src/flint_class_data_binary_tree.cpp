@@ -115,48 +115,22 @@ static int32_t compareConstUtf8(const char *text, uint32_t hash, FlintConstUtf8 
     return strncmp(text, uft8.text, uft8.length);
 }
 
-FlintClassData *FlintClassDataBinaryTree::insert(Flint *flint, FlintClassData *rootNode, const char *text, uint32_t hash, FlintClassData **node) {
-    if(!rootNode) {
-        FlintClassData *classData = 0;
-        try {
-            uint16_t length = ((uint16_t *)&hash)[0];
-            classData = (FlintClassData *)Flint::malloc(sizeof(FlintClassData));
-            classData->staticFieldsData = 0;
-            new (classData)FlintClassData(*flint, text, length);
-            if(node)
-                *node = classData;
-            return classData;
-        }
-        catch(...) {
-            if(classData) {
-                classData->~FlintClassData();
-                Flint::free(classData);
-            }
-            throw;
-        }
-    }
-    int8_t compareResult = compareConstUtf8(text, hash, *rootNode->thisClass);
+FlintClassData *FlintClassDataBinaryTree::insert(FlintClassData *rootNode, FlintClassData &classData) {
+    if(!rootNode)
+        return &classData;
+    uint32_t hash = CONST_UTF8_HASH(*classData.thisClass);
+    int8_t compareResult = compareConstUtf8(classData.thisClass->text, hash, *rootNode->thisClass);
     if(compareResult < 0)
-        rootNode->left = insert(flint, rootNode->left, text, hash, node);
+        rootNode->left = insert(rootNode->left, classData);
     else if(compareResult > 0)
-        rootNode->right = insert(flint, rootNode->right, text, hash, node);
+        rootNode->right = insert(rootNode->right, classData);
     else
         return rootNode;
     return balance(rootNode);
 }
 
-FlintClassData &FlintClassDataBinaryTree::add(Flint *flint, const char *text, uint16_t length) {
-    FlintClassData *newNode;
-    uint32_t hash = Flint_CalcHash(text, length, false);
-    root = insert(flint, root, text, hash, &newNode);
-    return *newNode;
-}
-
-FlintClassData &FlintClassDataBinaryTree::add(Flint *flint, const FlintConstUtf8 &utf8) {
-    FlintClassData *newNode;
-    uint32_t hash = CONST_UTF8_HASH(utf8);
-    root = insert(flint, root, utf8.text, hash, &newNode);
-    return *newNode;
+void FlintClassDataBinaryTree::add(FlintClassData &classData) {
+    root = insert(root, classData);
 }
 
 FlintClassData *FlintClassDataBinaryTree::find(const char *text, uint16_t length) const {

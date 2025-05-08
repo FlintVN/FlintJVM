@@ -80,56 +80,72 @@ static FlintError nativeGet(FlintExecution &execution) {
             case 'B': { /* byte */
                 int8_t value = ((FlintInt8Array *)obj)->getData()[index];
                 FlintJavaByte *byteObj;
-                RETURN_IF_ERR(execution.flint.newByte(value, byteObj));
+                FlintError err = execution.flint.newByte(value, byteObj);
+                if(err != ERR_OK)
+                    return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)byteObj);
                 execution.stackPushObject(byteObj);
                 return ERR_OK;
             }
             case 'Z': { /* boolean */
                 int8_t value = ((FlintInt8Array *)obj)->getData()[index];
                 FlintJavaBoolean *boolObj;
-                RETURN_IF_ERR(execution.flint.newBoolean(value, boolObj));
+                FlintError err = execution.flint.newBoolean(value, boolObj);
+                if(err != ERR_OK)
+                    return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)boolObj);
                 execution.stackPushObject(boolObj);
                 return ERR_OK;
             }
             case 'C': { /* char */
                 int16_t value = ((FlintInt16Array *)obj)->getData()[index];
                 FlintJavaCharacter *charObj;
-                RETURN_IF_ERR(execution.flint.newCharacter(value, charObj));
+                FlintError err = execution.flint.newCharacter(value, charObj);
+                if(err != ERR_OK)
+                    return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)charObj);
                 execution.stackPushObject(charObj);
                 return ERR_OK;
             }
             case 'S': { /* short */
                 int16_t value = ((FlintInt16Array *)obj)->getData()[index];
                 FlintJavaShort *shortObj;
-                RETURN_IF_ERR(execution.flint.newShort(value, shortObj));
+                FlintError err = execution.flint.newShort(value, shortObj);
+                if(err != ERR_OK)
+                    return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)shortObj);
                 execution.stackPushObject(shortObj);
                 return ERR_OK;
             }
             case 'I': { /* integer */
                 int32_t value = ((FlintInt32Array *)obj)->getData()[index];
                 FlintJavaInteger *intObj;
-                RETURN_IF_ERR(execution.flint.newInteger(value, intObj));
+                FlintError err = execution.flint.newInteger(value, intObj);
+                if(err != ERR_OK)
+                    return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)intObj);
                 execution.stackPushObject(intObj);
                 return ERR_OK;
             }
             case 'F': { /* float */
                 float value = ((FlintFloatArray *)obj)->getData()[index];
                 FlintJavaFloat *floatObj;
-                RETURN_IF_ERR(execution.flint.newFloat(value, floatObj));
+                FlintError err = execution.flint.newFloat(value, floatObj);
+                if(err != ERR_OK)
+                    return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)floatObj);
                 execution.stackPushObject(floatObj);
                 return ERR_OK;
             }
             case 'D': { /* double */
                 double value = ((FlintDoubleArray *)obj)->getData()[index];
                 FlintJavaDouble *doubleObj;
-                RETURN_IF_ERR(execution.flint.newDouble(value, doubleObj));
+                FlintError err = execution.flint.newDouble(value, doubleObj);
+                if(err != ERR_OK)
+                    return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)doubleObj);
                 execution.stackPushObject(doubleObj);
                 return ERR_OK;
             }
             default: { /* long */
                 int64_t value = ((FlintInt64Array *)obj)->getData()[index];
                 FlintJavaLong *longObj;
-                RETURN_IF_ERR(execution.flint.newLong(value, longObj));
+                FlintError err = execution.flint.newLong(value, longObj);
+                if(err != ERR_OK)
+                    return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)longObj);
                 execution.stackPushObject(longObj);
                 return ERR_OK;
             }

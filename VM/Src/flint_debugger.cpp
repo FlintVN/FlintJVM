@@ -231,7 +231,7 @@ void FlintDebugger::responseExceptionInfo(void) {
         if(
             exception &&
             (csr & DBG_STATUS_EXCP) &&
-            flint.isInstanceof(exception, throwableClassName)
+            (flint.isInstanceof(exception, throwableClassName, NULL) == ERR_OK)
         ) {
             FlintConstUtf8 &type = exception->type;
             FlintJavaString *str = exception->getDetailMessage();
@@ -723,13 +723,12 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             flint.freeAllExecution();
             flint.garbageCollection();
             flint.reset();
-            try {
+            if(flint.runToMain(mainClass->text) == ERR_OK) {
                 flint.runToMain(mainClass->text);
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
             }
-            catch(...) {
+            else
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_FAIL);
-            }
             return true;
         }
         case DBG_CMD_TERMINATE: {
@@ -924,45 +923,39 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
 }
 
 bool FlintDebugger::addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor) {
-    try {
-        if(breakPointCount < LENGTH(breakPoints)) {
-            FlintClassLoader &loader = flint.load(className);
-            FlintMethodInfo *method = loader.getMethodInfoWithUnload(methodName, descriptor);
-            if(method) {
-                for(uint8_t i = 0; i < breakPointCount; i++) {
-                    if(method == breakPoints[i].method && pc == breakPoints[i].pc)
-                        return true;
-                }
-                new (&breakPoints[breakPointCount])FlintBreakPoint(pc, *method);
-                breakPointCount++;
-                return true;
+    if(breakPointCount < LENGTH(breakPoints)) {
+        FlintClassLoader *loader;
+        if(flint.load(className, loader) != ERR_OK)
+            return false;
+        FlintMethodInfo *method = loader->getMethodInfoWithUnload(methodName, descriptor);
+        if(method) {
+            for(uint8_t i = 0; i < breakPointCount; i++) {
+                if(method == breakPoints[i].method && pc == breakPoints[i].pc)
+                    return true;
             }
+            new (&breakPoints[breakPointCount])FlintBreakPoint(pc, *method);
+            breakPointCount++;
+            return true;
         }
-    }
-    catch(FlintLoadFileError *file) {
-
     }
     return false;
 }
 
 bool FlintDebugger::removeBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor) {
-    try {
-        if(breakPointCount) {
-            FlintClassLoader &loader = flint.load(className);
-            FlintMethodInfo *method = loader.getMethodInfoWithUnload(methodName, descriptor);
-            if(method) {
-                for(uint8_t i = 0; i < breakPointCount; i++) {
-                    if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
-                        breakPoints[i] = breakPoints[breakPointCount - 1];
-                        breakPointCount--;
-                    }
+    if(breakPointCount) {
+        FlintClassLoader *loader;
+        if(flint.load(className, loader) != ERR_OK)
+            return false;
+        FlintMethodInfo *method = loader->getMethodInfoWithUnload(methodName, descriptor);
+        if(method) {
+            for(uint8_t i = 0; i < breakPointCount; i++) {
+                if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
+                    breakPoints[i] = breakPoints[breakPointCount - 1];
+                    breakPointCount--;
                 }
-                return true;
             }
+            return true;
         }
-    }
-    catch(FlintLoadFileError *file) {
-
     }
     return false;
 }

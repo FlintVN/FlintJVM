@@ -20,7 +20,20 @@ static FlintError nativeStart0(FlintExecution &execution) {
     if(task == 0)
         task = threadObj;
     threadExecution.stackPushObject(task);
-    threadExecution.run(flint.load(task->type).getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName));
+
+    FlintMethodInfo *method;
+    FlintClassLoader *loader;
+    FlintError err = flint.load(task->type, loader);
+    if(err != ERR_OK)
+        return checkAndThrowForFlintLoadError(execution, err, &task->type);
+    err = loader->getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName, method);
+    if(err != ERR_OK) {
+        if(err == ERR_METHOD_NOT_FOUND)
+            return throwNoSuchMethodError(execution, task->type.text, "run");
+        return err;
+    }
+
+    threadExecution.run(method);
     return ERR_OK;
 }
 

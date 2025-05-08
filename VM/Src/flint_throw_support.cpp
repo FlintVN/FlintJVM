@@ -231,3 +231,37 @@ FlintError throwNoSuchFieldError(FlintExecution &execution, const char *classNam
 
     return throwThrowable(execution, noSuchFieldErrorExceptionClassName, str);
 }
+
+FlintError throwClassFormatError(FlintExecution &execution, const char *className) {
+    uint32_t strLen = strlen("Invalid class file format: ") + strlen(className);
+    FlintJavaString *str;
+    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+
+    uint32_t i = 0;
+    char *txt = str->getText();
+    i = sprint(txt, i, "Invalid class file format: ");
+    i = sprint(txt, i, className, '/', '.');
+
+    return throwThrowable(execution, classFormatErrorExceptionClassName, str);
+}
+
+FlintError checkAndThrowForFlintLoadError(FlintExecution &execution, FlintError err, const FlintConstUtf8 *className) {
+    return checkAndThrowForFlintLoadError(execution, err, className->text, className->length);
+}
+
+FlintError checkAndThrowForFlintLoadError(FlintExecution &execution, FlintError err, const char *className, uint16_t length) {
+    if(err == ERR_CLASS_NOT_FOUND || err == ERR_CLASS_LOAD_FAIL) {
+        FlintJavaString *str;
+        RETURN_IF_ERR(execution.flint.newString(length, 0, str));
+
+        char *txt = str->getText();
+        for(uint32_t i = 0; i < length; i++)
+            txt[i] = (className[i] != '/') ? className[i] : '.';
+
+        if(err == ERR_CLASS_NOT_FOUND)
+            return throwThrowable(execution, classNotFoundExceptionClassName, str);
+        else if(err == ERR_CLASS_LOAD_FAIL)
+            return throwThrowable(execution, classFormatErrorExceptionClassName, str);
+    }
+    return err;
+}

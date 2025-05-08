@@ -16,12 +16,8 @@ FlintFieldObject::FlintFieldObject(const FlintFieldInfo &fieldInfo) : fieldInfo(
 
 }
 
-FlintFieldsData::FlintFieldsData(Flint &flint, const FlintClassLoader &classLoader, bool isStatic) :
-fields32Count(0), fields64Count(0), fieldsObjCount(0) {
-    if(isStatic)
-        loadStatic(classLoader);
-    else
-        loadNonStatic(flint, classLoader);
+FlintFieldsData::FlintFieldsData(void) : fields32Count(0), fields64Count(0), fieldsObjCount(0) {
+
 }
 
 void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
@@ -73,8 +69,8 @@ void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
     }
 }
 
-void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classLoader) {
-    const FlintClassLoader *loader = &classLoader;
+FlintError FlintFieldsData::loadNonStatic(Flint &flint, FlintClassLoader &classLoader, FlintConstUtf8 *&classError) {
+    FlintClassLoader *loader = &classLoader;
 
     while(loader) {
         uint16_t fieldsCount = loader->getFieldsCount();
@@ -97,7 +93,13 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
             }
         }
         FlintConstUtf8 *superClass = loader->superClass;
-        loader = superClass ? &flint.load(*superClass) : 0;
+        if(!superClass)
+            break;
+        FlintError err = flint.load(*superClass, loader);
+        if(err != ERR_OK) {
+            classError = superClass;
+            return err;
+        }
     }
 
     fieldsData32 = (fields32Count) ? (FlintFieldData32 *)Flint::malloc(fields32Count * sizeof(FlintFieldData32)) : 0;
@@ -130,8 +132,16 @@ void FlintFieldsData::loadNonStatic(Flint &flint, const FlintClassLoader &classL
             }
         }
         FlintConstUtf8 *superClass = loader->superClass;
-        loader = superClass ? &flint.load(*superClass) : 0;
+        if(!superClass)
+            break;
+        FlintError err = flint.load(*superClass, loader);
+        if(err != ERR_OK) {
+            classError = superClass;
+            return err;
+        }
     }
+
+    return ERR_OK;
 }
 
 FlintFieldData32 *FlintFieldsData::getFieldData32(const char *fieldName, uint32_t *index) const {

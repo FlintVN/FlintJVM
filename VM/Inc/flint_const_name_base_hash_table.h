@@ -9,6 +9,6 @@ typedef struct {
     const FlintConstUtf8 *values[];
 } ConstNameBaseList;
 
-extern const ConstNameBaseList * const baseConstUtf8HashTable[57];
+extern const ConstNameBaseList * const baseConstUtf8HashTable[58];
 
 #endif /* __FLINT_CONST_NAME_BASE_HASH_TABLE_H */
