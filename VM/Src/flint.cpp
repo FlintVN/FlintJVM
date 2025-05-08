@@ -876,8 +876,7 @@ FlintError Flint::runToMain(const char *mainClass) {
     FlintClassLoader *loader;
     RETURN_IF_ERR(load(mainClass, loader));
     RETURN_IF_ERR(loader->getMainMethodInfo(mainMethodInfo));
-    newExecution().run(mainMethodInfo);
-    return ERR_OK;
+    return newExecution().run(mainMethodInfo) ? ERR_OK : ERR_OUT_OF_MEMORY;
 }
 
 FlintError Flint::runToMain(const char *mainClass, uint32_t stackSize) {
@@ -885,8 +884,7 @@ FlintError Flint::runToMain(const char *mainClass, uint32_t stackSize) {
     FlintClassLoader *loader;
     RETURN_IF_ERR(load(mainClass, loader));
     RETURN_IF_ERR(loader->getMainMethodInfo(mainMethodInfo));
-    newExecution(NULL, stackSize).run(mainMethodInfo);
-    return ERR_OK;
+    return newExecution(NULL, stackSize).run(mainMethodInfo) ? ERR_OK : ERR_OUT_OF_MEMORY;
 }
 
 bool Flint::isRunning(void) const {

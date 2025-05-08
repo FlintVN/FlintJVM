@@ -723,13 +723,12 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             flint.freeAllExecution();
             flint.garbageCollection();
             flint.reset();
-            try {
+            if(flint.runToMain(mainClass->text) == ERR_OK) {
                 flint.runToMain(mainClass->text);
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
             }
-            catch(...) {
+            else
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_FAIL);
-            }
             return true;
         }
         case DBG_CMD_TERMINATE: {

@@ -2149,54 +2149,42 @@ FlintError FlintExecution::run(void) {
 }
 
 void FlintExecution::innerRunTask(FlintExecution *execution) {
-    try {
-        FlintError err = execution->run();
-        switch(err) {
-            case ERR_OK:
-                break;
-            case ERR_THROW: {
-                FlintJavaThrowable *ex = (FlintJavaThrowable *)execution->stackPopObject();
-                FlintJavaString *str = ex->getDetailMessage();
-                if(str)
-                    execution->flint.println(str);
-                else
-                    execution->flint.println(ex->type);
-                break;
-            }
-            case ERR_OUT_OF_MEMORY:
-                execution->flint.println("Out of memory");
-                break;
-            case ERR_STACK_OVERFLOW:
-                execution->flint.println("Stack overflow");
-                break;
-            case ERR_CLASS_LOAD_FAIL:
-                execution->flint.println("Class load fail");
-                break;
-            case ERR_CLASS_NOT_FOUND:
-                execution->flint.println("Class not found");
-                break;
-            case ERR_FIELD_NOT_FOUND:
-                execution->flint.println("Field not found");
-                break;
-            case ERR_METHOD_NOT_FOUND:
-                execution->flint.println("Method not found");
-                break;
-            case ERR_VM_ERROR:
-                execution->flint.println("VM error");
-                break;
-            default:
-                break;
+    FlintError err = execution->run();
+    switch(err) {
+        case ERR_OK:
+            break;
+        case ERR_THROW: {
+            FlintJavaThrowable *ex = (FlintJavaThrowable *)execution->stackPopObject();
+            FlintJavaString *str = ex->getDetailMessage();
+            if(str)
+                execution->flint.println(str);
+            else
+                execution->flint.println(ex->type);
+            break;
         }
-    }
-    catch(FlintJavaThrowable *ex) {
-        FlintJavaString *str = ex->getDetailMessage();
-        if(str)
-            execution->flint.println(str);
-        else
-            execution->flint.println(ex->type);
-    }
-    catch(const char *msg) {
-        execution->flint.println(msg);
+        case ERR_OUT_OF_MEMORY:
+            execution->flint.println("Out of memory");
+            break;
+        case ERR_STACK_OVERFLOW:
+            execution->flint.println("Stack overflow");
+            break;
+        case ERR_CLASS_LOAD_FAIL:
+            execution->flint.println("Class load fail");
+            break;
+        case ERR_CLASS_NOT_FOUND:
+            execution->flint.println("Class not found");
+            break;
+        case ERR_FIELD_NOT_FOUND:
+            execution->flint.println("Field not found");
+            break;
+        case ERR_METHOD_NOT_FOUND:
+            execution->flint.println("Method not found");
+            break;
+        case ERR_VM_ERROR:
+            execution->flint.println("VM error");
+            break;
+        default:
+            break;
     }
     while(execution->startSp > 3)
         execution->stackRestoreContext();
