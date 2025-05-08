@@ -244,3 +244,20 @@ FlintError throwClassFormatError(FlintExecution &execution, const char *classNam
 
     return throwThrowable(execution, classFormatErrorExceptionClassName, str);
 }
+
+FlintError checkAndThrowForFlintLoadError(FlintExecution &execution, FlintError err, const char *className, uint16_t length) {
+    if(err == ERR_CLASS_NOT_FOUND || err == ERR_CLASS_LOAD_FAIL) {
+        FlintJavaString *str;
+        RETURN_IF_ERR(execution.flint.newString(length, 0, str));
+
+        char *txt = str->getText();
+        for(uint32_t i = 0; i < length; i++)
+            txt[i] = (className[i] != '/') ? className[i] : '.';
+
+        if(err == ERR_CLASS_NOT_FOUND)
+            return throwThrowable(execution, classNotFoundExceptionClassName, str);
+        else if(err == ERR_CLASS_LOAD_FAIL)
+            return throwThrowable(execution, classFormatErrorExceptionClassName, str);
+    }
+    return err;
+}
