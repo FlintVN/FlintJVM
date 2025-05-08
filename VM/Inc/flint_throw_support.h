@@ -25,6 +25,7 @@ FlintError throwNoSuchMethodError(FlintExecution &execution, const char *classNa
 FlintError throwNoSuchFieldError(FlintExecution &execution, const char *className, const char *fieldName);
 FlintError throwClassFormatError(FlintExecution &execution, const char *className);
 
+FlintError checkAndThrowForFlintLoadError(FlintExecution &execution, FlintError err, const FlintConstUtf8 *className);
 FlintError checkAndThrowForFlintLoadError(FlintExecution &execution, FlintError err, const char *className, uint16_t length);
 
 #endif /* __FLINT_THROW_SUPPORT_H */

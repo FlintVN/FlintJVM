@@ -276,7 +276,12 @@ FlintError Flint::newClass(FlintJavaString &typeName, FlintJavaClass *&cls) {
 FlintError Flint::newClass(const char *typeName, uint16_t length, FlintJavaClass *&cls) {
     /* create String object to store typeName */
     FlintJavaString *name;
-    RETURN_IF_ERR(newString(typeName, length, false, name));
+    FlintError err = newString(typeName, length, false, name);
+    if(err != ERR_OK) {
+        /* return class name in case class not found or error */
+        cls = (FlintJavaClass *)name;
+        return err;
+    }
 
     /* replace '/' to '.' */
     char *text = (char *)name->getText();
@@ -284,7 +289,7 @@ FlintError Flint::newClass(const char *typeName, uint16_t length, FlintJavaClass
         if(text[i] == '/')
             text[i] = '.';
     }
-    FlintError err = newClass(*name, cls);
+    err = newClass(*name, cls);
     if(err != ERR_OK)
         freeObject(*name);
     return err;

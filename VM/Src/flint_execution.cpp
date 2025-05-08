@@ -306,7 +306,7 @@ FlintError FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
             if(err == ERR_METHOD_NOT_FOUND)
                 return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
             FlintConstUtf8 *classError = (FlintConstUtf8 *)methodInfo;
-            return checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length);
+            return checkAndThrowForFlintLoadError(*this, err, classError);
         }
         constMethod.methodInfo = methodInfo;
     }
@@ -341,7 +341,7 @@ FlintError FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
             if(err == ERR_METHOD_NOT_FOUND)
                 return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
             FlintConstUtf8 *classError = (FlintConstUtf8 *)methodInfo;
-            return checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length);
+            return checkAndThrowForFlintLoadError(*this, err, classError);
         }
         constMethod.methodInfo = methodInfo;
     }
@@ -380,7 +380,7 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
             if(err == ERR_METHOD_NOT_FOUND)
                 return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
             FlintConstUtf8 *classError = (FlintConstUtf8 *)methodInfo;
-            return checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length);
+            return checkAndThrowForFlintLoadError(*this, err, classError);
         }
         constMethod.methodInfo = methodInfo;
     }
@@ -409,7 +409,7 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
             if(err == ERR_METHOD_NOT_FOUND)
                 return throwNoSuchMethodError(*this, interfaceMethod.className.text, interfaceMethod.nameAndType.name.text);
             FlintConstUtf8 *classError = (FlintConstUtf8 *)methodInfo;
-            return checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length);
+            return checkAndThrowForFlintLoadError(*this, err, classError);
         }
     }
     if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
@@ -1887,7 +1887,7 @@ FlintError FlintExecution::run(void) {
         FlintConstUtf8 *classError;
         err = ((FlintFieldsData *)obj->data)->loadNonStatic(flint, *classData, classError);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length);
+            return checkAndThrowForFlintLoadError(*this, err, classError);
         stackPushObject(obj);
         pc += 3;
         goto *opcodes[code[pc]];
@@ -1957,7 +1957,7 @@ FlintError FlintExecution::run(void) {
                         if(err == ERR_OK)
                             isMatch = true;
                         else if(err != ERR_IS_INSTANCE_FALSE)
-                            return checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length);
+                            return checkAndThrowForFlintLoadError(*this, err, classError);
                     }
                     if(isMatch) {
                         while(startSp > traceStartSp)
@@ -1991,7 +1991,7 @@ FlintError FlintExecution::run(void) {
                     RETURN_IF_NOT_THROW(throwClassCastException(*this, obj, type));
                     goto exception_handler;
                 }
-                RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length));
+                RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, classError));
                 goto exception_handler;
             }
         }
@@ -2008,7 +2008,7 @@ FlintError FlintExecution::run(void) {
         else if(err == ERR_IS_INSTANCE_FALSE)
             stackPushInt32(0);
         else {
-            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length));
+            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, classError));
             goto exception_handler;
         }
         pc += 3;
