@@ -799,7 +799,7 @@ static uint32_t getDimensions(const char *typeName) {
     return (uint32_t)(text - typeName);
 }
 
-bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length) {
+FlintError Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length, FlintConstUtf8 **classError) {
     uint32_t dimensions = getDimensions(typeName);
     typeName += dimensions;
     length -= dimensions;
@@ -809,57 +809,65 @@ bool Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t le
     }
     uint32_t typeNameHash = Flint_CalcHash(typeName, length, true);
     if((obj->dimensions >= dimensions) && compareClassName(objectClassName, typeName, typeNameHash))
-        return true;
+        return ERR_OK;
     if(dimensions != obj->dimensions)
-        return false;
+        return ERR_IS_INSTANCE_FALSE;
     FlintConstUtf8 *objType = &obj->type;
     if(FlintJavaObject::isPrimType(*objType) || ((length == 1) && FlintJavaObject::convertToAType(typeName[0])))
-        return (length == objType->length) && (typeName[0] == objType->text[0]);
+        return ((length == objType->length) && (typeName[0] == objType->text[0])) ? ERR_OK : ERR_IS_INSTANCE_FALSE;
     while(1) {
         if(compareClassName(*objType, typeName, typeNameHash))
-            return true;
+            return ERR_OK;
         FlintClassLoader *loader;
-        // TODO - Check err
         FlintError err = load(*objType, loader);
+        if(err != ERR_OK) {
+            if(classError)
+                *classError = objType;
+            return err;
+        }
         uint16_t interfacesCount = loader->getInterfacesCount();
         for(uint32_t i = 0; i < interfacesCount; i++) {
             if(compareClassName(loader->getInterface(i), typeName, typeNameHash))
-                return true;
+                return ERR_OK;
         }
         objType = loader->superClass;
         if(objType == NULL)
-            return false;
+            return ERR_IS_INSTANCE_FALSE;
     }
 }
 
-bool Flint::isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName) {
+FlintError Flint::isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName, FlintConstUtf8 **classError) {
     if(typeName.text[0] == '[' || typeName.text[typeName.length - 1] == ';')
-        return isInstanceof(obj, typeName.text, typeName.length);
-    return isInstanceof(obj->type, obj->dimensions, typeName, 0);
+        return isInstanceof(obj, typeName.text, typeName.length, classError);
+    return isInstanceof(obj->type, obj->dimensions, typeName, 0, classError);
 }
 
-bool Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2) {
+FlintError Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2, FlintConstUtf8 **classError) {
     if((dimensions1 >= dimensions2) && (typeName2 == objectClassName))
-        return true;
+        return ERR_OK;
     if(dimensions1 != dimensions2)
-        return false;
+        return ERR_IS_INSTANCE_FALSE;
     if(FlintJavaObject::isPrimType(typeName1) || FlintJavaObject::isPrimType(typeName2))
-        return (typeName1.text[0] == typeName2.text[0]);
+        return (typeName1.text[0] == typeName2.text[0]) ? ERR_OK : ERR_IS_INSTANCE_FALSE;
     const FlintConstUtf8 *objType = &typeName1;
     while(1) {
         if(*objType == typeName2)
-            return true;
+            return ERR_OK;
         FlintClassLoader *loader;
-        // TODO - Check err
         FlintError err = load(*objType, loader);
+        if(err != ERR_OK) {
+            if(classError)
+                *classError = (FlintConstUtf8 *)objType;
+            return err;
+        }
         uint16_t interfacesCount = loader->getInterfacesCount();
         for(uint32_t i = 0; i < interfacesCount; i++) {
             if(loader->getInterface(i) == typeName2)
-                return true;
+                return ERR_OK;
         }
         objType = loader->superClass;
         if(objType == NULL)
-            return false;
+            return ERR_IS_INSTANCE_FALSE;
     }
 }
 

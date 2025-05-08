@@ -128,9 +128,9 @@ public:
     FlintError findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&methodInfo);
     FlintError findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo);
 
-    bool isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length);
-    bool isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName);
-    bool isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2);
+    FlintError isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length, FlintConstUtf8 **classError);
+    FlintError isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName, FlintConstUtf8 **classError);
+    FlintError isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2,  FlintConstUtf8 **classError);
 private:
     static void garbageCollectionProtectObject(FlintJavaObject &obj);
 public:

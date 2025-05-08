@@ -91,8 +91,15 @@ static FlintError nativeIsInstance(FlintExecution &execution) {
     FlintJavaObject *obj = (FlintJavaObject *)execution.stackPopObject();
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
     FlintJavaString &typeName = clsObj->getName();
-    if(typeName.getCoder() == 0)
-        execution.stackPushInt32(execution.flint.isInstanceof(obj, typeName.getText(), typeName.getLength()) ? 1 : 0);
+    if(typeName.getCoder() == 0) {
+        FlintConstUtf8 *classError;
+        FlintError err = execution.flint.isInstanceof(obj, typeName.getText(), typeName.getLength(), &classError);
+        if(err == ERR_OK || err == ERR_IS_INSTANCE_FALSE) {
+            execution.stackPushInt32((err == ERR_OK) ? 1 : 0);
+            return ERR_OK;
+        }
+        return checkAndThrowForFlintLoadError(execution, err, classError->text, classError->length);
+    }
     else
         execution.stackPushInt32(0);
     return ERR_OK;
@@ -106,8 +113,13 @@ static FlintError nativeIsAssignableFrom(FlintExecution &execution) {
     uint32_t clsDims, thisDims;
     const FlintConstUtf8 &clsTypeName = cls->getBaseTypeName(execution.flint, &clsDims);
     const FlintConstUtf8 &thisTypeName = thisCls->getBaseTypeName(execution.flint, &thisDims);
-    execution.stackPushInt32(execution.flint.isInstanceof(clsTypeName, clsDims, thisTypeName, thisDims) ? 1 : 0);
-    return ERR_OK;
+    FlintConstUtf8 *classError;
+    FlintError err = execution.flint.isInstanceof(clsTypeName, clsDims, thisTypeName, thisDims, &classError);
+    if(err == ERR_OK || err == ERR_IS_INSTANCE_FALSE) {
+        execution.stackPushInt32((err == ERR_OK) ? 1 : 0);
+        return ERR_OK;
+    }
+    return checkAndThrowForFlintLoadError(execution, err, classError->text, classError->length);
 }
 
 static FlintError nativeIsInterface(FlintExecution &execution) {

@@ -1948,7 +1948,18 @@ FlintError FlintExecution::run(void) {
             for(uint16_t i = 0; i < exceptionLength; i++) {
                 FlintExceptionTable *exception = traceMethod->getException(i);
                 if(exception->startPc <= tracePc && tracePc < exception->endPc) {
-                    if(exception->catchType == 0 || flint.isInstanceof(obj, traceMethod->classLoader.getConstUtf8Class(exception->catchType))) {
+                    bool isMatch = false;
+                    if(exception->catchType == 0)
+                        isMatch = true;
+                    else {
+                        FlintConstUtf8 *classError;
+                        FlintError err = flint.isInstanceof(obj, traceMethod->classLoader.getConstUtf8Class(exception->catchType), &classError);
+                        if(err == ERR_OK)
+                            isMatch = true;
+                        else if(err != ERR_IS_INSTANCE_FALSE)
+                            return checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length);
+                    }
+                    if(isMatch) {
                         while(startSp > traceStartSp)
                             stackRestoreContext();
                         sp = startSp + traceMethod->getMaxLocals();
@@ -1973,9 +1984,14 @@ FlintError FlintExecution::run(void) {
         FlintJavaObject *obj = (FlintJavaObject *)stack[sp];
         FlintConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         if(obj != 0) {
-            bool isInsOf = flint.isInstanceof(obj, type);
-            if(!isInsOf) {
-                RETURN_IF_NOT_THROW(throwClassCastException(*this, obj, type));
+            FlintConstUtf8 *classError;
+            FlintError err = flint.isInstanceof(obj, type, &classError);
+            if(err != ERR_OK) {
+                if(err == ERR_IS_INSTANCE_FALSE) {
+                    RETURN_IF_NOT_THROW(throwClassCastException(*this, obj, type));
+                    goto exception_handler;
+                }
+                RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length));
                 goto exception_handler;
             }
         }
@@ -1985,7 +2001,16 @@ FlintError FlintExecution::run(void) {
     op_instanceof: {
         FlintJavaObject *obj = stackPopObject();
         FlintConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
-        stackPushInt32(flint.isInstanceof(obj, type));
+        FlintConstUtf8 *classError;
+        FlintError err = flint.isInstanceof(obj, type, &classError);
+        if(err == ERR_OK)
+            stackPushInt32(1);
+        else if(err == ERR_IS_INSTANCE_FALSE)
+            stackPushInt32(0);
+        else {
+            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, classError->text, classError->length));
+            goto exception_handler;
+        }
         pc += 3;
         goto *opcodes[code[pc]];
     }
