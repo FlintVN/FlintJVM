@@ -18,6 +18,8 @@ static FlintError nativeGetClass(FlintExecution &execution) {
     }
     FlintJavaString *strObj;
     FlintError err = execution.flint.newString(length, 0, strObj);
+    if(err != ERR_OK)
+        return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)strObj);
     int8_t *byteArray = strObj->getValue()->getData();
     if(obj->dimensions) {
         for(uint32_t i = 0; i < obj->dimensions; i++)
@@ -52,7 +54,9 @@ static FlintError nativeClone(FlintExecution &execution) {
     FlintJavaObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
         FlintJavaObject *cloneObj;
-        RETURN_IF_ERR(execution.flint.newObject(obj->size, obj->type, obj->dimensions, cloneObj));
+        FlintError err = execution.flint.newObject(obj->size, obj->type, obj->dimensions, cloneObj);
+        if(err != ERR_OK)
+            return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)cloneObj);
         memcpy(((FlintInt8Array *)cloneObj)->getData(), ((FlintInt8Array *)obj)->getData(), ((FlintInt8Array *)obj)->getLength());
         execution.stackPushObject(cloneObj);
     }

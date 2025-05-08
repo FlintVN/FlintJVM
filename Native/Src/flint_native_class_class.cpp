@@ -188,10 +188,12 @@ static FlintError nativeGetInterfaces0(FlintExecution &execution) {
         uint32_t interfaceCount = loader->getInterfacesCount();
         if(interfaceCount) {
             FlintObjectArray *clsArr;
-            RETURN_IF_ERR(execution.flint.newObjectArray(classClassName, interfaceCount, clsArr));
+            err = execution.flint.newObjectArray(classClassName, interfaceCount, clsArr);
+            if(err != ERR_OK)
+                return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)clsArr);
             for(uint32_t i = 0; i < interfaceCount; i++) {
                 FlintConstUtf8 &interfaceName = loader->getInterface(i);
-                FlintError err = execution.flint.getConstClass(interfaceName.text, interfaceName.length, (FlintJavaClass *&)clsArr->getData()[i]);
+                err = execution.flint.getConstClass(interfaceName.text, interfaceName.length, (FlintJavaClass *&)clsArr->getData()[i]);
                 if(err != ERR_OK) {
                     freeObjectArray(execution.flint, clsArr, i);
                     return err;
@@ -382,7 +384,7 @@ static FlintError nativeGetDeclaredFields0(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         FlintError err = execution.flint.load(objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, objectClassName.text, objectClassName.length);
+            return checkAndThrowForFlintLoadError(execution, err, &objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
@@ -401,7 +403,7 @@ static FlintError nativeGetDeclaredFields0(FlintExecution &execution) {
         FlintError err = execution.flint.newObject(fieldClassName, field);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
-            return err;
+            return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)field);
         }
         FlintFieldsData &fields = field->getFields();
 
@@ -435,7 +437,7 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         FlintError err = execution.flint.load(objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, objectClassName.text, objectClassName.length);
+            return checkAndThrowForFlintLoadError(execution, err, &objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
@@ -465,7 +467,7 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution &execution) {
         FlintError err = execution.flint.newObject(methodClassName, method);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
-            return err;
+            return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)method);
         }
         FlintFieldsData &fields = method->getFields();
 
@@ -511,7 +513,7 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution &execution) {
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         FlintError err = execution.flint.load(objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintLoadError(execution, err, objectClassName.text, objectClassName.length);
+            return checkAndThrowForFlintLoadError(execution, err, &objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
@@ -541,7 +543,7 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution &execution) {
         FlintError err = execution.flint.newObject(constructorClassName, constructor);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
-            return err;
+            return checkAndThrowForFlintLoadError(execution, err, (FlintConstUtf8 *)constructor);
         }
         FlintFieldsData &fields = constructor->getFields();
 

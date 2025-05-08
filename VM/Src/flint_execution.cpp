@@ -305,8 +305,7 @@ FlintError FlintExecution::invokeStatic(FlintConstMethod &constMethod) {
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
                 return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
-            FlintConstUtf8 *classError = (FlintConstUtf8 *)methodInfo;
-            return checkAndThrowForFlintLoadError(*this, err, classError);
+            return checkAndThrowForFlintLoadError(*this, err, (FlintConstUtf8 *)methodInfo);
         }
         constMethod.methodInfo = methodInfo;
     }
@@ -340,8 +339,7 @@ FlintError FlintExecution::invokeSpecial(FlintConstMethod &constMethod) {
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
                 return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
-            FlintConstUtf8 *classError = (FlintConstUtf8 *)methodInfo;
-            return checkAndThrowForFlintLoadError(*this, err, classError);
+            return checkAndThrowForFlintLoadError(*this, err, (FlintConstUtf8 *)methodInfo);
         }
         constMethod.methodInfo = methodInfo;
     }
@@ -379,8 +377,7 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod &constMethod) {
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
                 return throwNoSuchMethodError(*this, constMethod.className.text, constMethod.nameAndType.name.text);
-            FlintConstUtf8 *classError = (FlintConstUtf8 *)methodInfo;
-            return checkAndThrowForFlintLoadError(*this, err, classError);
+            return checkAndThrowForFlintLoadError(*this, err, (FlintConstUtf8 *)methodInfo);
         }
         constMethod.methodInfo = methodInfo;
     }
@@ -408,8 +405,7 @@ FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod &interfaceM
         if(err != ERR_OK) {
             if(err == ERR_METHOD_NOT_FOUND)
                 return throwNoSuchMethodError(*this, interfaceMethod.className.text, interfaceMethod.nameAndType.name.text);
-            FlintConstUtf8 *classError = (FlintConstUtf8 *)methodInfo;
-            return checkAndThrowForFlintLoadError(*this, err, classError);
+            return checkAndThrowForFlintLoadError(*this, err, (FlintConstUtf8 *)methodInfo);
         }
     }
     if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
@@ -1548,7 +1544,7 @@ FlintError FlintExecution::run(void) {
         FlintClassData *classData;
         FlintError err = flint.load(constField->className, (FlintClassLoader *&)classData);
         if(err != ERR_OK) {
-            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, constField->className.text, constField->className.length));
+            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, &constField->className));
             goto exception_handler;
         }
         FlintInitStatus initStatus = classData->getInitStatus();
@@ -1605,7 +1601,7 @@ FlintError FlintExecution::run(void) {
         FlintClassData *classData;
         FlintError err = flint.load(constField->className, (FlintClassLoader *&)classData);
         if(err != ERR_OK) {
-            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, constField->className.text, constField->className.length));
+            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, &constField->className));
             goto exception_handler;
         }
         FlintInitStatus initStatus = classData->getInitStatus();
@@ -1880,7 +1876,7 @@ FlintError FlintExecution::run(void) {
         FlintClassData *classData;
         FlintError err = flint.load(constClass, (FlintClassLoader *&)classData);
         if(err != ERR_OK) {
-            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, constClass.text, constClass.length));
+            RETURN_IF_NOT_THROW(checkAndThrowForFlintLoadError(*this, err, &constClass));
             goto exception_handler;
         }
         new ((FlintFieldsData *)obj->data)FlintFieldsData();
