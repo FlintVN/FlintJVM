@@ -65,6 +65,7 @@ private:
     FlintError invokeStaticCtor(FlintClassData &classData);
 
     FlintError run(void);
+    void stopRequest(void);
     void terminateRequest(void);
     bool getStackTrace(uint32_t index, FlintStackFrame *stackTrace, bool *isEndStack) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const;

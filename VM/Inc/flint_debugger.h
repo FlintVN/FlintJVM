@@ -73,11 +73,12 @@ typedef enum : uint8_t {
 
 class FlintBreakPoint {
 public:
+    uint8_t opcode;
     uint32_t pc;
     FlintMethodInfo *method;
 
     FlintBreakPoint(void);
-    FlintBreakPoint(uint32_t pc, FlintMethodInfo &method);
+    FlintBreakPoint(uint8_t opcode, uint32_t pc, FlintMethodInfo *method);
 private:
     FlintBreakPoint(const FlintBreakPoint &) = delete;
 };
@@ -158,15 +159,21 @@ private:
 public:
     bool receivedDataHandler(uint8_t *data, uint32_t length);
     bool exceptionIsEnabled(void);
-    void checkBreakPoint(FlintExecution *exec);
+    bool waitStop(FlintExecution *exec);
+    bool checkStop(FlintExecution *exec);
     void caughtException(FlintExecution *exec, FlintJavaThrowable *excp);
+    void hitBreakpoint(FlintExecution *exec);
 private:
     FlintDebugger(const FlintDebugger &) = delete;
     void operator=(const FlintDebugger &) = delete;
 
     bool addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor);
     bool removeBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor);
+public:
+    bool restoreBreakPoint(uint32_t pc, FlintMethodInfo *method);
+    bool restoreOriginalOpcode(uint32_t pc, FlintMethodInfo *method);
 
+private:
     void lock(void);
     void unlock(void);
 };
