@@ -87,7 +87,6 @@ public:
     FlintError getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor, FlintMethodInfo *&methodInfo);
     FlintError getMethodInfo(FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo);
     FlintMethodInfo *getMethodInfoWithUnload(uint8_t methodIndex);
-    FlintMethodInfo *getMethodInfoWithUnload(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
     FlintError getMainMethodInfo(FlintMethodInfo *&methodInfo);
     FlintError getStaticCtor(FlintMethodInfo *&methodInfo);
 

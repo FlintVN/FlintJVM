@@ -654,26 +654,6 @@ FlintError FlintClassLoader::getMethodInfo(FlintConstNameAndType &nameAndType, F
     return getMethodInfo(nameAndType.name, nameAndType.descriptor, methodInfo);
 }
 
-FlintMethodInfo *FlintClassLoader::getMethodInfoWithUnload(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) {
-    uint32_t nameHash = CONST_UTF8_HASH(name);
-    uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
-    for(uint16_t i = 0; i < methodsCount; i++) {
-        FlintConstUtf8 &methodName = methods[i].getName();
-        FlintConstUtf8 &methodDesc = methods[i].getDescriptor();
-        if(nameHash == CONST_UTF8_HASH(methodName) && descriptorHash == CONST_UTF8_HASH(methodDesc)) {
-            if(&name == &methodName && &descriptor == &methodDesc)
-                return getMethodInfoWithUnload(i);
-            else if(
-                strncmp(name.text, methodName.text, name.length) == 0 &&
-                strncmp(descriptor.text, methodDesc.text, descriptor.length) == 0
-            ) {
-                return getMethodInfoWithUnload(i);
-            }
-        }
-    }
-    return NULL;
-}
-
 FlintError FlintClassLoader::getMainMethodInfo(FlintMethodInfo *&methodInfo) {
     static const uint32_t nameAndType[] = {
         (uint32_t)"\x04\x00\x1D\x15""main",                     /* method name */

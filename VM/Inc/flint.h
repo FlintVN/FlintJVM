@@ -137,7 +137,6 @@ public:
     bool isObject(uint32_t address) const;
     void clearProtectObjectNew(FlintJavaObject &obj);
     void garbageCollection(void);
-
 private:
     FlintError createFlintClassData(Flint *flint, const char *className, uint16_t length, FlintClassData *&classData);
 public:
@@ -149,6 +148,7 @@ public:
     FlintError runToMain(const char *mainClass, uint32_t stackSize);
 
     bool isRunning(void) const;
+    void stopRequest(void);
     void terminateRequest(void);
     void terminate(void);
     void freeObject(FlintJavaObject &obj);

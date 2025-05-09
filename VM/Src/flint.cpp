@@ -896,15 +896,21 @@ bool Flint::isRunning(void) const {
     return executionList ? true : false;
 }
 
+void Flint::stopRequest(void) {
+    for(FlintExecutionNode *node = executionList; node != 0; node = node->next)
+        node->stopRequest();
+}
+
 void Flint::terminateRequest(void) {
     for(FlintExecutionNode *node = executionList; node != 0; node = node->next)
         node->terminateRequest();
 }
 
 void Flint::terminate(void) {
-    terminateRequest();
-    while(isRunning())
+    do {
+        terminateRequest();
         FlintAPI::Thread::yield();
+    } while(isRunning());
 }
 
 void Flint::freeObject(FlintJavaObject &obj) {

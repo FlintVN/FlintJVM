@@ -2,13 +2,14 @@
 #include <iostream>
 #include <string.h>
 #include "flint.h"
+#include "flint_opcodes.h"
 #include "flint_debugger.h"
 
 FlintBreakPoint::FlintBreakPoint(void) : pc(0), method(0) {
 
 }
 
-FlintBreakPoint::FlintBreakPoint(uint32_t pc, FlintMethodInfo &method) : pc(pc), method(&method) {
+FlintBreakPoint::FlintBreakPoint(uint8_t opcode, uint32_t pc, FlintMethodInfo *method) : opcode(opcode), pc(pc), method(method) {
 
 }
 
@@ -709,6 +710,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             lock();
             csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
             unlock();
+            flint.stopRequest();
             sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
             return true;
         }
@@ -723,10 +725,8 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             flint.freeAllExecution();
             flint.garbageCollection();
             flint.reset();
-            if(flint.runToMain(mainClass->text) == ERR_OK) {
-                flint.runToMain(mainClass->text);
+            if(flint.runToMain(mainClass->text) == ERR_OK)
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
-            }
             else
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_FAIL);
             return true;
@@ -747,16 +747,12 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             if(csr & DBG_STATUS_STOP) {
                 stepCodeLength = *(uint32_t *)&data[4];
                 if(length == 10 && stepCodeLength && execution->getStackTrace(0, &startPoint, 0)) {
-                    if(cmd == DBG_CMD_STEP_IN) {
-                        lock();
+                    lock();
+                    if(cmd == DBG_CMD_STEP_IN)
                         csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_IN;
-                        unlock();
-                    }
-                    else {
-                        lock();
+                    else
                         csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_OVER;
-                        unlock();
-                    }
+                    unlock();
                     sendRespCode(cmd, DBG_RESP_OK);
                 }
                 else
@@ -927,14 +923,30 @@ bool FlintDebugger::addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, 
         FlintClassLoader *loader;
         if(flint.load(className, loader) != ERR_OK)
             return false;
-        FlintMethodInfo *method = loader->getMethodInfoWithUnload(methodName, descriptor);
-        if(method) {
-            for(uint8_t i = 0; i < breakPointCount; i++) {
-                if(method == breakPoints[i].method && pc == breakPoints[i].pc)
-                    return true;
+        FlintMethodInfo *method;
+        if(loader->getMethodInfo(methodName, descriptor, method) != ERR_OK)
+            return false;
+        if(method->accessFlag & METHOD_NATIVE)
+            return false;
+        uint8_t *code = method->getCode();
+        for(uint8_t i = 0; i < breakPointCount; i++) {
+            if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
+                code[pc] = (uint8_t)OP_BREAKPOINT;
+                return true;
             }
-            new (&breakPoints[breakPointCount])FlintBreakPoint(pc, *method);
-            breakPointCount++;
+        }
+        new (&breakPoints[breakPointCount])FlintBreakPoint(code[pc], pc, method);
+        breakPointCount++;
+        code[pc] = (uint8_t)OP_BREAKPOINT;
+        return true;
+    }
+    return false;
+}
+
+bool FlintDebugger::restoreBreakPoint(uint32_t pc, FlintMethodInfo *method) {
+    for(uint8_t i = 0; i < breakPointCount; i++) {
+        if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
+            method->getCode()[pc] = (uint8_t)OP_BREAKPOINT;
             return true;
         }
     }
@@ -946,14 +958,25 @@ bool FlintDebugger::removeBreakPoint(uint32_t pc, const FlintConstUtf8 &classNam
         FlintClassLoader *loader;
         if(flint.load(className, loader) != ERR_OK)
             return false;
-        FlintMethodInfo *method = loader->getMethodInfoWithUnload(methodName, descriptor);
-        if(method) {
-            for(uint8_t i = 0; i < breakPointCount; i++) {
-                if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
-                    breakPoints[i] = breakPoints[breakPointCount - 1];
-                    breakPointCount--;
-                }
+        FlintMethodInfo *method;
+        if(loader->getMethodInfo(methodName, descriptor, method) != ERR_OK)
+            return false;
+        for(uint8_t i = 0; i < breakPointCount; i++) {
+            if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
+                method->getCode()[breakPoints[i].pc] = breakPoints[i].opcode;
+                breakPoints[i] = breakPoints[breakPointCount - 1];
+                breakPointCount--;
             }
+        }
+        return true;
+    }
+    return false;
+}
+
+bool FlintDebugger::restoreOriginalOpcode(uint32_t pc, FlintMethodInfo *method) {
+    for(uint8_t i = 0; i < breakPointCount; i++) {
+        if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
+            method->getCode()[pc] = breakPoints[i].opcode;
             return true;
         }
     }
@@ -964,63 +987,55 @@ bool FlintDebugger::exceptionIsEnabled(void) {
     return (csr & DBG_CONTROL_EXCP_EN) == DBG_CONTROL_EXCP_EN;
 }
 
+bool FlintDebugger::checkStop(FlintExecution *exec) {
+    if(csr & DBG_CONTROL_STOP) {
+        lock();
+        if(!(csr & DBG_STATUS_STOP)) {
+            execution = exec;
+            csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
+        }
+        unlock();
+    }
+    return waitStop(exec);
+}
+
 void FlintDebugger::caughtException(FlintExecution *exec, FlintJavaThrowable *excp) {
     execution = exec;
     exception = excp;
     lock();
-    uint16_t tmp = csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
+    uint16_t tmp = csr & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     tmp |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     csr = tmp;
     unlock();
-    checkBreakPoint(exec);
+    waitStop(exec);
 }
 
-void FlintDebugger::checkBreakPoint(FlintExecution *exec) {
-    if(csr & DBG_CONTROL_STOP) {
-        execution = exec;
-        lock();
-        csr = (csr & ~DBG_CONTROL_STOP) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-        unlock();
-    }
-    else if(!(csr & DBG_STATUS_STOP)) {
-        if(breakPointCount) {
-            uint32_t pc = exec->pc;
-            FlintMethodInfo *method = exec->method;
-            for(uint8_t i = 0; i < breakPointCount; i++) {
-                if(breakPoints[i].method == method && breakPoints[i].pc == pc) {
-                    execution = exec;
-                    lock();
-                    csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
-                    unlock();
-                    break;
-                }
-            }
-        }
-    }
+void FlintDebugger::hitBreakpoint(FlintExecution *exec) {
+    flint.stopRequest();
+    execution = exec;
+    lock();
+    csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
+    unlock();
+    waitStop(exec);
+}
+
+bool FlintDebugger::waitStop(FlintExecution *exec) {
     while(csr & (DBG_STATUS_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT | DBG_STATUS_EXCP)) {
         if(execution == exec) {
             if(csr & DBG_CONTROL_STEP_IN) {
-                if(csr & DBG_STATUS_STOP) {
-                    lock();
-                    csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                    unlock();
-                    return;
-                }
+                if(csr & DBG_STATUS_STOP)
+                    break;
                 else if(&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= startPoint.pc) {
                     lock();
                     csr = (csr & ~DBG_CONTROL_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     unlock();
                 }
                 else
-                    return;
+                    return true;
             }
             else if(csr & DBG_CONTROL_STEP_OVER) {
-                if(csr & DBG_STATUS_STOP) {
-                    lock();
-                    csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                    unlock();
-                    return;
-                }
+                if(csr & DBG_STATUS_STOP)
+                    break;
                 else if(
                     (exec->startSp <= startPoint.baseSp) &&
                     (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= startPoint.pc)
@@ -1030,25 +1045,29 @@ void FlintDebugger::checkBreakPoint(FlintExecution *exec) {
                     unlock();
                 }
                 else
-                    return;
+                    return true;
             }
             else if(csr & DBG_CONTROL_STEP_OUT) {
-                if(csr & DBG_STATUS_STOP) {
-                    lock();
-                    csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                    unlock();
-                    return;
-                }
+                if(csr & DBG_STATUS_STOP)
+                    break;
                 else if(exec->startSp < startPoint.baseSp) {
                     lock();
                     csr = (csr & ~DBG_CONTROL_STEP_OUT) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     unlock();
                 }
                 else
-                    return;
+                    return true;
             }
         }
+        FlintAPI::Thread::yield();
     }
+    if(csr & DBG_STATUS_STOP) {
+        lock();
+        csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
+        unlock();
+        return true;
+    }
+    return false;
 }
 
 void FlintDebugger::lock(void) {
