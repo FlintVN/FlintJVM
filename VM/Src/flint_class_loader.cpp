@@ -90,14 +90,12 @@ static FlintAttributeType parseAttributeType(const FlintConstUtf8 &name) {
     return ATTRIBUTE_UNKNOW;
 }
 
-FlintClassLoader::FlintClassLoader(Flint &flint, const char *fileName, uint16_t length) : thisClass(NULL), superClass(NULL), flint(flint) {
+FlintClassLoader::FlintClassLoader(Flint &flint) : thisClass(NULL), superClass(NULL), flint(flint) {
     staticCtorInfo = 0;
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
     methodsCount = 0;
-
-    load(fileName, length);
 }
 
 FlintError FlintClassLoader::load(const char *fileName, uint16_t length) {

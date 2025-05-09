@@ -37,7 +37,7 @@ private:
     FlintError load(void *file);
     FlintError readAttributeCode(void *file, FlintMethodInfo &method);
 protected:
-    FlintClassLoader(class Flint &flint, const char *fileName, uint16_t length);
+    FlintClassLoader(class Flint &flint);
 
     FlintError load(const char *fileName, uint16_t length);
 

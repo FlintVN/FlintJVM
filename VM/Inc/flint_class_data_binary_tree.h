@@ -22,7 +22,7 @@ private:
     uint32_t staticInitOwnId;
     FlintFieldsData *staticFieldsData;
 
-    FlintClassData(class Flint &flint, const char *fileName, uint16_t length);
+    FlintClassData(class Flint &flint);
 
     FlintClassData(const FlintClassData &) = delete;
     void operator=(const FlintClassData &) = delete;

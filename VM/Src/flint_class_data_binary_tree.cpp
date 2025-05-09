@@ -24,7 +24,7 @@ FlintClassData::~FlintClassData() {
     clearStaticFields();
 }
 
-FlintClassData::FlintClassData(Flint &flint, const char *fileName, uint16_t length) : FlintClassLoader(flint, fileName, length) {
+FlintClassData::FlintClassData(Flint &flint) : FlintClassLoader(flint) {
     ownId = 0;
     monitorCount = 0;
     staticInitOwnId = 0;

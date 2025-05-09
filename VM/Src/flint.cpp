@@ -688,8 +688,8 @@ FlintError Flint::createFlintClassData(Flint *flint, const char *className, uint
     if(classData == NULL)
         return ERR_OUT_OF_MEMORY;
     classData->staticFieldsData = 0;
-    new (classData)FlintClassData(*flint, className, length);
-    return ERR_OK;
+    new (classData)FlintClassData(*flint);
+    return classData->load(className, length);
 }
 
 FlintError Flint::load(const char *className, uint16_t length, FlintClassLoader *&loader) {
