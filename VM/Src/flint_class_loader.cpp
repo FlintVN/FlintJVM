@@ -96,6 +96,9 @@ FlintClassLoader::FlintClassLoader(Flint &flint) : thisClass(NULL), superClass(N
     interfacesCount = 0;
     fieldsCount = 0;
     methodsCount = 0;
+    interfaces = NULL;
+    fields = NULL;
+    methods = NULL;
 }
 
 FlintError FlintClassLoader::load(const char *fileName, uint16_t length) {
@@ -119,6 +122,8 @@ FlintError FlintClassLoader::load(void *file) {
     RETURN_IF_ERR(ClassLoader_ReadUInt16(file, poolCount));
     poolCount--;
     poolTable = (FlintConstPool *)Flint::malloc(poolCount * sizeof(FlintConstPool));
+    if(poolTable == NULL)
+        return ERR_OUT_OF_MEMORY;
     for(uint32_t i = 0; i < poolCount; i++) {
         uint8_t tag;
         RETURN_IF_ERR(ClassLoader_ReadUInt8(file, tag));
@@ -132,6 +137,8 @@ FlintError FlintClassLoader::load(void *file) {
                         utf8Buff = (char *)Flint::malloc(length);
                     else
                         utf8Buff = (char *)Flint::realloc(utf8Buff, length);
+                    if(utf8Buff == NULL)
+                        return ERR_OUT_OF_MEMORY;
                     utf8Length = length;
                 }
                 RETURN_IF_ERR(ClassLoader_Read(file, utf8Buff, length));
@@ -194,6 +201,8 @@ FlintError FlintClassLoader::load(void *file) {
     RETURN_IF_ERR(ClassLoader_ReadUInt16(file, interfacesCount));
     if(interfacesCount) {
         interfaces = (uint16_t *)Flint::malloc(interfacesCount * sizeof(uint16_t));
+        if(interfaces == NULL)
+            return ERR_OUT_OF_MEMORY;
         for(uint32_t i = 0; i < interfacesCount; i++)
             RETURN_IF_ERR(ClassLoader_ReadUInt16(file, interfaces[i]));
     }
@@ -202,6 +211,8 @@ FlintError FlintClassLoader::load(void *file) {
     if(fieldsCount) {
         uint32_t loadedCount = 0;
         fields = (FlintFieldInfo *)Flint::malloc(fieldsCount * sizeof(FlintFieldInfo));
+        if(fields == NULL)
+            return ERR_OUT_OF_MEMORY;
         for(uint16_t i = 0; i < fieldsCount; i++) {
             uint16_t flag, fieldsNameIndex, fieldsDescriptorIndex, fieldsAttributesCount;
             RETURN_IF_ERR(ClassLoader_ReadUInt16(file, flag));
@@ -234,6 +245,8 @@ FlintError FlintClassLoader::load(void *file) {
         }
         else if(loadedCount != fieldsCount) {
             fields = (FlintFieldInfo *)Flint::realloc(fields, loadedCount * sizeof(FlintFieldInfo));
+            if(fields == NULL)
+                return ERR_OUT_OF_MEMORY;
             fieldsCount = loadedCount;
         }
     }
@@ -241,6 +254,8 @@ FlintError FlintClassLoader::load(void *file) {
     RETURN_IF_ERR(ClassLoader_ReadUInt16(file, methodsCount));
     if(methodsCount) {
         methods = (FlintMethodInfo *)Flint::malloc(methodsCount * sizeof(FlintMethodInfo));
+        if(methods == NULL)
+            return ERR_OUT_OF_MEMORY;
         for(uint16_t i = 0; i < methodsCount; i++) {
             uint16_t flag, methodNameIndex, methodDescriptorIndex, methodAttributesCount;
             RETURN_IF_ERR(ClassLoader_ReadUInt16(file, flag));
@@ -288,6 +303,8 @@ FlintError FlintClassLoader::readAttributeCode(void *file, FlintMethodInfo &meth
 
     uint32_t codeAttrSize = sizeof(FlintCodeAttribute) + exceptionTableLength * sizeof(FlintExceptionTable) + codeLength + 1;
     FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)Flint::malloc(codeAttrSize);
+    if(codeAttr == NULL)
+        return ERR_OUT_OF_MEMORY;
     codeAttr->maxStack = maxStack;
     codeAttr->maxLocals = maxLocals;
     codeAttr->codeLength = codeLength;
@@ -711,14 +728,14 @@ FlintClassLoader::~FlintClassLoader(void) {
         }
         Flint::free(poolTable);
     }
-    if(interfacesCount)
+    if(interfacesCount && interfaces)
         Flint::free(interfaces);
-    if(fieldsCount) {
+    if(fieldsCount && fields) {
         for(uint32_t i = 0; i < fieldsCount; i++)
             fields[i].~FlintFieldInfo();
         Flint::free(fields);
     }
-    if(methodsCount) {
+    if(methodsCount && methods) {
         for(uint32_t i = 0; i < methodsCount; i++)
             methods[i].~FlintMethodInfo();
         Flint::free(methods);
