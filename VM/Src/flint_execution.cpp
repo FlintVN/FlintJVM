@@ -2094,7 +2094,7 @@ FlintError FlintExecution::run(void) {
         return ERR_OK;
 }
 
-void FlintExecution::innerRunTask(FlintExecution *execution) {
+void FlintExecution::runTask(FlintExecution *execution) {
     FlintError err = execution->run();
     switch(err) {
         case ERR_OK:
@@ -2137,10 +2137,6 @@ void FlintExecution::innerRunTask(FlintExecution *execution) {
     execution->peakSp = -1;
     execution->flint.freeExecution(*execution);
     FlintAPI::Thread::terminate(0);
-}
-
-void FlintExecution::runTask(FlintExecution *execution) {
-    innerRunTask(execution);
 }
 
 bool FlintExecution::run(FlintMethodInfo *method) {
