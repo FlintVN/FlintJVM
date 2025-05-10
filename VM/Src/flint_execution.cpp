@@ -7,11 +7,8 @@
 #include "flint_const_name_base.h"
 #include "flint_system_api.h"
 #include "flint_throw_support.h"
-
-#if __has_include("flint_conf.h")
-#include "flint_conf.h"
-#endif
 #include "flint_default_conf.h"
+#include "flint_default_compiler_define.h"
 
 #define FLOAT_NAN                           0x7FC00000
 #define DOUBLE_NAN                          0x7FF8000000000000

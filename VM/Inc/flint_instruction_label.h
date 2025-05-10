@@ -1,5 +1,5 @@
 
-static const void *opcodeLabels[256] = {
+RO_DATA static const void *opcodeLabels[256] = {
     &&op_nop, &&op_aconst_null, &&op_iconst_m1, &&op_iconst_0, &&op_iconst_1, &&op_iconst_2, &&op_iconst_3, &&op_iconst_4, &&op_iconst_5,
     &&op_lconst_0, &&op_lconst_1, &&op_fconst_0, &&op_fconst_1, &&op_fconst_2, &&op_dconst_0, &&op_dconst_1, &&op_bipush, &&op_sipush,
     &&op_ldc, &&op_ldc_w, &&op_ldc2_w, &&op_iload, &&op_lload, &&op_fload, &&op_dload, &&op_aload, &&op_iload_0, &&op_iload_1, &&op_iload_2,
@@ -28,7 +28,7 @@ static const void *opcodeLabels[256] = {
     &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_unknow, &&op_exit,
 };
 
-static const void *opcodeLabelsExit[256] = {
+RO_DATA static const void *opcodeLabelsExit[256] = {
     &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
     &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
     &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
@@ -57,7 +57,7 @@ static const void *opcodeLabelsExit[256] = {
     &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit, &&op_exit,
 };
 
-static const void *opcodeLabelsStop[256] = {
+RO_DATA static const void *opcodeLabelsStop[256] = {
     &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop,
     &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop,
     &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop,
@@ -86,7 +86,7 @@ static const void *opcodeLabelsStop[256] = {
     &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop,
 };
 
-static const void *opcodeRestoreBkpLabels[256] = {
+RO_DATA static const void *opcodeRestoreBkpLabels[256] = {
     &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp,
     &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp,
     &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp, &&exec_and_restore_bkp,

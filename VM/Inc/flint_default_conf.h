@@ -2,6 +2,10 @@
 #ifndef __FLINT_DEFAULT_CONF_H
 #define __FLINT_DEFAULT_CONF_H
 
+#if __has_include("flint_conf.h")
+#include "flint_conf.h"
+#endif
+
 #ifndef FLINT_VARIANT_NAME
     #define FLINT_VARIANT_NAME          "Common FlintJVM"
     #warning "FLINT_VARIANT_NAME is not defined. Default value will be used"

@@ -5,11 +5,8 @@
 #include "flint_opcodes.h"
 #include "flint_system_api.h"
 #include "flint_class_loader.h"
-
-#if __has_include("flint_conf.h")
-#include "flint_conf.h"
-#endif
 #include "flint_default_conf.h"
+#include "flint_default_compiler_define.h"
 
 typedef struct {
     FlintConstUtf8 *constUtf8Class;
