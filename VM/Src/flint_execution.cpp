@@ -181,7 +181,7 @@ FlintError FlintExecution::stackInitExitPoint(uint32_t exitPc) {
 void FlintExecution::stackRestoreContext(void) {
     if(method->accessFlag & METHOD_SYNCHRONIZED) {
         if(method->accessFlag & METHOD_STATIC) {
-            if(&method->getName() == &staticConstructorName) {
+            if(&method->getName() == (FlintConstUtf8 *)staticConstructorName) {
                 FlintClassData &classData = (FlintClassData &)method->classLoader;
                 Flint::lock();
                 classData.staticInitOwnId = 0;
@@ -434,7 +434,7 @@ FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
         return invoke(ctorMethod, 0);
     }
     if(err == ERR_METHOD_NOT_FOUND)
-        return throwNoSuchMethodError(*this, classData.thisClass->text, staticConstructorName.text);
+        return throwNoSuchMethodError(*this, classData.thisClass->text, ((FlintConstUtf8 *)staticConstructorName)->text);
     return err;
 }
 
@@ -2159,7 +2159,7 @@ FlintError FlintExecution::getOnwerThread(FlintJavaThread *&thread) {
     FlintError err = ERR_OK;
     if(onwerThread == NULL) {
         Flint::lock();
-        err = flint.newObject(threadClassName, (FlintJavaObject *&)onwerThread);
+        err = flint.newObject(*(FlintConstUtf8 *)threadClassName, (FlintJavaObject *&)onwerThread);
         Flint::unlock();
     }
     return err;

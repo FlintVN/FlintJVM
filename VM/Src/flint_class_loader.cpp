@@ -261,7 +261,7 @@ FlintError FlintClassLoader::load(void *file) {
             RETURN_IF_ERR(ClassLoader_ReadUInt16(file, methodAttributesCount));
             if(!(flag & METHOD_NATIVE)) {
                 flag = (flag | METHOD_UNLOADED);
-                if(&getConstUtf8(methodNameIndex) == &staticConstructorName)
+                if(&getConstUtf8(methodNameIndex) == (FlintConstUtf8 *)staticConstructorName)
                     flag = (flag | METHOD_SYNCHRONIZED);
             }
             new (&methods[i])FlintMethodInfo(*this, (FlintMethodAccessFlag)flag, methodNameIndex, methodDescriptorIndex);
@@ -678,7 +678,7 @@ FlintError FlintClassLoader::getMainMethodInfo(FlintMethodInfo *&methodInfo) {
 
 FlintError FlintClassLoader::getStaticCtor(FlintMethodInfo *&methodInfo) {
     for(uint16_t i = 0; i < methodsCount; i++) {
-        if(&staticConstructorName == &methods[i].getName())
+        if((FlintConstUtf8 *)staticConstructorName == &methods[i].getName())
             return getMethodInfo(i, methodInfo);
     }
     return ERR_METHOD_NOT_FOUND;
@@ -688,7 +688,7 @@ bool FlintClassLoader::hasStaticCtor(void) {
     if(!staticCtorInfo) {
         bool isFound = false;
         for(uint16_t i = 0; i < methodsCount; i++) {
-            if(&staticConstructorName == &methods[i].getName()) {
+            if((FlintConstUtf8 *)staticConstructorName == &methods[i].getName()) {
                 isFound = true;
                 break;
             }

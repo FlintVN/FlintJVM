@@ -188,7 +188,7 @@ static FlintError nativeGetInterfaces0(FlintExecution &execution) {
         uint32_t interfaceCount = loader->getInterfacesCount();
         if(interfaceCount) {
             FlintObjectArray *clsArr;
-            err = execution.flint.newObjectArray(classClassName, interfaceCount, clsArr);
+            err = execution.flint.newObjectArray(*(FlintConstUtf8 *)classClassName, interfaceCount, clsArr);
             if(err != ERR_OK)
                 return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)clsArr);
             for(uint32_t i = 0; i < interfaceCount; i++) {
@@ -315,7 +315,7 @@ static FlintError getParameterTypes(Flint &flint, FlintMethodInfo *methodInfo, F
         return ERR_OK;
     }
     FlintObjectArray *array;
-    RETURN_IF_ERR(flint.newObjectArray(classClassName, count, array));
+    RETURN_IF_ERR(flint.newObjectArray(*(FlintConstUtf8 *)classClassName, count, array));
     FlintJavaObject **data = array->getData();
     count = 0;
     const char *text = methodInfo->getDescriptor().text;
@@ -364,7 +364,7 @@ static FlintError getExceptionTypes(Flint &flint, FlintMethodInfo *methodInfo, F
         exceptionTypes = classArray0;
         return ERR_OK;
     }
-    RETURN_IF_ERR(flint.newObjectArray(classClassName, exceptionLength, exceptionTypes));
+    RETURN_IF_ERR(flint.newObjectArray(*(FlintConstUtf8 *)classClassName, exceptionLength, exceptionTypes));
     FlintClassLoader &classLoader = methodInfo->classLoader;
     FlintJavaObject **data = exceptionTypes->getData();
     for(uint16_t i = 0; i < exceptionLength; i++) {
@@ -382,9 +382,9 @@ static FlintError nativeGetDeclaredFields0(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
     FlintClassLoader *loader;
     if(clsObj->isArray() || clsObj->isPrimitive()) {
-        FlintError err = execution.flint.load(objectClassName, loader);
+        FlintError err = execution.flint.load(*(FlintConstUtf8 *)objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintError(execution, err, &objectClassName);
+            return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
@@ -394,20 +394,20 @@ static FlintError nativeGetDeclaredFields0(FlintExecution &execution) {
     }
     uint16_t fieldCount = loader->getFieldsCount();
     FlintObjectArray *array;
-    RETURN_IF_ERR(execution.flint.newObjectArray(fieldClassName, fieldCount, array));
+    RETURN_IF_ERR(execution.flint.newObjectArray(*(FlintConstUtf8 *)fieldClassName, fieldCount, array));
     uint32_t clazzIndex = 0, nameIndex = 0, typeIndex = 0, modifiersIndex = 0;
     for(uint16_t i = 0; i < fieldCount; i++) {
         FlintFieldInfo *fieldInfo = loader->getFieldInfo(i);
 
         FlintJavaObject *field;
-        FlintError err = execution.flint.newObject(fieldClassName, field);
+        FlintError err = execution.flint.newObject(*(FlintConstUtf8 *)fieldClassName, field);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)field);
         }
         FlintFieldsData &fields = field->getFields();
 
-        fields.getFieldObject(clazzFieldName, &clazzIndex)->object = clsObj;
+        fields.getFieldObject(*(FlintConstUtf8 *)clazzFieldName, &clazzIndex)->object = clsObj;
 
         FlintJavaString *nameStr;
         err = execution.flint.getConstString(fieldInfo->getName(), nameStr);
@@ -415,15 +415,15 @@ static FlintError nativeGetDeclaredFields0(FlintExecution &execution) {
             freeObjectArray(execution.flint, array, i);
             return err;
         }
-        fields.getFieldObject(nameFieldName, &nameIndex)->object = nameStr;
+        fields.getFieldObject(*(FlintConstUtf8 *)nameFieldName, &nameIndex)->object = nameStr;
         FlintJavaClass *type;
         err = getClass(execution.flint, fieldInfo->getDescriptor().text, fieldInfo->getDescriptor().length, type);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return err;
         }
-        fields.getFieldObject(typeFieldName, &typeIndex)->object = type;
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex)->value = (int32_t)fieldInfo->accessFlag & 0x1FFF;
+        fields.getFieldObject(*(FlintConstUtf8 *)typeFieldName, &typeIndex)->object = type;
+        fields.getFieldData32(*(FlintConstUtf8 *)modifiersFieldName, &modifiersIndex)->value = (int32_t)fieldInfo->accessFlag & 0x1FFF;
 
         array->getData()[i] = field;
     }
@@ -435,9 +435,9 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
     FlintClassLoader *loader;
     if(clsObj->isArray() || clsObj->isPrimitive()) {
-        FlintError err = execution.flint.load(objectClassName, loader);
+        FlintError err = execution.flint.load(*(FlintConstUtf8 *)objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintError(execution, err, &objectClassName);
+            return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
@@ -449,57 +449,57 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution &execution) {
     uint16_t count = 0;
     for(uint16_t i = 0; i < methodCount; i++) {
         FlintMethodInfo *methodInfo = loader->getMethodInfoWithUnload(i);
-        if(methodInfo->getName() != constructorName && methodInfo->getName() != staticConstructorName)
+        if(methodInfo->getName() != *(FlintConstUtf8 *)constructorName && methodInfo->getName() != *(FlintConstUtf8 *)staticConstructorName)
             count++;
     }
     FlintObjectArray *array;
-    RETURN_IF_ERR(execution.flint.newObjectArray(methodClassName, count, array));
+    RETURN_IF_ERR(execution.flint.newObjectArray(*(FlintConstUtf8 *)methodClassName, count, array));
     count = 0;
     uint32_t clazzIndex = 0, nameIndex = 0, returnTypeIndex = 0, parameterTypesIndex = 0, exceptionTypesIndex = 0, modifiersIndex = 0;
     FlintObjectArray *classArray0;
     RETURN_IF_ERR(execution.flint.getClassArray0(classArray0));
     for(uint16_t i = 0; i < methodCount; i++) {
         FlintMethodInfo *methodInfo = loader->getMethodInfoWithUnload(i);
-        if(methodInfo->getName() == constructorName || methodInfo->getName() == staticConstructorName)
+        if(methodInfo->getName() == *(FlintConstUtf8 *)constructorName || methodInfo->getName() == *(FlintConstUtf8 *)staticConstructorName)
             continue;
 
         FlintJavaObject *method;
-        FlintError err = execution.flint.newObject(methodClassName, method);
+        FlintError err = execution.flint.newObject(*(FlintConstUtf8 *)methodClassName, method);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)method);
         }
         FlintFieldsData &fields = method->getFields();
 
-        fields.getFieldObject(clazzFieldName, &clazzIndex)->object = clsObj;
+        fields.getFieldObject(*(FlintConstUtf8 *)clazzFieldName, &clazzIndex)->object = clsObj;
         FlintJavaString *nameStr;
         err = execution.flint.getConstString(methodInfo->getName(), nameStr);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return err;
         }
-        fields.getFieldObject(nameFieldName, &nameIndex)->object = nameStr;
+        fields.getFieldObject(*(FlintConstUtf8 *)nameFieldName, &nameIndex)->object = nameStr;
         FlintJavaClass *retType;
         err = getReturnType(execution.flint, methodInfo, retType);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return err;
         }
-        fields.getFieldObject(returnTypeFieldName, &returnTypeIndex)->object = retType;
+        fields.getFieldObject(*(FlintConstUtf8 *)returnTypeFieldName, &returnTypeIndex)->object = retType;
         FlintObjectArray *types;
         err = getParameterTypes(execution.flint, methodInfo, classArray0, types);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return err;
         }
-        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex)->object = types;
+        fields.getFieldObject(*(FlintConstUtf8 *)parameterTypesFieldName, &parameterTypesIndex)->object = types;
         err = getExceptionTypes(execution.flint, methodInfo, classArray0, types);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return err;
         }
-        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex)->object = types;
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex)->value = (int32_t)methodInfo->accessFlag & 0x1FFF;
+        fields.getFieldObject(*(FlintConstUtf8 *)exceptionTypesFieldName, &exceptionTypesIndex)->object = types;
+        fields.getFieldData32(*(FlintConstUtf8 *)modifiersFieldName, &modifiersIndex)->value = (int32_t)methodInfo->accessFlag & 0x1FFF;
 
         array->getData()[count++] = method;
     }
@@ -511,9 +511,9 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
     FlintClassLoader *loader;
     if(clsObj->isArray() || clsObj->isPrimitive()) {
-        FlintError err = execution.flint.load(objectClassName, loader);
+        FlintError err = execution.flint.load(*(FlintConstUtf8 *)objectClassName, loader);
         if(err != ERR_OK)
-            return checkAndThrowForFlintError(execution, err, &objectClassName);
+            return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)objectClassName);
     }
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
@@ -525,43 +525,43 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution &execution) {
     uint16_t count = 0;
     for(uint16_t i = 0; i < methodCount; i++) {
         FlintMethodInfo *methodInfo = loader->getMethodInfoWithUnload(i);
-        if(methodInfo->getName() == constructorName)
+        if(methodInfo->getName() == *(FlintConstUtf8 *)constructorName)
             count++;
     }
     FlintObjectArray *array;
-    RETURN_IF_ERR(execution.flint.newObjectArray(constructorClassName, count, array));
+    RETURN_IF_ERR(execution.flint.newObjectArray(*(FlintConstUtf8 *)constructorClassName, count, array));
     count = 0;
     uint32_t clazzIndex = 0, parameterTypesIndex = 0, exceptionTypesIndex = 0, modifiersIndex = 0;
     FlintObjectArray *classArray0;
     RETURN_IF_ERR(execution.flint.getClassArray0(classArray0));
     for(uint16_t i = 0; i < methodCount; i++) {
         FlintMethodInfo *methodInfo = loader->getMethodInfoWithUnload(i);
-        if(methodInfo->getName() != constructorName)
+        if(methodInfo->getName() != *(FlintConstUtf8 *)constructorName)
             continue;
 
         FlintJavaObject *constructor;
-        FlintError err = execution.flint.newObject(constructorClassName, constructor);
+        FlintError err = execution.flint.newObject(*(FlintConstUtf8 *)constructorClassName, constructor);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)constructor);
         }
         FlintFieldsData &fields = constructor->getFields();
 
-        fields.getFieldObject(clazzFieldName, &clazzIndex)->object = clsObj;
+        fields.getFieldObject(*(FlintConstUtf8 *)clazzFieldName, &clazzIndex)->object = clsObj;
         FlintObjectArray *types;
         err = getParameterTypes(execution.flint, methodInfo, classArray0, types);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return err;
         }
-        fields.getFieldObject(parameterTypesFieldName, &parameterTypesIndex)->object = types;
+        fields.getFieldObject(*(FlintConstUtf8 *)parameterTypesFieldName, &parameterTypesIndex)->object = types;
         err = getExceptionTypes(execution.flint, methodInfo, classArray0, types);
         if(err != ERR_OK) {
             freeObjectArray(execution.flint, array, i);
             return err;
         }
-        fields.getFieldObject(exceptionTypesFieldName, &exceptionTypesIndex)->object = types;
-        fields.getFieldData32(modifiersFieldName, &modifiersIndex)->value = (int32_t)methodInfo->accessFlag & 0x1FFF;
+        fields.getFieldObject(*(FlintConstUtf8 *)exceptionTypesFieldName, &exceptionTypesIndex)->object = types;
+        fields.getFieldData32(*(FlintConstUtf8 *)modifiersFieldName, &modifiersIndex)->value = (int32_t)methodInfo->accessFlag & 0x1FFF;
 
         array->getData()[count++] = constructor;
     }

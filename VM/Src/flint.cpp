@@ -202,35 +202,35 @@ FlintError Flint::newObject(const FlintConstUtf8 &type, FlintJavaObject *&obj) {
 }
 
 FlintError Flint::newBooleanArray(uint32_t length, FlintInt8Array *&array) {
-    return newObject(length, booleanPrimTypeName, 1, (FlintJavaObject *&)array);
+    return newObject(length, *(FlintConstUtf8 *)booleanPrimTypeName, 1, (FlintJavaObject *&)array);
 }
 
 FlintError Flint::newByteArray(uint32_t length, FlintInt8Array *&array) {
-    return newObject(length, bytePrimTypeName, 1, (FlintJavaObject *&)array);
+    return newObject(length, *(FlintConstUtf8 *)bytePrimTypeName, 1, (FlintJavaObject *&)array);
 }
 
 FlintError Flint::newCharArray(uint32_t length, FlintInt16Array *&array) {
-    return newObject(length * sizeof(int16_t), charPrimTypeName, 1, (FlintJavaObject *&)array);
+    return newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)charPrimTypeName, 1, (FlintJavaObject *&)array);
 }
 
 FlintError Flint::newShortArray(uint32_t length, FlintInt16Array *&array) {
-    return newObject(length * sizeof(int16_t), shortPrimTypeName, 1, (FlintJavaObject *&)array);
+    return newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)shortPrimTypeName, 1, (FlintJavaObject *&)array);
 }
 
 FlintError Flint::newIntegerArray(uint32_t length, FlintInt32Array *&array) {
-    return newObject(length * sizeof(int32_t), integerPrimTypeName, 1, (FlintJavaObject *&)array);
+    return newObject(length * sizeof(int32_t), *(FlintConstUtf8 *)integerPrimTypeName, 1, (FlintJavaObject *&)array);
 }
 
 FlintError Flint::newFloatArray(uint32_t length, FlintFloatArray *&array) {
-    return newObject(length * sizeof(float), floatPrimTypeName, 1, (FlintJavaObject *&)array);
+    return newObject(length * sizeof(float), *(FlintConstUtf8 *)floatPrimTypeName, 1, (FlintJavaObject *&)array);
 }
 
 FlintError Flint::newLongArray(uint32_t length, FlintInt64Array *&array) {
-    return newObject(length * sizeof(int64_t), longPrimTypeName, 1, (FlintJavaObject *&)array);
+    return newObject(length * sizeof(int64_t), *(FlintConstUtf8 *)longPrimTypeName, 1, (FlintJavaObject *&)array);
 }
 
 FlintError Flint::newDoubleArray(uint32_t length, FlintDoubleArray *&array) {
-    return newObject(length * sizeof(double), doublePrimTypeName, 1, (FlintJavaObject *&)array);
+    return newObject(length * sizeof(double), *(FlintConstUtf8 *)doublePrimTypeName, 1, (FlintJavaObject *&)array);
 }
 
 FlintError Flint::newObjectArray(const FlintConstUtf8 &type, uint32_t length, FlintObjectArray *&array) {
@@ -265,7 +265,7 @@ FlintError Flint::newMultiArray(const FlintConstUtf8 &typeName, int32_t *counts,
 FlintError Flint::newClass(FlintJavaString &typeName, FlintJavaClass *&cls) {
     // TODO - Check the existence of type
 
-    RETURN_IF_ERR(newObject(classClassName, (FlintJavaObject *&)cls));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)classClassName, (FlintJavaObject *&)cls));
 
     /* set value for name field */
     cls->setName(&typeName);
@@ -338,7 +338,7 @@ FlintError Flint::newString(uint16_t length, uint8_t coder, FlintJavaString *&st
     RETURN_IF_ERR(newByteArray(length << (coder ? 1 : 0), byteArray));
 
     /* create new string object */
-    FlintError err = newObject(stringClassName, (FlintJavaObject *&)str);
+    FlintError err = newObject(*(FlintConstUtf8 *)stringClassName, (FlintJavaObject *&)str);
     if(err != ERR_OK) {
         freeObject(*byteArray);
         return err;
@@ -387,7 +387,7 @@ FlintError Flint::newString(const char *text, uint16_t size, bool isUtf8, FlintJ
     }
 
     /* create new string object */
-    FlintError err = newObject(stringClassName, (FlintJavaObject *&)str);
+    FlintError err = newObject(*(FlintConstUtf8 *)stringClassName, (FlintJavaObject *&)str);
     if(err != ERR_OK) {
         freeObject(*byteArray);
         return err;
@@ -482,7 +482,7 @@ FlintError Flint::getClassArray0(FlintObjectArray *&obj) {
     }
     Flint::lock();
     if(classArray0 == NULL) {
-        RETURN_IF_ERR(newObjectArray(classClassName, 0, obj));
+        RETURN_IF_ERR(newObjectArray(*(FlintConstUtf8 *)classClassName, 0, obj));
         classArray0 = obj;
     }
     else {
@@ -504,49 +504,49 @@ FlintError Flint::newThrowable(FlintJavaString *str, const FlintConstUtf8 &excpT
 }
 
 FlintError Flint::newBoolean(bool value, FlintJavaBoolean *&obj) {
-    RETURN_IF_ERR(newObject(booleanClassName, (FlintJavaObject *&)obj));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)booleanClassName, (FlintJavaObject *&)obj));
     obj->setValue(value);
     return ERR_OK;
 }
 
 FlintError Flint::newByte(int8_t value, FlintJavaByte *&obj) {
-    RETURN_IF_ERR(newObject(byteClassName, (FlintJavaObject *&)obj));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)byteClassName, (FlintJavaObject *&)obj));
     obj->setValue(value);
     return ERR_OK;
 }
 
 FlintError Flint::newCharacter(uint16_t value, FlintJavaCharacter *&obj) {
-    RETURN_IF_ERR(newObject(characterClassName, (FlintJavaObject *&)obj));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)characterClassName, (FlintJavaObject *&)obj));
     obj->setValue(value);
     return ERR_OK;
 }
 
 FlintError Flint::newShort(int16_t value, FlintJavaShort *&obj) {
-    RETURN_IF_ERR(newObject(shortClassName, (FlintJavaObject *&)obj));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)shortClassName, (FlintJavaObject *&)obj));
     obj->setValue(value);
     return ERR_OK;
 }
 
 FlintError Flint::newInteger(int32_t value, FlintJavaInteger *&obj) {
-    RETURN_IF_ERR(newObject(integerClassName, (FlintJavaObject *&)obj));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)integerClassName, (FlintJavaObject *&)obj));
     obj->setValue(value);
     return ERR_OK;
 }
 
 FlintError Flint::newFloat(float value, FlintJavaFloat *&obj) {
-    RETURN_IF_ERR(newObject(floatClassName, (FlintJavaObject *&)obj));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)floatClassName, (FlintJavaObject *&)obj));
     obj->setValue(value);
     return ERR_OK;
 }
 
 FlintError Flint::newLong(int64_t value, FlintJavaLong *&obj) {
-    RETURN_IF_ERR(newObject(longClassName, (FlintJavaObject *&)obj));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)longClassName, (FlintJavaObject *&)obj));
     obj->setValue(value);
     return ERR_OK;
 }
 
 FlintError Flint::newDouble(double value, FlintJavaDouble *&obj) {
-    RETURN_IF_ERR(newObject(doubleClassName, (FlintJavaObject *&)obj));
+    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)doubleClassName, (FlintJavaObject *&)obj));
     obj->setValue(value);
     return ERR_OK;
 }
@@ -813,7 +813,7 @@ FlintError Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint1
         typeName++;
     }
     uint32_t typeNameHash = Flint_CalcHash(typeName, length, true);
-    if((obj->dimensions >= dimensions) && compareClassName(objectClassName, typeName, typeNameHash))
+    if((obj->dimensions >= dimensions) && compareClassName(*(FlintConstUtf8 *)objectClassName, typeName, typeNameHash))
         return ERR_OK;
     if(dimensions != obj->dimensions)
         return ERR_IS_INSTANCE_FALSE;
@@ -848,7 +848,7 @@ FlintError Flint::isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeN
 }
 
 FlintError Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2, FlintConstUtf8 **classError) {
-    if((dimensions1 >= dimensions2) && (typeName2 == objectClassName))
+    if((dimensions1 >= dimensions2) && (typeName2 == *(FlintConstUtf8 *)objectClassName))
         return ERR_OK;
     if(dimensions1 != dimensions2)
         return ERR_IS_INSTANCE_FALSE;

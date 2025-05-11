@@ -72,15 +72,15 @@ static uint32_t sprint(char *buff, uint32_t index, int32_t num) {
 }
 
 FlintError throwException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, exceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)exceptionClassName, msg);
 }
 
 FlintError throwIOException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, exceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)exceptionClassName, msg);
 }
 
 FlintError throwErrorException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, errorClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)errorClassName, msg);
 }
 
 FlintError throwClassCastException(FlintExecution &execution, FlintJavaObject *obj, const FlintConstUtf8 &type) {
@@ -106,19 +106,19 @@ FlintError throwClassCastException(FlintExecution &execution, FlintJavaObject *o
     i = sprint(txt, i, type.text, '/', '.');
     i = sprint(txt, i, "'");
 
-    return throwThrowable(execution, classCastExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)classCastExceptionClassName, str);
 }
 
 FlintError throwArrayStoreException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, arrayStoreExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)arrayStoreExceptionClassName, msg);
 }
 
 FlintError throwArithmeticException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, arithmeticExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)arithmeticExceptionClassName, msg);
 }
 
 FlintError throwNullPointerException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, nullPointerExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, msg);
 }
 
 FlintError throwNullPointerException(FlintExecution &execution, FlintConstMethod &constMethod) {
@@ -135,7 +135,7 @@ FlintError throwNullPointerException(FlintExecution &execution, FlintConstMethod
     i = sprint(txt, i, cm.nameAndType.name.text);
     i = sprint(txt, i, " by null object");
 
-    return throwThrowable(execution, nullPointerExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, str);
 }
 
 FlintError throwNullPointerException(FlintExecution &execution, FlintConstField &constField) {
@@ -152,31 +152,31 @@ FlintError throwNullPointerException(FlintExecution &execution, FlintConstField 
     i = sprint(txt, i, constField.nameAndType.name.text, '/', '.');
     i = sprint(txt, i, " from null object");
 
-    return throwThrowable(execution, nullPointerExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, str);
 }
 
 FlintError throwInterruptedException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, interruptedExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)interruptedExceptionClassName, msg);
 }
 
 FlintError throwClassNotFoundException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, classNotFoundExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)classNotFoundExceptionClassName, msg);
 }
 
 FlintError throwClassNotFoundException(FlintExecution &execution, FlintJavaString *str) {
-    return throwThrowable(execution, classNotFoundExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)classNotFoundExceptionClassName, str);
 }
 
 FlintError throwIllegalArgumentException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, illegalArgumentExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)illegalArgumentExceptionClassName, msg);
 }
 
 FlintError throwCloneNotSupportedException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, cloneNotSupportedExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)cloneNotSupportedExceptionClassName, msg);
 }
 
 FlintError throwNegativeArraySizeException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, negativeArraySizeExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)negativeArraySizeExceptionClassName, msg);
 }
 
 FlintError throwArrayIndexOutOfBoundsException(FlintExecution &execution, int32_t index, int32_t length) {
@@ -191,15 +191,15 @@ FlintError throwArrayIndexOutOfBoundsException(FlintExecution &execution, int32_
     i = sprint(txt, i, " out of bounds for length ");
     i = sprint(txt, i, length);
 
-    return throwThrowable(execution, arrayIndexOutOfBoundsExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)arrayIndexOutOfBoundsExceptionClassName, str);
 }
 
 FlintError throwUnsupportedOperationException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, unsupportedOperationExceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)unsupportedOperationExceptionClassName, msg);
 }
 
 FlintError throwUnsatisfiedLinkErrorException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, unsatisfiedLinkErrorClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)unsatisfiedLinkErrorClassName, msg);
 }
 
 FlintError throwNoSuchMethodError(FlintExecution &execution, const char *className, const char *methodName) {
@@ -214,7 +214,7 @@ FlintError throwNoSuchMethodError(FlintExecution &execution, const char *classNa
     i = sprint(txt, i, ".");
     i = sprint(txt, i, methodName);
 
-    return throwThrowable(execution, noSuchMethodErrorExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)noSuchMethodErrorExceptionClassName, str);
 }
 
 FlintError throwNoSuchFieldError(FlintExecution &execution, const char *className, const char *fieldName) {
@@ -229,7 +229,7 @@ FlintError throwNoSuchFieldError(FlintExecution &execution, const char *classNam
     i = sprint(txt, i, ".");
     i = sprint(txt, i, fieldName);
 
-    return throwThrowable(execution, noSuchFieldErrorExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)noSuchFieldErrorExceptionClassName, str);
 }
 
 FlintError throwClassFormatError(FlintExecution &execution, const char *className) {
@@ -242,7 +242,7 @@ FlintError throwClassFormatError(FlintExecution &execution, const char *classNam
     i = sprint(txt, i, "Invalid class file format: ");
     i = sprint(txt, i, className, '/', '.');
 
-    return throwThrowable(execution, classFormatErrorExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)classFormatErrorExceptionClassName, str);
 }
 
 FlintError checkAndThrowForFlintError(FlintExecution &execution, FlintError err, const FlintConstUtf8 *className) {
@@ -259,9 +259,9 @@ FlintError checkAndThrowForFlintError(FlintExecution &execution, FlintError err,
             txt[i] = (className[i] != '/') ? className[i] : '.';
 
         if(err == ERR_CLASS_NOT_FOUND)
-            return throwThrowable(execution, classNotFoundExceptionClassName, str);
+            return throwThrowable(execution, *(FlintConstUtf8 *)classNotFoundExceptionClassName, str);
         else if(err == ERR_CLASS_LOAD_FAIL)
-            return throwThrowable(execution, classFormatErrorExceptionClassName, str);
+            return throwThrowable(execution, *(FlintConstUtf8 *)classFormatErrorExceptionClassName, str);
     }
     return err;
 }

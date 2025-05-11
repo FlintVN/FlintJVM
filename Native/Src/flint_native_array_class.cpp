@@ -25,7 +25,7 @@ static FlintError checkIsArray(FlintExecution &execution, FlintJavaObject *obj) 
 static FlintError checkIsClassType(FlintExecution &execution, FlintJavaObject *obj) {
     if(obj == NULL)
         return throwNullPointerException(execution);
-    else if(obj->type != classClassName)
+    else if(obj->type != *(FlintConstUtf8 *)classClassName)
         return throwIllegalArgumentException(execution);
     return ERR_OK;
 }
@@ -47,7 +47,7 @@ static FlintError checkDimensions(FlintExecution &execution, FlintInt32Array *di
     if(
         (dimensions == NULL) ||
         (dimensions->dimensions != 1) ||
-        (dimensions->type != integerPrimTypeName) ||
+        (dimensions->type != *(FlintConstUtf8 *)integerPrimTypeName) ||
         (dimensions->getLength() == 0) ||
         (dimensions->getLength() > 255)
     ) {
@@ -318,94 +318,94 @@ static FlintError nativeSet(FlintExecution &execution) {
             return throwIllegalArgumentException(execution, "Argument type mismatch");
         switch(obj->type.text[0]) {
             case 'Z': { /* boolean */
-                if(value->type == booleanClassName) {
+                if(value->type == *(FlintConstUtf8 *)booleanClassName) {
                     ((FlintInt8Array *)obj)->getData()[index] = (int8_t)((FlintJavaBoolean *)value)->getValue();
                     return ERR_OK;
                 }
                 return throwIllegalArgumentException(execution, "Argument type mismatch");
             }
             case 'B': { /* byte */
-                if(value->type == byteClassName) {
+                if(value->type == *(FlintConstUtf8 *)byteClassName) {
                     ((FlintInt8Array *)obj)->getData()[index] = (int8_t)((FlintJavaByte *)value)->getValue();
                     return ERR_OK;
                 }
                 return throwIllegalArgumentException(execution, "Argument type mismatch");
             }
             case 'C': { /* char */
-                if(value->type == characterClassName) {
+                if(value->type == *(FlintConstUtf8 *)characterClassName) {
                     ((FlintInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaCharacter *)value)->getValue();
                     return ERR_OK;
                 }
                 return throwIllegalArgumentException(execution, "Argument type mismatch");
             }
             case 'S': { /* short */
-                if(value->type == byteClassName)
+                if(value->type == *(FlintConstUtf8 *)byteClassName)
                     ((FlintInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaByte *)value)->getValue();
-                else if(value->type == shortClassName)
+                else if(value->type == *(FlintConstUtf8 *)shortClassName)
                     ((FlintInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaShort *)value)->getValue();
                 else
                     return throwIllegalArgumentException(execution, "Argument type mismatch");
                 return ERR_OK;
             }
             case 'I': { /* integer */
-                if(value->type == byteClassName)
+                if(value->type == *(FlintConstUtf8 *)byteClassName)
                     ((FlintInt32Array *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
-                else if(value->type == characterClassName)
+                else if(value->type == *(FlintConstUtf8 *)characterClassName)
                     ((FlintInt32Array *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
-                else if(value->type == shortClassName)
+                else if(value->type == *(FlintConstUtf8 *)shortClassName)
                     ((FlintInt32Array *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
-                else if(value->type == integerClassName)
+                else if(value->type == *(FlintConstUtf8 *)integerClassName)
                     ((FlintInt32Array *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
                 else
                     return throwIllegalArgumentException(execution, "Argument type mismatch");
                 return ERR_OK;
             }
             case 'F': { /* float */
-                if(value->type == byteClassName)
+                if(value->type == *(FlintConstUtf8 *)byteClassName)
                     ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
-                else if(value->type == characterClassName)
+                else if(value->type == *(FlintConstUtf8 *)characterClassName)
                     ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
-                else if(value->type == shortClassName)
+                else if(value->type == *(FlintConstUtf8 *)shortClassName)
                     ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
-                else if(value->type == integerClassName)
+                else if(value->type == *(FlintConstUtf8 *)integerClassName)
                     ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
-                else if(value->type == floatClassName)
+                else if(value->type == *(FlintConstUtf8 *)floatClassName)
                     ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaFloat *)value)->getValue();
-                else if(value->type == longClassName)
+                else if(value->type == *(FlintConstUtf8 *)longClassName)
                     ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
                 else
                     return throwIllegalArgumentException(execution, "Argument type mismatch");
                 return ERR_OK;
             }
             case 'D': { /* double */
-                if(value->type == byteClassName)
+                if(value->type == *(FlintConstUtf8 *)byteClassName)
                     ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
-                else if(value->type == characterClassName)
+                else if(value->type == *(FlintConstUtf8 *)characterClassName)
                     ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
-                else if(value->type == shortClassName)
+                else if(value->type == *(FlintConstUtf8 *)shortClassName)
                     ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
-                else if(value->type == integerClassName)
+                else if(value->type == *(FlintConstUtf8 *)integerClassName)
                     ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
-                else if(value->type == floatClassName)
+                else if(value->type == *(FlintConstUtf8 *)floatClassName)
                     ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaFloat *)value)->getValue();
-                else if(value->type == longClassName)
+                else if(value->type == *(FlintConstUtf8 *)longClassName)
                     ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
-                else if(value->type == doubleClassName)
+                else if(value->type == *(FlintConstUtf8 *)doubleClassName)
                     ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaDouble *)value)->getValue();
                 else
                     return throwIllegalArgumentException(execution, "Argument type mismatch");
                 return ERR_OK;
             }
             default: { /* long */
-                if(value->type == byteClassName)
+                if(value->type == *(FlintConstUtf8 *)byteClassName)
                     ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
-                else if(value->type == characterClassName)
+                else if(value->type == *(FlintConstUtf8 *)characterClassName)
                     ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
-                else if(value->type == shortClassName)
+                else if(value->type == *(FlintConstUtf8 *)shortClassName)
                     ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
-                else if(value->type == integerClassName)
+                else if(value->type == *(FlintConstUtf8 *)integerClassName)
                     ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
-                else if(value->type == longClassName)
+                else if(value->type == *(FlintConstUtf8 *)longClassName)
                     ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
                 else
                     return throwIllegalArgumentException(execution, "Argument type mismatch");
@@ -598,7 +598,7 @@ static FlintError nativeNewArray(FlintExecution &execution) {
     RETURN_IF_ERR(checkLength(execution, length));
     uint32_t dimensions;
     const FlintConstUtf8 &typeName = componentType->getBaseTypeName(execution.flint, &dimensions);
-    if(typeName == voidPrimTypeName) /* void */
+    if(typeName == *(FlintConstUtf8 *)voidPrimTypeName) /* void */
         return throwIllegalArgumentException(execution);
     uint8_t atype = FlintJavaObject::isPrimType(typeName);
     uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
@@ -616,7 +616,7 @@ static FlintError nativeMultiNewArray(FlintExecution &execution) {
     RETURN_IF_ERR(checkDimensions(execution, dimensions));
     uint32_t endDims;
     const FlintConstUtf8 &typeName = componentType->getBaseTypeName(execution.flint, &endDims);
-    if(typeName == voidPrimTypeName) /* void */
+    if(typeName == *(FlintConstUtf8 *)voidPrimTypeName) /* void */
         return throwIllegalArgumentException(execution);
     if((dimensions->getLength() + endDims) > 255)
         return throwIllegalArgumentException(execution);

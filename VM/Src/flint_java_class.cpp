@@ -6,11 +6,11 @@
 #include "flint.h"
 
 FlintJavaString &FlintJavaClass::getName(void) const {
-    return *(FlintJavaString *)getFields().getFieldObject(nameFieldName)->object;
+    return *(FlintJavaString *)getFields().getFieldObject(*(FlintConstUtf8 *)nameFieldName)->object;
 }
 
 void FlintJavaClass::setName(FlintJavaString *name) {
-    getFields().getFieldObject(nameFieldName)->object = name;
+    getFields().getFieldObject(*(FlintConstUtf8 *)nameFieldName)->object = name;
 }
 
 bool FlintJavaClass::isArray(void) const {
@@ -79,33 +79,33 @@ const FlintConstUtf8 &FlintJavaClass::getBaseTypeName(Flint &flint, uint32_t *di
         switch(typeLength) {
             case 3:
                 if(strncmp(typeText, "int", typeLength) == 0)
-                    return integerPrimTypeName;
+                    return *(FlintConstUtf8 *)integerPrimTypeName;
                 break;
             case 4: {
                 if(strncmp(typeText, "void", typeLength) == 0)
-                    return voidPrimTypeName;
+                    return *(FlintConstUtf8 *)voidPrimTypeName;
                 else if(strncmp(typeText, "byte", typeLength) == 0)
-                    return bytePrimTypeName;
+                    return *(FlintConstUtf8 *)bytePrimTypeName;
                 else if(strncmp(typeText, "char", typeLength) == 0)
-                    return charPrimTypeName;
+                    return *(FlintConstUtf8 *)charPrimTypeName;
                 else if(strncmp(typeText, "long", typeLength) == 0)
-                    return longPrimTypeName;
+                    return *(FlintConstUtf8 *)longPrimTypeName;
                 break;
             }
             case 5: {
                 if(strncmp(typeText, "float", typeLength) == 0)
-                    return floatPrimTypeName;
+                    return *(FlintConstUtf8 *)floatPrimTypeName;
                 else if(strncmp(typeText, "short", typeLength) == 0)
-                    return shortPrimTypeName;
+                    return *(FlintConstUtf8 *)shortPrimTypeName;
                 break;
             }
             case 6:
                 if(strncmp(typeText, "double", typeLength) == 0)
-                    return doublePrimTypeName;
+                    return *(FlintConstUtf8 *)doublePrimTypeName;
                 break;
             case 7:
                 if(strncmp(typeText, "boolean", typeLength) == 0)
-                    return booleanPrimTypeName;
+                    return *(FlintConstUtf8 *)booleanPrimTypeName;
                 break;
             default:
                 break;

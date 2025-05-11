@@ -81,7 +81,7 @@ FlintExceptionTable *FlintMethodInfo::getException(uint16_t index) const {
 }
 
 bool FlintMethodInfo::isStaticCtor(void) {
-    return &getName() == &staticConstructorName;
+    return &getName() == (FlintConstUtf8 *)staticConstructorName;
 }
 
 FlintMethodInfo::~FlintMethodInfo(void) {

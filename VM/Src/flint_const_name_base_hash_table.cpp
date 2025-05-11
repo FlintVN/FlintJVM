@@ -8,208 +8,208 @@
 
 const uint32_t baseConstUtf8HashIndex2[] = {
     1,
-    (uint32_t)&doublePrimTypeName,
+    (uint32_t)doublePrimTypeName,
 };
 
 const uint32_t baseConstUtf8HashIndex3[] = {
     1,
-    (uint32_t)&arrayClassName,
+    (uint32_t)arrayClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex4[] = {
     2,
-    (uint32_t)&printStreamClassName,
-    (uint32_t)&bytePrimTypeName,
+    (uint32_t)printStreamClassName,
+    (uint32_t)bytePrimTypeName,
 };
 
 const uint32_t baseConstUtf8HashIndex5[] = {
     1,
-    (uint32_t)&objectClassName,
+    (uint32_t)objectClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex6[] = {
     1,
-    (uint32_t)&systemClassName,
+    (uint32_t)systemClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex7[] = {
     1,
-    (uint32_t)&longPrimTypeName,
+    (uint32_t)longPrimTypeName,
 };
 
 const uint32_t baseConstUtf8HashIndex9[] = {
     1,
-    (uint32_t)&shortClassName,
+    (uint32_t)shortClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex10[] = {
     1,
-    (uint32_t)&fieldClassName,
+    (uint32_t)fieldClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex11[] = {
     1,
-    (uint32_t)&floatPrimTypeName,
+    (uint32_t)floatPrimTypeName,
 };
 
 const uint32_t baseConstUtf8HashIndex12[] = {
     2,
-    (uint32_t)&arrayStoreExceptionClassName,
-    (uint32_t)&nameFieldName,
+    (uint32_t)arrayStoreExceptionClassName,
+    (uint32_t)nameFieldName,
 };
 
 const uint32_t baseConstUtf8HashIndex13[] = {
     1,
-    (uint32_t)&integerClassName,
+    (uint32_t)integerClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex15[] = {
     2,
-    (uint32_t)&illegalArgumentExceptionClassName,
-    (uint32_t)&nullPointerExceptionClassName,
+    (uint32_t)illegalArgumentExceptionClassName,
+    (uint32_t)nullPointerExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex16[] = {
     2,
-    (uint32_t)&classFormatErrorExceptionClassName,
-    (uint32_t)&noSuchMethodErrorExceptionClassName,
+    (uint32_t)classFormatErrorExceptionClassName,
+    (uint32_t)noSuchMethodErrorExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex17[] = {
     2,
-    (uint32_t)&charPrimTypeName,
-    (uint32_t)&unsatisfiedLinkErrorClassName,
+    (uint32_t)charPrimTypeName,
+    (uint32_t)unsatisfiedLinkErrorClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex18[] = {
     2,
-    (uint32_t)&arrayIndexOutOfBoundsExceptionClassName,
-    (uint32_t)&longClassName,
+    (uint32_t)arrayIndexOutOfBoundsExceptionClassName,
+    (uint32_t)longClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex20[] = {
     1,
-    (uint32_t)&bigIntegerClassName,
+    (uint32_t)bigIntegerClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex21[] = {
     2,
-    (uint32_t)&stringClassName,
-    (uint32_t)&modifiersFieldName,
+    (uint32_t)stringClassName,
+    (uint32_t)modifiersFieldName,
 };
 
 const uint32_t baseConstUtf8HashIndex24[] = {
     2,
-    (uint32_t)&floatClassName,
-    (uint32_t)&classClassName,
+    (uint32_t)floatClassName,
+    (uint32_t)classClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex25[] = {
     3,
-    (uint32_t)&throwableClassName,
-    (uint32_t)&byteClassName,
-    (uint32_t)&integerPrimTypeName,
+    (uint32_t)throwableClassName,
+    (uint32_t)byteClassName,
+    (uint32_t)integerPrimTypeName,
 };
 
 const uint32_t baseConstUtf8HashIndex26[] = {
     1,
-    (uint32_t)&exceptionClassName,
+    (uint32_t)exceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex30[] = {
     2,
-    (uint32_t)&errorClassName,
-    (uint32_t)&constructorClassName,
+    (uint32_t)errorClassName,
+    (uint32_t)constructorClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex31[] = {
     2,
-    (uint32_t)&parameterTypesFieldName,
-    (uint32_t)&negativeArraySizeExceptionClassName,
+    (uint32_t)parameterTypesFieldName,
+    (uint32_t)negativeArraySizeExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex33[] = {
     1,
-    (uint32_t)&booleanClassName,
+    (uint32_t)booleanClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex35[] = {
     4,
-    (uint32_t)&methodClassName,
-    (uint32_t)&noSuchFieldErrorExceptionClassName,
-    (uint32_t)&arithmeticExceptionClassName,
-    (uint32_t)&clazzFieldName,
+    (uint32_t)methodClassName,
+    (uint32_t)noSuchFieldErrorExceptionClassName,
+    (uint32_t)arithmeticExceptionClassName,
+    (uint32_t)clazzFieldName,
 };
 
 const uint32_t baseConstUtf8HashIndex37[] = {
     1,
-    (uint32_t)&classNotFoundExceptionClassName,
+    (uint32_t)classNotFoundExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex39[] = {
     1,
-    (uint32_t)&ioExceptionClassName,
+    (uint32_t)ioExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex40[] = {
     2,
-    (uint32_t)&doubleClassName,
-    (uint32_t)&voidPrimTypeName,
+    (uint32_t)doubleClassName,
+    (uint32_t)voidPrimTypeName,
 };
 
 const uint32_t baseConstUtf8HashIndex41[] = {
     1,
-    (uint32_t)&mathClassName,
+    (uint32_t)mathClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex42[] = {
     3,
-    (uint32_t)&characterClassName,
-    (uint32_t)&flintGraphicsClassName,
-    (uint32_t)&staticConstructorName,
+    (uint32_t)characterClassName,
+    (uint32_t)flintGraphicsClassName,
+    (uint32_t)staticConstructorName,
 };
 
 const uint32_t baseConstUtf8HashIndex43[] = {
     1,
-    (uint32_t)&cloneNotSupportedExceptionClassName,
+    (uint32_t)cloneNotSupportedExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex45[] = {
     1,
-    (uint32_t)&classCastExceptionClassName,
+    (uint32_t)classCastExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex46[] = {
     1,
-    (uint32_t)&shortPrimTypeName,
+    (uint32_t)shortPrimTypeName,
 };
 
 const uint32_t baseConstUtf8HashIndex52[] = {
     1,
-    (uint32_t)&constructorName,
+    (uint32_t)constructorName,
 };
 
 const uint32_t baseConstUtf8HashIndex53[] = {
     1,
-    (uint32_t)&interruptedExceptionClassName,
+    (uint32_t)interruptedExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex54[] = {
     4,
-    (uint32_t)&typeFieldName,
-    (uint32_t)&returnTypeFieldName,
-    (uint32_t)&booleanPrimTypeName,
-    (uint32_t)&threadClassName,
+    (uint32_t)typeFieldName,
+    (uint32_t)returnTypeFieldName,
+    (uint32_t)booleanPrimTypeName,
+    (uint32_t)threadClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex56[] = {
     1,
-    (uint32_t)&unsupportedOperationExceptionClassName,
+    (uint32_t)unsupportedOperationExceptionClassName,
 };
 
 const uint32_t baseConstUtf8HashIndex57[] = {
     1,
-    (uint32_t)&exceptionTypesFieldName,
+    (uint32_t)exceptionTypesFieldName,
 };
 
 const ConstNameBaseList * const baseConstUtf8HashTable[58] = {
