@@ -133,10 +133,14 @@ FlintExecution &Flint::newExecution(FlintJavaThread *onwerThread, uint32_t stack
 }
 
 FlintExecution *Flint::getExcutionByThread(FlintJavaThread &thread) const {
+    Flint::lock();
     for(FlintExecutionNode *node = executionList; node != 0; node = node->next) {
-        if(node->onwerThread == &thread)
+        if(node->onwerThread == &thread) {
+            Flint::unlock();
             return node;
+        }
     }
+    Flint::unlock();
     return NULL;
 }
 
@@ -144,14 +148,14 @@ void Flint::freeExecution(FlintExecution &execution) {
     Flint::lock();
     FlintExecutionNode *prev = ((FlintExecutionNode *)&execution)->prev;
     FlintExecutionNode *next = ((FlintExecutionNode *)&execution)->next;
-    ((FlintExecutionNode *)&execution)->~FlintExecutionNode();
-    Flint::free(&execution);
     if(prev)
         prev->next = next;
     else
         executionList = next;
     if(next)
         next->prev = prev;
+    ((FlintExecutionNode *)&execution)->~FlintExecutionNode();
+    Flint::free(&execution);
     Flint::unlock();
 }
 
@@ -897,20 +901,23 @@ bool Flint::isRunning(void) const {
 }
 
 void Flint::stopRequest(void) {
+    Flint::lock();
     for(FlintExecutionNode *node = executionList; node != 0; node = node->next)
         node->stopRequest();
+    Flint::unlock();
 }
 
 void Flint::terminateRequest(void) {
+    Flint::lock();
     for(FlintExecutionNode *node = executionList; node != 0; node = node->next)
         node->terminateRequest();
+    Flint::unlock();
 }
 
 void Flint::terminate(void) {
-    do {
-        terminateRequest();
+    terminateRequest();
+    while(isRunning())
         FlintAPI::Thread::yield();
-    } while(isRunning());
 }
 
 void Flint::freeObject(FlintJavaObject &obj) {
