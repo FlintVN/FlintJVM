@@ -1026,6 +1026,7 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
                 if(csr & DBG_STATUS_STOP)
                     break;
                 else if(&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= startPoint.pc) {
+                    flint.stopRequest();
                     lock();
                     csr = (csr & ~DBG_CONTROL_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     unlock();
@@ -1040,6 +1041,7 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
                     (exec->startSp <= startPoint.baseSp) &&
                     (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= startPoint.pc)
                 ) {
+                    flint.stopRequest();
                     lock();
                     csr = (csr & ~DBG_CONTROL_STEP_OVER) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     unlock();
@@ -1051,6 +1053,7 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
                 if(csr & DBG_STATUS_STOP)
                     break;
                 else if(exec->startSp < startPoint.baseSp) {
+                    flint.stopRequest();
                     lock();
                     csr = (csr & ~DBG_CONTROL_STEP_OUT) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     unlock();

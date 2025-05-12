@@ -701,7 +701,7 @@ bool FlintClassLoader::hasStaticCtor(void) {
 FlintClassLoader::~FlintClassLoader(void) {
     if(poolCount) {
         for(uint32_t i = 0; i < poolCount; i++) {
-            switch (poolTable[i].tag) {
+            switch(poolTable[i].tag) {
                 case CONST_UTF8:
                     break;
                 case CONST_FIELD:

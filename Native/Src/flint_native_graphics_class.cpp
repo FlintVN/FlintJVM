@@ -325,7 +325,7 @@ public:
         clipWidth = fields.getFieldData32ByIndex(6)->value;
         clipHeight = fields.getFieldData32ByIndex(7)->value;
 
-        switch (colorMode) {
+        switch(colorMode) {
             case COLOR_MODE_RGB444:
                 color = ((color >> 4) & 0x0F) | ((color >> 8) & 0xF0) | ((color >> 12) & 0x0F00);
                 rgb[0] = (uint8_t)(color >> 8);
