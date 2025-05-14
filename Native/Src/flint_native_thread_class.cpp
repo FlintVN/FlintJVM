@@ -58,10 +58,10 @@ static FlintError nativeCurrentThread(FlintExecution &execution) {
 static FlintError nativeSleep0(FlintExecution &execution) {
     uint64_t startTime = FlintAPI::System::getNanoTime() / 1000000;
     int64_t millis = execution.stackPopInt64();
-    while((int64_t)((FlintAPI::System::getNanoTime() / 1000000) - startTime) < (millis - 100)) {
-        FlintAPI::Thread::sleep(100);
+    while((int64_t)((FlintAPI::System::getNanoTime() / 1000000) - startTime) < (millis - 10)) {
+        FlintAPI::Thread::sleep(10);
         if(execution.hasTerminateRequest())
-            return throwInterruptedException(execution);
+            return ERR_TERMINATE_REQUEST;
     }
     int64_t remaining = millis - ((FlintAPI::System::getNanoTime() / 1000000) - startTime);
     if(remaining > 0)

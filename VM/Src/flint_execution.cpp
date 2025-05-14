@@ -466,8 +466,9 @@ FlintError FlintExecution::run(void) {
     dbg_stop: {
         if(dbg) {
             if(!dbg->checkStop(this)) {
-                if(!hasTerminateRequest())
-                    opcodes = opcodeLabels;
+                if(hasTerminateRequest())
+                    return ERR_TERMINATE_REQUEST;
+                opcodes = opcodeLabels;
             }
         }
         goto *opcodeLabels[code[pc]];
@@ -2061,7 +2062,7 @@ FlintError FlintExecution::run(void) {
             opcodes = opcodeLabels;
             dbg->hitBreakpoint(this);
             if(hasTerminateRequest())
-                goto op_exit;
+                return ERR_TERMINATE_REQUEST;
             goto exec_and_restore_bkp;
         }
         else {
@@ -2088,7 +2089,7 @@ FlintError FlintExecution::run(void) {
         goto exception_handler;
     }
     op_exit:
-        return ERR_OK;
+        return hasTerminateRequest() ? ERR_TERMINATE_REQUEST : ERR_OK;
 }
 
 void FlintExecution::runTask(FlintExecution *execution) {

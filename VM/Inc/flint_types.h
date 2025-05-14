@@ -125,6 +125,7 @@ typedef enum : uint8_t {
     ERR_CLASS_NOT_FOUND,
     ERR_FIELD_NOT_FOUND,
     ERR_METHOD_NOT_FOUND,
+    ERR_TERMINATE_REQUEST,
     ERR_VM_ERROR,
 } FlintError;
 
