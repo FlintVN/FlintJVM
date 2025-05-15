@@ -2096,6 +2096,7 @@ void FlintExecution::runTask(FlintExecution *execution) {
     FlintError err = execution->run();
     switch(err) {
         case ERR_OK:
+        case ERR_TERMINATE_REQUEST:
             break;
         case ERR_THROW: {
             FlintJavaThrowable *ex = (FlintJavaThrowable *)execution->stackPopObject();

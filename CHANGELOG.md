@@ -1,4 +1,12 @@
 # Change Log
+## V1.1.5
+- Fix method not found in invokeInterface (bridge method).
+- Support lazy loading for method code (Reduce RAM consumption).
+- Fix java.lang.reflect.Array.get returning short instead of character with character input array.
+- Fix crash when class file contains long ConstUtf8 string.
+- Eliminate the impact of breakpoints on performance when debugging.
+- Temporarily dropping support for java.math.BigInteger for future changes and improvements.
+- Reduce RAM consumption.
 ## V1.1.4
 - Fix bug when handling finally block in exception.
 ## V1.1.3

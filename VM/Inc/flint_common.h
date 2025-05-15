@@ -6,7 +6,7 @@
 
 #define FLINT_VERSION_MAJOR         1
 #define FLINT_VERSION_MINOR         1
-#define FLINT_VERSION_PATCH         4
+#define FLINT_VERSION_PATCH         5
 
 #define KILO_BYTE(_value)           ((_value) * 1024)
 #define MEGA_BYTE(_value)           ((_value) * KILO_BYTE(1024))
