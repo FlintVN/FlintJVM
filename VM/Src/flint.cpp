@@ -72,6 +72,19 @@ void Flint::setDebugger(FlintDebugger *dbg) {
     this->dbg = dbg;
 }
 
+void Flint::print(int64_t num) {
+    char buff[22] = {0};
+    int8_t index = sizeof(buff) - 1;
+    bool isNagative = num < 0;
+    do {
+        buff[--index] = (num % 10) + '0';
+        num /= 10;
+    } while(num);
+    if(isNagative)
+        buff[--index] = '-';
+    print(&buff[index], sizeof(buff) - index - 1, 0);
+}
+
 void Flint::print(const char *text) {
     uint32_t len = strlen(text);
     print(text, len, 0);
@@ -90,6 +103,11 @@ void Flint::print(const char *text, uint32_t length, uint8_t coder) {
         dbg->print(text, length, coder);
     else
         FlintAPI::System::print(text, length, coder);
+}
+
+void Flint::println(int64_t num) {
+    print(num);
+    print("\n", 1, 0);
 }
 
 void Flint::println(const char *text) {

@@ -68,10 +68,12 @@ public:
     FlintDebugger *getDebugger(void) const;
     void setDebugger(FlintDebugger *dbg);
 
+    void print(int64_t num);
     void print(const char *text);
     void print(const FlintConstUtf8 &utf8);
     void print(FlintJavaString *str);
     void print(const char *text, uint32_t length, uint8_t coder);
+    void println(int64_t num);
     void println(const char *text);
     void println(const FlintConstUtf8 &utf8);
     void println(FlintJavaString *str);
