@@ -258,7 +258,10 @@ FlintError FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
     }
     else {
         int32_t retSp = sp - argc;
-        FlintError err = ((FlintNativeMethodPtr)methodInfo->getCode())(*this);
+        FlintNativeMethodPtr nativeCode = (FlintNativeMethodPtr)methodInfo->getCode();
+        if(!nativeCode)
+            return throwNoSuchMethodError(*this, methodInfo->classLoader.thisClass->text, methodInfo->getName().text);
+        FlintError err = nativeCode(*this);
         if(err != ERR_OK) {
             if(err == ERR_THROW) {
                 FlintJavaObject *excp = stackPopObject();
@@ -1889,7 +1892,7 @@ FlintError FlintExecution::run(void) {
                     }
                 }
             }
-            if(traceStartSp < 0) {
+            if(traceStartSp < 4) {
                 if(dbg && !dbg->exceptionIsEnabled())
                     dbg->caughtException(this, (FlintJavaThrowable *)obj);
                 stackPushObject(obj);
