@@ -43,13 +43,13 @@ private:
     static FlintAPI::Thread::LockHandle *flintLockHandle;
     static Flint flintInstance;
     FlintDebugger *dbg;
-    FlintExecutionNode *executionList;
+    FlintExecutionNode * volatile executionList;
     FlintJavaObject *objectList;
     FlintClassDataBinaryTree classDataTree;
     FlintClassBinaryTree constClassTree;
     FlintStringBinaryTree constStringTree;
     FlintConstUtf8BinaryTree constUtf8Tree;
-    volatile FlintObjectArray *classArray0;
+    FlintObjectArray * volatile classArray0;
     uint32_t objectSizeToGc;
 
     Flint(void);

@@ -270,7 +270,6 @@ FlintError FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
             }
             else
                 sp = retSp;
-            pc = lr;
             return err;
         }
         FlintConstUtf8 &methodDesc = methodInfo->getDescriptor();
