@@ -935,7 +935,7 @@ void Flint::terminateRequest(void) {
 void Flint::terminate(void) {
     terminateRequest();
     while(isRunning())
-        FlintAPI::Thread::yield();
+        FlintAPI::Thread::sleep(1);
 }
 
 void Flint::freeObject(FlintJavaObject &obj) {
