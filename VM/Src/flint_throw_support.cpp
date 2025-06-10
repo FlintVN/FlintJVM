@@ -76,7 +76,7 @@ FlintError throwException(FlintExecution &execution, const char *msg) {
 }
 
 FlintError throwIOException(FlintExecution &execution, const char *msg) {
-    return throwThrowable(execution, *(FlintConstUtf8 *)exceptionClassName, msg);
+    return throwThrowable(execution, *(FlintConstUtf8 *)ioExceptionClassName, msg);
 }
 
 FlintError throwErrorException(FlintExecution &execution, const char *msg) {
