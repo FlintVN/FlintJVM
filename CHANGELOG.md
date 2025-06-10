@@ -1,4 +1,9 @@
 # Change Log
+## V1.1.6
+- Fix VM crash when native method not found.
+- Fix stack trace with wrong PC address when debugging.
+- Fix stuck at Flint::terminate for single core chips.
+- Fixed VM throwing wrong type for some exceptions or not displaying messages.
 ## V1.1.5
 - Fix method not found in invokeInterface (bridge method).
 - Support lazy loading for method code (Reduce RAM consumption).
