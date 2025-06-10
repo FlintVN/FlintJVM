@@ -146,11 +146,6 @@ const uint32_t baseConstUtf8HashIndex37[] = {
     (uint32_t)classNotFoundExceptionClassName,
 };
 
-const uint32_t baseConstUtf8HashIndex39[] = {
-    1,
-    (uint32_t)ioExceptionClassName,
-};
-
 const uint32_t baseConstUtf8HashIndex40[] = {
     2,
     (uint32_t)doubleClassName,
@@ -158,7 +153,8 @@ const uint32_t baseConstUtf8HashIndex40[] = {
 };
 
 const uint32_t baseConstUtf8HashIndex41[] = {
-    1,
+    2,
+    (uint32_t)ioExceptionClassName,
     (uint32_t)mathClassName,
 };
 
@@ -252,7 +248,7 @@ const ConstNameBaseList * const baseConstUtf8HashTable[58] = {
     [36] = 0,
     [37] = (const ConstNameBaseList *)baseConstUtf8HashIndex37,
     [38] = 0,
-    [39] = (const ConstNameBaseList *)baseConstUtf8HashIndex39,
+    [39] = 0,
     [40] = (const ConstNameBaseList *)baseConstUtf8HashIndex40,
     [41] = (const ConstNameBaseList *)baseConstUtf8HashIndex41,
     [42] = (const ConstNameBaseList *)baseConstUtf8HashIndex42,
