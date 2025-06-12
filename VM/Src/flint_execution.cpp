@@ -2166,6 +2166,7 @@ FlintError FlintExecution::getOnwerThread(FlintJavaThread *&thread) {
         err = flint.newObject(*(FlintConstUtf8 *)threadClassName, (FlintJavaObject *&)onwerThread);
         Flint::unlock();
     }
+    thread = onwerThread;
     return err;
 }
 
