@@ -2045,32 +2045,28 @@ FlintError FlintExecution::run(void) {
         pc += 4;
         goto *opcodes[code[pc]];
     }
-    exec_and_restore_bkp: {
-        if(opcodes == opcodeRestoreBkpLabels) {
-            dbg->restoreBreakPoint(hitBkpPc, hitBkpMethod);
-            opcodes = opcodeLabelsStop;
-            goto *opcodes[code[pc]];
-        }
-        else {
-            dbg->restoreOriginalOpcode(this->pc, this->method);
-            opcodes = opcodeRestoreBkpLabels;
-            goto *opcodeLabels[code[pc]];
-        }
-    }
     op_breakpoint: {
-        if(dbg) {
-            hitBkpPc = this->pc;
-            hitBkpMethod = this->method;
-            opcodes = opcodeLabels;
-            dbg->hitBreakpoint(this);
-            if(hasTerminateRequest())
-                return ERR_TERMINATE_REQUEST;
-            goto exec_and_restore_bkp;
-        }
-        else {
+        if(!dbg) {
             pc++;
             goto *opcodes[code[pc]];
         }
+        dbg->hitBreakpoint(this);
+        if(hasTerminateRequest())
+            return ERR_TERMINATE_REQUEST;
+
+        if(hitBkpMethod != NULL)
+            dbg->restoreBreakPoint(hitBkpPc, hitBkpMethod);
+        hitBkpPc = this->pc;
+        hitBkpMethod = this->method;
+        dbg->restoreOriginalOpcode(hitBkpPc, hitBkpMethod);
+        opcodes = opcodeRestoreBkpLabels;
+        goto *opcodeLabels[code[pc]];
+    }
+    restore_bkp: {
+        dbg->restoreBreakPoint(hitBkpPc, hitBkpMethod);
+        hitBkpMethod = NULL;
+        opcodes = opcodeLabelsStop;
+        goto *opcodes[code[pc]];
     }
     op_unknow:
         return ERR_VM_ERROR; // "unknow opcode"
