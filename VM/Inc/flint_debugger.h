@@ -5,6 +5,7 @@
 #include "flint_method_info.h"
 #include "flint_java_throwable.h"
 #include "flint_const_name_base.h"
+#include "flint_mutex.h"
 #include "flint_system_api.h"
 #include "flint_default_conf.h"
 
@@ -94,7 +95,7 @@ private:
 
 class FlintDebugger {
 private:
-    FlintAPI::Thread::LockHandle *dbgLockHandle;
+    FlintMutex dbgMutex;
     class Flint &flint;
     class FlintExecution *execution;
     FlintJavaThrowable *exception;
@@ -111,7 +112,6 @@ private:
     FlintBreakPoint breakPoints[MAX_OF_BREAK_POINT];
     uint8_t consoleBuff[DBG_CONSOLE_BUFFER_SIZE];
     uint8_t txBuff[DBG_TX_BUFFER_SIZE];
-    uint8_t fileBuff[256];
 public:
     FlintDebugger(Flint &flint);
 

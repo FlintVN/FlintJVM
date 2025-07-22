@@ -15,6 +15,7 @@
 #include "flint_string_binary_tree.h"
 #include "flint_class_binary_tree.h"
 #include "flint_class_data_binary_tree.h"
+#include "flint_mutex.h"
 #include "flint_system_api.h"
 #include "flint_java_boolean.h"
 #include "flint_java_byte.h"
@@ -40,8 +41,9 @@ private:
 
 class Flint {
 private:
-    static FlintAPI::Thread::LockHandle *flintLockHandle;
+    static FlintMutex flintMutex;
     static Flint flintInstance;
+    static uint32_t objectCount;
     FlintDebugger *dbg;
     FlintExecutionNode * volatile executionList;
     FlintJavaObject *objectList;

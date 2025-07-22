@@ -21,8 +21,7 @@ FlintStackFrame::FlintStackFrame(uint32_t pc, uint32_t baseSp, FlintMethodInfo &
 
 }
 
-FlintDebugger::FlintDebugger(Flint &flint) : flint(flint) {
-    dbgLockHandle = FlintAPI::Thread::createLockHandle();
+FlintDebugger::FlintDebugger(Flint &flint) : dbgMutex(), flint(flint) {
     execution = 0;
     exception = 0;
     dirHandle = 0;
@@ -484,6 +483,7 @@ void FlintDebugger::responseReadFile(uint32_t size) {
     if(csr & DBG_STATUS_RESET) {
         if(fileHandle) {
             uint32_t br = 0;
+            uint8_t fileBuff[256];
             size = (size < sizeof(fileBuff)) ? size : sizeof(fileBuff);
             if(FlintAPI::IO::fread(fileHandle, fileBuff, size, &br) == FILE_RESULT_OK) {
                 initDataFrame(DBG_CMD_READ_FILE, DBG_RESP_OK, br + sizeof(uint32_t));
@@ -591,6 +591,7 @@ void FlintDebugger::responseReadDir(void) {
             uint8_t attribute;
             uint32_t size = 0;
             int64_t time = 0;
+            uint8_t fileBuff[256];
             if(FlintAPI::IO::readdir(dirHandle, &attribute, (char *)fileBuff, sizeof(fileBuff), &size, &time) == FILE_RESULT_OK) {
                 uint16_t nameLength = strlen((char *)fileBuff);
                 uint32_t respLength = 6 + nameLength + sizeof(size) + sizeof(time);
@@ -1074,9 +1075,9 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
 }
 
 void FlintDebugger::lock(void) {
-    FlintAPI::Thread::lock(dbgLockHandle);
+    dbgMutex.lock();
 }
 
 void FlintDebugger::unlock(void) {
-    FlintAPI::Thread::unlock(dbgLockHandle);
+    dbgMutex.unlock();
 }

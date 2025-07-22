@@ -60,16 +60,8 @@ namespace FlintAPI {
     };
 
     namespace Thread {
-        typedef struct {
-            void *mutexHandle;
-            void *lockThreadId;
-            uint32_t lockNest;
-        } LockHandle;
-
-        LockHandle *createLockHandle(void);
-        void lock(LockHandle *lockHandle);
-        void unlock(LockHandle *lockHandle);
         void *create(void (*task)(void *), void *param, uint32_t stackSize = 0);
+        void *getCurrentThread(void);
         void terminate(void *threadHandle);
         void sleep(uint32_t ms);
         void yield(void);

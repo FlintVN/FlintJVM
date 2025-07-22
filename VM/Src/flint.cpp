@@ -4,11 +4,9 @@
 #include "flint.h"
 #include "flint_const_name_base_hash_table.h"
 
-static uint32_t objectCount = 0;
-
-FlintAPI::Thread::LockHandle *Flint::flintLockHandle = FlintAPI::Thread::createLockHandle();
-
+FlintMutex Flint::flintMutex;
 Flint Flint::flintInstance;
+uint32_t Flint::objectCount = 0;
 
 FlintExecutionNode::FlintExecutionNode(Flint &flint, FlintJavaThread *onwerThread) : FlintExecution(flint, onwerThread) {
     prev = 0;
@@ -21,11 +19,11 @@ FlintExecutionNode::FlintExecutionNode(Flint &flint, FlintJavaThread *onwerThrea
 }
 
 void Flint::lock(void) {
-    FlintAPI::Thread::lock(flintLockHandle);
+    flintMutex.lock();
 }
 
 void Flint::unlock(void) {
-    FlintAPI::Thread::unlock(flintLockHandle);
+    flintMutex.unlock();
 }
 
 void *Flint::malloc(uint32_t size) {
