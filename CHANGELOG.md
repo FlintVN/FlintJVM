@@ -2,7 +2,9 @@
 ## V1.1.7
 - Fixed bug in FlintExecution::getOnwerThread function that did not return value.
 - Self-implemented mutex (No need to implement when porting).
-- Debugger: Fixed step over command jumping in place in some cases and fixed some other small bugs.
+- Debugger:
+  - Fixed step over command jumping in place when static constructor is called.
+  - Fixed bug sometimes debugging could not be paused in case step over/in/out was executing.
 ## V1.1.6
 - Fix VM crash when native method not found.
 - Fix stack trace with wrong PC address when debugging.

@@ -1063,7 +1063,7 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
         }
         FlintAPI::Thread::yield();
     }
-    return false;
+    return (csr & DBG_CONTROL_STOP) ? true : false;
 }
 
 void FlintDebugger::lock(void) {
