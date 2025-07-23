@@ -1,4 +1,8 @@
 # Change Log
+## V1.1.7
+- Fixed bug in FlintExecution::getOnwerThread function that did not return value.
+- Self-implemented mutex (No need to implement when porting).
+- Debugger: Fixed step over command jumping in place in some cases and fixed some other small bugs.
 ## V1.1.6
 - Fix VM crash when native method not found.
 - Fix stack trace with wrong PC address when debugging.
