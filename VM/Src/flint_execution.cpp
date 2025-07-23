@@ -466,12 +466,10 @@ FlintError FlintExecution::run(void) {
 
     goto *opcodes[code[pc]];
     dbg_stop: {
-        if(dbg) {
-            if(!dbg->checkStop(this)) {
-                if(hasTerminateRequest())
-                    return ERR_TERMINATE_REQUEST;
-                opcodes = opcodeLabels;
-            }
+        if(dbg && !dbg->checkStop(this)) {
+            if(hasTerminateRequest())
+                return ERR_TERMINATE_REQUEST;
+            opcodes = opcodeLabels;
         }
         goto *opcodeLabels[code[pc]];
     }
