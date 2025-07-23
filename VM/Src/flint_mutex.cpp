@@ -25,6 +25,7 @@ void FlintMutex::lock(void) {
             return;
         }
         atomic_flag_clear_explicit(&locked, memory_order_release);
+        FlintAPI::Thread::yield();
     }
 }
 
