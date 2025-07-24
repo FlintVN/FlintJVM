@@ -159,17 +159,14 @@ public:
     bool checkStop(FlintExecution *exec);
     void caughtException(FlintExecution *exec, FlintJavaThrowable *excp);
     void hitBreakpoint(FlintExecution *exec);
+    uint8_t getSavedOpcode(uint32_t pc, FlintMethodInfo *method);
 private:
     FlintDebugger(const FlintDebugger &) = delete;
     void operator=(const FlintDebugger &) = delete;
 
     bool addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor);
     bool removeBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor);
-public:
-    bool restoreBreakPoint(uint32_t pc, FlintMethodInfo *method);
-    bool restoreOriginalOpcode(uint32_t pc, FlintMethodInfo *method);
 
-private:
     void lock(void);
     void unlock(void);
 };

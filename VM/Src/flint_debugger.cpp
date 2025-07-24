@@ -944,14 +944,12 @@ bool FlintDebugger::addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, 
     return false;
 }
 
-bool FlintDebugger::restoreBreakPoint(uint32_t pc, FlintMethodInfo *method) {
+uint8_t FlintDebugger::getSavedOpcode(uint32_t pc, FlintMethodInfo *method) {
     for(uint8_t i = 0; i < breakPointCount; i++) {
-        if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
-            method->getCode()[pc] = (uint8_t)OP_BREAKPOINT;
-            return true;
-        }
+        if(method == breakPoints[i].method && pc == breakPoints[i].pc)
+            return breakPoints[i].opcode;
     }
-    return false;
+    return OP_UNKNOW;
 }
 
 bool FlintDebugger::removeBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor) {
@@ -970,16 +968,6 @@ bool FlintDebugger::removeBreakPoint(uint32_t pc, const FlintConstUtf8 &classNam
             }
         }
         return true;
-    }
-    return false;
-}
-
-bool FlintDebugger::restoreOriginalOpcode(uint32_t pc, FlintMethodInfo *method) {
-    for(uint8_t i = 0; i < breakPointCount; i++) {
-        if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
-            method->getCode()[pc] = breakPoints[i].opcode;
-            return true;
-        }
     }
     return false;
 }

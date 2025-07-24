@@ -446,9 +446,6 @@ FlintError FlintExecution::run(void) {
     ::opcodeLabelsStop = opcodeLabelsStop;
     ::opcodeLabelsExit = opcodeLabelsExit;
 
-    uint32_t hitBkpPc = 0;
-    FlintMethodInfo *hitBkpMethod = NULL;
-
     FlintDebugger *dbg = flint.getDebugger();
     opcodes = opcodeLabels;
 
@@ -2051,20 +2048,17 @@ FlintError FlintExecution::run(void) {
         dbg->hitBreakpoint(this);
         if(hasTerminateRequest())
             return ERR_TERMINATE_REQUEST;
-
-        if(hitBkpMethod != NULL)
-            dbg->restoreBreakPoint(hitBkpPc, hitBkpMethod);
-        hitBkpPc = this->pc;
-        hitBkpMethod = this->method;
-        dbg->restoreOriginalOpcode(hitBkpPc, hitBkpMethod);
-        opcodes = opcodeRestoreBkpLabels;
-        goto *opcodeLabels[code[pc]];
-    }
-    restore_bkp: {
-        dbg->restoreBreakPoint(hitBkpPc, hitBkpMethod);
-        hitBkpMethod = NULL;
-        opcodes = opcodeLabelsStop;
-        goto *opcodes[code[pc]];
+        uint8_t op = code[pc];
+        if(op == OP_BREAKPOINT) { /* Check opcode again, maybe breakpoint was deleted by user */
+            op = dbg->getSavedOpcode(this->pc, this->method);
+            if(op == OP_UNKNOW)
+                op = code[pc];
+            else if(op == OP_BREAKPOINT) {
+                pc++;
+                goto *opcodes[op];
+            }
+        }
+        goto *opcodeLabels[op];
     }
     op_unknow:
         return ERR_VM_ERROR; // "unknow opcode"
