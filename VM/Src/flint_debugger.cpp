@@ -703,6 +703,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_RUN: {
             lock();
             csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
+            execution = NULL;
             unlock();
             sendRespCode(DBG_CMD_RUN, DBG_RESP_OK);
             return true;
@@ -977,9 +978,9 @@ bool FlintDebugger::exceptionIsEnabled(void) {
 }
 
 bool FlintDebugger::checkStop(FlintExecution *exec) {
-    if(csr & DBG_CONTROL_STOP) {
+    if((csr & DBG_CONTROL_STOP) && (execution == NULL)) {
         lock();
-        if(!(csr & DBG_STATUS_STOP)) {
+        if(execution == NULL) {
             execution = exec;
             csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
         }
@@ -989,29 +990,30 @@ bool FlintDebugger::checkStop(FlintExecution *exec) {
 }
 
 void FlintDebugger::caughtException(FlintExecution *exec, FlintJavaThrowable *excp) {
-    execution = exec;
-    exception = excp;
     lock();
     uint16_t tmp = csr & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     tmp |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     csr = tmp;
+    execution = exec;
+    exception = excp;
     unlock();
+    flint.stopRequest();
     waitStop(exec);
 }
 
 void FlintDebugger::hitBreakpoint(FlintExecution *exec) {
-    flint.stopRequest();
-    execution = exec;
     lock();
     csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
+    execution = exec;
     unlock();
+    flint.stopRequest();
     waitStop(exec);
 }
 
 bool FlintDebugger::waitStop(FlintExecution *exec) {
     while(csr & (DBG_STATUS_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT | DBG_STATUS_EXCP)) {
+        uint16_t tmp = csr;
         if(execution == exec) {
-            uint16_t tmp = csr;
             if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) {
                 if(tmp & DBG_STATUS_STOP) {
                     lock();
@@ -1049,6 +1051,8 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
                     return true;
             }
         }
+        else if(!(tmp & DBG_STATUS_STOP))
+            break;
         FlintAPI::Thread::yield();
     }
     return (csr & DBG_CONTROL_STOP) ? true : false;

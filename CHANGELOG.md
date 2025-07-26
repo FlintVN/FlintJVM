@@ -5,6 +5,7 @@
 - Debugger:
   - Fixed step over command jumping in place when static constructor is called.
   - Fixed bug sometimes debugging could not be paused in case step over/in/out was executing.
+  - Fixed state synchronization between threads when debugging.
 ## V1.1.6
 - Fix VM crash when native method not found.
 - Fix stack trace with wrong PC address when debugging.
