@@ -424,7 +424,7 @@ FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
     Flint::lock();
     if(classData.getInitStatus() != UNINITIALIZED) {
         Flint::unlock();
-        return ERR_OK;
+        return ERR_STATIC_CTOR_IS_RUNNING;
     }
     classData.staticInitOwnId = (uint32_t)this;
     RETURN_IF_ERR(flint.initStaticField(classData));
@@ -432,6 +432,8 @@ FlintError FlintExecution::invokeStaticCtor(FlintClassData &classData) {
     FlintMethodInfo *ctorMethod;
     FlintError err = classData.getStaticCtor(ctorMethod);
     if(err == ERR_OK) {
+        if(code[pc] == OP_BREAKPOINT)
+            ((uint8_t *)code)[pc] = OP_BREAKPOINT_DUMMY;
         lr = pc;
         return invoke(ctorMethod, 0);
     }
@@ -1508,13 +1510,17 @@ FlintError FlintExecution::run(void) {
         }
         else if(initStatus == UNINITIALIZED) {
             FlintError err = invokeStaticCtor(*classData);
-            if(err != ERR_OK) {
-                if(err == ERR_THROW)
-                    goto exception_handler;
+            if(err == ERR_OK)
+                goto *opcodes[code[pc]];
+            else if(err == ERR_THROW)
+                goto exception_handler;
+            else if(err != ERR_STATIC_CTOR_IS_RUNNING)
                 return err;
-            }
         }
-        goto *opcodes[code[pc]];
+        FlintAPI::Thread::yield();
+        if(hasTerminateRequest())
+            return ERR_TERMINATE_REQUEST;
+        goto *opcodeLabels[OP_GETSTATIC];
     }
     op_putstatic: {
         FlintConstField *constField;
@@ -1587,13 +1593,17 @@ FlintError FlintExecution::run(void) {
         }
         else if(initStatus == UNINITIALIZED) {
             FlintError err = invokeStaticCtor(*classData);
-            if(err != ERR_OK) {
-                if(err == ERR_THROW)
-                    goto exception_handler;
+            if(err == ERR_OK)
+                goto *opcodes[code[pc]];
+            else if(err == ERR_THROW)
+                goto exception_handler;
+            else if(err != ERR_STATIC_CTOR_IS_RUNNING)
                 return err;
-            }
         }
-        goto *opcodes[code[pc]];
+        FlintAPI::Thread::yield();
+        if(hasTerminateRequest())
+            return ERR_TERMINATE_REQUEST;
+        goto *opcodeLabels[OP_PUTSTATIC];
     }
     op_getfield: {
         FlintConstField *constField;
@@ -1752,23 +1762,31 @@ FlintError FlintExecution::run(void) {
         FlintConstMethod *constMethod;
         RETURN_IF_ERR(method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]), constMethod));
         FlintError err = invokeSpecial(*constMethod);
-        if(err != ERR_OK) {
-            if(err == ERR_THROW)
-                goto exception_handler;
+        if(err == ERR_OK)
+            goto *opcodes[code[pc]];
+        else if(err == ERR_THROW)
+            goto exception_handler;
+        else if(err != ERR_STATIC_CTOR_IS_RUNNING)
             return err;
-        }
-        goto *opcodes[code[pc]];
+        FlintAPI::Thread::yield();
+        if(hasTerminateRequest())
+            return ERR_TERMINATE_REQUEST;
+        goto *opcodeLabels[OP_INVOKESPECIAL];
     }
     op_invokestatic: {
         FlintConstMethod *constMethod;
         RETURN_IF_ERR(method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]), constMethod));
         FlintError err = invokeStatic(*constMethod);
-        if(err != ERR_OK) {
-            if(err == ERR_THROW)
-                goto exception_handler;
+        if(err == ERR_OK)
+            goto *opcodes[code[pc]];
+        else if(err == ERR_THROW)
+            goto exception_handler;
+        else if(err != ERR_STATIC_CTOR_IS_RUNNING)
             return err;
-        }
-        goto *opcodes[code[pc]];
+        FlintAPI::Thread::yield();
+        if(hasTerminateRequest())
+            return ERR_TERMINATE_REQUEST;
+        goto *opcodeLabels[OP_INVOKESTATIC];
     }
     op_invokeinterface: {
         FlintConstInterfaceMethod *interfaceMethod;
@@ -2050,13 +2068,21 @@ FlintError FlintExecution::run(void) {
             return ERR_TERMINATE_REQUEST;
         uint8_t op = code[pc];
         if(op == OP_BREAKPOINT) { /* Check opcode again, maybe breakpoint was deleted by user */
-            op = dbg->getSavedOpcode(this->pc, this->method);
+            op = dbg->getSavedOpcode(pc, method);
             if(op == OP_UNKNOW)
                 op = code[pc];
             else if(op == OP_BREAKPOINT) {
                 pc++;
                 goto *opcodes[op];
             }
+        }
+        goto *opcodeLabels[op];
+    }
+    op_breakpoint_dummy: {
+        uint8_t op = code[pc];
+        if(op == OP_BREAKPOINT_DUMMY) {
+            ((uint8_t *)code)[pc] = OP_BREAKPOINT;
+            op = dbg->getSavedOpcode(pc, method);
         }
         goto *opcodeLabels[op];
     }

@@ -711,6 +711,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_STOP: {
             lock();
             csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
+            execution = NULL;
             unlock();
             flint.stopRequest();
             sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
@@ -720,6 +721,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             FlintConstUtf8 *mainClass = (FlintConstUtf8 *)&data[4];
             lock();
             csr &= DBG_CONTROL_EXCP_EN;
+            execution = NULL;
             unlock();
             flint.setDebugger(this);
             flint.terminate();
@@ -1021,14 +1023,12 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
                     unlock();
                     return true;
                 }
-                else if(
+                bool isStopped = false;
+                if(
                     (tmp & DBG_CONTROL_STEP_IN) &&
                     (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= startPoint.pc)
                 ) {
-                    flint.stopRequest();
-                    lock();
-                    csr = (csr & ~DBG_CONTROL_STEP_IN) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                    unlock();
+                    isStopped = true;
                 }
                 else if(
                     (tmp & DBG_CONTROL_STEP_OVER) &&
@@ -1036,15 +1036,17 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
                     ((&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc < startPoint.pc) ||
                     (exec->pc == startPoint.pc && (exec->code[exec->pc] == OP_GOTO || exec->code[exec->pc] == OP_GOTO_W)))
                 ) {
-                    flint.stopRequest();
-                    lock();
-                    csr = (csr & ~DBG_CONTROL_STEP_OVER) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                    unlock();
+                    isStopped = true;
                 }
-                else if(exec->startSp < startPoint.baseSp) {
+                else if(exec->startSp < startPoint.baseSp)
+                    isStopped = true;
+
+                if(isStopped) {
+                    if(exec->code[exec->pc] == OP_BREAKPOINT)
+                        return false;
                     flint.stopRequest();
                     lock();
-                    csr = (csr & ~DBG_CONTROL_STEP_OUT) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
+                    csr = (csr & ~(DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     unlock();
                 }
                 else

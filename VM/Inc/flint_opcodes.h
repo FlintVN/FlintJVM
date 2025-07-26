@@ -232,6 +232,7 @@ typedef enum : uint8_t {
     OP_JSRW = 0xC9,
     OP_BREAKPOINT = 0xCA,
 
+    OP_BREAKPOINT_DUMMY = 0xCB,
     OP_UNKNOW = 0xFE,
     OP_EXIT = 0xFF,
 } FlintOpCode;

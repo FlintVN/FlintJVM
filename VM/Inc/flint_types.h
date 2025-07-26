@@ -126,6 +126,7 @@ typedef enum : uint8_t {
     ERR_FIELD_NOT_FOUND,
     ERR_METHOD_NOT_FOUND,
     ERR_TERMINATE_REQUEST,
+    ERR_STATIC_CTOR_IS_RUNNING,
     ERR_VM_ERROR,
 } FlintError;
 

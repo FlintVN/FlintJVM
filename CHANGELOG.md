@@ -3,7 +3,7 @@
 - Fixed bug in FlintExecution::getOnwerThread function that did not return value.
 - Self-implemented mutex (No need to implement when porting).
 - Debugger:
-  - Fixed step over command jumping in place when static constructor is called.
+  - Fixed bug breakpoints and jumps being jumped in place when static constructor is called.
   - Fixed bug sometimes debugging could not be paused in case step over/in/out was executing.
   - Fixed state synchronization between threads when debugging.
 ## V1.1.6
