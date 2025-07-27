@@ -452,6 +452,7 @@ FlintError FlintExecution::run(void) {
     opcodes = opcodeLabels;
 
     stackInitExitPoint(method->getCodeLength());
+    const uint8_t *code = this->code;
 
     if(method->classLoader.hasStaticCtor()) {
         FlintError err = invokeStaticCtor((FlintClassData &)method->classLoader);
@@ -460,6 +461,7 @@ FlintError FlintExecution::run(void) {
                 goto exception_handler;
             return err;
         }
+        code = this->code;
         goto *opcodes[code[pc]];
     }
 
@@ -1436,6 +1438,7 @@ FlintError FlintExecution::run(void) {
     op_freturn: {
         int32_t retVal = stackPopInt32();
         stackRestoreContext();
+        code = this->code;
         stackPushInt32(retVal);
         pc = lr;
         goto *opcodes[code[pc]];
@@ -1444,6 +1447,7 @@ FlintError FlintExecution::run(void) {
     op_dreturn: {
         int64_t retVal = stackPopInt64();
         stackRestoreContext();
+        code = this->code;
         stackPushInt64(retVal);
         pc = lr;
         goto *opcodes[code[pc]];
@@ -1451,12 +1455,14 @@ FlintError FlintExecution::run(void) {
     op_areturn: {
         int32_t retVal = (int32_t)stackPopObject();
         stackRestoreContext();
+        code = this->code;
         stackPushObject((FlintJavaObject *)retVal);
         pc = lr;
         goto *opcodes[code[pc]];
     }
     op_return: {
         stackRestoreContext();
+        code = this->code;
         peakSp = sp;
         pc = lr;
         goto *opcodes[code[pc]];
@@ -1510,8 +1516,10 @@ FlintError FlintExecution::run(void) {
         }
         else if(initStatus == UNINITIALIZED) {
             FlintError err = invokeStaticCtor(*classData);
-            if(err == ERR_OK)
+            if(err == ERR_OK) {
+                code = this->code;
                 goto *opcodes[code[pc]];
+            }
             else if(err == ERR_THROW)
                 goto exception_handler;
             else if(err != ERR_STATIC_CTOR_IS_RUNNING)
@@ -1593,8 +1601,10 @@ FlintError FlintExecution::run(void) {
         }
         else if(initStatus == UNINITIALIZED) {
             FlintError err = invokeStaticCtor(*classData);
-            if(err == ERR_OK)
+            if(err == ERR_OK) {
+                code = this->code;
                 goto *opcodes[code[pc]];
+            }
             else if(err == ERR_THROW)
                 goto exception_handler;
             else if(err != ERR_STATIC_CTOR_IS_RUNNING)
@@ -1756,14 +1766,17 @@ FlintError FlintExecution::run(void) {
                 goto exception_handler;
             return err;
         }
+        code = this->code;
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
         FlintConstMethod *constMethod;
         RETURN_IF_ERR(method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]), constMethod));
         FlintError err = invokeSpecial(*constMethod);
-        if(err == ERR_OK)
+        if(err == ERR_OK) {
+            code = this->code;
             goto *opcodes[code[pc]];
+        }
         else if(err == ERR_THROW)
             goto exception_handler;
         else if(err != ERR_STATIC_CTOR_IS_RUNNING)
@@ -1777,8 +1790,10 @@ FlintError FlintExecution::run(void) {
         FlintConstMethod *constMethod;
         RETURN_IF_ERR(method->classLoader.getConstMethod(ARRAY_TO_INT16(&code[pc + 1]), constMethod));
         FlintError err = invokeStatic(*constMethod);
-        if(err == ERR_OK)
+        if(err == ERR_OK) {
+            code = this->code;
             goto *opcodes[code[pc]];
+        }
         else if(err == ERR_THROW)
             goto exception_handler;
         else if(err != ERR_STATIC_CTOR_IS_RUNNING)
@@ -1798,6 +1813,7 @@ FlintError FlintExecution::run(void) {
                 goto exception_handler;
             return err;
         }
+        code = this->code;
         goto *opcodes[code[pc]];
     }
     op_invokedynamic: {
@@ -1895,8 +1911,10 @@ FlintError FlintExecution::run(void) {
                             return checkAndThrowForFlintError(*this, err, classError);
                     }
                     if(isMatch) {
-                        while(startSp > traceStartSp)
+                        while(startSp > traceStartSp) {
                             stackRestoreContext();
+                            code = this->code;
+                        }
                         sp = startSp + traceMethod->getMaxLocals();
                         stackPushObject(obj);
                         pc = exception->handlerPc;
