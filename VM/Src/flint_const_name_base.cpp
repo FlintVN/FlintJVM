@@ -30,7 +30,6 @@ alignas(4) const char characterClassName[] = "\x13\x00\x92\x49""java/lang/Charac
 alignas(4) const char throwableClassName[] = "\x13\x00\xB7\x14""java/lang/Throwable";
 alignas(4) const char exceptionClassName[] = "\x13\x00\xF6\xDA""java/lang/Exception";
 alignas(4) const char fieldClassName[] = "\x17\x00\x7A\x05""java/lang/reflect/Field";
-alignas(4) const char bigIntegerClassName[] = "\x14\x00\x72\xF5""java/math/BigInteger";
 alignas(4) const char printStreamClassName[] = "\x13\x00\x34\x38""java/io/PrintStream";
 alignas(4) const char methodClassName[] = "\x18\x00\x97\x00""java/lang/reflect/Method";
 alignas(4) const char ioExceptionClassName[] = "\x13\x00\x85\x3B""java/io/IOException";

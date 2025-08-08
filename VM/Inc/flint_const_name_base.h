@@ -34,7 +34,6 @@ extern const char integerClassName[];
 extern const char characterClassName[];
 extern const char throwableClassName[];
 extern const char exceptionClassName[];
-extern const char bigIntegerClassName[];
 extern const char printStreamClassName[];
 extern const char ioExceptionClassName[];
 extern const char constructorClassName[];
