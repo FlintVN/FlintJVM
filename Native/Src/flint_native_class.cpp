@@ -12,7 +12,7 @@
 #include "flint_native_character_class.h"
 #include "flint_native_print_stream_class.h"
 
-const FlintNativeClass *BASE_NATIVE_CLASS_LIST[13] = {
+const FlintNativeClass *BASE_NATIVE_CLASS_LIST[12] = {
     &MATH_CLASS,
     &ARRAY_CLASS,
     &CLASS_CLASS,
