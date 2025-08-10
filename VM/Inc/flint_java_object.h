@@ -29,7 +29,7 @@ public:
     uint8_t parseTypeSize(void) const;
 
     class FlintFieldsData &getFields(void) const;
-private:
+
     void clearProtected(void);
     void setProtected(void);
     uint8_t getProtected(void) const;
