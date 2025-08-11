@@ -586,7 +586,7 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution &execution) {
         }
         fields.getFieldObject(*(FlintConstUtf8 *)parameterTypesFieldName, &parameterTypesIndex)->object = types;
         types->clearProtected();
-        
+
         /* exceptionTypes */
         err = getExceptionTypes(execution.flint, methodInfo, classArray0, types);
         if(err != ERR_OK) {

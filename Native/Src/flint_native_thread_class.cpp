@@ -33,7 +33,8 @@ static FlintError nativeStart0(FlintExecution &execution) {
         return err;
     }
 
-    threadExecution.run(method);
+    if(!threadExecution.run(method))
+        return throwException(execution, "Thread start failed");
     return ERR_OK;
 }
 

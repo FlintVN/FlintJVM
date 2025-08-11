@@ -502,13 +502,16 @@ FlintError Flint::getClassArray0(FlintObjectArray *&obj) {
     }
     Flint::lock();
     if(classArray0 == NULL) {
-        RETURN_IF_ERR(newObjectArray(*(FlintConstUtf8 *)classClassName, 0, obj));
+        FlintError err = newObjectArray(*(FlintConstUtf8 *)classClassName, 0, obj);
+        if(err != ERR_OK) {
+            Flint::unlock();
+            return err;
+        }
         classArray0 = obj;
     }
-    else {
-        Flint::unlock();
+    else
         obj = (FlintObjectArray *)classArray0;
-    }
+    Flint::unlock();
     return ERR_OK;
 }
 
