@@ -1016,30 +1016,34 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
     while(csr & (DBG_STATUS_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT | DBG_STATUS_EXCP)) {
         uint16_t tmp = csr;
         if(execution == exec) {
+            static uint32_t oldPc = 0;
             if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) {
                 if(tmp & DBG_STATUS_STOP) {
                     lock();
                     csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
                     unlock();
+                    oldPc = exec->pc;
                     return true;
                 }
                 bool isStopped = false;
                 if(
                     (tmp & DBG_CONTROL_STEP_IN) &&
-                    (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= startPoint.pc)
+                    (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= oldPc)
                 ) {
                     isStopped = true;
                 }
                 else if(
                     (tmp & DBG_CONTROL_STEP_OVER) &&
                     (exec->startSp <= startPoint.baseSp) &&
-                    ((&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc < startPoint.pc) ||
-                    (exec->pc == startPoint.pc && (exec->code[exec->pc] == OP_GOTO || exec->code[exec->pc] == OP_GOTO_W)))
+                    (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= oldPc)
                 ) {
                     isStopped = true;
                 }
                 else if(exec->startSp < startPoint.baseSp)
                     isStopped = true;
+
+                if(exec->pc > oldPc)
+                    oldPc = exec->pc;
 
                 if(isStopped) {
                     if(exec->code[exec->pc] == OP_BREAKPOINT)
