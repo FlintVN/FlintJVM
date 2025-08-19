@@ -3,10 +3,13 @@
 #include <iostream>
 #include "flint_throw_support.h"
 
-static FlintError throwThrowable(FlintExecution &execution, const FlintConstUtf8 &excpType, const char *msg) {
+static FlintError throwThrowable(FlintExecution &execution, const FlintConstUtf8 &excpType, const char *msg, uint32_t len = 0) {
     FlintJavaString *strObj = NULL;
-    if(msg)
-        RETURN_IF_ERR(execution.flint.newString(msg, strObj));
+    if(msg) {
+        if(len == 0)
+            len = strlen(msg);
+        RETURN_IF_ERR(execution.flint.newString(msg, len, false, strObj));
+    }
     FlintJavaThrowable *excp;
     FlintError err = execution.flint.newThrowable(strObj, excpType, excp);
     if(err != ERR_OK) {
@@ -71,18 +74,18 @@ static uint32_t sprint(char *buff, uint32_t index, int32_t num) {
     return count + index;
 }
 
-FlintError throwException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)exceptionClassName, msg);
+FlintError throwException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)exceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)exceptionClassName);
 }
 
-FlintError throwIOException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)ioExceptionClassName, msg);
+FlintError throwIOException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)ioExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)ioExceptionClassName);
 }
 
-FlintError throwErrorException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)errorClassName, msg);
+FlintError throwErrorException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)errorClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)errorClassName);
 }
 
@@ -113,18 +116,18 @@ FlintError throwClassCastException(FlintExecution &execution, FlintJavaObject *o
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)classCastExceptionClassName);
 }
 
-FlintError throwArrayStoreException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)arrayStoreExceptionClassName, msg);
+FlintError throwArrayStoreException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)arrayStoreExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)arrayStoreExceptionClassName);
 }
 
-FlintError throwArithmeticException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)arithmeticExceptionClassName, msg);
+FlintError throwArithmeticException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)arithmeticExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)arithmeticExceptionClassName);
 }
 
-FlintError throwNullPointerException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, msg);
+FlintError throwNullPointerException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)nullPointerExceptionClassName);
 }
 
@@ -164,13 +167,13 @@ FlintError throwNullPointerException(FlintExecution &execution, FlintConstField 
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)nullPointerExceptionClassName);
 }
 
-FlintError throwInterruptedException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)interruptedExceptionClassName, msg);
+FlintError throwInterruptedException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)interruptedExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)interruptedExceptionClassName);
 }
 
-FlintError throwClassNotFoundException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)classNotFoundExceptionClassName, msg);
+FlintError throwClassNotFoundException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)classNotFoundExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)classNotFoundExceptionClassName);
 }
 
@@ -179,18 +182,18 @@ FlintError throwClassNotFoundException(FlintExecution &execution, FlintJavaStrin
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)classNotFoundExceptionClassName);
 }
 
-FlintError throwIllegalArgumentException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)illegalArgumentExceptionClassName, msg);
+FlintError throwIllegalArgumentException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)illegalArgumentExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)illegalArgumentExceptionClassName);
 }
 
-FlintError throwCloneNotSupportedException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)cloneNotSupportedExceptionClassName, msg);
+FlintError throwCloneNotSupportedException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)cloneNotSupportedExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)cloneNotSupportedExceptionClassName);
 }
 
-FlintError throwNegativeArraySizeException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)negativeArraySizeExceptionClassName, msg);
+FlintError throwNegativeArraySizeException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)negativeArraySizeExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)negativeArraySizeExceptionClassName);
 }
 
@@ -210,13 +213,13 @@ FlintError throwArrayIndexOutOfBoundsException(FlintExecution &execution, int32_
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)arrayIndexOutOfBoundsExceptionClassName);
 }
 
-FlintError throwUnsupportedOperationException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)unsupportedOperationExceptionClassName, msg);
+FlintError throwUnsupportedOperationException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)unsupportedOperationExceptionClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)unsupportedOperationExceptionClassName);
 }
 
-FlintError throwUnsatisfiedLinkErrorException(FlintExecution &execution, const char *msg) {
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)unsatisfiedLinkErrorClassName, msg);
+FlintError throwUnsatisfiedLinkErrorException(FlintExecution &execution, const char *msg, uint32_t length) {
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)unsatisfiedLinkErrorClassName, msg, length);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)unsatisfiedLinkErrorClassName);
 }
 

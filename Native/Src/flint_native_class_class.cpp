@@ -12,6 +12,28 @@ static void freeObjectArray(Flint &flint, FlintObjectArray *array, uint32_t leng
     flint.freeObject(*array);
 }
 
+static FlintError checkClassIsExist(const char *type, uint32_t typeLen) {
+    char buff[FILE_NAME_BUFF_SIZE];
+    if((typeLen + sizeof(".class")) > FILE_NAME_BUFF_SIZE)
+        return ERR_VM_ERROR;
+    for(uint32_t i = 0; i < typeLen; i++) {
+        if(type[i] != '/' && type[i] != '\\')
+            buff[i] = (type[i] == '.') ? '/' : type[i];
+        else
+            return ERR_CLASS_NOT_FOUND;
+    }
+    memcpy(&buff[typeLen], ".class", sizeof(".class"));
+    if(FlintAPI::IO::finfo(buff, NULL, NULL) != FILE_RESULT_OK)
+        return ERR_CLASS_NOT_FOUND;
+    return ERR_OK;
+}
+
+static FlintError loadClassForName(FlintExecution &execution, const char *type, uint32_t typeLen, FlintJavaClass *&cls) {
+    RETURN_IF_ERR(checkClassIsExist(type, typeLen));
+    RETURN_IF_ERR(execution.flint.getConstClass(type, typeLen, cls));
+    return ERR_OK;
+}
+
 static FlintError nativeGetPrimitiveClass(FlintExecution &execution) {
     FlintJavaString *str = (FlintJavaString *)execution.stackPopObject();
     if(str->getCoder() == 0) {
@@ -64,27 +86,20 @@ static FlintError nativeGetPrimitiveClass(FlintExecution &execution) {
 }
 
 static FlintError nativeForName(FlintExecution &execution) {
-    char buff[FILE_NAME_BUFF_SIZE];
-    FlintJavaString *typeName = (FlintJavaString *)execution.stackPopObject();
-    if(typeName == NULL)
+    FlintJavaString *type = (FlintJavaString *)execution.stackPopObject();
+    if(type == NULL)
         return throwNullPointerException(execution);
-    const char *typeText = typeName->getText();
-    uint32_t typeLength = typeName->getLength();
-    if((typeLength + sizeof(".class")) > FILE_NAME_BUFF_SIZE)
-        return throwClassNotFoundException(execution, "Class name is too long");
-    for(uint32_t i = 0; i < typeLength; i++) {
-        if(typeText[i] != '/' && typeText[i] != '\\')
-            buff[i] = (typeText[i] == '.') ? '/' : typeText[i];
-        else
-            return throwClassNotFoundException(execution, typeName);
-    }
-    memcpy(&buff[typeLength], ".class", sizeof(".class"));
-    if(FlintAPI::IO::finfo(buff, NULL, NULL) != FILE_RESULT_OK)
-        return throwClassNotFoundException(execution, typeName);
     FlintJavaClass *cls;
-    RETURN_IF_ERR(execution.flint.getConstClass(buff, typeLength, cls));
-    execution.stackPushObject(cls);
-    return ERR_OK;
+    FlintError err = loadClassForName(execution, type->getText(), type->getLength(), cls);
+    if(err == ERR_OK) {
+        execution.stackPushObject(cls);
+        return ERR_OK;
+    }
+    else if(err == ERR_CLASS_NOT_FOUND)
+        return throwClassNotFoundException(execution, type);
+    else if(err == ERR_VM_ERROR)
+        return throwClassNotFoundException(execution, "VM error");
+    return err;
 }
 
 static FlintError nativeIsInstance(FlintExecution &execution) {
@@ -268,7 +283,37 @@ static FlintError nativeGetModifiers(FlintExecution &execution) {
     return ERR_OK;
 }
 
+static FlintError nativeGetNestHost0(FlintExecution &execution) {
+    FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
+    if(clsObj->isArray() || clsObj->isPrimitive()) {
+        execution.stackPushObject(clsObj);
+        return ERR_OK;
+    }
+    FlintJavaString &clsName = clsObj->getName();
+    char *clsTxt = clsName.getText();
+    uint32_t clsLen = clsName.getLength();
+    uint32_t clsNestHostLen = 0;
+    while((clsNestHostLen < clsLen) && clsTxt[clsNestHostLen] != '$')
+        clsNestHostLen++;
+    if(clsNestHostLen == clsLen) {
+        execution.stackPushObject(clsObj);
+        return ERR_OK;
+    }
+    FlintJavaClass *cls;
+    FlintError err = loadClassForName(execution, clsTxt, clsNestHostLen, cls);
+    if(err == ERR_OK) {
+        execution.stackPushObject(cls);
+        return ERR_OK;
+    }
+    else if(err == ERR_CLASS_NOT_FOUND)
+        return throwClassNotFoundException(execution, clsTxt, clsNestHostLen);
+    else if(err == ERR_VM_ERROR)
+        return throwClassNotFoundException(execution, "VM error");
+    return err;
+}
+
 static FlintError nativeIsHidden(FlintExecution &execution) {
+    // TODO
     return throwUnsupportedOperationException(execution, "isHidden is not implemented in VM");
 }
 
@@ -640,6 +685,7 @@ static const FlintNativeMethod methods[] = {
     NATIVE_METHOD("\x0E\x00\x4A\x39""getInterfaces0",           "\x14\x00\xEA\x91""()[Ljava/lang/Class;",                  nativeGetInterfaces0),
     NATIVE_METHOD("\x10\x00\x95\x8C""getComponentType",         "\x13\x00\x0A\x1F""()Ljava/lang/Class;",                   nativeGetComponentType),
     NATIVE_METHOD("\x0C\x00\x21\x8F""getModifiers",             "\x03\x00\xD0\x51""()I",                                   nativeGetModifiers),
+    NATIVE_METHOD("\x0C\x00\x9A\x97""getNestHost0",             "\x13\x00\x0A\x1F""()Ljava/lang/Class;",                   nativeGetNestHost0),
     NATIVE_METHOD("\x08\x00\x9C\xA3""isHidden",                 "\x03\x00\x91\x9C""()Z",                                   nativeIsHidden),
     NATIVE_METHOD("\x12\x00\xDA\x76""getDeclaredFields0",       "\x1C\x00\x48\x1C""()[Ljava/lang/reflect/Field;",          nativeGetDeclaredFields0),
     NATIVE_METHOD("\x13\x00\x4B\x12""getDeclaredMethods0",      "\x1D\x00\x12\x57""()[Ljava/lang/reflect/Method;",         nativeGetDeclaredMethods0),
