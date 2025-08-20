@@ -5,7 +5,7 @@
 
 typedef enum : uint8_t {
     OP_NOP = 0x00,
-    OP_ACONST_NULL = 0x01,
+    OP_ACONST_NULL_PTR = 0x01,
     OP_ICONST_M1 = 0x02,
     OP_ICONST_0 = 0x03,
     OP_ICONST_1 = 0x04,
@@ -225,8 +225,8 @@ typedef enum : uint8_t {
     OP_MONITOREXIT = 0xC3,
     OP_WIDE = 0xC4,
     OP_MULTIANEWARRAY = 0xC5,
-    OP_IFNULL = 0xC6,
-    OP_IFNONNULL = 0xC7,
+    OP_IFNULL_PTR = 0xC6,
+    OP_IFNONNULL_PTR = 0xC7,
 
     OP_GOTO_W = 0xC8,
     OP_JSRW = 0xC9,

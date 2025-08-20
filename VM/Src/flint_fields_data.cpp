@@ -12,7 +12,7 @@ FlintFieldData64::FlintFieldData64(const FlintFieldInfo &fieldInfo) : fieldInfo(
 
 }
 
-FlintFieldObject::FlintFieldObject(const FlintFieldInfo &fieldInfo) : fieldInfo(fieldInfo), object(0) {
+FlintFieldObject::FlintFieldObject(const FlintFieldInfo &fieldInfo) : fieldInfo(fieldInfo), object(NULL_PTR) {
 
 }
 
@@ -162,7 +162,7 @@ FlintFieldData32 *FlintFieldsData::getFieldData32(const char *fieldName, uint32_
             }
         }
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintFieldData32 *FlintFieldsData::getFieldData32(const FlintConstUtf8 &fieldName, uint32_t *index) const {
@@ -176,7 +176,7 @@ FlintFieldData32 *FlintFieldsData::getFieldData32(const FlintConstUtf8 &fieldNam
             return &fieldsData32[i];
         }
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintFieldData32 *FlintFieldsData::getFieldData32(FlintConstField &constField) const {
@@ -187,7 +187,7 @@ FlintFieldData32 *FlintFieldsData::getFieldData32(FlintConstField &constField) c
                 constField.fieldIndex = i | 0x80000000;
         }
         if(constField.fieldIndex == 0)
-            return NULL;
+            return NULL_PTR;
     }
     return &fieldsData32[constField.fieldIndex & 0x7FFFFFFF];
 }
@@ -214,7 +214,7 @@ FlintFieldData64 *FlintFieldsData::getFieldData64(const char *fieldName, uint32_
             }
         }
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintFieldData64 *FlintFieldsData::getFieldData64(const FlintConstUtf8 &fieldName, uint32_t *index) const {
@@ -228,7 +228,7 @@ FlintFieldData64 *FlintFieldsData::getFieldData64(const FlintConstUtf8 &fieldNam
             return &fieldsData64[i];
         }
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintFieldData64 *FlintFieldsData::getFieldData64(FlintConstField &constField) const {
@@ -239,7 +239,7 @@ FlintFieldData64 *FlintFieldsData::getFieldData64(FlintConstField &constField) c
                 constField.fieldIndex = i | 0x80000000;
         }
         if(constField.fieldIndex == 0)
-            return NULL;
+            return NULL_PTR;
     }
     return &fieldsData64[constField.fieldIndex & 0x7FFFFFFF];
 }
@@ -266,7 +266,7 @@ FlintFieldObject *FlintFieldsData::getFieldObject(const char *fieldName, uint32_
             }
         }
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintFieldObject *FlintFieldsData::getFieldObject(const FlintConstUtf8 &fieldName, uint32_t *index) const {
@@ -280,7 +280,7 @@ FlintFieldObject *FlintFieldsData::getFieldObject(const FlintConstUtf8 &fieldNam
             return &fieldsObject[i];
         }
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintFieldObject *FlintFieldsData::getFieldObject(FlintConstField &constField) const {
@@ -291,7 +291,7 @@ FlintFieldObject *FlintFieldsData::getFieldObject(FlintConstField &constField) c
                 constField.fieldIndex = i | 0x80000000;
         }
         if(constField.fieldIndex == 0)
-            return NULL;
+            return NULL_PTR;
     }
     return &fieldsObject[constField.fieldIndex & 0x7FFFFFFF];
 }

@@ -4,7 +4,7 @@
 #include "flint_throw_support.h"
 
 static FlintError throwThrowable(FlintExecution &execution, const FlintConstUtf8 &excpType, const char *msg, uint32_t len = 0) {
-    FlintJavaString *strObj = NULL;
+    FlintJavaString *strObj = NULL_PTR;
     if(msg) {
         if(len == 0)
             len = strlen(msg);

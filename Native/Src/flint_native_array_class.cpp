@@ -15,7 +15,7 @@
 #include "flint_throw_support.h"
 
 static FlintError checkIsArray(FlintExecution &execution, FlintJavaObject *obj) {
-    if(obj == NULL)
+    if(obj == NULL_PTR)
         return throwNullPointerException(execution);
     if(obj->dimensions < 1)
         return throwIllegalArgumentException(execution, "Argument is not an array");
@@ -23,7 +23,7 @@ static FlintError checkIsArray(FlintExecution &execution, FlintJavaObject *obj) 
 }
 
 static FlintError checkIsClassType(FlintExecution &execution, FlintJavaObject *obj) {
-    if(obj == NULL)
+    if(obj == NULL_PTR)
         return throwNullPointerException(execution);
     else if(obj->type != *(FlintConstUtf8 *)classClassName)
         return throwIllegalArgumentException(execution);
@@ -45,7 +45,7 @@ static FlintError checkLength(FlintExecution &execution, int32_t size) {
 
 static FlintError checkDimensions(FlintExecution &execution, FlintInt32Array *dimensions) {
     if(
-        (dimensions == NULL) ||
+        (dimensions == NULL_PTR) ||
         (dimensions->dimensions != 1) ||
         (dimensions->type != *(FlintConstUtf8 *)integerPrimTypeName) ||
         (dimensions->getLength() == 0) ||

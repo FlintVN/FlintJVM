@@ -87,20 +87,20 @@ static FlintAttributeType parseAttributeType(const FlintConstUtf8 &name) {
     return ATTRIBUTE_UNKNOW;
 }
 
-FlintClassLoader::FlintClassLoader(Flint &flint) : thisClass(NULL), superClass(NULL), flint(flint) {
+FlintClassLoader::FlintClassLoader(Flint &flint) : thisClass(NULL_PTR), superClass(NULL_PTR), flint(flint) {
     staticCtorInfo = 0;
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
     methodsCount = 0;
-    interfaces = NULL;
-    fields = NULL;
-    methods = NULL;
+    interfaces = NULL_PTR;
+    fields = NULL_PTR;
+    methods = NULL_PTR;
 }
 
 FlintError FlintClassLoader::load(const char *fileName, uint16_t length) {
     void *file = ClassLoader_Open(fileName, length);
-    if(file == NULL)
+    if(file == NULL_PTR)
         return ERR_CLASS_NOT_FOUND;
     FlintError err = load(file);
     if(FlintAPI::IO::fclose(file) != FILE_RESULT_OK)
@@ -119,7 +119,7 @@ FlintError FlintClassLoader::load(void *file) {
     RETURN_IF_ERR(ClassLoader_ReadUInt16(file, poolCount));
     poolCount--;
     poolTable = (FlintConstPool *)Flint::malloc(poolCount * sizeof(FlintConstPool));
-    if(poolTable == NULL)
+    if(poolTable == NULL_PTR)
         return ERR_OUT_OF_MEMORY;
     for(uint32_t i = 0; i < poolCount; i++) {
         uint8_t tag;
@@ -134,7 +134,7 @@ FlintError FlintClassLoader::load(void *file) {
                         utf8Buff = (char *)Flint::malloc(length);
                     else
                         utf8Buff = (char *)Flint::realloc(utf8Buff, length);
-                    if(utf8Buff == NULL)
+                    if(utf8Buff == NULL_PTR)
                         return ERR_OUT_OF_MEMORY;
                     utf8Length = length;
                 }
@@ -198,7 +198,7 @@ FlintError FlintClassLoader::load(void *file) {
     RETURN_IF_ERR(ClassLoader_ReadUInt16(file, interfacesCount));
     if(interfacesCount) {
         interfaces = (uint16_t *)Flint::malloc(interfacesCount * sizeof(uint16_t));
-        if(interfaces == NULL)
+        if(interfaces == NULL_PTR)
             return ERR_OUT_OF_MEMORY;
         for(uint32_t i = 0; i < interfacesCount; i++)
             RETURN_IF_ERR(ClassLoader_ReadUInt16(file, interfaces[i]));
@@ -208,7 +208,7 @@ FlintError FlintClassLoader::load(void *file) {
     if(fieldsCount) {
         uint32_t loadedCount = 0;
         fields = (FlintFieldInfo *)Flint::malloc(fieldsCount * sizeof(FlintFieldInfo));
-        if(fields == NULL)
+        if(fields == NULL_PTR)
             return ERR_OUT_OF_MEMORY;
         for(uint16_t i = 0; i < fieldsCount; i++) {
             uint16_t flag, fieldsNameIndex, fieldsDescriptorIndex, fieldsAttributesCount;
@@ -237,12 +237,12 @@ FlintError FlintClassLoader::load(void *file) {
         }
         if(loadedCount == 0) {
             Flint::free(fields);
-            fields = 0;
+            fields = NULL_PTR;
             fieldsCount = 0;
         }
         else if(loadedCount != fieldsCount) {
             fields = (FlintFieldInfo *)Flint::realloc(fields, loadedCount * sizeof(FlintFieldInfo));
-            if(fields == NULL)
+            if(fields == NULL_PTR)
                 return ERR_OUT_OF_MEMORY;
             fieldsCount = loadedCount;
         }
@@ -251,7 +251,7 @@ FlintError FlintClassLoader::load(void *file) {
     RETURN_IF_ERR(ClassLoader_ReadUInt16(file, methodsCount));
     if(methodsCount) {
         methods = (FlintMethodInfo *)Flint::malloc(methodsCount * sizeof(FlintMethodInfo));
-        if(methods == NULL)
+        if(methods == NULL_PTR)
             return ERR_OUT_OF_MEMORY;
         for(uint16_t i = 0; i < methodsCount; i++) {
             uint16_t flag, methodNameIndex, methodDescriptorIndex, methodAttributesCount;
@@ -300,7 +300,7 @@ FlintError FlintClassLoader::readAttributeCode(void *file, FlintMethodInfo &meth
 
     uint32_t codeAttrSize = sizeof(FlintCodeAttribute) + exceptionTableLength * sizeof(FlintExceptionTable) + codeLength + 1;
     FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)Flint::malloc(codeAttrSize);
-    if(codeAttr == NULL)
+    if(codeAttr == NULL_PTR)
         return ERR_OUT_OF_MEMORY;
     codeAttr->maxStack = maxStack;
     codeAttr->maxLocals = maxLocals;
@@ -416,7 +416,7 @@ FlintError FlintClassLoader::getConstClass(FlintConstPool &constPool, FlintJavaC
         if(constPool.tag & 0x80) {
             FlintConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
             ConstClassValue *constClassValue = (ConstClassValue *)Flint::malloc(sizeof(ConstClassValue));
-            if(constClassValue == NULL) {
+            if(constClassValue == NULL_PTR) {
                 Flint::unlock();
                 return ERR_OUT_OF_MEMORY;
             }
@@ -466,7 +466,7 @@ FlintError FlintClassLoader::getConstNameAndType(uint16_t poolIndex, FlintConstN
             uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
             uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
             void *tmp = Flint::malloc(sizeof(FlintConstNameAndType));
-            if(tmp == NULL) {
+            if(tmp == NULL_PTR) {
                 Flint::unlock();
                 return ERR_OUT_OF_MEMORY;
             }
@@ -488,7 +488,7 @@ FlintError FlintClassLoader::getConstField(uint16_t poolIndex, FlintConstField *
             uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
             uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
             void *tmp = Flint::malloc(sizeof(FlintConstField));
-            if(tmp == NULL) {
+            if(tmp == NULL_PTR) {
                 Flint::unlock();
                 return ERR_OUT_OF_MEMORY;
             }
@@ -516,7 +516,7 @@ FlintError FlintClassLoader::getConstMethod(uint16_t poolIndex, FlintConstMethod
             uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
             uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
             void *tmp = Flint::malloc(sizeof(FlintConstMethod));
-            if(tmp == NULL) {
+            if(tmp == NULL_PTR) {
                 Flint::unlock();
                 return ERR_OUT_OF_MEMORY;
             }
@@ -544,7 +544,7 @@ FlintError FlintClassLoader::getConstInterfaceMethod(uint16_t poolIndex, FlintCo
             uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
             uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
             void *tmp = Flint::malloc(sizeof(FlintConstInterfaceMethod));
-            if(tmp == NULL) {
+            if(tmp == NULL_PTR) {
                 Flint::unlock();
                 return ERR_OUT_OF_MEMORY;
             }
@@ -601,7 +601,7 @@ FlintFieldInfo *FlintClassLoader::getFieldInfo(const FlintConstUtf8 &name, const
             }
         }
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintFieldInfo *FlintClassLoader::getFieldInfo(FlintConstNameAndType &nameAndType) const {
@@ -622,7 +622,7 @@ FlintError FlintClassLoader::getMethodInfo(uint8_t methodIndex, FlintMethodInfo 
         Flint::lock();
         if(method.accessFlag & METHOD_UNLOADED) {
             void *file = ClassLoader_Open(thisClass->text, thisClass->length);
-            if(file == NULL) {
+            if(file == NULL_PTR) {
                 Flint::unlock();
                 return ERR_CLASS_LOAD_FAIL;
             }

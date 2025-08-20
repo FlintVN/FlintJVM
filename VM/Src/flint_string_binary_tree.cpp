@@ -4,11 +4,11 @@
 #include "flint.h"
 #include "flint_string_binary_tree.h"
 
-FlintStringBinaryTree::FlintStringNode::FlintStringNode(FlintJavaString &value) : left(0), right(0), height(1), value(value) {
+FlintStringBinaryTree::FlintStringNode::FlintStringNode(FlintJavaString &value) : left(NULL_PTR), right(NULL_PTR), height(1), value(value) {
 
 }
 
-FlintStringBinaryTree::FlintStringBinaryTree(void) : root(0) {
+FlintStringBinaryTree::FlintStringBinaryTree(void) : root(NULL_PTR) {
 
 }
 
@@ -110,7 +110,7 @@ FlintJavaString *FlintStringBinaryTree::find(FlintJavaString &value) const {
         else
             node = node->left;
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintJavaString *FlintStringBinaryTree::find(const FlintConstUtf8 &utf8) const {
@@ -124,7 +124,7 @@ FlintJavaString *FlintStringBinaryTree::find(const FlintConstUtf8 &utf8) const {
         else
             node = node->left;
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 void FlintStringBinaryTree::forEach(FlintStringNode *node, void (*func)(FlintJavaString &item)) {
@@ -149,5 +149,5 @@ void FlintStringBinaryTree::freeNode(FlintStringNode *node) {
 
 void FlintStringBinaryTree::clear(void) {
     freeNode(root);
-    root = 0;
+    root = NULL_PTR;
 }

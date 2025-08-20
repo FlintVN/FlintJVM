@@ -3,7 +3,7 @@
 #include "flint.h"
 #include "flint_const_utf8_binary_tree.h"
 
-FlintConstUtf8BinaryTree::FlintConstUtf8BinaryTree(void) : root(0) {
+FlintConstUtf8BinaryTree::FlintConstUtf8BinaryTree(void) : root(NULL_PTR) {
 
 }
 
@@ -98,8 +98,8 @@ int32_t FlintConstUtf8BinaryTree::compareConstUtf8(const char *text, uint32_t ha
 FlintConstUtf8BinaryTree::FlintConstUtf8Node *FlintConstUtf8BinaryTree::createFlintConstUtf8Node(const char *text, uint32_t hash, bool isTypeName) {
     uint16_t length = ((uint16_t *)&hash)[0];
     FlintConstUtf8Node *newNode = (FlintConstUtf8Node *)Flint::malloc(sizeof(FlintConstUtf8Node) + length + 1);
-    newNode->left = 0;
-    newNode->right = 0;
+    newNode->left = NULL_PTR;
+    newNode->right = NULL_PTR;
     newNode->height = 1;
     *(uint16_t *)&newNode->value.length = length;
     *(uint16_t *)&newNode->value.crc = ((uint16_t *)&hash)[1];
@@ -149,7 +149,7 @@ FlintConstUtf8 *FlintConstUtf8BinaryTree::find(const char *text, uint32_t hash, 
         else
             node = node->left;
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 void FlintConstUtf8BinaryTree::freeNode(FlintConstUtf8Node *node) {
@@ -162,5 +162,5 @@ void FlintConstUtf8BinaryTree::freeNode(FlintConstUtf8Node *node) {
 
 void FlintConstUtf8BinaryTree::clear(void) {
     freeNode(root);
-    root = 0;
+    root = NULL_PTR;
 }

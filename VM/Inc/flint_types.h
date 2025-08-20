@@ -4,6 +4,8 @@
 
 #include "flint_std_types.h"
 
+#define NULL_PTR        0
+
 typedef enum : uint8_t {
     CONST_UTF8 = 1,
     CONST_INTEGER = 3,

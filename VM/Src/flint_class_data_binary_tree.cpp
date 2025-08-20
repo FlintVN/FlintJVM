@@ -16,7 +16,7 @@ void FlintClassData::clearStaticFields(void) {
     if(staticFieldsData) {
         staticFieldsData->~FlintFieldsData();
         Flint::free(staticFieldsData);
-        staticFieldsData = 0;
+        staticFieldsData = NULL_PTR;
     }
 }
 
@@ -28,13 +28,13 @@ FlintClassData::FlintClassData(Flint &flint) : FlintClassLoader(flint) {
     ownId = 0;
     monitorCount = 0;
     staticInitOwnId = 0;
-    staticFieldsData = 0;
-    left = 0;
-    right = 0;
+    staticFieldsData = NULL_PTR;
+    left = NULL_PTR;
+    right = NULL_PTR;
     height = 1;
 }
 
-FlintClassDataBinaryTree::FlintClassDataBinaryTree(void) : root(0) {
+FlintClassDataBinaryTree::FlintClassDataBinaryTree(void) : root(NULL_PTR) {
 
 }
 
@@ -145,7 +145,7 @@ FlintClassData *FlintClassDataBinaryTree::find(const char *text, uint16_t length
         else
             node = node->left;
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintClassData *FlintClassDataBinaryTree::find(const FlintConstUtf8 &utf8) const {
@@ -160,7 +160,7 @@ FlintClassData *FlintClassDataBinaryTree::find(const FlintConstUtf8 &utf8) const
         else
             node = node->left;
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 void FlintClassDataBinaryTree::forEach(FlintClassData *node, void (*func)(FlintClassData &item)) {
@@ -186,5 +186,5 @@ void FlintClassDataBinaryTree::freeNode(FlintClassData *node) {
 
 void FlintClassDataBinaryTree::clear(void) {
     freeNode(root);
-    root = 0;
+    root = NULL_PTR;
 }

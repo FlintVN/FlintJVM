@@ -23,7 +23,7 @@ static FlintError checkClassIsExist(const char *type, uint32_t typeLen) {
             return ERR_CLASS_NOT_FOUND;
     }
     memcpy(&buff[typeLen], ".class", sizeof(".class"));
-    if(FlintAPI::IO::finfo(buff, NULL, NULL) != FILE_RESULT_OK)
+    if(FlintAPI::IO::finfo(buff, NULL_PTR, NULL_PTR) != FILE_RESULT_OK)
         return ERR_CLASS_NOT_FOUND;
     return ERR_OK;
 }
@@ -87,7 +87,7 @@ static FlintError nativeGetPrimitiveClass(FlintExecution &execution) {
 
 static FlintError nativeForName(FlintExecution &execution) {
     FlintJavaString *type = (FlintJavaString *)execution.stackPopObject();
-    if(type == NULL)
+    if(type == NULL_PTR)
         return throwNullPointerException(execution);
     FlintJavaClass *cls;
     FlintError err = loadClassForName(execution, type->getText(), type->getLength(), cls);
@@ -123,7 +123,7 @@ static FlintError nativeIsInstance(FlintExecution &execution) {
 static FlintError nativeIsAssignableFrom(FlintExecution &execution) {
     FlintJavaClass *cls = (FlintJavaClass *)execution.stackPopObject();
     FlintJavaClass *thisCls = (FlintJavaClass *)execution.stackPopObject();
-    if(cls == NULL || thisCls == NULL)
+    if(cls == NULL_PTR || thisCls == NULL_PTR)
         return throwNullPointerException(execution);
     uint32_t clsDims, thisDims;
     const FlintConstUtf8 &clsTypeName = cls->getBaseTypeName(execution.flint, &clsDims);
@@ -168,7 +168,7 @@ static FlintError nativeIsPrimitive(FlintExecution &execution) {
 static FlintError nativeGetSuperclass(FlintExecution &execution) {
     FlintJavaClass *clsObj = (FlintJavaClass *)execution.stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive())
-        execution.stackPushObject(NULL);
+        execution.stackPushObject(NULL_PTR);
     else {
         const FlintConstUtf8 &typeName = clsObj->getBaseTypeName(execution.flint);
         FlintClassLoader *loader;
@@ -176,8 +176,8 @@ static FlintError nativeGetSuperclass(FlintExecution &execution) {
         if(err != ERR_OK)
             return checkAndThrowForFlintError(execution, err, &typeName);
         const FlintConstUtf8 *superClass = loader->superClass;
-        if(superClass == NULL) {
-            execution.stackPushObject(NULL);
+        if(superClass == NULL_PTR) {
+            execution.stackPushObject(NULL_PTR);
             return ERR_OK;
         }
         FlintJavaClass *cls;
@@ -655,7 +655,7 @@ static FlintError nativeGetDeclaringClass0(FlintExecution &execution) {
     FlintJavaString &clsName = clsObj->getName();
     const char *text = clsName.getText();
     if(text[0] == '[') {
-        execution.stackPushObject(NULL);
+        execution.stackPushObject(NULL_PTR);
         return ERR_OK;
     }
     else {
@@ -668,7 +668,7 @@ static FlintError nativeGetDeclaringClass0(FlintExecution &execution) {
             execution.stackPushObject(cls);
             return ERR_OK;
         }
-        execution.stackPushObject(NULL);
+        execution.stackPushObject(NULL_PTR);
     }
     return ERR_OK;
 }

@@ -62,7 +62,7 @@ className((FlintConstUtf8 &)className), nameAndType(nameAndType), fieldIndex(0) 
 }
 
 FlintConstMethod::FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
-className((FlintConstUtf8 &)className), nameAndType(nameAndType), methodInfo(0) {
+className((FlintConstUtf8 &)className), nameAndType(nameAndType), methodInfo(NULL_PTR) {
     argc = parseArgc(nameAndType.descriptor);
 }
 

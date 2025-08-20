@@ -5,7 +5,7 @@
 FlintMutex::FlintMutex(void) {
     locked.clear();
     lockNest = 0;
-    lockThread = NULL;
+    lockThread = NULL_PTR;
 }
 
 void FlintMutex::lock(void) {
@@ -13,7 +13,7 @@ void FlintMutex::lock(void) {
     while(1) {
         while(atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
             FlintAPI::Thread::sleep(0);
-        if(lockThread == NULL) {
+        if(lockThread == NULL_PTR) {
             lockNest = 1;
             lockThread = currentThread;
             atomic_flag_clear_explicit(&locked, memory_order_release);

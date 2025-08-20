@@ -35,7 +35,7 @@ accessFlag(accessFlag),
 classLoader(classLoader),
 nameIndex(nameIndex),
 descIndex(descIndex),
-code(0) {
+code(NULL_PTR) {
 
 }
 
@@ -75,7 +75,7 @@ uint16_t FlintMethodInfo::getExceptionLength(void) const {
 
 FlintExceptionTable *FlintMethodInfo::getException(uint16_t index) const {
     if(accessFlag & METHOD_NATIVE)
-        return NULL;
+        return NULL_PTR;
     FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)code;
     return &((FlintExceptionTable *)codeAttr->data)[index];
 }

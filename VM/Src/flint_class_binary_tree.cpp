@@ -4,11 +4,11 @@
 #include "flint.h"
 #include "flint_class_binary_tree.h"
 
-FlintClassBinaryTree::FlintClassNode::FlintClassNode(FlintJavaClass &value) : left(0), right(0), height(1), value(value) {
+FlintClassBinaryTree::FlintClassNode::FlintClassNode(FlintJavaClass &value) : left(NULL_PTR), right(NULL_PTR), height(0), value(value) {
 
 }
 
-FlintClassBinaryTree::FlintClassBinaryTree(void) : root(0) {
+FlintClassBinaryTree::FlintClassBinaryTree(void) : root(NULL_PTR) {
 
 }
 
@@ -124,7 +124,7 @@ FlintJavaClass *FlintClassBinaryTree::find(const char *text, uint16_t length) co
         else
             node = node->left;
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 FlintJavaClass *FlintClassBinaryTree::find(FlintJavaString &str) const {
@@ -138,7 +138,7 @@ FlintJavaClass *FlintClassBinaryTree::find(FlintJavaString &str) const {
         else
             node = node->left;
     }
-    return NULL;
+    return NULL_PTR;
 }
 
 void FlintClassBinaryTree::forEach(FlintClassNode *node, void (*func)(FlintJavaClass &item)) {
@@ -163,5 +163,5 @@ void FlintClassBinaryTree::freeNode(FlintClassNode *node) {
 
 void FlintClassBinaryTree::clear(void) {
     freeNode(root);
-    root = 0;
+    root = NULL_PTR;
 }

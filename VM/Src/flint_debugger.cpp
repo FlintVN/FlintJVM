@@ -5,7 +5,7 @@
 #include "flint_opcodes.h"
 #include "flint_debugger.h"
 
-FlintBreakPoint::FlintBreakPoint(void) : pc(0), method(0) {
+FlintBreakPoint::FlintBreakPoint(void) : pc(0), method(NULL_PTR) {
 
 }
 
@@ -22,10 +22,10 @@ FlintStackFrame::FlintStackFrame(uint32_t pc, uint32_t baseSp, FlintMethodInfo &
 }
 
 FlintDebugger::FlintDebugger(Flint &flint) : dbgMutex(), flint(flint) {
-    execution = 0;
-    exception = 0;
-    dirHandle = 0;
-    fileHandle = 0;
+    execution = NULL_PTR;
+    exception = NULL_PTR;
+    dirHandle = NULL_PTR;
+    fileHandle = NULL_PTR;
     stepCodeLength = 0;
     consoleOffset = 0;
     consoleLength = 0;
@@ -231,7 +231,7 @@ void FlintDebugger::responseExceptionInfo(void) {
         if(
             exception &&
             (csr & DBG_STATUS_EXCP) &&
-            (flint.isInstanceof(exception, *(FlintConstUtf8 *)throwableClassName, NULL) == ERR_OK)
+            (flint.isInstanceof(exception, *(FlintConstUtf8 *)throwableClassName, NULL_PTR) == ERR_OK)
         ) {
             FlintConstUtf8 &type = exception->type;
             FlintJavaString *str = exception->getDetailMessage();
@@ -460,7 +460,7 @@ void FlintDebugger::responseOpenFile(char *fileName, FlintFileMode mode) {
         for(uint16_t i = 0; fileName[i]; i++) {
             if((fileName[i] == '/') || (fileName[i] == '\\')) {
                 fileName[i] = 0;
-                if(FlintAPI::IO::finfo(fileName, NULL, NULL) != FILE_RESULT_OK) {
+                if(FlintAPI::IO::finfo(fileName, NULL_PTR, NULL_PTR) != FILE_RESULT_OK) {
                     if(FlintAPI::IO::mkdir(fileName) != FILE_RESULT_OK) {
                         sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_FAIL);
                         return;
@@ -533,7 +533,7 @@ void FlintDebugger::responseCloseFile(void) {
             fileHandle &&
             FlintAPI::IO::fclose(fileHandle) == FILE_RESULT_OK
         ) {
-            fileHandle = 0;
+            fileHandle = NULL_PTR;
             sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_OK);
         }
         else
@@ -620,7 +620,7 @@ void FlintDebugger::responseCloseDir(void) {
             dirHandle &&
             FlintAPI::IO::closedir(fileHandle) == FILE_RESULT_OK
         ) {
-            dirHandle = 0;
+            dirHandle = NULL_PTR;
             sendRespCode(DBG_CMD_CLOSE_DIR, DBG_RESP_OK);
         }
         else
@@ -703,7 +703,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_RUN: {
             lock();
             csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
-            execution = NULL;
+            execution = NULL_PTR;
             unlock();
             sendRespCode(DBG_CMD_RUN, DBG_RESP_OK);
             return true;
@@ -711,7 +711,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_STOP: {
             lock();
             csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
-            execution = NULL;
+            execution = NULL_PTR;
             unlock();
             flint.stopRequest();
             sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
@@ -721,7 +721,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             FlintConstUtf8 *mainClass = (FlintConstUtf8 *)&data[4];
             lock();
             csr &= DBG_CONTROL_EXCP_EN;
-            execution = NULL;
+            execution = NULL_PTR;
             unlock();
             flint.setDebugger(this);
             flint.terminate();
@@ -980,9 +980,9 @@ bool FlintDebugger::exceptionIsEnabled(void) {
 }
 
 bool FlintDebugger::checkStop(FlintExecution *exec) {
-    if((csr & DBG_CONTROL_STOP) && (execution == NULL)) {
+    if((csr & DBG_CONTROL_STOP) && (execution == NULL_PTR)) {
         lock();
-        if(execution == NULL) {
+        if(execution == NULL_PTR) {
             execution = exec;
             csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
         }
