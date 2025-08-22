@@ -58,7 +58,7 @@ private:
 public:
     FlintClassDataBinaryTree(void);
 
-    void add(FlintClassData &classData);
+    FlintResult<void> add(FlintClassData &classData);
 
     FlintClassData *find(const char *className, uint16_t length) const;
     FlintClassData *find(const FlintConstUtf8 &utf8) const;

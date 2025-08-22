@@ -21,20 +21,20 @@ static FlintError nativeStart0(FlintExecution &execution) {
         task = threadObj;
     threadExecution.stackPushObject(task);
 
-    FlintMethodInfo *method;
-    FlintClassLoader *loader;
-    FlintError err = flint.load(task->type, loader);
-    if(err != ERR_OK)
-        return checkAndThrowForFlintError(execution, err, &task->type);
-    err = loader->getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName, method);
-    if(err != ERR_OK) {
-        if(err == ERR_METHOD_NOT_FOUND)
+    auto loader = flint.load(task->type);
+    if(loader.err != ERR_OK)
+        return checkAndThrowForFlintError(execution, loader.err, &task->type);
+    auto method = loader.value->getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName);
+    if(method.err != ERR_OK) {
+        if(method.err == ERR_METHOD_NOT_FOUND)
             return throwNoSuchMethodError(execution, task->type.text, "run");
-        return err;
+        return checkAndThrowForFlintError(execution, method.err, method.getErrorMsg(), method.getErrorMsgLength());
     }
 
-    if(!threadExecution.run(method))
+    if(!threadExecution.run(method.value)) {
+        flint.freeExecution(threadExecution);
         return throwException(execution, "Thread start failed");
+    }
     return ERR_OK;
 }
 
@@ -50,9 +50,9 @@ static FlintError nativeInterrupt0(FlintExecution &execution) {
 }
 
 static FlintError nativeCurrentThread(FlintExecution &execution) {
-    FlintJavaThread *thread;
-    RETURN_IF_ERR(execution.getOnwerThread(thread));
-    execution.stackPushObject(thread);
+    auto thread = execution.getOnwerThread();
+    RETURN_IF_ERR(thread.err);
+    execution.stackPushObject(thread.value);
     return ERR_OK;
 }
 

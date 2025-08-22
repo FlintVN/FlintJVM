@@ -20,7 +20,7 @@ FlintFieldsData::FlintFieldsData(void) : fields32Count(0), fields64Count(0), fie
 
 }
 
-void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
+FlintResult<FlintClassLoader> FlintFieldsData::loadStatic(FlintClassLoader &classLoader) {
     uint16_t fieldsCount = classLoader.getFieldsCount();
     uint16_t field32Index = 0;
     uint16_t field64Index = 0;
@@ -45,9 +45,29 @@ void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
         }
     }
 
-    fieldsData32 = (fields32Count) ? (FlintFieldData32 *)Flint::malloc(fields32Count * sizeof(FlintFieldData32)) : 0;
-    fieldsData64 = (fields64Count) ? (FlintFieldData64 *)Flint::malloc(fields64Count * sizeof(FlintFieldData64)) : 0;
-    fieldsObject = (fieldsObjCount) ? (FlintFieldObject *)Flint::malloc(fieldsObjCount * sizeof(FlintFieldObject)) : 0;
+    if(fields32Count) {
+        fieldsData32 = (FlintFieldData32 *)Flint::malloc(fields32Count * sizeof(FlintFieldData32));
+        if(fieldsData32 == NULL_PTR)
+            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+    }
+    else
+        fieldsData32 = NULL_PTR;
+
+    if(fields64Count) {
+        fieldsData64 = (FlintFieldData64 *)Flint::malloc(fields64Count * sizeof(FlintFieldData64));
+        if(fieldsData64 == NULL_PTR)
+            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+    }
+    else
+        fieldsData64 = NULL_PTR;
+
+    if(fieldsObjCount) {
+        fieldsObject = (FlintFieldObject *)Flint::malloc(fieldsObjCount * sizeof(FlintFieldObject));
+        if(fieldsObject == NULL_PTR)
+            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+    }
+    else
+        fieldsObject = NULL_PTR;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
         FlintFieldInfo *fieldInfo = classLoader.getFieldInfo(index);
@@ -67,9 +87,11 @@ void FlintFieldsData::loadStatic(const FlintClassLoader &classLoader) {
             }
         }
     }
+
+    return &classLoader;
 }
 
-FlintError FlintFieldsData::loadNonStatic(Flint &flint, FlintClassLoader &classLoader, FlintConstUtf8 *&classError) {
+FlintResult<FlintClassLoader> FlintFieldsData::loadNonStatic(Flint &flint, FlintClassLoader &classLoader) {
     FlintClassLoader *loader = &classLoader;
 
     while(loader) {
@@ -95,16 +117,35 @@ FlintError FlintFieldsData::loadNonStatic(Flint &flint, FlintClassLoader &classL
         FlintConstUtf8 *superClass = loader->superClass;
         if(!superClass)
             break;
-        FlintError err = flint.load(*superClass, loader);
-        if(err != ERR_OK) {
-            classError = superClass;
-            return err;
-        }
+        auto tmp = flint.load(*superClass);
+        if(tmp.err != ERR_OK)
+            return tmp;
+        loader = tmp.value;
     }
 
-    fieldsData32 = (fields32Count) ? (FlintFieldData32 *)Flint::malloc(fields32Count * sizeof(FlintFieldData32)) : 0;
-    fieldsData64 = (fields64Count) ? (FlintFieldData64 *)Flint::malloc(fields64Count * sizeof(FlintFieldData64)) : 0;
-    fieldsObject = (fieldsObjCount) ? (FlintFieldObject *)Flint::malloc(fieldsObjCount * sizeof(FlintFieldObject)) : 0;
+    if(fields32Count) {
+        fieldsData32 = (FlintFieldData32 *)Flint::malloc(fields32Count * sizeof(FlintFieldData32));
+        if(fieldsData32 == NULL_PTR)
+            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+    }
+    else
+        fieldsData32 = NULL_PTR;
+
+    if(fields64Count) {
+        fieldsData64 = (FlintFieldData64 *)Flint::malloc(fields64Count * sizeof(FlintFieldData64));
+        if(fieldsData64 == NULL_PTR)
+            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+    }
+    else
+        fieldsData64 = NULL_PTR;
+
+    if(fieldsObjCount) {
+        fieldsObject = (FlintFieldObject *)Flint::malloc(fieldsObjCount * sizeof(FlintFieldObject));
+        if(fieldsObject == NULL_PTR)
+            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+    }
+    else
+        fieldsObject = NULL_PTR;
 
     uint16_t field32Index = fields32Count;
     uint16_t field64Index = fields64Count;
@@ -134,14 +175,13 @@ FlintError FlintFieldsData::loadNonStatic(Flint &flint, FlintClassLoader &classL
         FlintConstUtf8 *superClass = loader->superClass;
         if(!superClass)
             break;
-        FlintError err = flint.load(*superClass, loader);
-        if(err != ERR_OK) {
-            classError = superClass;
-            return err;
-        }
+        auto tmp = flint.load(*superClass);
+        if(tmp.err != ERR_OK)
+            return tmp;
+        loader = tmp.value;
     }
 
-    return ERR_OK;
+    return &classLoader;
 }
 
 FlintFieldData32 *FlintFieldsData::getFieldData32(const char *fieldName, uint32_t *index) const {

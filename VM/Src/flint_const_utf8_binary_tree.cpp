@@ -115,27 +115,37 @@ FlintConstUtf8BinaryTree::FlintConstUtf8Node *FlintConstUtf8BinaryTree::createFl
     return newNode;
 }
 
-FlintConstUtf8BinaryTree::FlintConstUtf8Node *FlintConstUtf8BinaryTree::insert(FlintConstUtf8Node *rootNode, const char *text, uint32_t hash, bool isTypeName, FlintConstUtf8Node **node) {
+FlintConstUtf8BinaryTree::FlintConstUtf8Node *FlintConstUtf8BinaryTree::insert(FlintConstUtf8Node *rootNode, const char *text, uint32_t hash, bool isTypeName, FlintConstUtf8Node *&newNode) {
     if(!rootNode) {
         FlintConstUtf8Node *constUtf8Node = createFlintConstUtf8Node(text, hash, isTypeName);
-        if(node)
-            *node = constUtf8Node;
+        newNode = constUtf8Node;
         return constUtf8Node;
     }
     int32_t compareResult = compareConstUtf8(text, hash, rootNode->value, isTypeName);
-    if(compareResult < 0)
-        rootNode->left = insert(rootNode->left, text, hash, isTypeName, node);
-    else if(compareResult > 0)
-        rootNode->right = insert(rootNode->right, text, hash, isTypeName, node);
+    if(compareResult < 0) {
+        FlintConstUtf8Node *node = insert(rootNode->left, text, hash, isTypeName, newNode);
+        if(node == NULL_PTR)
+            return NULL_PTR;
+        rootNode->left = node;
+    }
+    else if(compareResult > 0) {
+        FlintConstUtf8Node *node = insert(rootNode->right, text, hash, isTypeName, newNode);
+        if(node == NULL_PTR)
+            return NULL_PTR;
+        rootNode->right = node;
+    }
     else
         return rootNode;
     return balance(rootNode);
 }
 
-FlintConstUtf8 &FlintConstUtf8BinaryTree::add(const char *text, uint32_t hash, bool isTypeName) {
+FlintResult<FlintConstUtf8> FlintConstUtf8BinaryTree::add(const char *text, uint32_t hash, bool isTypeName) {
     FlintConstUtf8Node *newNode;
-    root = insert(root, text, hash, isTypeName, &newNode);
-    return newNode->value;
+    FlintConstUtf8Node *node = insert(root, text, hash, isTypeName, newNode);
+    if(node == NULL_PTR)
+        return ERR_OUT_OF_MEMORY;
+    root = node;
+    return &newNode->value;
 }
 
 FlintConstUtf8 *FlintConstUtf8BinaryTree::find(const char *text, uint32_t hash, bool isTypeName) const {

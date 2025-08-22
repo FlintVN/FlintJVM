@@ -8,25 +8,26 @@ static FlintError throwThrowable(FlintExecution &execution, const FlintConstUtf8
     if(msg) {
         if(len == 0)
             len = strlen(msg);
-        RETURN_IF_ERR(execution.flint.newString(msg, len, false, strObj));
+        auto str = execution.flint.newString(msg, len, false);
+        RETURN_IF_ERR(str.err);
+        strObj = str.value;
     }
-    FlintJavaThrowable *excp;
-    FlintError err = execution.flint.newThrowable(strObj, excpType, excp);
-    if(err != ERR_OK) {
+    auto excp = execution.flint.newThrowable(strObj, excpType);
+    if(excp.err != ERR_OK) {
         if(strObj) {
             execution.flint.freeObject(*strObj->getValue());
             execution.flint.freeObject(*strObj);
         }
-        return err;
+        return excp.err;
     }
-    execution.stackPushObject(excp);
+    execution.stackPushObject(excp.value);
     return ERR_THROW;
 }
 
 static FlintError throwThrowable(FlintExecution &execution, const FlintConstUtf8 &excpType, FlintJavaString *str) {
-    FlintJavaThrowable *excp;
-    RETURN_IF_ERR(execution.flint.newThrowable(str, excpType, excp));
-    execution.stackPushObject(excp);
+    auto excp = execution.flint.newThrowable(str, excpType);
+    RETURN_IF_ERR(excp.err);
+    execution.stackPushObject(excp.value);
     return ERR_THROW;
 }
 
@@ -95,11 +96,11 @@ FlintError throwClassCastException(FlintExecution &execution, FlintJavaObject *o
     if(!isPrimType)
         strLen += 2;
 
-    FlintJavaString *str;
-    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+    auto str = execution.flint.newString(strLen, 0);
+    RETURN_IF_ERR(str.err);
 
     uint32_t i = 0;
-    char *txt = str->getText();
+    char *txt = str.value->getText();
     i = sprint(txt, i, "Class '");
     for(uint32_t i = 0; i < obj->dimensions; i++)
         txt[i++] = '[';
@@ -112,7 +113,7 @@ FlintError throwClassCastException(FlintExecution &execution, FlintJavaObject *o
     i = sprint(txt, i, type.text, '/', '.');
     i = sprint(txt, i, "'");
 
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)classCastExceptionClassName, str);
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)classCastExceptionClassName, str.value);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)classCastExceptionClassName);
 }
 
@@ -134,36 +135,36 @@ FlintError throwNullPointerException(FlintExecution &execution, const char *msg,
 FlintError throwNullPointerException(FlintExecution &execution, FlintConstMethod &constMethod) {
     FlintConstMethod &cm = constMethod;
     uint32_t strLen = strlen("Cannot invoke ") + cm.className.length + strlen(".") + cm.nameAndType.name.length + strlen(" by null object");
-    FlintJavaString *str;
-    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+    auto str = execution.flint.newString(strLen, 0);
+    RETURN_IF_ERR(str.err);
 
     uint32_t i = 0;
-    char *txt = str->getText();
+    char *txt = str.value->getText();
     i = sprint(txt, i, "Cannot invoke ");
     i = sprint(txt, i, cm.className.text, '/', '.');
     i = sprint(txt, i, ".");
     i = sprint(txt, i, cm.nameAndType.name.text);
     i = sprint(txt, i, " by null object");
 
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, str);
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, str.value);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)nullPointerExceptionClassName);
 }
 
 FlintError throwNullPointerException(FlintExecution &execution, FlintConstField &constField) {
     FlintConstField &cm = constField;
     uint32_t strLen = strlen("Cannot access field ") + cm.className.length + strlen(".") + cm.nameAndType.name.length + strlen(" from null object");
-    FlintJavaString *str;
-    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+    auto str = execution.flint.newString(strLen, 0);
+    RETURN_IF_ERR(str.err);
 
     uint32_t i = 0;
-    char *txt = str->getText();
+    char *txt = str.value->getText();
     i = sprint(txt, i, "Cannot access field ");
     i = sprint(txt, i, constField.className.text, '/', '.');
     i = sprint(txt, i, ".");
     i = sprint(txt, i, constField.nameAndType.name.text, '/', '.');
     i = sprint(txt, i, " from null object");
 
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, str);
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)nullPointerExceptionClassName, str.value);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)nullPointerExceptionClassName);
 }
 
@@ -199,17 +200,17 @@ FlintError throwNegativeArraySizeException(FlintExecution &execution, const char
 
 FlintError throwArrayIndexOutOfBoundsException(FlintExecution &execution, int32_t index, int32_t length) {
     uint32_t strLen = strlen("Index ") + countDigits(index) + strlen(" out of bounds for length ") + countDigits(length);
-    FlintJavaString *str;
-    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+    auto str = execution.flint.newString(strLen, 0);
+    RETURN_IF_ERR(str.err);
 
     uint32_t i = 0;
-    char *txt = str->getText();
+    char *txt = str.value->getText();
     i = sprint(txt, i, "Index ");
     i = sprint(txt, i, index);
     i = sprint(txt, i, " out of bounds for length ");
     i = sprint(txt, i, length);
 
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)arrayIndexOutOfBoundsExceptionClassName, str);
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)arrayIndexOutOfBoundsExceptionClassName, str.value);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)arrayIndexOutOfBoundsExceptionClassName);
 }
 
@@ -225,47 +226,47 @@ FlintError throwUnsatisfiedLinkErrorException(FlintExecution &execution, const c
 
 FlintError throwNoSuchMethodError(FlintExecution &execution, const char *className, const char *methodName) {
     uint32_t strLen = strlen("Could not find the method ") + strlen(className) + strlen(".") + strlen(methodName);
-    FlintJavaString *str;
-    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+    auto str = execution.flint.newString(strLen, 0);
+    RETURN_IF_ERR(str.err);
 
     uint32_t i = 0;
-    char *txt = str->getText();
+    char *txt = str.value->getText();
     i = sprint(txt, i, "Could not find the method ");
     i = sprint(txt, i, className, '/', '.');
     i = sprint(txt, i, ".");
     i = sprint(txt, i, methodName);
 
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)noSuchMethodErrorExceptionClassName, str);
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)noSuchMethodErrorExceptionClassName, str.value);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)noSuchMethodErrorExceptionClassName);
 }
 
 FlintError throwNoSuchFieldError(FlintExecution &execution, const char *className, const char *fieldName) {
     uint32_t strLen = strlen("Could not find the field ") + strlen(className) + strlen(".") + strlen(fieldName);
-    FlintJavaString *str;
-    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+    auto str = execution.flint.newString(strLen, 0);
+    RETURN_IF_ERR(str.err);
 
     uint32_t i = 0;
-    char *txt = str->getText();
+    char *txt = str.value->getText();
     i = sprint(txt, i, "Could not find the field ");
     i = sprint(txt, i,  className, '/', '.');
     i = sprint(txt, i, ".");
     i = sprint(txt, i, fieldName);
 
-    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)noSuchFieldErrorExceptionClassName, str);
+    FlintError err = throwThrowable(execution, *(FlintConstUtf8 *)noSuchFieldErrorExceptionClassName, str.value);
     return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)noSuchFieldErrorExceptionClassName);
 }
 
 FlintError throwClassFormatError(FlintExecution &execution, const char *className) {
     uint32_t strLen = strlen("Invalid class file format: ") + strlen(className);
-    FlintJavaString *str;
-    RETURN_IF_ERR(execution.flint.newString(strLen, 0, str));
+    auto str = execution.flint.newString(strLen, 0);
+    RETURN_IF_ERR(str.err);
 
     uint32_t i = 0;
-    char *txt = str->getText();
+    char *txt = str.value->getText();
     i = sprint(txt, i, "Invalid class file format: ");
     i = sprint(txt, i, className, '/', '.');
 
-    return throwThrowable(execution, *(FlintConstUtf8 *)classFormatErrorExceptionClassName, str);
+    return throwThrowable(execution, *(FlintConstUtf8 *)classFormatErrorExceptionClassName, str.value);
 }
 
 FlintError checkAndThrowForFlintError(FlintExecution &execution, FlintError err, const FlintConstUtf8 *className) {
@@ -274,17 +275,17 @@ FlintError checkAndThrowForFlintError(FlintExecution &execution, FlintError err,
 
 FlintError checkAndThrowForFlintError(FlintExecution &execution, FlintError err, const char *className, uint16_t length) {
     if(err == ERR_CLASS_NOT_FOUND || err == ERR_CLASS_LOAD_FAIL) {
-        FlintJavaString *str;
-        RETURN_IF_ERR(execution.flint.newString(length, 0, str));
+        auto str = execution.flint.newString(length, 0);
+        RETURN_IF_ERR(str.err);
 
-        char *txt = str->getText();
+        char *txt = str.value->getText();
         for(uint32_t i = 0; i < length; i++)
             txt[i] = (className[i] != '/') ? className[i] : '.';
 
         if(err == ERR_CLASS_NOT_FOUND)
-            return throwThrowable(execution, *(FlintConstUtf8 *)classNotFoundExceptionClassName, str);
+            return throwThrowable(execution, *(FlintConstUtf8 *)classNotFoundExceptionClassName, str.value);
         else if(err == ERR_CLASS_LOAD_FAIL)
-            return throwThrowable(execution, *(FlintConstUtf8 *)classFormatErrorExceptionClassName, str);
+            return throwThrowable(execution, *(FlintConstUtf8 *)classFormatErrorExceptionClassName, str.value);
     }
     return err;
 }

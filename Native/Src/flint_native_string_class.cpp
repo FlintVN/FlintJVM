@@ -3,13 +3,14 @@
 #include "flint_java_object.h"
 #include "flint_const_name_base.h"
 #include "flint_native_string_class.h"
+#include "flint_throw_support.h"
 
 static FlintError nativeIntern(FlintExecution &execution) {
     FlintJavaString *obj = (FlintJavaString *)execution.stackPopObject();
-    FlintJavaString *strIntern;
-    RETURN_IF_ERR(execution.flint.getConstString(*obj, strIntern));
-    execution.stackPushObject(strIntern);
-    return ERR_OK;
+    auto strIntern = execution.flint.getConstString(*obj);
+    if(strIntern.err == ERR_OK)
+        execution.stackPushObject(strIntern.value);
+    return checkAndThrowForFlintError(execution, strIntern.err, strIntern.getErrorMsg(), strIntern.getErrorMsgLength());
 }
 
 static const FlintNativeMethod methods[] = {

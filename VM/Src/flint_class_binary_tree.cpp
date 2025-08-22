@@ -81,22 +81,34 @@ FlintClassBinaryTree::FlintClassNode *FlintClassBinaryTree::balance(FlintClassNo
 FlintClassBinaryTree::FlintClassNode *FlintClassBinaryTree::insert(FlintClassNode *rootNode, FlintJavaClass &value) {
     if(!rootNode) {
         FlintClassNode *classNode = (FlintClassNode *)Flint::malloc(sizeof(FlintClassNode));
-        new (classNode)FlintClassNode(value);
+        if(classNode)
+            new (classNode)FlintClassNode(value);
         return classNode;
     }
     int8_t compareResult = value.getName().compareTo(rootNode->value.getName());
-    if(compareResult < 0)
-        rootNode->left = insert(rootNode->left, value);
-    else if(compareResult > 0)
-        rootNode->right = insert(rootNode->right, value);
+    if(compareResult < 0) {
+        FlintClassNode *node = insert(rootNode->left, value);
+        if(node)
+            return NULL_PTR;
+        rootNode->left = node;
+    }
+    else if(compareResult > 0) {
+        FlintClassNode *node = insert(rootNode->right, value);
+        if(node == NULL_PTR)
+            return NULL_PTR;
+        rootNode->right = node;
+    }
     else
         return rootNode;
     return balance(rootNode);
 }
 
-FlintJavaClass &FlintClassBinaryTree::add(FlintJavaClass &value) {
-    root = insert(root, value);
-    return value;
+FlintResult<void> FlintClassBinaryTree::add(FlintJavaClass &value) {
+    FlintClassNode *node = insert(root, value);
+    if(node == NULL_PTR)
+        return ERR_OUT_OF_MEMORY;
+    root = node;
+    return ERR_OK;
 }
 
 static int32_t compareClassName(const char *typeName1, uint16_t length, FlintJavaString &typeName2) {

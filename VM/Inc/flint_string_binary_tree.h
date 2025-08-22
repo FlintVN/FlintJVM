@@ -34,7 +34,7 @@ private:
 public:
     FlintStringBinaryTree(void);
 
-    FlintJavaString &add(FlintJavaString &value);
+    FlintResult<FlintJavaString> add(FlintJavaString &value);
 
     FlintJavaString *find(FlintJavaString &value) const;
     FlintJavaString *find(const FlintConstUtf8 &utf8) const;

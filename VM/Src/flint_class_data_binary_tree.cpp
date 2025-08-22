@@ -129,8 +129,9 @@ FlintClassData *FlintClassDataBinaryTree::insert(FlintClassData *rootNode, Flint
     return balance(rootNode);
 }
 
-void FlintClassDataBinaryTree::add(FlintClassData &classData) {
+FlintResult<void> FlintClassDataBinaryTree::add(FlintClassData &classData) {
     root = insert(root, classData);
+    return ERR_OK;
 }
 
 FlintClassData *FlintClassDataBinaryTree::find(const char *text, uint16_t length) const {

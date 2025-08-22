@@ -24,13 +24,13 @@ private:
     static FlintConstUtf8Node *rotateLeft(FlintConstUtf8Node *x);
     static FlintConstUtf8Node *balance(FlintConstUtf8Node *node);
     static FlintConstUtf8Node *createFlintConstUtf8Node(const char *text, uint32_t hash, bool isTypeName);
-    static FlintConstUtf8Node *insert(FlintConstUtf8Node *rootNode, const char *text, uint32_t hash, bool isTypeName, FlintConstUtf8Node **node);
+    static FlintConstUtf8Node *insert(FlintConstUtf8Node *rootNode, const char *text, uint32_t hash, bool isTypeName, FlintConstUtf8Node *&newNode);
 
     void freeNode(FlintConstUtf8Node *node);
 public:
     FlintConstUtf8BinaryTree(void);
 
-    FlintConstUtf8 &add(const char *text, uint32_t hash, bool isTupeName);
+    FlintResult<FlintConstUtf8> add(const char *text, uint32_t hash, bool isTupeName);
 
     FlintConstUtf8 *find(const char *text, uint32_t hash, bool isTupeName) const;
 

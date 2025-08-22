@@ -16,11 +16,10 @@ static FlintError nativeGetClass(FlintExecution &execution) {
         if(!isPrim)
             length += 2;
     }
-    FlintJavaString *strObj;
-    FlintError err = execution.flint.newString(length, 0, strObj);
-    if(err != ERR_OK)
-        return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)strObj);
-    int8_t *byteArray = strObj->getValue()->getData();
+    auto strObj = execution.flint.newString(length, 0);
+    if(strObj.err != ERR_OK)
+        return checkAndThrowForFlintError(execution, strObj.err, strObj.getErrorMsg(), strObj.getErrorMsgLength());
+    int8_t *byteArray = strObj.value->getValue()->getData();
     if(obj->dimensions) {
         for(uint32_t i = 0; i < obj->dimensions; i++)
             byteArray[idx++] = '[';
@@ -33,14 +32,13 @@ static FlintError nativeGetClass(FlintExecution &execution) {
     }
     if(obj->dimensions && !isPrim)
         byteArray[idx++] = ';';
-    FlintJavaClass *cls;
-    err = execution.flint.getConstClass(*strObj, cls);
-    if(err != ERR_OK) {
-        execution.flint.freeObject(*strObj->getValue());
-        execution.flint.freeObject(*strObj);
-        return err;
+    auto cls = execution.flint.getConstClass(*strObj.value);
+    if(cls.err != ERR_OK) {
+        execution.flint.freeObject(*strObj.value->getValue());
+        execution.flint.freeObject(*strObj.value);
+        return checkAndThrowForFlintError(execution, cls.err, cls.getErrorMsg(), cls.getErrorMsgLength());
     }
-    execution.stackPushObject(cls);
+    execution.stackPushObject(cls.value);
     return ERR_OK;
 }
 
@@ -53,12 +51,11 @@ static FlintError nativeHashCode(FlintExecution &execution) {
 static FlintError nativeClone(FlintExecution &execution) {
     FlintJavaObject *obj = execution.stackPopObject();
     if(obj->dimensions > 0) {
-        FlintJavaObject *cloneObj;
-        FlintError err = execution.flint.newObject(obj->size, obj->type, obj->dimensions, cloneObj);
-        if(err != ERR_OK)
-            return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)cloneObj);
-        memcpy(((FlintInt8Array *)cloneObj)->getData(), ((FlintInt8Array *)obj)->getData(), ((FlintInt8Array *)obj)->getLength());
-        execution.stackPushObject(cloneObj);
+        auto cloneObj = execution.flint.newObject(obj->size, obj->type, obj->dimensions);
+        if(cloneObj.err != ERR_OK)
+            return checkAndThrowForFlintError(execution, cloneObj.err, cloneObj.getErrorMsg(), cloneObj.getErrorMsgLength());
+        memcpy(((FlintInt8Array *)cloneObj.value)->getData(), ((FlintInt8Array *)obj)->getData(), ((FlintInt8Array *)obj)->getLength());
+        execution.stackPushObject(cloneObj.value);
     }
     else
         return throwCloneNotSupportedException(execution, "Clone method is not supported");

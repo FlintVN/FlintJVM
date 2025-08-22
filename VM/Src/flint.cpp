@@ -175,7 +175,7 @@ void Flint::freeExecution(FlintExecution &execution) {
     Flint::unlock();
 }
 
-FlintError Flint::newObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions, FlintJavaObject *&obj) {
+FlintResult<FlintJavaObject> Flint::newObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions) {
     objectSizeToGc += size;
     if(objectSizeToGc >= OBJECT_SIZE_TO_GC)
         garbageCollection();
@@ -192,201 +192,206 @@ FlintError Flint::newObject(uint32_t size, const FlintConstUtf8 &type, uint8_t d
     objectList = newNode;
     Flint::unlock();
 
-    obj = newNode;
-
-    return ERR_OK;
+    return newNode;
 }
 
-FlintError Flint::newObject(const FlintConstUtf8 &type, FlintJavaObject *&obj) {
-    RETURN_IF_ERR(newObject(sizeof(FlintFieldsData), type, 0, obj));
-    memset(obj->data, 0, sizeof(FlintFieldsData));
+FlintResult<FlintJavaObject> Flint::newObject(const FlintConstUtf8 &type) {
+    auto obj = newObject(sizeof(FlintFieldsData), type, 0);
+    if(obj.err == ERR_OK) {
+        memset(obj.value->data, 0, sizeof(FlintFieldsData));
 
-    FlintClassLoader *loader;
-    FlintError err = load(type, loader);
-    if(err != ERR_OK) {
-        freeObject(*obj);
-        return err;
+        auto loader = load(type);
+        if(loader.err != ERR_OK) {
+            freeObject(*obj.value);
+            return *(FlintResult<FlintJavaObject> *)&loader;
+        }
+
+        /* init field data */
+        FlintFieldsData *fields = (FlintFieldsData *)obj.value->data;
+        new (fields)FlintFieldsData();
+        auto res = fields->loadNonStatic(*this, *loader.value);
+        if(res.err != ERR_OK)
+            return FlintResult<FlintJavaObject>(res.err, res.getErrorMsg(), res.getErrorMsgLength());
     }
-
-    /* init field data */
-    FlintFieldsData *fields = (FlintFieldsData *)obj->data;
-    new (fields)FlintFieldsData();
-    FlintConstUtf8 *classError;
-    err = fields->loadNonStatic(*this, *loader, classError);
-    if(err != ERR_OK) {
-        obj = (FlintJavaObject *)classError;
-        return err;
-    }
-
-    return ERR_OK;
+    return obj;
 }
 
-FlintError Flint::newBooleanArray(uint32_t length, FlintInt8Array *&array) {
-    return newObject(length, *(FlintConstUtf8 *)booleanPrimTypeName, 1, (FlintJavaObject *&)array);
+FlintResult<FlintInt8Array> Flint::newBooleanArray(uint32_t length) {
+    auto obj = newObject(length, *(FlintConstUtf8 *)booleanPrimTypeName, 1);
+    return *(FlintResult<FlintInt8Array> *)&obj;
 }
 
-FlintError Flint::newByteArray(uint32_t length, FlintInt8Array *&array) {
-    return newObject(length, *(FlintConstUtf8 *)bytePrimTypeName, 1, (FlintJavaObject *&)array);
+FlintResult<FlintInt8Array> Flint::newByteArray(uint32_t length) {
+    auto obj = newObject(length, *(FlintConstUtf8 *)bytePrimTypeName, 1);
+    return *(FlintResult<FlintInt8Array> *)&obj;
 }
 
-FlintError Flint::newCharArray(uint32_t length, FlintInt16Array *&array) {
-    return newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)charPrimTypeName, 1, (FlintJavaObject *&)array);
+FlintResult<FlintInt16Array> Flint::newCharArray(uint32_t length) {
+    auto obj = newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)charPrimTypeName, 1);
+    return *(FlintResult<FlintInt16Array> *)&obj;
 }
 
-FlintError Flint::newShortArray(uint32_t length, FlintInt16Array *&array) {
-    return newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)shortPrimTypeName, 1, (FlintJavaObject *&)array);
+FlintResult<FlintInt16Array> Flint::newShortArray(uint32_t length) {
+    auto obj = newObject(length * sizeof(int16_t), *(FlintConstUtf8 *)shortPrimTypeName, 1);
+    return *(FlintResult<FlintInt16Array> *)&obj;
 }
 
-FlintError Flint::newIntegerArray(uint32_t length, FlintInt32Array *&array) {
-    return newObject(length * sizeof(int32_t), *(FlintConstUtf8 *)integerPrimTypeName, 1, (FlintJavaObject *&)array);
+FlintResult<FlintInt32Array> Flint::newIntegerArray(uint32_t length) {
+    auto obj = newObject(length * sizeof(int32_t), *(FlintConstUtf8 *)integerPrimTypeName, 1);
+    return *(FlintResult<FlintInt32Array> *)&obj;
 }
 
-FlintError Flint::newFloatArray(uint32_t length, FlintFloatArray *&array) {
-    return newObject(length * sizeof(float), *(FlintConstUtf8 *)floatPrimTypeName, 1, (FlintJavaObject *&)array);
+FlintResult<FlintFloatArray> Flint::newFloatArray(uint32_t length) {
+    auto obj = newObject(length * sizeof(float), *(FlintConstUtf8 *)floatPrimTypeName, 1);
+    return *(FlintResult<FlintFloatArray> *)&obj;
 }
 
-FlintError Flint::newLongArray(uint32_t length, FlintInt64Array *&array) {
-    return newObject(length * sizeof(int64_t), *(FlintConstUtf8 *)longPrimTypeName, 1, (FlintJavaObject *&)array);
+FlintResult<FlintInt64Array> Flint::newLongArray(uint32_t length) {
+    auto obj = newObject(length * sizeof(int64_t), *(FlintConstUtf8 *)longPrimTypeName, 1);
+    return *(FlintResult<FlintInt64Array> *)&obj;
 }
 
-FlintError Flint::newDoubleArray(uint32_t length, FlintDoubleArray *&array) {
-    return newObject(length * sizeof(double), *(FlintConstUtf8 *)doublePrimTypeName, 1, (FlintJavaObject *&)array);
+FlintResult<FlintDoubleArray> Flint::newDoubleArray(uint32_t length) {
+    auto obj = newObject(length * sizeof(double), *(FlintConstUtf8 *)doublePrimTypeName, 1);
+    return *(FlintResult<FlintDoubleArray> *)&obj;
 }
 
-FlintError Flint::newObjectArray(const FlintConstUtf8 &type, uint32_t length, FlintObjectArray *&array) {
-    return newObject(length * sizeof(FlintJavaObject *), type, 1, (FlintJavaObject *&)array);
+FlintResult<FlintObjectArray> Flint::newObjectArray(const FlintConstUtf8 &type, uint32_t length) {
+    auto obj = newObject(length * sizeof(FlintJavaObject *), type, 1);
+    return *(FlintResult<FlintObjectArray> *)&obj;
 }
 
-FlintError Flint::newMultiArray(const FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims, FlintJavaObject *&array) {
+FlintResult<FlintJavaObject> Flint::newMultiArray(const FlintConstUtf8 &typeName, int32_t *counts, uint8_t startDims, uint8_t endDims) {
     if(startDims > 1) {
-        RETURN_IF_ERR(newObject(counts[0] * sizeof(FlintJavaObject *), typeName, startDims, array));
-        if(startDims > endDims) {
-            for(uint32_t i = 0; i < counts[0]; i++) {
-                FlintError err = newMultiArray(typeName, &counts[1], startDims - 1, endDims, ((FlintJavaObject **)(array->data))[i]);
-                if(err != ERR_OK) {
-                    for(uint32_t j = 0; j < i; j++)
-                        freeObject(*((FlintJavaObject **)(array->data))[j]);
-                    return err;
+        auto array = newObject(counts[0] * sizeof(FlintJavaObject *), typeName, startDims);
+        if(array.err == ERR_OK) {
+            if(startDims > endDims) {
+                for(uint32_t i = 0; i < counts[0]; i++) {
+                    auto subArray = newMultiArray(typeName, &counts[1], startDims - 1, endDims);
+                    if(subArray.err != ERR_OK) {
+                        for(uint32_t j = 0; j < i; j++)
+                            freeObject(*((FlintJavaObject **)(array.value->data))[j]);
+                        return subArray;
+                    }
+                    ((FlintJavaObject **)(array.value->data))[i] = subArray.value;
                 }
             }
+            else
+                memset(array.value->data, 0, array.value->size);
         }
-        else
-            memset(array->data, 0, array->size);
+        return array;
     }
     else {
         uint8_t atype = FlintJavaObject::isPrimType(typeName);
         uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
-        RETURN_IF_ERR(newObject(typeSize * counts[0], typeName, 1, array));
-        memset(array->data, 0, array->size);
+        auto array = newObject(typeSize * counts[0], typeName, 1);
+        if(array.err == ERR_OK)
+            memset(array.value->data, 0, array.value->size);
+        return array;
     }
-    return ERR_OK;
 }
 
-FlintError Flint::newClass(FlintJavaString &typeName, FlintJavaClass *&cls) {
+FlintResult<FlintJavaClass> Flint::newClass(FlintJavaString &typeName) {
     // TODO - Check the existence of type
 
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)classClassName, (FlintJavaObject *&)cls));
+    auto cls = newObject(*(FlintConstUtf8 *)classClassName);
 
     /* set value for name field */
-    cls->setName(&typeName);
+    if(cls.err == ERR_OK)
+        ((FlintJavaClass *)cls.value)->setName(&typeName);
 
-    return ERR_OK;
+    return *(FlintResult<FlintJavaClass> *)&cls;
 }
 
-FlintError Flint::newClass(const char *typeName, uint16_t length, FlintJavaClass *&cls) {
+FlintResult<FlintJavaClass> Flint::newClass(const char *typeName, uint16_t length) {
     /* create String object to store typeName */
-    FlintJavaString *name;
-    FlintError err = newString(typeName, length, false, name);
-    if(err != ERR_OK) {
-        /* return class name in case class not found or error */
-        cls = (FlintJavaClass *)name;
-        return err;
-    }
+    auto name = newString(typeName, length, false);
+    if(name.err != ERR_OK)
+        return *(FlintResult<FlintJavaClass> *)&name;
 
     /* replace '/' to '.' */
-    char *text = (char *)name->getText();
+    char *text = (char *)name.value->getText();
     for(uint32_t i = 0; i < length; i++) {
         if(text[i] == '/')
             text[i] = '.';
     }
-    err = newClass(*name, cls);
-    if(err != ERR_OK)
-        freeObject(*name);
-    return err;
+    auto cls = newClass(*name.value);
+    if(cls.err != ERR_OK)
+        freeObject(*name.value);
+    return cls;
 }
 
-FlintError Flint::getConstClass(const char *typeName, uint16_t length, FlintJavaClass *&cls) {
+FlintResult<FlintJavaClass> Flint::getConstClass(const char *typeName, uint16_t length) {
     if(*typeName == 'L') {
         length -= (typeName[length - 1] == ';') ? 2 : 1;
         typeName++;
     }
 
     Flint::lock();
-    cls = constClassTree.find(typeName, length);
+    FlintJavaClass *cls = constClassTree.find(typeName, length);
     if(!cls) {
-        FlintError err = newClass(typeName, length, cls);
-        if(err != ERR_OK) {
-            Flint::unlock();
-            return err;
-        }
-        constClassTree.add(*cls);
+        auto newCls = newClass(typeName, length);
+        if(newCls.err == ERR_OK)
+            constClassTree.add(*newCls.value);
+        Flint::unlock();
+        return newCls;
     }
     Flint::unlock();
 
-    return ERR_OK;
+    return cls;
 }
 
-FlintError Flint::getConstClass(FlintJavaString &str, FlintJavaClass *&cls) {
+FlintResult<FlintJavaClass> Flint::getConstClass(FlintJavaString &str) {
     Flint::lock();
-    cls = constClassTree.find(str);
+    FlintJavaClass *cls = constClassTree.find(str);
     if(!cls) {
-        FlintError err = newClass(str, cls);
-        if(err != ERR_OK) {
-            Flint::unlock();
-            return err;
-        }
-        constClassTree.add(*cls);
+        auto newCls = newClass(str);
+        if(newCls.err == ERR_OK)
+            constClassTree.add(*newCls.value);
+        Flint::unlock();
+        return newCls;
     }
     Flint::unlock();
 
-    return ERR_OK;
+    return cls;
 }
 
-FlintError Flint::newString(uint16_t length, uint8_t coder, FlintJavaString *&str) {
+FlintResult<FlintJavaString> Flint::newString(uint16_t length, uint8_t coder) {
     /* create new byte array to store string */
-    FlintInt8Array *byteArray;
-    RETURN_IF_ERR(newByteArray(length << (coder ? 1 : 0), byteArray));
+    auto byteArray = newByteArray(length << (coder ? 1 : 0));
+    if(byteArray.err != ERR_OK)
+        return *(FlintResult<FlintJavaString> *)&byteArray;
 
     /* create new string object */
-    FlintError err = newObject(*(FlintConstUtf8 *)stringClassName, (FlintJavaObject *&)str);
-    if(err != ERR_OK) {
-        freeObject(*byteArray);
-        return err;
+    auto str = newObject(*(FlintConstUtf8 *)stringClassName);
+    if(str.err != ERR_OK)
+        freeObject(*byteArray.value);
+    else {
+        /* set value for value field */
+        ((FlintJavaString *)str.value)->setValue(*byteArray.value);
+        /* set value for coder field */
+        ((FlintJavaString *)str.value)->setCoder(coder);
     }
 
-    /* set value for value field */
-    str->setValue(*byteArray);
-    /* set value for coder field */
-    str->setCoder(coder);
-
-    return ERR_OK;
+    return *(FlintResult<FlintJavaString> *)&str;
 }
 
-FlintError Flint::newString(const char *text, FlintJavaString *&str) {
+FlintResult<FlintJavaString> Flint::newString(const char *text) {
     uint32_t len = strlen(text);
-    return newString(text, len, false, str);
+    return newString(text, len, false);
 }
 
-FlintError Flint::newString(const char *text, uint16_t size, bool isUtf8, FlintJavaString *&str) {
+FlintResult<FlintJavaString> Flint::newString(const char *text, uint16_t size, bool isUtf8) {
     uint32_t index = 0;
     bool isLatin1 = isUtf8 ? FlintJavaString::isLatin1(text) : true;
     uint32_t strLen = isUtf8 ? FlintJavaString::utf8StrLen(text) : size;
 
     /* create new byte array to store string */
     uint32_t arrayLen = isLatin1 ? strLen : (strLen << 1);
-    FlintInt8Array *byteArray;
-    RETURN_IF_ERR(newByteArray(arrayLen, byteArray));
-    uint8_t *byteArrayData = (uint8_t *)byteArray->getData();
+    auto byteArray = newByteArray(arrayLen);
+    if(byteArray.err != ERR_OK)
+        return *(FlintResult<FlintJavaString> *)&byteArray;
+    uint8_t *byteArrayData = (uint8_t *)byteArray.value->getData();
     if(!isUtf8)
         memcpy(byteArrayData, text, strLen);
     else {
@@ -407,42 +412,43 @@ FlintError Flint::newString(const char *text, uint16_t size, bool isUtf8, FlintJ
     }
 
     /* create new string object */
-    FlintError err = newObject(*(FlintConstUtf8 *)stringClassName, (FlintJavaObject *&)str);
-    if(err != ERR_OK) {
-        freeObject(*byteArray);
-        return err;
+    auto str = newObject(*(FlintConstUtf8 *)stringClassName);
+    if(str.err != ERR_OK)
+        freeObject(*byteArray.value);
+    else {
+        /* set value for value field */
+        ((FlintJavaString *)str.value)->setValue(*byteArray.value);
+        /* set value for coder field */
+        ((FlintJavaString *)str.value)->setCoder(isLatin1 ? 0 : 1);
     }
 
-    /* set value for value field */
-    str->setValue(*byteArray);
-    /* set value for coder field */
-    str->setCoder(isLatin1 ? 0 : 1);
-
-    return ERR_OK;
+    return *(FlintResult<FlintJavaString> *)&str;
 }
 
-FlintError Flint::getConstString(const FlintConstUtf8 &utf8, FlintJavaString *&str) {
+FlintResult<FlintJavaString> Flint::getConstString(const FlintConstUtf8 &utf8) {
     Flint::lock();
-    str = constStringTree.find(utf8);
+    FlintJavaString *str = constStringTree.find(utf8);
     if(!str) {
-        FlintError err = newString(utf8.text, utf8.length, true, str);
-        if(err != ERR_OK) {
-            Flint::unlock();
-            return err;
-        }
-        constStringTree.add(*str);
+        auto newStr = newString(utf8.text, utf8.length, true);
+        if(newStr.err == ERR_OK)
+            newStr = constStringTree.add(*newStr.value);
+        Flint::unlock();
+        return newStr;
     }
     Flint::unlock();
-    return ERR_OK;
+    return str;
 }
 
-FlintError Flint::getConstString(FlintJavaString &str, FlintJavaString *&strRet) {
+FlintResult<FlintJavaString> Flint::getConstString(FlintJavaString &str) {
     Flint::lock();
-    strRet = constStringTree.find(str);
-    if(!strRet)
-        strRet = &constStringTree.add(str);
+    FlintJavaString *ret = constStringTree.find(str);
+    if(!ret) {
+        auto tmp = constStringTree.add(str);
+        Flint::unlock();
+        return tmp;
+    }
     Flint::unlock();
-    return ERR_OK;
+    return ret;
 }
 
 static FlintConstUtf8 *getConstUtf8InBaseConstName(const char *text, uint32_t hash, bool isTypeName) {
@@ -465,113 +471,130 @@ static FlintConstUtf8 *getConstUtf8InBaseConstName(const char *text, uint32_t ha
     return NULL_PTR;
 }
 
-FlintConstUtf8 &Flint::getConstUtf8(const char *text, uint16_t length) {
+FlintResult<FlintConstUtf8> Flint::getConstUtf8(const char *text, uint16_t length) {
     uint32_t hash = Flint_CalcHash(text, length, false);
     FlintConstUtf8 *ret = getConstUtf8InBaseConstName(text, hash, false);
     if(ret)
-        return *ret;
+        return ret;
 
     Flint::lock();
     ret = constUtf8Tree.find(text, hash, false);
-    if(!ret)
-        ret = &constUtf8Tree.add(text, hash, false);
+    if(!ret) {
+        auto utf8 = constUtf8Tree.add(text, hash, false);
+        if(utf8.err != ERR_OK) {
+            Flint::unlock();
+            return *(FlintResult<FlintConstUtf8> *)&utf8;
+        }
+        ret = utf8.value;
+    }
     Flint::unlock();
 
-    return *ret;
+    return ret;
 }
 
-FlintConstUtf8 &Flint::getTypeNameConstUtf8(const char *typeName, uint16_t length) {
+FlintResult<FlintConstUtf8> Flint::getTypeNameConstUtf8(const char *typeName, uint16_t length) {
     uint32_t hash = Flint_CalcHash(typeName, length, true);
     FlintConstUtf8 *ret = getConstUtf8InBaseConstName(typeName, hash, true);
     if(ret)
-        return *ret;
+        return ret;
 
     Flint::lock();
     ret = constUtf8Tree.find(typeName, hash, true);
-    if(!ret)
-        ret = &constUtf8Tree.add(typeName, hash, true);
+    if(!ret) {
+        auto utf8 = constUtf8Tree.add(typeName, hash, true);
+        if(utf8.err != ERR_OK) {
+            Flint::unlock();
+            return *(FlintResult<FlintConstUtf8> *)&utf8;
+        }
+        ret = utf8.value;
+    }
     Flint::unlock();
 
-    return *ret;
+    return ret;
 }
 
-FlintError Flint::getClassArray0(FlintObjectArray *&obj) {
-    if(classArray0) {
-        obj = (FlintObjectArray *)classArray0;
-        return ERR_OK;
-    }
+FlintResult<FlintObjectArray> Flint::getClassArray0(void) {
+    if(classArray0)
+        return classArray0;
     Flint::lock();
     if(classArray0 == NULL_PTR) {
-        FlintError err = newObjectArray(*(FlintConstUtf8 *)classClassName, 0, obj);
-        if(err != ERR_OK) {
-            Flint::unlock();
-            return err;
-        }
-        classArray0 = obj;
+        auto obj = newObjectArray(*(FlintConstUtf8 *)classClassName, 0);
+        if(obj.err == ERR_OK)
+            classArray0 = obj.value;
+        Flint::unlock();
+        return obj;
     }
-    else
-        obj = (FlintObjectArray *)classArray0;
-    Flint::unlock();
-    return ERR_OK;
+    else {
+        Flint::unlock();
+        return classArray0;
+    }
 }
 
-FlintError Flint::newThrowable(FlintJavaString *str, const FlintConstUtf8 &excpType, FlintJavaThrowable *&excp) {
+FlintResult<FlintJavaThrowable> Flint::newThrowable(FlintJavaString *str, const FlintConstUtf8 &excpType) {
     /* create new exception object */
-    RETURN_IF_ERR(newObject(excpType, (FlintJavaObject *&)excp));
+    auto excp = newObject(excpType);
 
     /* set detailMessage value */
-    if(str)
-        excp->setDetailMessage(*str);
+    if(excp.err == ERR_OK && str)
+        ((FlintJavaThrowable *)excp.value)->setDetailMessage(*str);
 
-    return ERR_OK;
+    return *(FlintResult<FlintJavaThrowable> *)&excp;
 }
 
-FlintError Flint::newBoolean(bool value, FlintJavaBoolean *&obj) {
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)booleanClassName, (FlintJavaObject *&)obj));
-    obj->setValue(value);
-    return ERR_OK;
+FlintResult<FlintJavaBoolean> Flint::newBoolean(bool value) {
+    auto obj = newObject(*(FlintConstUtf8 *)booleanClassName);
+    if(obj.err == ERR_OK)
+        ((FlintJavaBoolean *)obj.value)->setValue(value);
+    return *(FlintResult<FlintJavaBoolean> *)&obj;
 }
 
-FlintError Flint::newByte(int8_t value, FlintJavaByte *&obj) {
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)byteClassName, (FlintJavaObject *&)obj));
-    obj->setValue(value);
-    return ERR_OK;
+FlintResult<FlintJavaByte> Flint::newByte(int8_t value) {
+    auto obj = newObject(*(FlintConstUtf8 *)byteClassName);
+    if(obj.err == ERR_OK)
+        ((FlintJavaByte *)obj.value)->setValue(value);
+    return *(FlintResult<FlintJavaByte> *)&obj;
 }
 
-FlintError Flint::newCharacter(uint16_t value, FlintJavaCharacter *&obj) {
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)characterClassName, (FlintJavaObject *&)obj));
-    obj->setValue(value);
-    return ERR_OK;
+FlintResult<FlintJavaCharacter> Flint::newCharacter(uint16_t value) {
+    auto obj = newObject(*(FlintConstUtf8 *)characterClassName);
+    if(obj.err == ERR_OK)
+        ((FlintJavaCharacter *)obj.value)->setValue(value);
+    return *(FlintResult<FlintJavaCharacter> *)&obj;
 }
 
-FlintError Flint::newShort(int16_t value, FlintJavaShort *&obj) {
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)shortClassName, (FlintJavaObject *&)obj));
-    obj->setValue(value);
-    return ERR_OK;
+FlintResult<FlintJavaShort> Flint::newShort(int16_t value) {
+    auto obj = newObject(*(FlintConstUtf8 *)shortClassName);
+    if(obj.err == ERR_OK)
+        ((FlintJavaShort *)obj.value)->setValue(value);
+    return *(FlintResult<FlintJavaShort> *)&obj;
 }
 
-FlintError Flint::newInteger(int32_t value, FlintJavaInteger *&obj) {
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)integerClassName, (FlintJavaObject *&)obj));
-    obj->setValue(value);
-    return ERR_OK;
+FlintResult<FlintJavaInteger> Flint::newInteger(int32_t value) {
+    auto obj = newObject(*(FlintConstUtf8 *)integerClassName);
+    if(obj.err == ERR_OK)
+        ((FlintJavaInteger *)obj.value)->setValue(value);
+    return *(FlintResult<FlintJavaInteger> *)&obj;
 }
 
-FlintError Flint::newFloat(float value, FlintJavaFloat *&obj) {
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)floatClassName, (FlintJavaObject *&)obj));
-    obj->setValue(value);
-    return ERR_OK;
+FlintResult<FlintJavaFloat> Flint::newFloat(float value) {
+    auto obj = newObject(*(FlintConstUtf8 *)floatClassName);
+    if(obj.err == ERR_OK)
+        ((FlintJavaFloat *)obj.value)->setValue(value);
+    return *(FlintResult<FlintJavaFloat> *)&obj;
 }
 
-FlintError Flint::newLong(int64_t value, FlintJavaLong *&obj) {
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)longClassName, (FlintJavaObject *&)obj));
-    obj->setValue(value);
-    return ERR_OK;
+FlintResult<FlintJavaLong> Flint::newLong(int64_t value) {
+    auto obj = newObject(*(FlintConstUtf8 *)longClassName);
+    if(obj.err == ERR_OK)
+        ((FlintJavaLong *)obj.value)->setValue(value);
+    return *(FlintResult<FlintJavaLong> *)&obj;
 }
 
-FlintError Flint::newDouble(double value, FlintJavaDouble *&obj) {
-    RETURN_IF_ERR(newObject(*(FlintConstUtf8 *)doubleClassName, (FlintJavaObject *&)obj));
-    obj->setValue(value);
-    return ERR_OK;
+FlintResult<FlintJavaDouble> Flint::newDouble(double value) {
+    auto obj = newObject(*(FlintConstUtf8 *)doubleClassName);
+    if(obj.err == ERR_OK)
+        ((FlintJavaDouble *)obj.value)->setValue(value);
+    return *(FlintResult<FlintJavaDouble> *)&obj;
 }
 
 void Flint::garbageCollectionProtectObject(FlintJavaObject &obj) {
@@ -706,47 +729,48 @@ void Flint::garbageCollection(void) {
     Flint::unlock();
 }
 
-FlintError Flint::createFlintClassData(Flint *flint, const char *className, uint16_t length, FlintClassData *&classData) {
-    classData = (FlintClassData *)Flint::malloc(sizeof(FlintClassData));
+FlintResult<FlintClassData> Flint::createFlintClassData(Flint *flint, const char *className, uint16_t length) {
+    FlintClassData *classData = (FlintClassData *)Flint::malloc(sizeof(FlintClassData));
     if(classData == NULL_PTR)
         return ERR_OUT_OF_MEMORY;
     classData->staticFieldsData = NULL_PTR;
     new (classData)FlintClassData(*flint);
-    return classData->load(className, length);
+    FlintError err = classData->load(className, length);
+    if(err != ERR_OK)
+        return FlintResult<FlintClassData>(err, className, length);
+    return classData;
 }
 
-FlintError Flint::load(const char *className, uint16_t length, FlintClassLoader *&loader) {
+FlintResult<FlintClassLoader> Flint::load(const char *className, uint16_t length) {
     Flint::lock();
-    loader = (FlintClassLoader *)classDataTree.find(className, length);
+    FlintClassLoader *loader = (FlintClassLoader *)classDataTree.find(className, length);
     if(!loader) {
-        FlintError err = createFlintClassData(this, className, length, (FlintClassData *&)loader);
-        if(err != ERR_OK) {
-            Flint::unlock();
-            return err;
-        }
-        classDataTree.add(*(FlintClassData *)loader);
+        auto newLoader = createFlintClassData(this, className, length);
+        if(newLoader.err == ERR_OK)
+            classDataTree.add(*newLoader.value);
+        Flint::unlock();
+        return *(FlintResult<FlintClassLoader> *)&newLoader;
     }
     Flint::unlock();
-    return ERR_OK;
+    return loader;
 }
 
-FlintError Flint::load(const char *className, FlintClassLoader *&loader) {
-    return load(className, strlen(className), loader);
+FlintResult<FlintClassLoader> Flint::load(const char *className) {
+    return load(className, strlen(className));
 }
 
-FlintError Flint::load(const FlintConstUtf8 &className, FlintClassLoader *&loader) {
+FlintResult<FlintClassLoader> Flint::load(const FlintConstUtf8 &className) {
     Flint::lock();
-    loader = (FlintClassLoader *)classDataTree.find(className);
+    FlintClassLoader *loader = classDataTree.find(className);
     if(!loader) {
-        FlintError err = createFlintClassData(this, className.text, className.length, (FlintClassData *&)loader);
-        if(err != ERR_OK) {
-            Flint::unlock();
-            return err;
-        }
-        classDataTree.add(*(FlintClassData *)loader);
+        auto newLoader = createFlintClassData(this, className.text, className.length);
+        if(newLoader.err == ERR_OK)
+            classDataTree.add(*newLoader.value);
+        Flint::unlock();
+        return *(FlintResult<FlintClassLoader> *)&newLoader;
     }
     Flint::unlock();
-    return ERR_OK;
+    return loader;
 }
 
 FlintError Flint::initStaticField(FlintClassData &classData) {
@@ -754,55 +778,41 @@ FlintError Flint::initStaticField(FlintClassData &classData) {
     if(fieldsData == NULL_PTR)
         return ERR_OUT_OF_MEMORY;
     new (fieldsData)FlintFieldsData();
-    fieldsData->loadStatic(classData);
+    FlintError err = fieldsData->loadStatic(classData).err;
+    if(err != ERR_OK)
+        return err;
     classData.staticFieldsData = fieldsData;
     return ERR_OK;
 }
 
-FlintError Flint::findMethod(FlintConstMethod &constMethod, FlintMethodInfo *&methodInfo) {
-    FlintClassLoader *loader;
-    RETURN_IF_ERR(load(constMethod.className, loader));
-    while(loader) {
-        FlintError err = loader->getMethodInfo(constMethod.nameAndType, methodInfo);
-        if(err == ERR_OK)
-            return ERR_OK;
-        else if(err != ERR_METHOD_NOT_FOUND) {
-            methodInfo = (FlintMethodInfo *)loader->thisClass;
-            return err;
-        }
-        FlintConstUtf8 *superClass = loader->superClass;
+FlintResult<FlintMethodInfo> Flint::findMethod(FlintConstMethod &constMethod) {
+    auto loader = load(constMethod.className);
+    if(loader.err != ERR_OK)
+        return *(FlintResult<FlintMethodInfo> *)&loader;
+    while(loader.err == ERR_OK) {
+        auto methodInfo = loader.value->getMethodInfo(constMethod.nameAndType);
+        if(methodInfo.err != ERR_METHOD_NOT_FOUND)
+            return methodInfo;
+        FlintConstUtf8 *superClass = loader.value->superClass;
         if(!superClass)
             return ERR_METHOD_NOT_FOUND;
-        err = load(*superClass, loader);
-        if(err != ERR_OK) {
-            methodInfo = (FlintMethodInfo *)superClass;
-            return err;
-        }
+        loader = load(*superClass);
     }
-    return ERR_METHOD_NOT_FOUND;
+    return *(FlintResult<FlintMethodInfo> *)&loader;
 }
 
-FlintError Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo) {
-    FlintClassLoader *loader;
-    RETURN_IF_ERR(load(className, loader));
-    while(loader) {
-        FlintError err = loader->getMethodInfo(nameAndType, methodInfo);
-        if(err == ERR_OK)
-            return ERR_OK;
-        else if(err != ERR_METHOD_NOT_FOUND) {
-            methodInfo = (FlintMethodInfo *)loader->thisClass;
-            return err;
-        }
-        FlintConstUtf8 *superClass = loader->superClass;
+FlintResult<FlintMethodInfo> Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) {
+    auto loader = load(className);
+    while(loader.err == ERR_OK) {
+        auto methodInfo = loader.value->getMethodInfo(nameAndType);
+        if(methodInfo.err != ERR_METHOD_NOT_FOUND)
+            return methodInfo;
+        FlintConstUtf8 *superClass = loader.value->superClass;
         if(!superClass)
             return ERR_METHOD_NOT_FOUND;
-        err = load(*superClass, loader);
-        if(err != ERR_OK) {
-            methodInfo = (FlintMethodInfo *)superClass;
-            return err;
-        }
+        loader = load(*superClass);
     }
-    return ERR_METHOD_NOT_FOUND;
+    return *(FlintResult<FlintMethodInfo> *)&loader;
 }
 
 static bool compareClassName(const FlintConstUtf8 &className1, const char *className2, uint32_t hash) {
@@ -827,7 +837,7 @@ static uint32_t getDimensions(const char *typeName) {
     return (uint32_t)(text - typeName);
 }
 
-FlintError Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length, FlintConstUtf8 **classError) {
+FlintResult<bool> Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length) {
     uint32_t dimensions = getDimensions(typeName);
     typeName += dimensions;
     length -= dimensions;
@@ -837,82 +847,74 @@ FlintError Flint::isInstanceof(FlintJavaObject *obj, const char *typeName, uint1
     }
     uint32_t typeNameHash = Flint_CalcHash(typeName, length, true);
     if((obj->dimensions >= dimensions) && compareClassName(*(FlintConstUtf8 *)objectClassName, typeName, typeNameHash))
-        return ERR_OK;
+        return true;
     if(dimensions != obj->dimensions)
-        return ERR_IS_INSTANCE_FALSE;
+        return false;
     FlintConstUtf8 *objType = &obj->type;
     if(FlintJavaObject::isPrimType(*objType) || ((length == 1) && FlintJavaObject::convertToAType(typeName[0])))
-        return ((length == objType->length) && (typeName[0] == objType->text[0])) ? ERR_OK : ERR_IS_INSTANCE_FALSE;
+        return (length == objType->length) && (typeName[0] == objType->text[0]);
     while(1) {
         if(compareClassName(*objType, typeName, typeNameHash))
-            return ERR_OK;
-        FlintClassLoader *loader;
-        FlintError err = load(*objType, loader);
-        if(err != ERR_OK) {
-            if(classError)
-                *classError = objType;
-            return err;
-        }
-        uint16_t interfacesCount = loader->getInterfacesCount();
+            return true;
+        auto loader = load(*objType);
+        if(loader.err != ERR_OK)
+            return *(FlintResult<bool> *)&loader;
+        uint16_t interfacesCount = loader.value->getInterfacesCount();
         for(uint32_t i = 0; i < interfacesCount; i++) {
-            if(compareClassName(loader->getInterface(i), typeName, typeNameHash))
-                return ERR_OK;
+            if(compareClassName(loader.value->getInterface(i), typeName, typeNameHash))
+                return true;
         }
-        objType = loader->superClass;
+        objType = loader.value->superClass;
         if(objType == NULL_PTR)
-            return ERR_IS_INSTANCE_FALSE;
+            return false;
     }
 }
 
-FlintError Flint::isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName, FlintConstUtf8 **classError) {
+FlintResult<bool> Flint::isInstanceof(FlintJavaObject *obj, const FlintConstUtf8 &typeName) {
     if(typeName.text[0] == '[' || typeName.text[typeName.length - 1] == ';')
-        return isInstanceof(obj, typeName.text, typeName.length, classError);
-    return isInstanceof(obj->type, obj->dimensions, typeName, 0, classError);
+        return isInstanceof(obj, typeName.text, typeName.length);
+    return isInstanceof(obj->type, obj->dimensions, typeName, 0);
 }
 
-FlintError Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2, FlintConstUtf8 **classError) {
+FlintResult<bool> Flint::isInstanceof(const FlintConstUtf8 &typeName1, uint32_t dimensions1, const FlintConstUtf8 &typeName2, uint32_t dimensions2) {
     if((dimensions1 >= dimensions2) && (typeName2 == *(FlintConstUtf8 *)objectClassName))
         return ERR_OK;
     if(dimensions1 != dimensions2)
-        return ERR_IS_INSTANCE_FALSE;
+        return false;
     if(FlintJavaObject::isPrimType(typeName1) || FlintJavaObject::isPrimType(typeName2))
-        return (typeName1.text[0] == typeName2.text[0]) ? ERR_OK : ERR_IS_INSTANCE_FALSE;
+        return typeName1.text[0] == typeName2.text[0];
     const FlintConstUtf8 *objType = &typeName1;
     while(1) {
         if(*objType == typeName2)
-            return ERR_OK;
-        FlintClassLoader *loader;
-        FlintError err = load(*objType, loader);
-        if(err != ERR_OK) {
-            if(classError)
-                *classError = (FlintConstUtf8 *)objType;
-            return err;
-        }
-        uint16_t interfacesCount = loader->getInterfacesCount();
+            return true;
+        auto loader = load(*objType);
+        if(loader.err != ERR_OK)
+            return *(FlintResult<bool> *)&loader;
+        uint16_t interfacesCount = loader.value->getInterfacesCount();
         for(uint32_t i = 0; i < interfacesCount; i++) {
-            if(loader->getInterface(i) == typeName2)
-                return ERR_OK;
+            if(loader.value->getInterface(i) == typeName2)
+                return true;
         }
-        objType = loader->superClass;
+        objType = loader.value->superClass;
         if(objType == NULL_PTR)
-            return ERR_IS_INSTANCE_FALSE;
+            return false;
     }
 }
 
 FlintError Flint::runToMain(const char *mainClass) {
-    FlintMethodInfo *mainMethodInfo;
-    FlintClassLoader *loader;
-    RETURN_IF_ERR(load(mainClass, loader));
-    RETURN_IF_ERR(loader->getMainMethodInfo(mainMethodInfo));
-    return newExecution().run(mainMethodInfo) ? ERR_OK : ERR_OUT_OF_MEMORY;
+    auto loader = load(mainClass);
+    RETURN_IF_ERR(loader.err);
+    auto mainMethodInfo = loader.value->getMainMethodInfo();
+    RETURN_IF_ERR(mainMethodInfo.err);
+    return newExecution().run(mainMethodInfo.value) ? ERR_OK : ERR_OUT_OF_MEMORY;
 }
 
 FlintError Flint::runToMain(const char *mainClass, uint32_t stackSize) {
-    FlintMethodInfo *mainMethodInfo;
-    FlintClassLoader *loader;
-    RETURN_IF_ERR(load(mainClass, loader));
-    RETURN_IF_ERR(loader->getMainMethodInfo(mainMethodInfo));
-    return newExecution(NULL_PTR, stackSize).run(mainMethodInfo) ? ERR_OK : ERR_OUT_OF_MEMORY;
+    auto loader = load(mainClass);
+    RETURN_IF_ERR(loader.err);
+    auto mainMethodInfo = loader.value->getMainMethodInfo();
+    RETURN_IF_ERR(mainMethodInfo.err);
+    return newExecution(NULL_PTR, stackSize).run(mainMethodInfo.value) ? ERR_OK : ERR_OUT_OF_MEMORY;
 }
 
 bool Flint::isRunning(void) const {

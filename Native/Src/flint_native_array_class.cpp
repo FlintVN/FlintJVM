@@ -78,75 +78,59 @@ static FlintError nativeGet(FlintExecution &execution) {
     if(obj->dimensions == 1 && FlintJavaObject::isPrimType(obj->type)) {
         switch(obj->type.text[0]) {
             case 'B': { /* byte */
-                int8_t value = ((FlintInt8Array *)obj)->getData()[index];
-                FlintJavaByte *byteObj;
-                FlintError err = execution.flint.newByte(value, byteObj);
-                if(err != ERR_OK)
-                    return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)byteObj);
-                execution.stackPushObject(byteObj);
+                auto val = execution.flint.newByte(((FlintInt8Array *)obj)->getData()[index]);
+                if(val.err != ERR_OK)
+                    return checkAndThrowForFlintError(execution, val.err, val.getErrorMsg(), val.getErrorMsgLength());
+                execution.stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'Z': { /* boolean */
-                int8_t value = ((FlintInt8Array *)obj)->getData()[index];
-                FlintJavaBoolean *boolObj;
-                FlintError err = execution.flint.newBoolean(value, boolObj);
-                if(err != ERR_OK)
-                    return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)boolObj);
-                execution.stackPushObject(boolObj);
+                auto val = execution.flint.newBoolean(((FlintInt8Array *)obj)->getData()[index]);
+                if(val.err != ERR_OK)
+                    return checkAndThrowForFlintError(execution, val.err, val.getErrorMsg(), val.getErrorMsgLength());
+                execution.stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'C': { /* char */
-                int16_t value = ((FlintInt16Array *)obj)->getData()[index];
-                FlintJavaCharacter *charObj;
-                FlintError err = execution.flint.newCharacter(value, charObj);
-                if(err != ERR_OK)
-                    return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)charObj);
-                execution.stackPushObject(charObj);
+                auto val = execution.flint.newCharacter(((FlintInt16Array *)obj)->getData()[index]);
+                if(val.err != ERR_OK)
+                    return checkAndThrowForFlintError(execution, val.err, val.getErrorMsg(), val.getErrorMsgLength());
+                execution.stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'S': { /* short */
-                int16_t value = ((FlintInt16Array *)obj)->getData()[index];
-                FlintJavaShort *shortObj;
-                FlintError err = execution.flint.newShort(value, shortObj);
-                if(err != ERR_OK)
-                    return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)shortObj);
-                execution.stackPushObject(shortObj);
+                auto val = execution.flint.newShort(((FlintInt16Array *)obj)->getData()[index]);
+                if(val.err != ERR_OK)
+                    return checkAndThrowForFlintError(execution, val.err, val.getErrorMsg(), val.getErrorMsgLength());
+                execution.stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'I': { /* integer */
-                int32_t value = ((FlintInt32Array *)obj)->getData()[index];
-                FlintJavaInteger *intObj;
-                FlintError err = execution.flint.newInteger(value, intObj);
-                if(err != ERR_OK)
-                    return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)intObj);
-                execution.stackPushObject(intObj);
+                auto val = execution.flint.newInteger(((FlintInt32Array *)obj)->getData()[index]);
+                if(val.err != ERR_OK)
+                    return checkAndThrowForFlintError(execution, val.err, val.getErrorMsg(), val.getErrorMsgLength());
+                execution.stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'F': { /* float */
-                float value = ((FlintFloatArray *)obj)->getData()[index];
-                FlintJavaFloat *floatObj;
-                FlintError err = execution.flint.newFloat(value, floatObj);
-                if(err != ERR_OK)
-                    return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)floatObj);
-                execution.stackPushObject(floatObj);
+                auto val = execution.flint.newFloat(((FlintFloatArray *)obj)->getData()[index]);
+                if(val.err != ERR_OK)
+                    return checkAndThrowForFlintError(execution, val.err, val.getErrorMsg(), val.getErrorMsgLength());
+                execution.stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'D': { /* double */
-                double value = ((FlintDoubleArray *)obj)->getData()[index];
-                FlintJavaDouble *doubleObj;
-                FlintError err = execution.flint.newDouble(value, doubleObj);
-                if(err != ERR_OK)
-                    return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)doubleObj);
-                execution.stackPushObject(doubleObj);
+                auto val = execution.flint.newDouble(((FlintDoubleArray *)obj)->getData()[index]);
+                if(val.err != ERR_OK)
+                    return checkAndThrowForFlintError(execution, val.err, val.getErrorMsg(), val.getErrorMsgLength());
+                execution.stackPushObject(val.value);
                 return ERR_OK;
             }
             default: { /* long */
-                int64_t value = ((FlintInt64Array *)obj)->getData()[index];
-                FlintJavaLong *longObj;
-                FlintError err = execution.flint.newLong(value, longObj);
-                if(err != ERR_OK)
-                    return checkAndThrowForFlintError(execution, err, (FlintConstUtf8 *)longObj);
-                execution.stackPushObject(longObj);
+                auto val = execution.flint.newLong(((FlintInt64Array *)obj)->getData()[index]);
+                if(val.err != ERR_OK)
+                    return checkAndThrowForFlintError(execution, val.err, val.getErrorMsg(), val.getErrorMsgLength());
+                execution.stackPushObject(val.value);
                 return ERR_OK;
             }
         }
@@ -597,15 +581,18 @@ static FlintError nativeNewArray(FlintExecution &execution) {
     RETURN_IF_ERR(checkIsClassType(execution, componentType));
     RETURN_IF_ERR(checkLength(execution, length));
     uint32_t dimensions;
-    const FlintConstUtf8 &typeName = componentType->getBaseTypeName(execution.flint, &dimensions);
-    if(typeName == *(FlintConstUtf8 *)voidPrimTypeName) /* void */
+    auto typeName = componentType->getBaseTypeName(execution.flint, &dimensions);
+    if(typeName.err != ERR_OK)
+        return checkAndThrowForFlintError(execution, typeName.err, typeName.getErrorMsg(), typeName.getErrorMsgLength());
+    if(typeName.value == (FlintConstUtf8 *)voidPrimTypeName) /* void */
         return throwIllegalArgumentException(execution);
-    uint8_t atype = FlintJavaObject::isPrimType(typeName);
+    uint8_t atype = FlintJavaObject::isPrimType(*typeName.value);
     uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
-    FlintJavaObject *array;
-    RETURN_IF_ERR(execution.flint.newObject(typeSize * length, typeName, dimensions + 1, array));
-    memset((void *)&array->getFields(), 0, array->size);
-    execution.stackPushObject(array);
+    auto array = execution.flint.newObject(typeSize * length, *typeName.value, dimensions + 1);
+    if(array.err != ERR_OK)
+        return checkAndThrowForFlintError(execution, array.err, array.getErrorMsg(), array.getErrorMsgLength());
+    memset((void *)&array.value->getFields(), 0, array.value->size);
+    execution.stackPushObject(array.value);
     return ERR_OK;
 }
 
@@ -615,14 +602,17 @@ static FlintError nativeMultiNewArray(FlintExecution &execution) {
     RETURN_IF_ERR(checkIsClassType(execution, componentType));
     RETURN_IF_ERR(checkDimensions(execution, dimensions));
     uint32_t endDims;
-    const FlintConstUtf8 &typeName = componentType->getBaseTypeName(execution.flint, &endDims);
-    if(typeName == *(FlintConstUtf8 *)voidPrimTypeName) /* void */
+    auto typeName = componentType->getBaseTypeName(execution.flint, &endDims);
+    if(typeName.err != ERR_OK)
+        return checkAndThrowForFlintError(execution, typeName.err, typeName.getErrorMsg(), typeName.getErrorMsgLength());
+    if(typeName.value == (FlintConstUtf8 *)voidPrimTypeName) /* void */
         return throwIllegalArgumentException(execution);
     if((dimensions->getLength() + endDims) > 255)
         return throwIllegalArgumentException(execution);
-    FlintJavaObject *array;
-    RETURN_IF_ERR(execution.flint.newMultiArray(typeName, dimensions->getData(), dimensions->getLength() + endDims, endDims + 1, array));
-    execution.stackPushObject(array);
+    auto array = execution.flint.newMultiArray(*typeName.value, dimensions->getData(), dimensions->getLength() + endDims, endDims + 1);
+    if(array.err != ERR_OK)
+        return checkAndThrowForFlintError(execution, array.err, array.getErrorMsg(), array.getErrorMsgLength());
+    execution.stackPushObject(array.value);
     return ERR_OK;
 }
 

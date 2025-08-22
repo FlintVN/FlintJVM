@@ -139,7 +139,10 @@ FlintError FlintClassLoader::load(void *file) {
                     utf8Length = length;
                 }
                 RETURN_IF_ERR(ClassLoader_Read(file, utf8Buff, length));
-                *(uint32_t *)&poolTable[i].value = (uint32_t)&flint.getConstUtf8(utf8Buff, length);
+                auto utf8 = flint.getConstUtf8(utf8Buff, length);
+                if(utf8.err != ERR_OK)
+                    return utf8.err;
+                *(uint32_t *)&poolTable[i].value = (uint32_t)utf8.value;
                 break;
             }
             case CONST_INTEGER:
@@ -410,7 +413,7 @@ FlintConstUtf8 &FlintClassLoader::getConstUtf8Class(FlintConstPool &constPool) c
     return *((ConstClassValue *)constPool.value)->constUtf8Class;
 }
 
-FlintError FlintClassLoader::getConstClass(FlintConstPool &constPool, FlintJavaClass *&cls) {
+FlintResult<FlintJavaClass> FlintClassLoader::getConstClass(FlintConstPool &constPool) {
     if(constPool.tag & 0x80) {
         Flint::lock();
         if(constPool.tag & 0x80) {
@@ -421,44 +424,43 @@ FlintError FlintClassLoader::getConstClass(FlintConstPool &constPool, FlintJavaC
                 return ERR_OUT_OF_MEMORY;
             }
             constClassValue->constUtf8Class = &constUtf8Class;
-            FlintError err = flint.getConstClass(constUtf8Class.text, constUtf8Class.length, constClassValue->constClass);
-            if(err != ERR_OK) {
-                Flint::unlock();
-                return err;
+            auto cls = flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
+            if(cls.err == ERR_OK) {
+                constClassValue->constClass = cls.value;
+                *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
+                *(FlintConstPoolTag *)&constPool.tag = CONST_CLASS;
             }
-            *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
-            *(FlintConstPoolTag *)&constPool.tag = CONST_CLASS;
+            Flint::unlock();
+            return cls;
         }
         Flint::unlock();
     }
-    cls = ((ConstClassValue *)constPool.value)->constClass;
-    return ERR_OK;
+    return ((ConstClassValue *)constPool.value)->constClass;
 }
 
-FlintError FlintClassLoader::getConstString(FlintConstPool &constPool, FlintJavaString *&str) {
+FlintResult<FlintJavaString> FlintClassLoader::getConstString(FlintConstPool &constPool) {
     if(constPool.tag & 0x80) {
         Flint::lock();
         if(constPool.tag & 0x80) {
             FlintConstUtf8 &utf8Str = getConstUtf8(constPool.value);
-            FlintError err = flint.getConstString(utf8Str, str);
-            if(err != ERR_OK) {
-                Flint::unlock();
-                return err;
+            auto str = flint.getConstString(utf8Str);
+            if(str.err == ERR_OK) {
+                *(uint32_t *)&constPool.value = (uint32_t)str.value;
+                *(FlintConstPoolTag *)&constPool.tag = CONST_STRING;
             }
-            *(uint32_t *)&constPool.value = (uint32_t)str;
-            *(FlintConstPoolTag *)&constPool.tag = CONST_STRING;
+            Flint::unlock();
+            return str;
         }
         Flint::unlock();
     }
-    str = (FlintJavaString *)constPool.value;
-    return ERR_OK;
+    return (FlintJavaString *)constPool.value;
 }
 
 FlintConstUtf8 &FlintClassLoader::getConstMethodType(FlintConstPool &constPool) const {
     return getConstUtf8(constPool.value);
 }
 
-FlintError FlintClassLoader::getConstNameAndType(uint16_t poolIndex, FlintConstNameAndType *&constNameAndType) {
+FlintResult<FlintConstNameAndType> FlintClassLoader::getConstNameAndType(uint16_t poolIndex) {
     poolIndex--;
     if(poolTable[poolIndex].tag & 0x80) {
         Flint::lock();
@@ -476,11 +478,10 @@ FlintError FlintClassLoader::getConstNameAndType(uint16_t poolIndex, FlintConstN
         }
         Flint::unlock();
     }
-    constNameAndType = (FlintConstNameAndType *)poolTable[poolIndex].value;
-    return ERR_OK;
+    return (FlintConstNameAndType *)poolTable[poolIndex].value;
 }
 
-FlintError FlintClassLoader::getConstField(uint16_t poolIndex, FlintConstField *&constField) {
+FlintResult<FlintConstField> FlintClassLoader::getConstField(uint16_t poolIndex) {
     poolIndex--;
     if(poolTable[poolIndex].tag & 0x80) {
         Flint::lock();
@@ -493,22 +494,20 @@ FlintError FlintClassLoader::getConstField(uint16_t poolIndex, FlintConstField *
                 return ERR_OUT_OF_MEMORY;
             }
             *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            FlintConstNameAndType *nameAndType;
-            FlintError err = getConstNameAndType(nameAndTypeIndex, nameAndType);
-            if(err != ERR_OK) {
+            auto nameAndType = getConstNameAndType(nameAndTypeIndex);
+            if(nameAndType.err != ERR_OK) {
                 Flint::unlock();
-                return err;
+                return *(FlintResult<FlintConstField> *)&nameAndType;
             }
-            new ((FlintConstField *)poolTable[poolIndex].value)FlintConstField(getConstUtf8Class(classNameIndex), *nameAndType);
+            new ((FlintConstField *)poolTable[poolIndex].value)FlintConstField(getConstUtf8Class(classNameIndex), *nameAndType.value);
             *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
         }
         Flint::unlock();
     }
-    constField = (FlintConstField *)poolTable[poolIndex].value;
-    return ERR_OK;
+    return (FlintConstField *)poolTable[poolIndex].value;
 }
 
-FlintError FlintClassLoader::getConstMethod(uint16_t poolIndex, FlintConstMethod *&constMethod) {
+FlintResult<FlintConstMethod> FlintClassLoader::getConstMethod(uint16_t poolIndex) {
     poolIndex--;
     if(poolTable[poolIndex].tag & 0x80) {
         Flint::lock();
@@ -521,22 +520,20 @@ FlintError FlintClassLoader::getConstMethod(uint16_t poolIndex, FlintConstMethod
                 return ERR_OUT_OF_MEMORY;
             }
             *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            FlintConstNameAndType *nameAndType;
-            FlintError err = getConstNameAndType(nameAndTypeIndex, nameAndType);
-            if(err != ERR_OK) {
+            auto nameAndType = getConstNameAndType(nameAndTypeIndex);
+            if(nameAndType.err != ERR_OK) {
                 Flint::unlock();
-                return err;
+                return *(FlintResult<FlintConstMethod> *)&nameAndType;
             }
-            new ((FlintConstMethod *)poolTable[poolIndex].value)FlintConstMethod(getConstUtf8Class(classNameIndex), *nameAndType);
+            new ((FlintConstMethod *)poolTable[poolIndex].value)FlintConstMethod(getConstUtf8Class(classNameIndex), *nameAndType.value);
             *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
         }
         Flint::unlock();
     }
-    constMethod = (FlintConstMethod *)poolTable[poolIndex].value;
-    return ERR_OK;
+    return (FlintConstMethod *)poolTable[poolIndex].value;
 }
 
-FlintError FlintClassLoader::getConstInterfaceMethod(uint16_t poolIndex, FlintConstInterfaceMethod *&constInterfaceMethod) {
+FlintResult<FlintConstInterfaceMethod> FlintClassLoader::getConstInterfaceMethod(uint16_t poolIndex) {
     poolIndex--;
     if(poolTable[poolIndex].tag & 0x80) {
         Flint::lock();
@@ -549,19 +546,17 @@ FlintError FlintClassLoader::getConstInterfaceMethod(uint16_t poolIndex, FlintCo
                 return ERR_OUT_OF_MEMORY;
             }
             *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            FlintConstNameAndType *nameAndType;
-            FlintError err = getConstNameAndType(nameAndTypeIndex, nameAndType);
-            if(err != ERR_OK) {
+            auto nameAndType = getConstNameAndType(nameAndTypeIndex);
+            if(nameAndType.err != ERR_OK) {
                 Flint::unlock();
-                return err;
+                return *(FlintResult<FlintConstInterfaceMethod> *)&nameAndType;
             }
-            new ((FlintConstInterfaceMethod *)poolTable[poolIndex].value)FlintConstInterfaceMethod(getConstUtf8Class(classNameIndex), *nameAndType);
+            new ((FlintConstInterfaceMethod *)poolTable[poolIndex].value)FlintConstInterfaceMethod(getConstUtf8Class(classNameIndex), *nameAndType.value);
             *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
         }
         Flint::unlock();
     }
-    constInterfaceMethod = (FlintConstInterfaceMethod *)poolTable[poolIndex].value;
-    return ERR_OK;
+    return (FlintConstInterfaceMethod *)poolTable[poolIndex].value;
 }
 
 FlintClassAccessFlag FlintClassLoader::getAccessFlag(void) const {
@@ -616,7 +611,7 @@ FlintMethodInfo *FlintClassLoader::getMethodInfoWithUnload(uint8_t methodIndex) 
     return &methods[methodIndex];
 }
 
-FlintError FlintClassLoader::getMethodInfo(uint8_t methodIndex, FlintMethodInfo *&methodInfo) {
+FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(uint8_t methodIndex) {
     FlintMethodInfo &method = methods[methodIndex];
     if(method.accessFlag & METHOD_UNLOADED) {
         Flint::lock();
@@ -624,27 +619,26 @@ FlintError FlintClassLoader::getMethodInfo(uint8_t methodIndex, FlintMethodInfo 
             void *file = ClassLoader_Open(thisClass->text, thisClass->length);
             if(file == NULL_PTR) {
                 Flint::unlock();
-                return ERR_CLASS_LOAD_FAIL;
+                return FlintResult<FlintMethodInfo>(ERR_CLASS_LOAD_FAIL, thisClass->text, thisClass->length);
             }
             if(FlintAPI::IO::fseek(file, (uint32_t)method.code) != FILE_RESULT_OK) {
                 Flint::unlock();
                 FlintAPI::IO::fclose(file);
-                return ERR_CLASS_LOAD_FAIL;
+                return FlintResult<FlintMethodInfo>(ERR_CLASS_LOAD_FAIL, thisClass->text, thisClass->length);
             }
             readAttributeCode(file, method);
             if(FlintAPI::IO::fclose(file) != FILE_RESULT_OK) {
                 Flint::unlock();
-                return ERR_CLASS_LOAD_FAIL;
+                return FlintResult<FlintMethodInfo>(ERR_CLASS_LOAD_FAIL, thisClass->text, thisClass->length);
             }
             method.accessFlag = (FlintMethodAccessFlag)(method.accessFlag & ~METHOD_UNLOADED);
         }
         Flint::unlock();
     }
-    methodInfo = &method;
-    return ERR_OK;
+    return &method;
 }
 
-FlintError FlintClassLoader::getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor, FlintMethodInfo *&methodInfo) {
+FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) {
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < methodsCount; i++) {
@@ -652,34 +646,34 @@ FlintError FlintClassLoader::getMethodInfo(const FlintConstUtf8 &name, const Fli
         FlintConstUtf8 &methodDesc = methods[i].getDescriptor();
         if(nameHash == CONST_UTF8_HASH(methodName) && descriptorHash == CONST_UTF8_HASH(methodDesc)) {
             if(&name == &methodName && &descriptor == &methodDesc)
-                return getMethodInfo(i, methodInfo);
+                return getMethodInfo(i);
             else if(
                 strncmp(name.text, methodName.text, name.length) == 0 &&
                 strncmp(descriptor.text, methodDesc.text, descriptor.length) == 0
             ) {
-                return getMethodInfo(i, methodInfo);
+                return getMethodInfo(i);
             }
         }
     }
     return ERR_METHOD_NOT_FOUND;
 }
 
-FlintError FlintClassLoader::getMethodInfo(FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo) {
-    return getMethodInfo(nameAndType.name, nameAndType.descriptor, methodInfo);
+FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(FlintConstNameAndType &nameAndType) {
+    return getMethodInfo(nameAndType.name, nameAndType.descriptor);
 }
 
-FlintError FlintClassLoader::getMainMethodInfo(FlintMethodInfo *&methodInfo) {
+FlintResult<FlintMethodInfo> FlintClassLoader::getMainMethodInfo(void) {
     static const uint32_t nameAndType[] = {
         (uint32_t)"\x04\x00\x1D\x15""main",                     /* method name */
         (uint32_t)"\x16\x00\x03\x78""([Ljava/lang/String;)V",   /* method type */
     };
-    return getMethodInfo(*(FlintConstNameAndType *)nameAndType, methodInfo);
+    return getMethodInfo(*(FlintConstNameAndType *)nameAndType);
 }
 
-FlintError FlintClassLoader::getStaticCtor(FlintMethodInfo *&methodInfo) {
+FlintResult<FlintMethodInfo> FlintClassLoader::getStaticCtor(void) {
     for(uint16_t i = 0; i < methodsCount; i++) {
         if((FlintConstUtf8 *)staticConstructorName == &methods[i].getName())
-            return getMethodInfo(i, methodInfo);
+            return getMethodInfo(i);
     }
     return ERR_METHOD_NOT_FOUND;
 }

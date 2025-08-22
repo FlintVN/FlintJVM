@@ -34,7 +34,7 @@ private:
 public:
     FlintClassBinaryTree(void);
 
-    FlintJavaClass &add(FlintJavaClass &value);
+    FlintResult<void> add(FlintJavaClass &value);
 
     FlintJavaClass *find(const char *text, uint16_t length) const;
     FlintJavaClass *find(FlintJavaString &str) const;

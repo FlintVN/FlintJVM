@@ -81,22 +81,34 @@ FlintStringBinaryTree::FlintStringNode *FlintStringBinaryTree::balance(FlintStri
 FlintStringBinaryTree::FlintStringNode *FlintStringBinaryTree::insert(FlintStringNode *rootNode, FlintJavaString &value) {
     if(!rootNode) {
         FlintStringNode *stringNode = (FlintStringNode *)Flint::malloc(sizeof(FlintStringNode));
-        new (stringNode)FlintStringNode(value);
+        if(stringNode)
+            new (stringNode)FlintStringNode(value);
         return stringNode;
     }
     int8_t compareResult = value.compareTo(rootNode->value);
-    if(compareResult < 0)
-        rootNode->left = insert(rootNode->left, value);
-    else if(compareResult > 0)
-        rootNode->right = insert(rootNode->right, value);
+    if(compareResult < 0) {
+        FlintStringNode *node = insert(rootNode->left, value);
+        if(node == NULL_PTR)
+            return NULL_PTR;
+        rootNode->left = node;
+    }
+    else if(compareResult > 0) {
+        FlintStringNode *node = insert(rootNode->right, value);
+        if(node == NULL_PTR)
+            return NULL_PTR;
+        rootNode->right = node;
+    }
     else
         return rootNode;
     return balance(rootNode);
 }
 
-FlintJavaString &FlintStringBinaryTree::add(FlintJavaString &value) {
-    root = insert(root, value);
-    return value;
+FlintResult<FlintJavaString> FlintStringBinaryTree::add(FlintJavaString &value) {
+    FlintStringNode *node = insert(root, value);
+    if(node == NULL_PTR)
+        return ERR_OUT_OF_MEMORY;
+    root = node;
+    return &value;
 }
 
 FlintJavaString *FlintStringBinaryTree::find(FlintJavaString &value) const {

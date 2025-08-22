@@ -63,7 +63,7 @@ bool FlintJavaClass::isPrimitive(void) const {
     return false;
 }
 
-const FlintConstUtf8 &FlintJavaClass::getBaseTypeName(Flint &flint, uint32_t *dimensions) const {
+FlintResult<FlintConstUtf8> FlintJavaClass::getBaseTypeName(Flint &flint, uint32_t *dimensions) const {
     uint32_t dims = 0;
     FlintJavaString &name = getName();
     const char *typeText = name.getText();
@@ -79,33 +79,33 @@ const FlintConstUtf8 &FlintJavaClass::getBaseTypeName(Flint &flint, uint32_t *di
         switch(typeLength) {
             case 3:
                 if(strncmp(typeText, "int", typeLength) == 0)
-                    return *(FlintConstUtf8 *)integerPrimTypeName;
+                    return (FlintConstUtf8 *)integerPrimTypeName;
                 break;
             case 4: {
                 if(strncmp(typeText, "void", typeLength) == 0)
-                    return *(FlintConstUtf8 *)voidPrimTypeName;
+                    return (FlintConstUtf8 *)voidPrimTypeName;
                 else if(strncmp(typeText, "byte", typeLength) == 0)
-                    return *(FlintConstUtf8 *)bytePrimTypeName;
+                    return (FlintConstUtf8 *)bytePrimTypeName;
                 else if(strncmp(typeText, "char", typeLength) == 0)
-                    return *(FlintConstUtf8 *)charPrimTypeName;
+                    return (FlintConstUtf8 *)charPrimTypeName;
                 else if(strncmp(typeText, "long", typeLength) == 0)
-                    return *(FlintConstUtf8 *)longPrimTypeName;
+                    return (FlintConstUtf8 *)longPrimTypeName;
                 break;
             }
             case 5: {
                 if(strncmp(typeText, "float", typeLength) == 0)
-                    return *(FlintConstUtf8 *)floatPrimTypeName;
+                    return (FlintConstUtf8 *)floatPrimTypeName;
                 else if(strncmp(typeText, "short", typeLength) == 0)
-                    return *(FlintConstUtf8 *)shortPrimTypeName;
+                    return (FlintConstUtf8 *)shortPrimTypeName;
                 break;
             }
             case 6:
                 if(strncmp(typeText, "double", typeLength) == 0)
-                    return *(FlintConstUtf8 *)doublePrimTypeName;
+                    return (FlintConstUtf8 *)doublePrimTypeName;
                 break;
             case 7:
                 if(strncmp(typeText, "boolean", typeLength) == 0)
-                    return *(FlintConstUtf8 *)booleanPrimTypeName;
+                    return (FlintConstUtf8 *)booleanPrimTypeName;
                 break;
             default:
                 break;
@@ -117,7 +117,7 @@ const FlintConstUtf8 &FlintJavaClass::getBaseTypeName(Flint &flint, uint32_t *di
     }
     uint8_t atype = FlintJavaObject::convertToAType(typeText[0]);
     if((dims != 0) && (atype != 0))
-        return *primTypeConstUtf8List[atype - 4];
+        return (FlintConstUtf8 *)primTypeConstUtf8List[atype - 4];
     return flint.getTypeNameConstUtf8(typeText, typeLength);
 }
 

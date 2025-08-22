@@ -61,16 +61,16 @@ public:
 
     FlintConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstUtf8Class(FlintConstPool &constPool) const;
-    FlintError getConstClass(FlintConstPool &constPool, FlintJavaClass *&cls);
+    FlintResult<FlintJavaClass> getConstClass(FlintConstPool &constPool);
 
-    FlintError getConstString(FlintConstPool &constPool, FlintJavaString *&str);
+    FlintResult<FlintJavaString> getConstString(FlintConstPool &constPool);
 
     FlintConstUtf8 &getConstMethodType(FlintConstPool &constPool) const;
 
-    FlintError getConstNameAndType(uint16_t poolIndex, FlintConstNameAndType *&constNameAndType);
-    FlintError getConstField(uint16_t poolIndex, FlintConstField *&constField);
-    FlintError getConstMethod(uint16_t poolIndex, FlintConstMethod *&constMethod);
-    FlintError getConstInterfaceMethod(uint16_t poolIndex, FlintConstInterfaceMethod *&constInterfaceMethod);
+    FlintResult<FlintConstNameAndType> getConstNameAndType(uint16_t poolIndex);
+    FlintResult<FlintConstField> getConstField(uint16_t poolIndex);
+    FlintResult<FlintConstMethod> getConstMethod(uint16_t poolIndex);
+    FlintResult<FlintConstInterfaceMethod> getConstInterfaceMethod(uint16_t poolIndex);
 
     FlintClassAccessFlag getAccessFlag(void) const;
 
@@ -83,12 +83,12 @@ public:
     FlintFieldInfo *getFieldInfo(FlintConstNameAndType &nameAndType) const;
 
     uint16_t getMethodsCount(void) const;
-    FlintError getMethodInfo(uint8_t methodIndex, FlintMethodInfo *&methodInfo);
-    FlintError getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor, FlintMethodInfo *&methodInfo);
-    FlintError getMethodInfo(FlintConstNameAndType &nameAndType, FlintMethodInfo *&methodInfo);
+    FlintResult<FlintMethodInfo> getMethodInfo(uint8_t methodIndex);
+    FlintResult<FlintMethodInfo> getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
+    FlintResult<FlintMethodInfo> getMethodInfo(FlintConstNameAndType &nameAndType);
     FlintMethodInfo *getMethodInfoWithUnload(uint8_t methodIndex);
-    FlintError getMainMethodInfo(FlintMethodInfo *&methodInfo);
-    FlintError getStaticCtor(FlintMethodInfo *&methodInfo);
+    FlintResult<FlintMethodInfo> getMainMethodInfo(void);
+    FlintResult<FlintMethodInfo> getStaticCtor(void);
 
     bool hasStaticCtor(void);
 };

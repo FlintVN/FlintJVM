@@ -117,7 +117,6 @@ typedef enum : uint8_t {
 
 typedef enum : uint8_t {
     ERR_OK = 0,
-    ERR_IS_INSTANCE_FALSE,
     ERR_THROW,
     ERR_LOCK_FAIL,
     ERR_LOCK_LIMIT,
@@ -131,6 +130,91 @@ typedef enum : uint8_t {
     ERR_STATIC_CTOR_IS_RUNNING,
     ERR_VM_ERROR,
 } FlintError;
+
+template <class T>
+class FlintResult {
+public:
+    FlintError err;
+private:
+    uint16_t errMsgLen;
+public:
+    union {
+        T *value;
+        const char *errMsg;
+    };
+public:
+    FlintResult(T *value) : err(ERR_OK), value(value) {
+
+    }
+
+    FlintResult(FlintError errorCode, const char *msg = NULL_PTR, uint16_t length = 0) : err(errorCode), errMsgLen(length), errMsg(msg) {
+
+    }
+
+    const char *getErrorMsg(void) const {
+        if(err == ERR_OK)
+            return NULL_PTR;
+        return errMsg;
+    }
+
+    uint32_t getErrorMsgLength(void) const {
+        return errMsgLen;
+    }
+};
+
+template <>
+class FlintResult<bool> {
+public:
+    FlintError err;
+private:
+    uint16_t errMsgLen;
+public:
+    union {
+        bool value;
+        const char *errMsg;
+    };
+public:
+    FlintResult(bool value) : err(ERR_OK), value(value) {
+
+    }
+
+    FlintResult(FlintError errorCode, const char *msg = NULL_PTR, uint16_t length = 0) : err(errorCode), errMsgLen(length), errMsg(msg) {
+
+    }
+
+    const char *getErrorMsg(void) const {
+        if(err == ERR_OK)
+            return NULL_PTR;
+        return errMsg;
+    }
+
+    uint32_t getErrorMsgLength(void) const {
+        return errMsgLen;
+    }
+};
+
+template <>
+class FlintResult<void> {
+public:
+    FlintError err;
+private:
+    uint16_t errMsgLen;
+    const char *errMsg;
+public:
+    FlintResult(FlintError errorCode, const char *msg = NULL_PTR, uint16_t length = 0) : err(errorCode), errMsgLen(length), errMsg(msg) {
+
+    }
+
+    const char *getErrorMsg(void) const {
+        if(err == ERR_OK)
+            return NULL_PTR;
+        return errMsg;
+    }
+
+    uint32_t getErrorMsgLength(void) const {
+        return errMsgLen;
+    }
+};
 
 typedef FlintError (*FlintNativeMethodPtr)(class FlintExecution &execution);
 

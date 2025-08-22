@@ -11,7 +11,7 @@ public:
 
     bool isArray(void) const;
     bool isPrimitive(void) const;
-    const FlintConstUtf8 &getBaseTypeName(class Flint &flint, uint32_t *dimensions = 0) const;
+    FlintResult<FlintConstUtf8> getBaseTypeName(class Flint &flint, uint32_t *dimensions = 0) const;
 protected:
     FlintJavaClass(void) = delete;
     FlintJavaClass(const FlintJavaClass &) = delete;

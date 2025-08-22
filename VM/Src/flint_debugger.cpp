@@ -228,11 +228,8 @@ void FlintDebugger::responseStackTrace(uint32_t stackIndex) {
 
 void FlintDebugger::responseExceptionInfo(void) {
     if(csr & DBG_STATUS_STOP) {
-        if(
-            exception &&
-            (csr & DBG_STATUS_EXCP) &&
-            (flint.isInstanceof(exception, *(FlintConstUtf8 *)throwableClassName, NULL_PTR) == ERR_OK)
-        ) {
+        auto isThrowable = flint.isInstanceof(exception, *(FlintConstUtf8 *)throwableClassName);
+        if(exception && (csr & DBG_STATUS_EXCP) && isThrowable.err == ERR_OK && isThrowable.value) {
             FlintConstUtf8 &type = exception->type;
             FlintJavaString *str = exception->getDetailMessage();
             uint32_t responseSize = sizeof(FlintConstUtf8) * 2 + type.length + (str ? str->getUft8BuffSize() : 0) + 2;
@@ -924,22 +921,22 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
 
 bool FlintDebugger::addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor) {
     if(breakPointCount < LENGTH(breakPoints)) {
-        FlintClassLoader *loader;
-        if(flint.load(className, loader) != ERR_OK)
+        auto loader = flint.load(className);
+        if(loader.err != ERR_OK)
             return false;
-        FlintMethodInfo *method;
-        if(loader->getMethodInfo(methodName, descriptor, method) != ERR_OK)
+        auto method = loader.value->getMethodInfo(methodName, descriptor);
+        if(method.err != ERR_OK)
             return false;
-        if(method->accessFlag & METHOD_NATIVE)
+        if(method.value->accessFlag & METHOD_NATIVE)
             return false;
-        uint8_t *code = method->getCode();
+        uint8_t *code = method.value->getCode();
         for(uint8_t i = 0; i < breakPointCount; i++) {
-            if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
+            if(method.value == breakPoints[i].method && pc == breakPoints[i].pc) {
                 code[pc] = (uint8_t)OP_BREAKPOINT;
                 return true;
             }
         }
-        new (&breakPoints[breakPointCount])FlintBreakPoint(code[pc], pc, method);
+        new (&breakPoints[breakPointCount])FlintBreakPoint(code[pc], pc, method.value);
         breakPointCount++;
         code[pc] = (uint8_t)OP_BREAKPOINT;
         return true;
@@ -957,15 +954,15 @@ uint8_t FlintDebugger::getSavedOpcode(uint32_t pc, FlintMethodInfo *method) {
 
 bool FlintDebugger::removeBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor) {
     if(breakPointCount) {
-        FlintClassLoader *loader;
-        if(flint.load(className, loader) != ERR_OK)
+        auto loader = flint.load(className);
+        if(loader.err != ERR_OK)
             return false;
-        FlintMethodInfo *method;
-        if(loader->getMethodInfo(methodName, descriptor, method) != ERR_OK)
+        auto method = loader.value->getMethodInfo(methodName, descriptor);
+        if(method.err != ERR_OK)
             return false;
         for(uint8_t i = 0; i < breakPointCount; i++) {
-            if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
-                method->getCode()[breakPoints[i].pc] = breakPoints[i].opcode;
+            if(method.value == breakPoints[i].method && pc == breakPoints[i].pc) {
+                method.value->getCode()[breakPoints[i].pc] = breakPoints[i].opcode;
                 breakPoints[i] = breakPoints[breakPointCount - 1];
                 breakPointCount--;
             }
