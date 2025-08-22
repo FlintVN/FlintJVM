@@ -229,7 +229,7 @@ static FlintError getClass(Flint &flint, const char *typeName, uint16_t length, 
     if(length == 1) {
         switch(*typeName) {
             case 'Z':   /* boolean */
-                flint.getConstClass("boolean", 7, cls);
+                return flint.getConstClass("boolean", 7, cls);
             case 'C':   /* char */
                 return flint.getConstClass("char", 4, cls);
             case 'F':   /* float */
