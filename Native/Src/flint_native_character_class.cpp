@@ -115,17 +115,17 @@ static int32_t findIndex(const uint16_t *letterList, uint16_t c) {
     return -1;
 }
 
-static FlintError nativeToLower(FlintExecution &execution) {
-    uint16_t c = execution.stackPopInt32();
+static FlintError nativeToLower(FlintExecution *exec) {
+    uint16_t c = exec->stackPopInt32();
     int32_t index = findIndex(letterUpper, c);
-    execution.stackPushInt32((index >= 0) ? letterLower[index] : c);
+    exec->stackPushInt32((index >= 0) ? letterLower[index] : c);
     return ERR_OK;
 }
 
-static FlintError nativeToUpper(FlintExecution &execution) {
-    uint16_t c = execution.stackPopInt32();
+static FlintError nativeToUpper(FlintExecution *exec) {
+    uint16_t c = exec->stackPopInt32();
     int32_t index = findIndex(letterLower, c);
-    execution.stackPushInt32((index >= 0) ? letterUpper[index] : c);
+    exec->stackPushInt32((index >= 0) ? letterUpper[index] : c);
     return ERR_OK;
 }
 

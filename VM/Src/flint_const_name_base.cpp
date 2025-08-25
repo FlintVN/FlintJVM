@@ -62,7 +62,7 @@ alignas(4) const char parameterTypesFieldName[] = "\x0E\x00\x9B\xC1""parameterTy
 alignas(4) const char exceptionTypesFieldName[] = "\x0E\x00\xBD\xB7""exceptionTypes";
 alignas(4) const char modifiersFieldName[] = "\x09\x00\x0F\xC4""modifiers";
 
-const FlintConstUtf8 * const primTypeConstUtf8List[] = {
+FlintConstUtf8 * const primTypeConstUtf8List[] = {
     (FlintConstUtf8 *)booleanPrimTypeName,
     (FlintConstUtf8 *)charPrimTypeName,
     (FlintConstUtf8 *)floatPrimTypeName,

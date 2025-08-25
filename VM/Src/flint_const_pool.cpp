@@ -3,7 +3,7 @@
 #include "flint_common.h"
 #include "flint_const_pool.h"
 
-uint8_t parseArgc(const FlintConstUtf8 &descriptor) {
+uint8_t parseArgc(FlintConstUtf8 &descriptor) {
     const char *text = descriptor.text;
     uint8_t argc = 0;
     while(*text == '(')
@@ -31,7 +31,7 @@ uint8_t parseArgc(const FlintConstUtf8 &descriptor) {
     return argc;
 }
 
-bool FlintConstUtf8::operator==(const FlintConstUtf8 &another) const {
+bool FlintConstUtf8::operator==(FlintConstUtf8 &another) const {
     if(this == &another)
         return true;
     else if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
@@ -41,7 +41,7 @@ bool FlintConstUtf8::operator==(const FlintConstUtf8 &another) const {
     return false;
 }
 
-bool FlintConstUtf8::operator!=(const FlintConstUtf8 &another) const {
+bool FlintConstUtf8::operator!=(FlintConstUtf8 &another) const {
     if(this == &another)
         return false;
     else if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
@@ -51,17 +51,17 @@ bool FlintConstUtf8::operator!=(const FlintConstUtf8 &another) const {
     return true;
 }
 
-FlintConstNameAndType::FlintConstNameAndType(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) :
+FlintConstNameAndType::FlintConstNameAndType(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) :
 name((FlintConstUtf8 &)name), descriptor((FlintConstUtf8 &)descriptor) {
 
 }
 
-FlintConstField::FlintConstField(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
+FlintConstField::FlintConstField(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
 className((FlintConstUtf8 &)className), nameAndType(nameAndType), fieldIndex(0) {
 
 }
 
-FlintConstMethod::FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
+FlintConstMethod::FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
 className((FlintConstUtf8 &)className), nameAndType(nameAndType), methodInfo(NULL_PTR) {
     argc = parseArgc(nameAndType.descriptor);
 }
@@ -70,13 +70,13 @@ uint8_t FlintConstMethod::getArgc(void) const {
     return argc;
 }
 
-bool FlintConstNameAndType::operator==(const FlintConstNameAndType &another) const {
+bool FlintConstNameAndType::operator==(FlintConstNameAndType &another) const {
     if((name == another.name) &&  (descriptor == another.descriptor))
         return true;
     return false;
 }
 
-bool FlintConstNameAndType::operator!=(const FlintConstNameAndType &another) const {
+bool FlintConstNameAndType::operator!=(FlintConstNameAndType &another) const {
     if((name == another.name) && (descriptor == another.descriptor))
         return false;
     return true;

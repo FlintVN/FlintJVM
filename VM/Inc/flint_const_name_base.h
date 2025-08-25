@@ -65,6 +65,6 @@ extern const char parameterTypesFieldName[];
 extern const char exceptionTypesFieldName[];
 extern const char modifiersFieldName[];
 
-extern const FlintConstUtf8 * const primTypeConstUtf8List[];
+extern FlintConstUtf8 * const primTypeConstUtf8List[];
 
 #endif /* __FLINT_CONST_NAME_BASE_H */

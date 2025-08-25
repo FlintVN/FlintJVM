@@ -67,7 +67,7 @@ static FlintError dumpAttribute(void *file) {
     return ERR_OK;
 }
 
-static FlintAttributeType parseAttributeType(const FlintConstUtf8 &name) {
+static FlintAttributeType parseAttributeType(FlintConstUtf8 &name) {
     switch(name.length) {
         case 4:
             if(strncmp(name.text, "Code", name.length) == 0)
@@ -579,7 +579,7 @@ FlintFieldInfo *FlintClassLoader::getFieldInfo(uint8_t fieldIndex) const {
     return &fields[fieldIndex];
 }
 
-FlintFieldInfo *FlintClassLoader::getFieldInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) const {
+FlintFieldInfo *FlintClassLoader::getFieldInfo(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) const {
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < fieldsCount; i++) {
@@ -638,7 +638,7 @@ FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(uint8_t methodIndex
     return &method;
 }
 
-FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor) {
+FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) {
     uint32_t nameHash = CONST_UTF8_HASH(name);
     uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
     for(uint16_t i = 0; i < methodsCount; i++) {

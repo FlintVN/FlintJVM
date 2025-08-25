@@ -27,8 +27,8 @@ private:
 
     friend class FlintClassLoader;
 public:
-    bool operator==(const FlintConstUtf8 &another) const;
-    bool operator!=(const FlintConstUtf8 &another) const;
+    bool operator==(FlintConstUtf8 &another) const;
+    bool operator!=(FlintConstUtf8 &another) const;
 };
 
 class FlintConstNameAndType {
@@ -36,10 +36,10 @@ public:
     FlintConstUtf8 &name;
     FlintConstUtf8 &descriptor;
 
-    bool operator==(const FlintConstNameAndType &another) const;
-    bool operator!=(const FlintConstNameAndType &another) const;
+    bool operator==(FlintConstNameAndType &another) const;
+    bool operator!=(FlintConstNameAndType &another) const;
 private:
-    FlintConstNameAndType(const FlintConstUtf8 &name, const FlintConstUtf8 &descriptor);
+    FlintConstNameAndType(FlintConstUtf8 &name, FlintConstUtf8 &descriptor);
     FlintConstNameAndType(const FlintConstNameAndType &) = delete;
     void operator=(const FlintConstNameAndType &) = delete;
 
@@ -53,7 +53,7 @@ public:
 private:
     uint32_t fieldIndex;
 private:
-    FlintConstField(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
+    FlintConstField(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
     FlintConstField(const FlintConstField &) = delete;
     void operator=(const FlintConstField &) = delete;
 
@@ -61,7 +61,7 @@ private:
     friend class FlintFieldsData;
 };
 
-uint8_t parseArgc(const FlintConstUtf8 &descriptor);
+uint8_t parseArgc(FlintConstUtf8 &descriptor);
 
 class FlintConstMethod {
 public:
@@ -73,7 +73,7 @@ private:
 public:
     uint8_t getArgc(void) const;
 private:
-    FlintConstMethod(const FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
+    FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
     FlintConstMethod(const FlintConstMethod &) = delete;
     void operator=(const FlintConstMethod &) = delete;
 

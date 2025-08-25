@@ -216,6 +216,6 @@ public:
     }
 };
 
-typedef FlintError (*FlintNativeMethodPtr)(class FlintExecution &execution);
+typedef FlintError (*FlintNativeMethodPtr)(class FlintExecution *exec);
 
 #endif /* __FLINT_TYPE_H */

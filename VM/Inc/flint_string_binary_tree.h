@@ -37,7 +37,7 @@ public:
     FlintResult<FlintJavaString> add(FlintJavaString &value);
 
     FlintJavaString *find(FlintJavaString &value) const;
-    FlintJavaString *find(const FlintConstUtf8 &utf8) const;
+    FlintJavaString *find(FlintConstUtf8 &utf8) const;
 
     void forEach(void (*func)(FlintJavaString &));
     void clear(void);

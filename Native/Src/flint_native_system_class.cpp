@@ -6,37 +6,37 @@
 #include "flint_native_system_class.h"
 #include "flint_throw_support.h"
 
-static FlintError nativeCurrentTimeMillis(FlintExecution &execution) {
-    execution.stackPushInt64(FlintAPI::System::getNanoTime() / 1000000);
+static FlintError nativeCurrentTimeMillis(FlintExecution *exec) {
+    exec->stackPushInt64(FlintAPI::System::getNanoTime() / 1000000);
     return ERR_OK;
 }
 
-static FlintError nativeNanoTime(FlintExecution &execution) {
-    execution.stackPushInt64(FlintAPI::System::getNanoTime());
+static FlintError nativeNanoTime(FlintExecution *exec) {
+    exec->stackPushInt64(FlintAPI::System::getNanoTime());
     return ERR_OK;
 }
 
-static FlintError nativeArraycopy(FlintExecution &execution) {
-    int32_t length = execution.stackPopInt32();
-    int32_t destPos = execution.stackPopInt32();
-    FlintJavaObject *dest = execution.stackPopObject();
-    int32_t srcPos = execution.stackPopInt32();
-    FlintJavaObject *src = execution.stackPopObject();
+static FlintError nativeArraycopy(FlintExecution *exec) {
+    int32_t length = exec->stackPopInt32();
+    int32_t destPos = exec->stackPopInt32();
+    FlintJavaObject *dest = exec->stackPopObject();
+    int32_t srcPos = exec->stackPopInt32();
+    FlintJavaObject *src = exec->stackPopObject();
     if(src->dimensions == 0 || dest->dimensions == 0) {
         if(src->dimensions == 0)
-            return throwArrayStoreException(execution, "Source object is not a array");
+            return throwArrayStoreException(exec, "Source object is not a array");
         else
-            return throwArrayStoreException(execution, "Destination object is not a array");
+            return throwArrayStoreException(exec, "Destination object is not a array");
     }
     else if(src->type == dest->type) {
         uint8_t atype = FlintJavaObject::isPrimType(src->type);
         uint8_t elementSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
         if(length < 0)
-            return throwArrayIndexOutOfBoundsException(execution, 0, length);
+            return throwArrayIndexOutOfBoundsException(exec, 0, length);
         if((length + srcPos) > src->size / elementSize)
-            return throwArrayIndexOutOfBoundsException(execution, length + srcPos, src->size / elementSize);
+            return throwArrayIndexOutOfBoundsException(exec, length + srcPos, src->size / elementSize);
         if((length + destPos) > dest->size / elementSize)
-            return throwArrayIndexOutOfBoundsException(execution, length + destPos, dest->size / elementSize);
+            return throwArrayIndexOutOfBoundsException(exec, length + destPos, dest->size / elementSize);
         void *srcVal = ((FlintInt8Array *)src)->getData();
         void *dstVal = ((FlintInt8Array *)dest)->getData();
         switch(elementSize) {
@@ -59,13 +59,13 @@ static FlintError nativeArraycopy(FlintExecution &execution) {
         }
     }
     else
-        return throwArrayStoreException(execution, "Type mismatch, can not copy array object");
+        return throwArrayStoreException(exec, "Type mismatch, can not copy array object");
     return ERR_OK;
 }
 
-static FlintError nativeIdentityHashCode(FlintExecution &execution) {
-    FlintJavaObject *obj = execution.stackPopObject();
-    execution.stackPushInt32((int32_t)obj);
+static FlintError nativeIdentityHashCode(FlintExecution *exec) {
+    FlintJavaObject *obj = exec->stackPopObject();
+    exec->stackPushInt32((int32_t)obj);
     return ERR_OK;
 }
 

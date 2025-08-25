@@ -14,7 +14,7 @@ public:
     uint8_t getCoder(void) const;
     void setCoder(uint8_t coder);
     int32_t compareTo(FlintJavaString &another) const;
-    int32_t compareTo(const FlintConstUtf8 &utf8) const;
+    int32_t compareTo(FlintConstUtf8 &utf8) const;
     uint32_t getUft8BuffSize(void);
 
     static bool isLatin1(const char *utf8);

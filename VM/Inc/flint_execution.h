@@ -28,8 +28,7 @@ private:
     int32_t *locals;
     FlintJavaThread *onwerThread;
 protected:
-    FlintExecution(Flint &flint, FlintJavaThread *onwerThread);
-    FlintExecution(Flint &flint, FlintJavaThread *onwerThread, uint32_t stackSize);
+    FlintExecution(Flint &flint, FlintJavaThread *onwerThread, uint32_t stackSize = DEFAULT_STACK_SIZE);
     FlintExecution(const FlintExecution &) = delete;
     void operator=(const FlintExecution &) = delete;
 
@@ -52,17 +51,17 @@ private:
     FlintError stackInitExitPoint(uint32_t exitPc);
     void stackRestoreContext(void);
 
-    FlintError lockClass(FlintClassData &cls);
-    void unlockClass(FlintClassData &cls);
+    FlintError lockClass(FlintClassData *cls);
+    void unlockClass(FlintClassData *cls);
     FlintError lockObject(FlintJavaObject *obj);
     void unlockObject(FlintJavaObject *obj);
 
     FlintError invoke(FlintMethodInfo *methodInfo, uint8_t argc);
-    FlintError invokeStatic(FlintConstMethod &constMethod);
-    FlintError invokeSpecial(FlintConstMethod &constMethod);
-    FlintError invokeVirtual(FlintConstMethod &constMethod);
-    FlintError invokeInterface(FlintConstInterfaceMethod &interfaceMethod, uint8_t argc);
-    FlintError invokeStaticCtor(FlintClassData &classData);
+    FlintError invokeStatic(FlintConstMethod *constMethod);
+    FlintError invokeSpecial(FlintConstMethod *constMethod);
+    FlintError invokeVirtual(FlintConstMethod *constMethod);
+    FlintError invokeInterface(FlintConstInterfaceMethod *interfaceMethod, uint8_t argc);
+    FlintError invokeStaticCtor(FlintClassData *classData);
 
     FlintError run(void);
     void stopRequest(void);

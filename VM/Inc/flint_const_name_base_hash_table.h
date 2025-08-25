@@ -6,7 +6,7 @@
 
 typedef struct {
     uint32_t count;
-    const FlintConstUtf8 *values[];
+    FlintConstUtf8 *values[];
 } ConstNameBaseList;
 
 extern const ConstNameBaseList * const baseConstUtf8HashTable[57];

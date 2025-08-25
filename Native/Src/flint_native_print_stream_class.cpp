@@ -3,18 +3,18 @@
 #include "flint_system_api.h"
 #include "flint_native_print_stream_class.h"
 
-static FlintError nativeWrite(FlintExecution &execution) {
-    FlintJavaString *str = (FlintJavaString *)execution.stackPopObject();
+static FlintError nativeWrite(FlintExecution *exec) {
+    FlintJavaString *str = (FlintJavaString *)exec->stackPopObject();
     if(str == 0)
-        execution.flint.print("null", 4, 0);
+        exec->flint.print("null", 4, 0);
     else
-        execution.flint.print(str->getText(), str->getLength(), str->getCoder());
+        exec->flint.print(str->getText(), str->getLength(), str->getCoder());
     return ERR_OK;
 }
 
-static FlintError nativeWriteln(FlintExecution &execution) {
-    nativeWrite(execution);
-    execution.flint.print("\n", 1, 0);
+static FlintError nativeWriteln(FlintExecution *exec) {
+    nativeWrite(exec);
+    exec->flint.print("\n", 1, 0);
     return ERR_OK;
 }
 

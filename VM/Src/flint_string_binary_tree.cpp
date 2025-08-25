@@ -125,7 +125,7 @@ FlintJavaString *FlintStringBinaryTree::find(FlintJavaString &value) const {
     return NULL_PTR;
 }
 
-FlintJavaString *FlintStringBinaryTree::find(const FlintConstUtf8 &utf8) const {
+FlintJavaString *FlintStringBinaryTree::find(FlintConstUtf8 &utf8) const {
     FlintStringNode *node = root;
     while(node) {
         int8_t compareResult = node->value.compareTo(utf8);

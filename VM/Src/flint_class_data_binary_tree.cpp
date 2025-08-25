@@ -149,7 +149,7 @@ FlintClassData *FlintClassDataBinaryTree::find(const char *text, uint16_t length
     return NULL_PTR;
 }
 
-FlintClassData *FlintClassDataBinaryTree::find(const FlintConstUtf8 &utf8) const {
+FlintClassData *FlintClassDataBinaryTree::find(FlintConstUtf8 &utf8) const {
     uint32_t hash = CONST_UTF8_HASH(utf8);
     FlintClassData *node = root;
     while(node) {

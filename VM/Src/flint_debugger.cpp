@@ -140,7 +140,7 @@ bool FlintDebugger::dataFrameAppend(uint8_t *data, uint16_t length) {
     return true;
 }
 
-bool FlintDebugger::dataFrameAppend(const FlintConstUtf8 &utf8) {
+bool FlintDebugger::dataFrameAppend(FlintConstUtf8 &utf8) {
     uint32_t size = sizeof(FlintConstUtf8) + utf8.length + 1;
     uint8_t *buff = (uint8_t *)&utf8;
     for(uint32_t i = 0; i < size; i++) {
@@ -320,7 +320,7 @@ void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localInd
         sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseField(FlintJavaObject *obj, const FlintConstUtf8 &fieldName) {
+void FlintDebugger::responseField(FlintJavaObject *obj, FlintConstUtf8 &fieldName) {
     if(csr & DBG_STATUS_STOP) {
         if(!flint.isObject((uint32_t)obj)) {
             sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
@@ -919,7 +919,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     }
 }
 
-bool FlintDebugger::addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor) {
+bool FlintDebugger::addBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor) {
     if(breakPointCount < LENGTH(breakPoints)) {
         auto loader = flint.load(className);
         if(loader.err != ERR_OK)
@@ -952,7 +952,7 @@ uint8_t FlintDebugger::getSavedOpcode(uint32_t pc, FlintMethodInfo *method) {
     return OP_UNKNOW;
 }
 
-bool FlintDebugger::removeBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor) {
+bool FlintDebugger::removeBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor) {
     if(breakPointCount) {
         auto loader = flint.load(className);
         if(loader.err != ERR_OK)

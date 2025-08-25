@@ -5,12 +5,12 @@
 #include "flint_native_string_class.h"
 #include "flint_throw_support.h"
 
-static FlintError nativeIntern(FlintExecution &execution) {
-    FlintJavaString *obj = (FlintJavaString *)execution.stackPopObject();
-    auto strIntern = execution.flint.getConstString(*obj);
+static FlintError nativeIntern(FlintExecution *exec) {
+    FlintJavaString *obj = (FlintJavaString *)exec->stackPopObject();
+    auto strIntern = exec->flint.getConstString(*obj);
     if(strIntern.err == ERR_OK)
-        execution.stackPushObject(strIntern.value);
-    return checkAndThrowForFlintError(execution, strIntern.err, strIntern.getErrorMsg(), strIntern.getErrorMsgLength());
+        exec->stackPushObject(strIntern.value);
+    return checkAndThrowForFlintError(exec, strIntern.err, strIntern.getErrorMsg(), strIntern.getErrorMsgLength());
 }
 
 static const FlintNativeMethod methods[] = {

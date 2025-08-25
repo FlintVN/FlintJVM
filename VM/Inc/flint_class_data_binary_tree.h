@@ -61,7 +61,7 @@ public:
     FlintResult<void> add(FlintClassData &classData);
 
     FlintClassData *find(const char *className, uint16_t length) const;
-    FlintClassData *find(const FlintConstUtf8 &utf8) const;
+    FlintClassData *find(FlintConstUtf8 &utf8) const;
 
     void forEach(void (*func)(FlintClassData &));
     void clear(void);

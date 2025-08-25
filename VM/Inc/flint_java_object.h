@@ -24,7 +24,7 @@ protected:
 public:
     static uint8_t getPrimitiveTypeSize(uint8_t atype);
     static uint8_t convertToAType(char type);
-    static uint8_t isPrimType(const FlintConstUtf8 &type);
+    static uint8_t isPrimType(FlintConstUtf8 &type);
 
     uint8_t parseTypeSize(void) const;
 
@@ -34,7 +34,7 @@ public:
     void setProtected(void);
     uint8_t getProtected(void) const;
 protected:
-    FlintJavaObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions);
+    FlintJavaObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions);
     FlintJavaObject(const FlintJavaObject &) = delete;
     void operator=(const FlintJavaObject &) = delete;
 

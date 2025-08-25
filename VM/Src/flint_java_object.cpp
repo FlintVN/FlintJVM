@@ -37,13 +37,13 @@ uint8_t FlintJavaObject::convertToAType(char type) {
     return 0;
 }
 
-uint8_t FlintJavaObject::isPrimType(const FlintConstUtf8 &type) {
+uint8_t FlintJavaObject::isPrimType(FlintConstUtf8 &type) {
     if(type.length == 1)
         return convertToAType(type.text[0]);
     return 0;
 }
 
-FlintJavaObject::FlintJavaObject(uint32_t size, const FlintConstUtf8 &type, uint8_t dimensions) :
+FlintJavaObject::FlintJavaObject(uint32_t size, FlintConstUtf8 &type, uint8_t dimensions) :
 size(size), prot(0x02), type((FlintConstUtf8 &)type), dimensions(dimensions), monitorCount(0), ownId(0) {
 
 }

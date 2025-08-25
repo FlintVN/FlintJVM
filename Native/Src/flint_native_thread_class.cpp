@@ -12,56 +12,57 @@ static const uint32_t runnableRunFieldName[] = {
     (uint32_t)"\x03\x00\x91\x99""()V"               /* field type */
 };
 
-static FlintError nativeStart0(FlintExecution &execution) {
-    Flint &flint = execution.flint;
-    FlintJavaThread *threadObj = (FlintJavaThread *)execution.stackPopObject();
+static FlintError nativeStart0(FlintExecution *exec) {
+    Flint &flint = exec->flint;
+    FlintJavaThread *threadObj = (FlintJavaThread *)exec->stackPopObject();
     FlintJavaObject *task = threadObj->getTask();
-    FlintExecution &threadExecution = flint.newExecution(threadObj);
+    auto threadExecution = flint.newExecution(threadObj);
+    RETURN_IF_ERR(threadExecution.err);
     if(task == 0)
         task = threadObj;
-    threadExecution.stackPushObject(task);
+    threadExecution.value->stackPushObject(task);
 
     auto loader = flint.load(task->type);
     if(loader.err != ERR_OK)
-        return checkAndThrowForFlintError(execution, loader.err, &task->type);
+        return checkAndThrowForFlintError(exec, loader.err, &task->type);
     auto method = loader.value->getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName);
     if(method.err != ERR_OK) {
         if(method.err == ERR_METHOD_NOT_FOUND)
-            return throwNoSuchMethodError(execution, task->type.text, "run");
-        return checkAndThrowForFlintError(execution, method.err, method.getErrorMsg(), method.getErrorMsgLength());
+            return throwNoSuchMethodError(exec, task->type.text, "run");
+        return checkAndThrowForFlintError(exec, method.err, method.getErrorMsg(), method.getErrorMsgLength());
     }
 
-    if(!threadExecution.run(method.value)) {
-        flint.freeExecution(threadExecution);
-        return throwException(execution, "Thread start failed");
+    if(!threadExecution.value->run(method.value)) {
+        flint.freeExecution(threadExecution.value);
+        return throwException(exec, "Thread start failed");
     }
     return ERR_OK;
 }
 
-static FlintError nativeYield0(FlintExecution &execution) {
+static FlintError nativeYield0(FlintExecution *exec) {
     FlintAPI::Thread::yield();
     return ERR_OK;
 }
 
-static FlintError nativeInterrupt0(FlintExecution &execution) {
-    FlintJavaThread *threadObj = (FlintJavaThread *)execution.stackPopObject();
+static FlintError nativeInterrupt0(FlintExecution *exec) {
+    FlintJavaThread *threadObj = (FlintJavaThread *)exec->stackPopObject();
     // TODO
-    return throwUnsupportedOperationException(execution, "interrupt0 is not implemented in VM");
+    return throwUnsupportedOperationException(exec, "interrupt0 is not implemented in VM");
 }
 
-static FlintError nativeCurrentThread(FlintExecution &execution) {
-    auto thread = execution.getOnwerThread();
+static FlintError nativeCurrentThread(FlintExecution *exec) {
+    auto thread = exec->getOnwerThread();
     RETURN_IF_ERR(thread.err);
-    execution.stackPushObject(thread.value);
+    exec->stackPushObject(thread.value);
     return ERR_OK;
 }
 
-static FlintError nativeSleep0(FlintExecution &execution) {
+static FlintError nativeSleep0(FlintExecution *exec) {
     uint64_t startTime = FlintAPI::System::getNanoTime() / 1000000;
-    int64_t millis = execution.stackPopInt64();
+    int64_t millis = exec->stackPopInt64();
     while((int64_t)((FlintAPI::System::getNanoTime() / 1000000) - startTime) < (millis - 10)) {
         FlintAPI::Thread::sleep(10);
-        if(execution.hasTerminateRequest())
+        if(exec->hasTerminateRequest())
             return ERR_TERMINATE_REQUEST;
     }
     int64_t remaining = millis - ((FlintAPI::System::getNanoTime() / 1000000) - startTime);

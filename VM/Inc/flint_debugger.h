@@ -129,7 +129,7 @@ private:
     bool dataFrameAppend(uint32_t data);
     bool dataFrameAppend(uint64_t data);
     bool dataFrameAppend(uint8_t *data, uint16_t length);
-    bool dataFrameAppend(const FlintConstUtf8 &utf8);
+    bool dataFrameAppend(FlintConstUtf8 &utf8);
     bool dataFrameFinish(void);
     bool sendRespCode(FlintDbgCmd cmd, FlintDbgRespCode responseCode);
 
@@ -138,7 +138,7 @@ private:
     void responseStackTrace(uint32_t stackIndex);
     void responseExceptionInfo(void);
     void responseLocalVariable(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType);
-    void responseField(FlintJavaObject *obj, const FlintConstUtf8 &fieldName);
+    void responseField(FlintJavaObject *obj, FlintConstUtf8 &fieldName);
     void responseArray(FlintJavaObject *array, uint32_t index, uint32_t length);
     void responseObjSizeAndType(FlintJavaObject *obj);
     void responseOpenFile(char *fileName, FlintFileMode mode);
@@ -164,8 +164,8 @@ private:
     FlintDebugger(const FlintDebugger &) = delete;
     void operator=(const FlintDebugger &) = delete;
 
-    bool addBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor);
-    bool removeBreakPoint(uint32_t pc, const FlintConstUtf8 &className, const FlintConstUtf8 &methodName, const FlintConstUtf8 &descriptor);
+    bool addBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor);
+    bool removeBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor);
 
     void lock(void);
     void unlock(void);

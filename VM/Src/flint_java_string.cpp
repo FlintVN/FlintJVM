@@ -138,7 +138,7 @@ int32_t FlintJavaString::compareTo(FlintJavaString &another) const {
     return 0;
 }
 
-int32_t FlintJavaString::compareTo(const FlintConstUtf8 &utf8) const {
+int32_t FlintJavaString::compareTo(FlintConstUtf8 &utf8) const {
     uint32_t len2 = utf8StrLen(utf8.text);
     if(getLength() != len2)
         return getLength() - len2;
