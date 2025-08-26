@@ -4,7 +4,7 @@
 #include "flint_native_print_stream_class.h"
 
 static FlintError nativeWrite(FlintExecution *exec) {
-    FlintJavaString *str = (FlintJavaString *)exec->stackPopObject();
+    JString *str = (JString *)exec->stackPopObject();
     if(str == 0)
         exec->flint.print("null", 4, 0);
     else

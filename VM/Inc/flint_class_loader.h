@@ -61,9 +61,9 @@ public:
 
     FlintConstUtf8 &getConstUtf8Class(uint16_t poolIndex) const;
     FlintConstUtf8 &getConstUtf8Class(FlintConstPool &constPool) const;
-    FlintResult<FlintJavaClass> getConstClass(FlintConstPool &constPool);
+    FlintResult<JClass> getConstClass(FlintConstPool &constPool);
 
-    FlintResult<FlintJavaString> getConstString(FlintConstPool &constPool);
+    FlintResult<JString> getConstString(FlintConstPool &constPool);
 
     FlintConstUtf8 &getConstMethodType(FlintConstPool &constPool) const;
 

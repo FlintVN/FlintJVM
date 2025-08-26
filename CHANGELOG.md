@@ -69,7 +69,7 @@
 - Fix free ClassData error when FlintClassLoader throws an exception.
 - Workround for ESP32 can't catch exceptions in a top-level of a task.
 - Supports additional methods to create exception objects.
-- Changed CRC calculation algorithm used in FlintJavaString and debugger.
+- Changed CRC calculation algorithm used in JString and debugger.
 - Add SEEK_FILE command in debugger.
 - Fix bug in "lcmp" bytecode instruction.
 - Implement Object.identityHashCode native method.

@@ -14,7 +14,7 @@
 #include "flint_java_double.h"
 #include "flint_throw_support.h"
 
-static FlintError checkIsArray(FlintExecution *exec, FlintJavaObject *obj) {
+static FlintError checkIsArray(FlintExecution *exec, JObject *obj) {
     if(obj == NULL_PTR)
         return throwNullPointerException(exec);
     if(obj->dimensions < 1)
@@ -22,7 +22,7 @@ static FlintError checkIsArray(FlintExecution *exec, FlintJavaObject *obj) {
     return ERR_OK;
 }
 
-static FlintError checkIsClassType(FlintExecution *exec, FlintJavaObject *obj) {
+static FlintError checkIsClassType(FlintExecution *exec, JObject *obj) {
     if(obj == NULL_PTR)
         return throwNullPointerException(exec);
     else if(obj->type != *(FlintConstUtf8 *)classClassName)
@@ -30,7 +30,7 @@ static FlintError checkIsClassType(FlintExecution *exec, FlintJavaObject *obj) {
     return ERR_OK;
 }
 
-static FlintError checkIndex(FlintExecution *exec, FlintJavaObject *obj, int32_t index) {
+static FlintError checkIndex(FlintExecution *exec, JObject *obj, int32_t index) {
     int32_t length = obj->size / obj->parseTypeSize();
     if((index < 0) || (index >= length))
         return throwArrayIndexOutOfBoundsException(exec, index, length);
@@ -43,7 +43,7 @@ static FlintError checkLength(FlintExecution *exec, int32_t size) {
     return ERR_OK;
 }
 
-static FlintError checkDimensions(FlintExecution *exec, FlintInt32Array *dimensions) {
+static FlintError checkDimensions(FlintExecution *exec, JInt32Array *dimensions) {
     if(
         (dimensions == NULL_PTR) ||
         (dimensions->dimensions != 1) ||
@@ -56,15 +56,15 @@ static FlintError checkDimensions(FlintExecution *exec, FlintInt32Array *dimensi
     return ERR_OK;
 }
 
-static FlintError checkIsArrayOfPrimitiveType(FlintExecution *exec, FlintJavaObject *obj) {
+static FlintError checkIsArrayOfPrimitiveType(FlintExecution *exec, JObject *obj) {
     RETURN_IF_ERR(checkIsArray(exec, obj));
-    if((obj->dimensions != 1) || !FlintJavaObject::isPrimType(obj->type))
+    if((obj->dimensions != 1) || !JObject::isPrimType(obj->type))
         return throwIllegalArgumentException(exec, "Argument is not an array of primitive type");
     return ERR_OK;
 }
 
 static FlintError nativeGetLength(FlintExecution *exec) {
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArray(exec, obj));
     exec->stackPushInt32(obj->size / obj->parseTypeSize());
     return ERR_OK;
@@ -72,62 +72,62 @@ static FlintError nativeGetLength(FlintExecution *exec) {
 
 static FlintError nativeGet(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArray(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
-    if(obj->dimensions == 1 && FlintJavaObject::isPrimType(obj->type)) {
+    if(obj->dimensions == 1 && JObject::isPrimType(obj->type)) {
         switch(obj->type.text[0]) {
             case 'B': { /* byte */
-                auto val = exec->flint.newByte(((FlintInt8Array *)obj)->getData()[index]);
+                auto val = exec->flint.newByte(((JInt8Array *)obj)->getData()[index]);
                 if(val.err != ERR_OK)
                     return checkAndThrowForFlintError(exec, val.err, val.getErrorMsg(), val.getErrorMsgLength());
                 exec->stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'Z': { /* boolean */
-                auto val = exec->flint.newBoolean(((FlintInt8Array *)obj)->getData()[index]);
+                auto val = exec->flint.newBoolean(((JInt8Array *)obj)->getData()[index]);
                 if(val.err != ERR_OK)
                     return checkAndThrowForFlintError(exec, val.err, val.getErrorMsg(), val.getErrorMsgLength());
                 exec->stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'C': { /* char */
-                auto val = exec->flint.newCharacter(((FlintInt16Array *)obj)->getData()[index]);
+                auto val = exec->flint.newCharacter(((JInt16Array *)obj)->getData()[index]);
                 if(val.err != ERR_OK)
                     return checkAndThrowForFlintError(exec, val.err, val.getErrorMsg(), val.getErrorMsgLength());
                 exec->stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'S': { /* short */
-                auto val = exec->flint.newShort(((FlintInt16Array *)obj)->getData()[index]);
+                auto val = exec->flint.newShort(((JInt16Array *)obj)->getData()[index]);
                 if(val.err != ERR_OK)
                     return checkAndThrowForFlintError(exec, val.err, val.getErrorMsg(), val.getErrorMsgLength());
                 exec->stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'I': { /* integer */
-                auto val = exec->flint.newInteger(((FlintInt32Array *)obj)->getData()[index]);
+                auto val = exec->flint.newInteger(((JInt32Array *)obj)->getData()[index]);
                 if(val.err != ERR_OK)
                     return checkAndThrowForFlintError(exec, val.err, val.getErrorMsg(), val.getErrorMsgLength());
                 exec->stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'F': { /* float */
-                auto val = exec->flint.newFloat(((FlintFloatArray *)obj)->getData()[index]);
+                auto val = exec->flint.newFloat(((JFloatArray *)obj)->getData()[index]);
                 if(val.err != ERR_OK)
                     return checkAndThrowForFlintError(exec, val.err, val.getErrorMsg(), val.getErrorMsgLength());
                 exec->stackPushObject(val.value);
                 return ERR_OK;
             }
             case 'D': { /* double */
-                auto val = exec->flint.newDouble(((FlintDoubleArray *)obj)->getData()[index]);
+                auto val = exec->flint.newDouble(((JDoubleArray *)obj)->getData()[index]);
                 if(val.err != ERR_OK)
                     return checkAndThrowForFlintError(exec, val.err, val.getErrorMsg(), val.getErrorMsgLength());
                 exec->stackPushObject(val.value);
                 return ERR_OK;
             }
             default: { /* long */
-                auto val = exec->flint.newLong(((FlintInt64Array *)obj)->getData()[index]);
+                auto val = exec->flint.newLong(((JInt64Array *)obj)->getData()[index]);
                 if(val.err != ERR_OK)
                     return checkAndThrowForFlintError(exec, val.err, val.getErrorMsg(), val.getErrorMsgLength());
                 exec->stackPushObject(val.value);
@@ -136,54 +136,54 @@ static FlintError nativeGet(FlintExecution *exec) {
         }
     }
     else {
-        exec->stackPushObject(((FlintObjectArray *)obj)->getData()[index]);
+        exec->stackPushObject(((JObjectArray *)obj)->getData()[index]);
         return ERR_OK;
     }
 }
 
 static FlintError nativeGetBoolean(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     if(obj->type.text[0] != 'Z')
         return throwIllegalArgumentException(exec, "Argument type mismatch");
-    exec->stackPushInt32(((FlintInt8Array *)obj)->getData()[index]);
+    exec->stackPushInt32(((JInt8Array *)obj)->getData()[index]);
     return ERR_OK;
 }
 
 static FlintError nativeGetByte(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     if(obj->type.text[0] != 'B')
         return throwIllegalArgumentException(exec, "Argument type mismatch");
-    exec->stackPushInt32(((FlintInt8Array *)obj)->getData()[index]);
+    exec->stackPushInt32(((JInt8Array *)obj)->getData()[index]);
     return ERR_OK;
 }
 
 static FlintError nativeGetChar(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     if(obj->type.text[0] != 'C')
         return throwIllegalArgumentException(exec, "Argument type mismatch");
-    exec->stackPushInt32(((FlintInt16Array *)obj)->getData()[index]);
+    exec->stackPushInt32(((JInt16Array *)obj)->getData()[index]);
     return ERR_OK;
 }
 
 static FlintError nativeGetShort(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'B': /* byte */
-            exec->stackPushInt32(((FlintInt8Array *)obj)->getData()[index]);
+            exec->stackPushInt32(((JInt8Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'S': /* short */
-            exec->stackPushInt32(((FlintInt16Array *)obj)->getData()[index]);
+            exec->stackPushInt32(((JInt16Array *)obj)->getData()[index]);
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -192,19 +192,19 @@ static FlintError nativeGetShort(FlintExecution *exec) {
 
 static FlintError nativeGetInt(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'B': /* byte */
-            exec->stackPushInt32(((FlintInt8Array *)obj)->getData()[index]);
+            exec->stackPushInt32(((JInt8Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'C': /* char */
         case 'S': /* short */
-            exec->stackPushInt32(((FlintInt16Array *)obj)->getData()[index]);
+            exec->stackPushInt32(((JInt16Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'I': /* integer */
-            exec->stackPushInt32(((FlintInt32Array *)obj)->getData()[index]);
+            exec->stackPushInt32(((JInt32Array *)obj)->getData()[index]);
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -213,22 +213,22 @@ static FlintError nativeGetInt(FlintExecution *exec) {
 
 static FlintError nativeGetLong(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'B': /* byte */
-            exec->stackPushInt64(((FlintInt8Array *)obj)->getData()[index]);
+            exec->stackPushInt64(((JInt8Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'C': /* char */
         case 'S': /* short */
-            exec->stackPushInt64(((FlintInt16Array *)obj)->getData()[index]);
+            exec->stackPushInt64(((JInt16Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'I': /* integer */
-            exec->stackPushInt64(((FlintInt32Array *)obj)->getData()[index]);
+            exec->stackPushInt64(((JInt32Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'J': /* long */
-            exec->stackPushInt64(((FlintInt64Array *)obj)->getData()[index]);
+            exec->stackPushInt64(((JInt64Array *)obj)->getData()[index]);
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -237,25 +237,25 @@ static FlintError nativeGetLong(FlintExecution *exec) {
 
 static FlintError nativeGetFloat(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'B': /* byte */
-            exec->stackPushFloat(((FlintInt8Array *)obj)->getData()[index]);
+            exec->stackPushFloat(((JInt8Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'C': /* char */
         case 'S': /* short */
-            exec->stackPushFloat(((FlintInt16Array *)obj)->getData()[index]);
+            exec->stackPushFloat(((JInt16Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'I': /* integer */
-            exec->stackPushFloat(((FlintInt32Array *)obj)->getData()[index]);
+            exec->stackPushFloat(((JInt32Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'F': /* float */
-            exec->stackPushFloat(((FlintFloatArray *)obj)->getData()[index]);
+            exec->stackPushFloat(((JFloatArray *)obj)->getData()[index]);
             return ERR_OK;
         case 'J': /* long */
-            exec->stackPushFloat(((FlintInt64Array *)obj)->getData()[index]);
+            exec->stackPushFloat(((JInt64Array *)obj)->getData()[index]);
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -264,28 +264,28 @@ static FlintError nativeGetFloat(FlintExecution *exec) {
 
 static FlintError nativeGetDouble(FlintExecution *exec) {
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'B': /* byte */
-            exec->stackPushDouble(((FlintInt8Array *)obj)->getData()[index]);
+            exec->stackPushDouble(((JInt8Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'C': /* char */
         case 'S': /* short */
-            exec->stackPushDouble(((FlintInt16Array *)obj)->getData()[index]);
+            exec->stackPushDouble(((JInt16Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'I': /* integer */
-            exec->stackPushDouble(((FlintInt32Array *)obj)->getData()[index]);
+            exec->stackPushDouble(((JInt32Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'F': /* float */
-            exec->stackPushDouble(((FlintFloatArray *)obj)->getData()[index]);
+            exec->stackPushDouble(((JFloatArray *)obj)->getData()[index]);
             return ERR_OK;
         case 'J': /* long */
-            exec->stackPushDouble(((FlintInt64Array *)obj)->getData()[index]);
+            exec->stackPushDouble(((JInt64Array *)obj)->getData()[index]);
             return ERR_OK;
         case 'D': /* double */
-            exec->stackPushDouble(((FlintDoubleArray *)obj)->getData()[index]);
+            exec->stackPushDouble(((JDoubleArray *)obj)->getData()[index]);
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -293,104 +293,104 @@ static FlintError nativeGetDouble(FlintExecution *exec) {
 }
 
 static FlintError nativeSet(FlintExecution *exec) {
-    FlintJavaObject *value = exec->stackPopObject();
+    JObject *value = exec->stackPopObject();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArray(exec, obj));
-    if((obj->dimensions == 1) && (FlintJavaObject::isPrimType(obj->type))) {
+    if((obj->dimensions == 1) && (JObject::isPrimType(obj->type))) {
         if((!value) || (value->dimensions != 0))
             return throwIllegalArgumentException(exec, "Argument type mismatch");
         switch(obj->type.text[0]) {
             case 'Z': { /* boolean */
                 if(value->type == *(FlintConstUtf8 *)booleanClassName) {
-                    ((FlintInt8Array *)obj)->getData()[index] = (int8_t)((FlintJavaBoolean *)value)->getValue();
+                    ((JInt8Array *)obj)->getData()[index] = (int8_t)((FlintJavaBoolean *)value)->getValue();
                     return ERR_OK;
                 }
                 return throwIllegalArgumentException(exec, "Argument type mismatch");
             }
             case 'B': { /* byte */
                 if(value->type == *(FlintConstUtf8 *)byteClassName) {
-                    ((FlintInt8Array *)obj)->getData()[index] = (int8_t)((FlintJavaByte *)value)->getValue();
+                    ((JInt8Array *)obj)->getData()[index] = (int8_t)((FlintJavaByte *)value)->getValue();
                     return ERR_OK;
                 }
                 return throwIllegalArgumentException(exec, "Argument type mismatch");
             }
             case 'C': { /* char */
                 if(value->type == *(FlintConstUtf8 *)characterClassName) {
-                    ((FlintInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaCharacter *)value)->getValue();
+                    ((JInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaCharacter *)value)->getValue();
                     return ERR_OK;
                 }
                 return throwIllegalArgumentException(exec, "Argument type mismatch");
             }
             case 'S': { /* short */
                 if(value->type == *(FlintConstUtf8 *)byteClassName)
-                    ((FlintInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaByte *)value)->getValue();
+                    ((JInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaByte *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)shortClassName)
-                    ((FlintInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaShort *)value)->getValue();
+                    ((JInt16Array *)obj)->getData()[index] = (int8_t)((FlintJavaShort *)value)->getValue();
                 else
                     return throwIllegalArgumentException(exec, "Argument type mismatch");
                 return ERR_OK;
             }
             case 'I': { /* integer */
                 if(value->type == *(FlintConstUtf8 *)byteClassName)
-                    ((FlintInt32Array *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
+                    ((JInt32Array *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)characterClassName)
-                    ((FlintInt32Array *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
+                    ((JInt32Array *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)shortClassName)
-                    ((FlintInt32Array *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
+                    ((JInt32Array *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)integerClassName)
-                    ((FlintInt32Array *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
+                    ((JInt32Array *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
                 else
                     return throwIllegalArgumentException(exec, "Argument type mismatch");
                 return ERR_OK;
             }
             case 'F': { /* float */
                 if(value->type == *(FlintConstUtf8 *)byteClassName)
-                    ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
+                    ((JFloatArray *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)characterClassName)
-                    ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
+                    ((JFloatArray *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)shortClassName)
-                    ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
+                    ((JFloatArray *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)integerClassName)
-                    ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
+                    ((JFloatArray *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)floatClassName)
-                    ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaFloat *)value)->getValue();
+                    ((JFloatArray *)obj)->getData()[index] = ((FlintJavaFloat *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)longClassName)
-                    ((FlintFloatArray *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
+                    ((JFloatArray *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
                 else
                     return throwIllegalArgumentException(exec, "Argument type mismatch");
                 return ERR_OK;
             }
             case 'D': { /* double */
                 if(value->type == *(FlintConstUtf8 *)byteClassName)
-                    ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
+                    ((JDoubleArray *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)characterClassName)
-                    ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
+                    ((JDoubleArray *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)shortClassName)
-                    ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
+                    ((JDoubleArray *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)integerClassName)
-                    ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
+                    ((JDoubleArray *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)floatClassName)
-                    ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaFloat *)value)->getValue();
+                    ((JDoubleArray *)obj)->getData()[index] = ((FlintJavaFloat *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)longClassName)
-                    ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
+                    ((JDoubleArray *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)doubleClassName)
-                    ((FlintDoubleArray *)obj)->getData()[index] = ((FlintJavaDouble *)value)->getValue();
+                    ((JDoubleArray *)obj)->getData()[index] = ((FlintJavaDouble *)value)->getValue();
                 else
                     return throwIllegalArgumentException(exec, "Argument type mismatch");
                 return ERR_OK;
             }
             default: { /* long */
                 if(value->type == *(FlintConstUtf8 *)byteClassName)
-                    ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
+                    ((JInt64Array *)obj)->getData()[index] = ((FlintJavaByte *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)characterClassName)
-                    ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
+                    ((JInt64Array *)obj)->getData()[index] = ((FlintJavaCharacter *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)shortClassName)
-                    ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
+                    ((JInt64Array *)obj)->getData()[index] = ((FlintJavaShort *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)integerClassName)
-                    ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
+                    ((JInt64Array *)obj)->getData()[index] = ((FlintJavaInteger *)value)->getValue();
                 else if(value->type == *(FlintConstUtf8 *)longClassName)
-                    ((FlintInt64Array *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
+                    ((JInt64Array *)obj)->getData()[index] = ((FlintJavaLong *)value)->getValue();
                 else
                     return throwIllegalArgumentException(exec, "Argument type mismatch");
                 return ERR_OK;
@@ -399,7 +399,7 @@ static FlintError nativeSet(FlintExecution *exec) {
     }
     else {
         RETURN_IF_ERR(checkIndex(exec, obj, index));
-        ((FlintObjectArray *)obj)->getData()[index] = value;
+        ((JObjectArray *)obj)->getData()[index] = value;
         return ERR_OK;
     }
 }
@@ -407,39 +407,39 @@ static FlintError nativeSet(FlintExecution *exec) {
 static FlintError nativeSetBoolean(FlintExecution *exec) {
     int8_t value = exec->stackPopInt32();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     if(obj->type.text[0] != 'Z')
         return throwIllegalArgumentException(exec, "Argument type mismatch");
-    ((FlintInt8Array *)obj)->getData()[index] = !!value;
+    ((JInt8Array *)obj)->getData()[index] = !!value;
     return ERR_OK;
 }
 
 static FlintError nativeSetByte(FlintExecution *exec) {
     int8_t value = exec->stackPopInt32();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'B': /* byte */
-            ((FlintInt8Array *)obj)->getData()[index] = value;
+            ((JInt8Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'S': /* short */
-            ((FlintInt16Array *)obj)->getData()[index] = value;
+            ((JInt16Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'I': /* integer */
-            ((FlintInt32Array *)obj)->getData()[index] = value;
+            ((JInt32Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'F': /* float */
-            ((FlintFloatArray *)obj)->getData()[index] = value;
+            ((JFloatArray *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'J': /* long */
-            ((FlintInt64Array *)obj)->getData()[index] = value;
+            ((JInt64Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'D': /* double */
-            ((FlintDoubleArray *)obj)->getData()[index] = value;
+            ((JDoubleArray *)obj)->getData()[index] = value;
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -449,24 +449,24 @@ static FlintError nativeSetByte(FlintExecution *exec) {
 static FlintError nativeSetChar(FlintExecution *exec) {
     int16_t value = exec->stackPopInt32();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'C': /* char */
-            ((FlintInt16Array *)obj)->getData()[index] = value;
+            ((JInt16Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'I': /* integer */
-            ((FlintInt32Array *)obj)->getData()[index] = value;
+            ((JInt32Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'F': /* float */
-            ((FlintFloatArray *)obj)->getData()[index] = value;
+            ((JFloatArray *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'J': /* long */
-            ((FlintInt64Array *)obj)->getData()[index] = value;
+            ((JInt64Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'D': /* double */
-            ((FlintDoubleArray *)obj)->getData()[index] = value;
+            ((JDoubleArray *)obj)->getData()[index] = value;
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -476,24 +476,24 @@ static FlintError nativeSetChar(FlintExecution *exec) {
 static FlintError nativeSetShort(FlintExecution *exec) {
     int16_t value = exec->stackPopInt32();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'S': /* short */
-            ((FlintInt16Array *)obj)->getData()[index] = value;
+            ((JInt16Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'I': /* integer */
-            ((FlintInt32Array *)obj)->getData()[index] = value;
+            ((JInt32Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'F': /* float */
-            ((FlintFloatArray *)obj)->getData()[index] = value;
+            ((JFloatArray *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'J': /* long */
-            ((FlintInt64Array *)obj)->getData()[index] = value;
+            ((JInt64Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'D': /* double */
-            ((FlintDoubleArray *)obj)->getData()[index] = value;
+            ((JDoubleArray *)obj)->getData()[index] = value;
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -503,21 +503,21 @@ static FlintError nativeSetShort(FlintExecution *exec) {
 static FlintError nativeSetInt(FlintExecution *exec) {
     int32_t value = exec->stackPopInt32();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'I': /* integer */
-            ((FlintInt32Array *)obj)->getData()[index] = value;
+            ((JInt32Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'F': /* float */
-            ((FlintFloatArray *)obj)->getData()[index] = value;
+            ((JFloatArray *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'J': /* long */
-            ((FlintInt64Array *)obj)->getData()[index] = value;
+            ((JInt64Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'D': /* double */
-            ((FlintDoubleArray *)obj)->getData()[index] = value;
+            ((JDoubleArray *)obj)->getData()[index] = value;
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -527,18 +527,18 @@ static FlintError nativeSetInt(FlintExecution *exec) {
 static FlintError nativeSetLong(FlintExecution *exec) {
     int64_t value = exec->stackPopInt64();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'F': /* float */
-            ((FlintFloatArray *)obj)->getData()[index] = value;
+            ((JFloatArray *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'J': /* long */
-            ((FlintInt64Array *)obj)->getData()[index] = value;
+            ((JInt64Array *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'D': /* double */
-            ((FlintDoubleArray *)obj)->getData()[index] = value;
+            ((JDoubleArray *)obj)->getData()[index] = value;
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -548,15 +548,15 @@ static FlintError nativeSetLong(FlintExecution *exec) {
 static FlintError nativeSetFloat(FlintExecution *exec) {
     float value = exec->stackPopFloat();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     switch(obj->type.text[0]) {
         case 'F': /* float */
-            ((FlintFloatArray *)obj)->getData()[index] = value;
+            ((JFloatArray *)obj)->getData()[index] = value;
             return ERR_OK;
         case 'D': /* double */
-            ((FlintDoubleArray *)obj)->getData()[index] = value;
+            ((JDoubleArray *)obj)->getData()[index] = value;
             return ERR_OK;
         default:
             return throwIllegalArgumentException(exec, "Argument type mismatch");
@@ -566,18 +566,18 @@ static FlintError nativeSetFloat(FlintExecution *exec) {
 static FlintError nativeSetDouble(FlintExecution *exec) {
     double value = exec->stackPopDouble();
     int32_t index = exec->stackPopInt32();
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     RETURN_IF_ERR(checkIsArrayOfPrimitiveType(exec, obj));
     RETURN_IF_ERR(checkIndex(exec, obj, index));
     if(obj->type.text[0] != 'D')
         return throwIllegalArgumentException(exec, "Argument type mismatch");
-    ((FlintDoubleArray *)obj)->getData()[index] = value;
+    ((JDoubleArray *)obj)->getData()[index] = value;
     return ERR_OK;
 }
 
 static FlintError nativeNewArray(FlintExecution *exec) {
     int32_t length = exec->stackPopInt32();
-    FlintJavaClass *componentType = (FlintJavaClass *)exec->stackPopObject();
+    JClass *componentType = (JClass *)exec->stackPopObject();
     RETURN_IF_ERR(checkIsClassType(exec, componentType));
     RETURN_IF_ERR(checkLength(exec, length));
     uint32_t dimensions;
@@ -586,8 +586,8 @@ static FlintError nativeNewArray(FlintExecution *exec) {
         return checkAndThrowForFlintError(exec, typeName.err, typeName.getErrorMsg(), typeName.getErrorMsgLength());
     if(typeName.value == (FlintConstUtf8 *)voidPrimTypeName) /* void */
         return throwIllegalArgumentException(exec);
-    uint8_t atype = FlintJavaObject::isPrimType(*typeName.value);
-    uint8_t typeSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
+    uint8_t atype = JObject::isPrimType(*typeName.value);
+    uint8_t typeSize = atype ? JObject::getPrimitiveTypeSize(atype) : sizeof(JObject *);
     auto array = exec->flint.newObject(typeSize * length, typeName.value, dimensions + 1);
     if(array.err != ERR_OK)
         return checkAndThrowForFlintError(exec, array.err, array.getErrorMsg(), array.getErrorMsgLength());
@@ -597,8 +597,8 @@ static FlintError nativeNewArray(FlintExecution *exec) {
 }
 
 static FlintError nativeMultiNewArray(FlintExecution *exec) {
-    FlintInt32Array *dimensions = (FlintInt32Array *)exec->stackPopObject();
-    FlintJavaClass *componentType = (FlintJavaClass *)exec->stackPopObject();
+    JInt32Array *dimensions = (JInt32Array *)exec->stackPopObject();
+    JClass *componentType = (JClass *)exec->stackPopObject();
     RETURN_IF_ERR(checkIsClassType(exec, componentType));
     RETURN_IF_ERR(checkDimensions(exec, dimensions));
     uint32_t endDims;

@@ -4,7 +4,7 @@
 
 #include "flint_java_object.h"
 
-class FlintJavaDouble : public FlintJavaObject {
+class FlintJavaDouble : public JObject {
 public:
     double getValue(void) const;
     void setValue(double value);

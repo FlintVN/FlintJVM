@@ -4,7 +4,7 @@
 
 #include "flint_java_object.h"
 
-class FlintJavaBoolean : public FlintJavaObject {
+class FlintJavaBoolean : public JObject {
 public:
     bool getValue(void) const;
     void setValue(bool value);

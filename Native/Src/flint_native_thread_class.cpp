@@ -14,15 +14,15 @@ static const uint32_t runnableRunFieldName[] = {
 
 static FlintError nativeStart0(FlintExecution *exec) {
     Flint &flint = exec->flint;
-    FlintJavaThread *threadObj = (FlintJavaThread *)exec->stackPopObject();
-    FlintJavaObject *task = threadObj->getTask();
+    JThread *threadObj = (JThread *)exec->stackPopObject();
+    JObject *task = threadObj->getTask();
     auto threadExecution = flint.newExecution(threadObj);
     RETURN_IF_ERR(threadExecution.err);
     if(task == 0)
         task = threadObj;
     threadExecution.value->stackPushObject(task);
 
-    auto loader = flint.load(task->type);
+    auto loader = flint.load(task->type.text);
     if(loader.err != ERR_OK)
         return checkAndThrowForFlintError(exec, loader.err, &task->type);
     auto method = loader.value->getMethodInfo(*(FlintConstNameAndType *)runnableRunFieldName);
@@ -45,7 +45,7 @@ static FlintError nativeYield0(FlintExecution *exec) {
 }
 
 static FlintError nativeInterrupt0(FlintExecution *exec) {
-    FlintJavaThread *threadObj = (FlintJavaThread *)exec->stackPopObject();
+    JThread *threadObj = (JThread *)exec->stackPopObject();
     // TODO
     return throwUnsupportedOperationException(exec, "interrupt0 is not implemented in VM");
 }

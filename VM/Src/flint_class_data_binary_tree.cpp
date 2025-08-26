@@ -164,15 +164,15 @@ FlintClassData *FlintClassDataBinaryTree::find(FlintConstUtf8 &utf8) const {
     return NULL_PTR;
 }
 
-void FlintClassDataBinaryTree::forEach(FlintClassData *node, void (*func)(FlintClassData &item)) {
+void FlintClassDataBinaryTree::forEach(FlintClassData *node, void (*func)(FlintClassData *item)) {
     if(node) {
         forEach(node->left, func);
         forEach(node->right, func);
-        func(*node);
+        func(node);
     }
 }
 
-void FlintClassDataBinaryTree::forEach(void (*func)(FlintClassData &)) {
+void FlintClassDataBinaryTree::forEach(void (*func)(FlintClassData *)) {
     forEach(root, func);
 }
 

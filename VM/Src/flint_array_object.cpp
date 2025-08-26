@@ -2,86 +2,86 @@
 #include <string.h>
 #include "flint_array_object.h"
 
-uint32_t FlintInt8Array::getLength(void) const {
+uint32_t JInt8Array::getLength(void) const {
     return size;
 }
 
-int8_t *FlintInt8Array::getData(void) const {
+int8_t *JInt8Array::getData(void) const {
     return (int8_t *)data;
 }
 
-void FlintInt8Array::clearData(void) {
+void JInt8Array::clearData(void) {
     memset(data, 0, size);
 }
 
-uint32_t FlintInt16Array::getLength(void) const {
+uint32_t JInt16Array::getLength(void) const {
     return size / sizeof(int16_t);
 }
 
-int16_t *FlintInt16Array::getData(void) const {
+int16_t *JInt16Array::getData(void) const {
     return (int16_t *)data;
 }
 
-void FlintInt16Array::clearData(void) {
+void JInt16Array::clearData(void) {
     memset(data, 0, size);
 }
 
-uint32_t FlintInt32Array::getLength(void) const {
+uint32_t JInt32Array::getLength(void) const {
     return size / sizeof(uint32_t);
 }
 
-int32_t *FlintInt32Array::getData(void) const {
+int32_t *JInt32Array::getData(void) const {
     return (int32_t *)data;
 }
 
-void FlintInt32Array::clearData(void) {
+void JInt32Array::clearData(void) {
     memset(data, 0, size);
 }
 
-uint32_t FlintFloatArray::getLength(void) const {
+uint32_t JFloatArray::getLength(void) const {
     return size / sizeof(float);
 }
 
-float *FlintFloatArray::getData(void) const {
+float *JFloatArray::getData(void) const {
     return (float *)data;
 }
 
-void FlintFloatArray::clearData(void) {
+void JFloatArray::clearData(void) {
     memset(data, 0, size);
 }
 
-uint32_t FlintInt64Array::getLength(void) const {
+uint32_t JInt64Array::getLength(void) const {
     return size / sizeof(int64_t);
 }
 
-int64_t *FlintInt64Array::getData(void) const {
+int64_t *JInt64Array::getData(void) const {
     return (int64_t *)data;
 }
 
-void FlintInt64Array::clearData(void) {
+void JInt64Array::clearData(void) {
     memset(data, 0, size);
 }
 
-uint32_t FlintDoubleArray::getLength(void) const {
+uint32_t JDoubleArray::getLength(void) const {
     return size / sizeof(double);
 }
 
-double *FlintDoubleArray::getData(void) const {
+double *JDoubleArray::getData(void) const {
     return (double *)data;
 }
 
-void FlintDoubleArray::clearData(void) {
+void JDoubleArray::clearData(void) {
     memset(data, 0, size);
 }
 
-uint32_t FlintObjectArray::getLength(void) const {
-    return size / sizeof(FlintJavaObject);
+uint32_t JObjectArray::getLength(void) const {
+    return size / sizeof(JObject);
 }
 
-FlintJavaObject **FlintObjectArray::getData(void) const {
-    return (FlintJavaObject **)data;
+JObject **JObjectArray::getData(void) const {
+    return (JObject **)data;
 }
 
-void FlintObjectArray::clearData(void) {
+void JObjectArray::clearData(void) {
     memset(data, 0, size);
 }

@@ -4,7 +4,7 @@
 #include "flint.h"
 #include "flint_string_binary_tree.h"
 
-FlintStringBinaryTree::FlintStringNode::FlintStringNode(FlintJavaString &value) : left(NULL_PTR), right(NULL_PTR), height(1), value(value) {
+FlintStringBinaryTree::FlintStringNode::FlintStringNode(JString *value) : left(NULL_PTR), right(NULL_PTR), height(1), value(value) {
 
 }
 
@@ -78,14 +78,14 @@ FlintStringBinaryTree::FlintStringNode *FlintStringBinaryTree::balance(FlintStri
     return node;
 }
 
-FlintStringBinaryTree::FlintStringNode *FlintStringBinaryTree::insert(FlintStringNode *rootNode, FlintJavaString &value) {
+FlintStringBinaryTree::FlintStringNode *FlintStringBinaryTree::insert(FlintStringNode *rootNode, JString *value) {
     if(!rootNode) {
         FlintStringNode *stringNode = (FlintStringNode *)Flint::malloc(sizeof(FlintStringNode));
         if(stringNode)
             new (stringNode)FlintStringNode(value);
         return stringNode;
     }
-    int8_t compareResult = value.compareTo(rootNode->value);
+    int8_t compareResult = value->compareTo(rootNode->value);
     if(compareResult < 0) {
         FlintStringNode *node = insert(rootNode->left, value);
         if(node == NULL_PTR)
@@ -103,20 +103,20 @@ FlintStringBinaryTree::FlintStringNode *FlintStringBinaryTree::insert(FlintStrin
     return balance(rootNode);
 }
 
-FlintResult<FlintJavaString> FlintStringBinaryTree::add(FlintJavaString &value) {
+FlintResult<JString> FlintStringBinaryTree::add(JString *value) {
     FlintStringNode *node = insert(root, value);
     if(node == NULL_PTR)
         return ERR_OUT_OF_MEMORY;
     root = node;
-    return &value;
+    return value;
 }
 
-FlintJavaString *FlintStringBinaryTree::find(FlintJavaString &value) const {
+JString *FlintStringBinaryTree::find(JString *value) const {
     FlintStringNode *node = root;
     while(node) {
-        int8_t compareResult = value.compareTo(node->value);
+        int8_t compareResult = value->compareTo(node->value);
         if(compareResult == 0)
-            return &node->value;
+            return node->value;
         else if(compareResult > 0)
             node = node->right;
         else
@@ -125,12 +125,12 @@ FlintJavaString *FlintStringBinaryTree::find(FlintJavaString &value) const {
     return NULL_PTR;
 }
 
-FlintJavaString *FlintStringBinaryTree::find(FlintConstUtf8 &utf8) const {
+JString *FlintStringBinaryTree::find(FlintConstUtf8 &utf8) const {
     FlintStringNode *node = root;
     while(node) {
-        int8_t compareResult = node->value.compareTo(utf8);
+        int8_t compareResult = node->value->compareTo(utf8);
         if(compareResult == 0)
-            return &node->value;
+            return node->value;
         else if(compareResult < 0)
             node = node->right;
         else
@@ -139,7 +139,7 @@ FlintJavaString *FlintStringBinaryTree::find(FlintConstUtf8 &utf8) const {
     return NULL_PTR;
 }
 
-void FlintStringBinaryTree::forEach(FlintStringNode *node, void (*func)(FlintJavaString &item)) {
+void FlintStringBinaryTree::forEach(FlintStringNode *node, void (*func)(JString *item)) {
     if(node) {
         forEach(node->left, func);
         forEach(node->right, func);
@@ -147,7 +147,7 @@ void FlintStringBinaryTree::forEach(FlintStringNode *node, void (*func)(FlintJav
     }
 }
 
-void FlintStringBinaryTree::forEach(void (*func)(FlintJavaString &)) {
+void FlintStringBinaryTree::forEach(void (*func)(JString *)) {
     forEach(root, func);
 }
 

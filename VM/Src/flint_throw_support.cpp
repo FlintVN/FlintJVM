@@ -4,7 +4,7 @@
 #include "flint_throw_support.h"
 
 static FlintError throwThrowable(FlintExecution *exec, FlintConstUtf8 *excpType, const char *msg, uint32_t len = 0) {
-    FlintJavaString *strObj = NULL_PTR;
+    JString *strObj = NULL_PTR;
     if(msg) {
         if(len == 0)
             len = strlen(msg);
@@ -24,7 +24,7 @@ static FlintError throwThrowable(FlintExecution *exec, FlintConstUtf8 *excpType,
     return ERR_THROW;
 }
 
-static FlintError throwThrowable(FlintExecution *exec, FlintConstUtf8 *excpType, FlintJavaString *str) {
+static FlintError throwThrowable(FlintExecution *exec, FlintConstUtf8 *excpType, JString *str) {
     auto excp = exec->flint.newThrowable(str, excpType);
     RETURN_IF_ERR(excp.err);
     exec->stackPushObject(excp.value);
@@ -90,9 +90,9 @@ FlintError throwErrorException(FlintExecution *exec, const char *msg, uint32_t l
     return checkAndThrowForFlintError(exec, err, (FlintConstUtf8 *)errorClassName);
 }
 
-FlintError throwClassCastException(FlintExecution *exec, FlintJavaObject *obj, FlintConstUtf8 &type) {
+FlintError throwClassCastException(FlintExecution *exec, JObject *obj, FlintConstUtf8 &type) {
     uint32_t strLen = strlen("Class '") + obj->dimensions + obj->type.length + strlen("' cannot be cast to class '") + type.length + strlen("'");
-    bool isPrimType = FlintJavaObject::isPrimType(obj->type);
+    bool isPrimType = JObject::isPrimType(obj->type);
     if(!isPrimType)
         strLen += 2;
 
@@ -178,7 +178,7 @@ FlintError throwClassNotFoundException(FlintExecution *exec, const char *msg, ui
     return checkAndThrowForFlintError(exec, err, (FlintConstUtf8 *)classNotFoundExceptionClassName);
 }
 
-FlintError throwClassNotFoundException(FlintExecution *exec, FlintJavaString *str) {
+FlintError throwClassNotFoundException(FlintExecution *exec, JString *str) {
     FlintError err = throwThrowable(exec, (FlintConstUtf8 *)classNotFoundExceptionClassName, str);
     return checkAndThrowForFlintError(exec, err, (FlintConstUtf8 *)classNotFoundExceptionClassName);
 }

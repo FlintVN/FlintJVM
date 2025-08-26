@@ -10,7 +10,7 @@
 
 typedef struct {
     FlintConstUtf8 *constUtf8Class;
-    FlintJavaClass *constClass;
+    JClass *constClass;
 } ConstClassValue;
 
 static void *ClassLoader_Open(const char *fileName, uint32_t length) {
@@ -413,7 +413,7 @@ FlintConstUtf8 &FlintClassLoader::getConstUtf8Class(FlintConstPool &constPool) c
     return *((ConstClassValue *)constPool.value)->constUtf8Class;
 }
 
-FlintResult<FlintJavaClass> FlintClassLoader::getConstClass(FlintConstPool &constPool) {
+FlintResult<JClass> FlintClassLoader::getConstClass(FlintConstPool &constPool) {
     if(constPool.tag & 0x80) {
         Flint::lock();
         if(constPool.tag & 0x80) {
@@ -438,7 +438,7 @@ FlintResult<FlintJavaClass> FlintClassLoader::getConstClass(FlintConstPool &cons
     return ((ConstClassValue *)constPool.value)->constClass;
 }
 
-FlintResult<FlintJavaString> FlintClassLoader::getConstString(FlintConstPool &constPool) {
+FlintResult<JString> FlintClassLoader::getConstString(FlintConstPool &constPool) {
     if(constPool.tag & 0x80) {
         Flint::lock();
         if(constPool.tag & 0x80) {
@@ -453,7 +453,7 @@ FlintResult<FlintJavaString> FlintClassLoader::getConstString(FlintConstPool &co
         }
         Flint::unlock();
     }
-    return (FlintJavaString *)constPool.value;
+    return (JString *)constPool.value;
 }
 
 FlintConstUtf8 &FlintClassLoader::getConstMethodType(FlintConstPool &constPool) const {

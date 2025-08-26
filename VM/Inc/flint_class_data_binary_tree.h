@@ -53,7 +53,7 @@ private:
     static FlintClassData *balance(FlintClassData *node);
     static FlintClassData *insert(FlintClassData *rootNode, FlintClassData &classData);
 
-    void forEach(FlintClassData *node, void (*func)(FlintClassData &item));
+    void forEach(FlintClassData *node, void (*func)(FlintClassData *item));
     void freeNode(FlintClassData *node);
 public:
     FlintClassDataBinaryTree(void);
@@ -63,7 +63,7 @@ public:
     FlintClassData *find(const char *className, uint16_t length) const;
     FlintClassData *find(FlintConstUtf8 &utf8) const;
 
-    void forEach(void (*func)(FlintClassData &));
+    void forEach(void (*func)(FlintClassData *));
     void clear(void);
 };
 

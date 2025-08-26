@@ -4,7 +4,7 @@
 #include "flint.h"
 #include "flint_class_binary_tree.h"
 
-FlintClassBinaryTree::FlintClassNode::FlintClassNode(FlintJavaClass &value) : left(NULL_PTR), right(NULL_PTR), height(0), value(value) {
+FlintClassBinaryTree::FlintClassNode::FlintClassNode(JClass *value) : left(NULL_PTR), right(NULL_PTR), height(0), value(value) {
 
 }
 
@@ -78,14 +78,14 @@ FlintClassBinaryTree::FlintClassNode *FlintClassBinaryTree::balance(FlintClassNo
     return node;
 }
 
-FlintClassBinaryTree::FlintClassNode *FlintClassBinaryTree::insert(FlintClassNode *rootNode, FlintJavaClass &value) {
+FlintClassBinaryTree::FlintClassNode *FlintClassBinaryTree::insert(FlintClassNode *rootNode, JClass *value) {
     if(!rootNode) {
         FlintClassNode *classNode = (FlintClassNode *)Flint::malloc(sizeof(FlintClassNode));
         if(classNode)
             new (classNode)FlintClassNode(value);
         return classNode;
     }
-    int8_t compareResult = value.getName().compareTo(rootNode->value.getName());
+    int8_t compareResult = value->getName()->compareTo(rootNode->value->getName());
     if(compareResult < 0) {
         FlintClassNode *node = insert(rootNode->left, value);
         if(node)
@@ -103,7 +103,7 @@ FlintClassBinaryTree::FlintClassNode *FlintClassBinaryTree::insert(FlintClassNod
     return balance(rootNode);
 }
 
-FlintResult<void> FlintClassBinaryTree::add(FlintJavaClass &value) {
+FlintResult<void> FlintClassBinaryTree::add(JClass *value) {
     FlintClassNode *node = insert(root, value);
     if(node == NULL_PTR)
         return ERR_OUT_OF_MEMORY;
@@ -111,12 +111,12 @@ FlintResult<void> FlintClassBinaryTree::add(FlintJavaClass &value) {
     return ERR_OK;
 }
 
-static int32_t compareClassName(const char *typeName1, uint16_t length, FlintJavaString &typeName2) {
-    if(length != typeName2.getLength())
-        return length - typeName2.getLength();
-    if(typeName2.getCoder() != 0)
+static int32_t compareClassName(const char *typeName1, uint16_t length, JString *typeName2) {
+    if(length != typeName2->getLength())
+        return length - typeName2->getLength();
+    if(typeName2->getCoder() != 0)
         return -1;
-    const char *value = typeName2.getText();
+    const char *value = typeName2->getText();
     for(uint32_t i = 0; i < length; i++) {
         char c = (typeName1[i] == '/') ? '.' : typeName1[i];
         if(c != value[i])
@@ -125,12 +125,12 @@ static int32_t compareClassName(const char *typeName1, uint16_t length, FlintJav
     return 0;
 }
 
-FlintJavaClass *FlintClassBinaryTree::find(const char *text, uint16_t length) const {
+JClass *FlintClassBinaryTree::find(const char *text, uint16_t length) const {
     FlintClassNode *node = root;
     while(node) {
-        int8_t compareResult = compareClassName(text, length, node->value.getName());
+        int8_t compareResult = compareClassName(text, length, node->value->getName());
         if(compareResult == 0)
-            return &node->value;
+            return node->value;
         else if(compareResult > 0)
             node = node->right;
         else
@@ -139,12 +139,12 @@ FlintJavaClass *FlintClassBinaryTree::find(const char *text, uint16_t length) co
     return NULL_PTR;
 }
 
-FlintJavaClass *FlintClassBinaryTree::find(FlintJavaString &str) const {
+JClass *FlintClassBinaryTree::find(JString *str) const {
     FlintClassNode *node = root;
     while(node) {
-        int8_t compareResult = str.compareTo(node->value.getName());
+        int8_t compareResult = str->compareTo(node->value->getName());
         if(compareResult == 0)
-            return &node->value;
+            return node->value;
         else if(compareResult > 0)
             node = node->right;
         else
@@ -153,7 +153,7 @@ FlintJavaClass *FlintClassBinaryTree::find(FlintJavaString &str) const {
     return NULL_PTR;
 }
 
-void FlintClassBinaryTree::forEach(FlintClassNode *node, void (*func)(FlintJavaClass &item)) {
+void FlintClassBinaryTree::forEach(FlintClassNode *node, void (*func)(JClass *item)) {
     if(node) {
         forEach(node->left, func);
         forEach(node->right, func);
@@ -161,7 +161,7 @@ void FlintClassBinaryTree::forEach(FlintClassNode *node, void (*func)(FlintJavaC
     }
 }
 
-void FlintClassBinaryTree::forEach(void (*func)(FlintJavaClass &)) {
+void FlintClassBinaryTree::forEach(void (*func)(JClass *)) {
     forEach(root, func);
 }
 

@@ -4,7 +4,7 @@
 
 #include "flint_java_object.h"
 
-class FlintJavaInteger : public FlintJavaObject {
+class FlintJavaInteger : public JObject {
 public:
     int32_t getValue(void) const;
     void setValue(int32_t value);

@@ -6,7 +6,7 @@
 FlintError throwException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
 FlintError throwIOException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
 FlintError throwErrorException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
-FlintError throwClassCastException(FlintExecution *exec, FlintJavaObject *obj, FlintConstUtf8 &type);
+FlintError throwClassCastException(FlintExecution *exec, JObject *obj, FlintConstUtf8 &type);
 FlintError throwArrayStoreException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
 FlintError throwArithmeticException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
 FlintError throwNullPointerException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
@@ -14,7 +14,7 @@ FlintError throwNullPointerException(FlintExecution *exec, FlintConstMethod *con
 FlintError throwNullPointerException(FlintExecution *exec, FlintConstField *constField);
 FlintError throwInterruptedException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
 FlintError throwClassNotFoundException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
-FlintError throwClassNotFoundException(FlintExecution *exec, FlintJavaString *str);
+FlintError throwClassNotFoundException(FlintExecution *exec, JString *str);
 FlintError throwIllegalArgumentException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
 FlintError throwCloneNotSupportedException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);
 FlintError throwNegativeArraySizeException(FlintExecution *exec, const char *msg = 0, uint32_t length = 0);

@@ -117,7 +117,7 @@ FlintResult<FlintClassLoader> FlintFieldsData::loadNonStatic(Flint &flint, Flint
         FlintConstUtf8 *superClass = loader->superClass;
         if(!superClass)
             break;
-        auto tmp = flint.load(*superClass);
+        auto tmp = flint.load(superClass->text);
         if(tmp.err != ERR_OK)
             return tmp;
         loader = tmp.value;
@@ -175,7 +175,7 @@ FlintResult<FlintClassLoader> FlintFieldsData::loadNonStatic(Flint &flint, Flint
         FlintConstUtf8 *superClass = loader->superClass;
         if(!superClass)
             break;
-        auto tmp = flint.load(*superClass);
+        auto tmp = flint.load(superClass->text);
         if(tmp.err != ERR_OK)
             return tmp;
         loader = tmp.value;

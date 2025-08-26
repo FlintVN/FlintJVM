@@ -4,100 +4,100 @@
 
 #include "flint_java_object.h"
 
-class FlintInt8Array : public FlintJavaObject {
+class JInt8Array : public JObject {
 private:
-    FlintInt8Array(void) = delete;
-    FlintInt8Array(const FlintInt8Array &) = delete;
-    void operator=(const FlintInt8Array &) = delete;
+    JInt8Array(void) = delete;
+    JInt8Array(const JInt8Array &) = delete;
+    void operator=(const JInt8Array &) = delete;
 
-    using FlintJavaObject::size;
-    using FlintJavaObject::getFields;
+    using JObject::size;
+    using JObject::getFields;
 public:
     uint32_t getLength(void) const;
     int8_t *getData(void) const;
     void clearData(void);
 };
 
-class FlintInt16Array : public FlintJavaObject {
+class JInt16Array : public JObject {
 private:
-    FlintInt16Array(void) = delete;
-    FlintInt16Array(const FlintInt16Array &) = delete;
-    void operator=(const FlintInt16Array &) = delete;
+    JInt16Array(void) = delete;
+    JInt16Array(const JInt16Array &) = delete;
+    void operator=(const JInt16Array &) = delete;
 
-    using FlintJavaObject::size;
-    using FlintJavaObject::getFields;
+    using JObject::size;
+    using JObject::getFields;
 public:
     uint32_t getLength(void) const;
     int16_t *getData(void) const;
     void clearData(void);
 };
 
-class FlintInt32Array : public FlintJavaObject {
+class JInt32Array : public JObject {
 private:
-    FlintInt32Array(void) = delete;
-    FlintInt32Array(const FlintInt32Array &) = delete;
-    void operator=(const FlintInt32Array &) = delete;
+    JInt32Array(void) = delete;
+    JInt32Array(const JInt32Array &) = delete;
+    void operator=(const JInt32Array &) = delete;
 
-    using FlintJavaObject::size;
-    using FlintJavaObject::getFields;
+    using JObject::size;
+    using JObject::getFields;
 public:
     uint32_t getLength(void) const;
     int32_t *getData(void) const;
     void clearData(void);
 };
 
-class FlintFloatArray : public FlintJavaObject {
+class JFloatArray : public JObject {
 private:
-    FlintFloatArray(void) = delete;
-    FlintFloatArray(const FlintFloatArray &) = delete;
-    void operator=(const FlintFloatArray &) = delete;
+    JFloatArray(void) = delete;
+    JFloatArray(const JFloatArray &) = delete;
+    void operator=(const JFloatArray &) = delete;
 
-    using FlintJavaObject::size;
-    using FlintJavaObject::getFields;
+    using JObject::size;
+    using JObject::getFields;
 public:
     uint32_t getLength(void) const;
     float *getData(void) const;
     void clearData(void);
 };
 
-class FlintInt64Array : public FlintJavaObject {
+class JInt64Array : public JObject {
 private:
-    FlintInt64Array(void) = delete;
-    FlintInt64Array(const FlintInt64Array &) = delete;
-    void operator=(const FlintInt64Array &) = delete;
+    JInt64Array(void) = delete;
+    JInt64Array(const JInt64Array &) = delete;
+    void operator=(const JInt64Array &) = delete;
 
-    using FlintJavaObject::size;
-    using FlintJavaObject::getFields;
+    using JObject::size;
+    using JObject::getFields;
 public:
     uint32_t getLength(void) const;
     int64_t *getData(void) const;
     void clearData(void);
 };
 
-class FlintDoubleArray : public FlintJavaObject {
+class JDoubleArray : public JObject {
 private:
-    FlintDoubleArray(void) = delete;
-    FlintDoubleArray(const FlintDoubleArray &) = delete;
-    void operator=(const FlintDoubleArray &) = delete;
+    JDoubleArray(void) = delete;
+    JDoubleArray(const JDoubleArray &) = delete;
+    void operator=(const JDoubleArray &) = delete;
 
-    using FlintJavaObject::size;
-    using FlintJavaObject::getFields;
+    using JObject::size;
+    using JObject::getFields;
 public:
     uint32_t getLength(void) const;
     double *getData(void) const;
     void clearData(void);
 };
 
-class FlintObjectArray : public FlintJavaObject {
+class JObjectArray : public JObject {
 private:
-    FlintObjectArray(void) = delete;
-    FlintObjectArray(const FlintObjectArray &) = delete;
-    void operator=(const FlintObjectArray &) = delete;
+    JObjectArray(void) = delete;
+    JObjectArray(const JObjectArray &) = delete;
+    void operator=(const JObjectArray &) = delete;
 
-    using FlintJavaObject::getFields;
+    using JObject::getFields;
 public:
     uint32_t getLength(void) const;
-    FlintJavaObject **getData(void) const;
+    JObject **getData(void) const;
     void clearData(void);
 };
 

@@ -10,9 +10,9 @@ private:
         FlintClassNode *left;
         FlintClassNode *right;
         uint32_t height;
-        FlintJavaClass &value;
+        JClass *value;
 
-        FlintClassNode(FlintJavaClass &value);
+        FlintClassNode(JClass *value);
     };
 
     FlintClassNode *root;
@@ -27,19 +27,19 @@ private:
     static FlintClassNode *rotateLeft(FlintClassNode *x);
     static FlintClassNode *balance(FlintClassNode *node);
     static FlintClassNode *createFlintConstUtf8Node(const char *text, uint32_t hash);
-    static FlintClassNode *insert(FlintClassNode *rootNode, FlintJavaClass &value);
+    static FlintClassNode *insert(FlintClassNode *rootNode, JClass *value);
 
-    void forEach(FlintClassNode *node, void (*func)(FlintJavaClass &item));
+    void forEach(FlintClassNode *node, void (*func)(JClass *item));
     void freeNode(FlintClassNode *node);
 public:
     FlintClassBinaryTree(void);
 
-    FlintResult<void> add(FlintJavaClass &value);
+    FlintResult<void> add(JClass *value);
 
-    FlintJavaClass *find(const char *text, uint16_t length) const;
-    FlintJavaClass *find(FlintJavaString &str) const;
+    JClass *find(const char *text, uint16_t length) const;
+    JClass *find(JString *str) const;
 
-    void forEach(void (*func)(FlintJavaClass &));
+    void forEach(void (*func)(JClass *));
     void clear(void);
 };
 

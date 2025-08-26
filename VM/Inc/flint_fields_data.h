@@ -33,7 +33,7 @@ private:
 class FlintFieldObject {
 public:
     const FlintFieldInfo &fieldInfo;
-    FlintJavaObject *object;
+    JObject *object;
 private:
     FlintFieldObject(const FlintFieldInfo &fieldInfo);
     FlintFieldObject(const FlintFieldObject &) = delete;

@@ -26,9 +26,9 @@ private:
     int32_t peakSp;
     int32_t *stack;
     int32_t *locals;
-    FlintJavaThread *onwerThread;
+    JThread *onwerThread;
 protected:
-    FlintExecution(Flint &flint, FlintJavaThread *onwerThread, uint32_t stackSize = DEFAULT_STACK_SIZE);
+    FlintExecution(Flint &flint, JThread *onwerThread, uint32_t stackSize = DEFAULT_STACK_SIZE);
     FlintExecution(const FlintExecution &) = delete;
     void operator=(const FlintExecution &) = delete;
 
@@ -38,13 +38,13 @@ public:
     void stackPushInt64(int64_t value);
     void stackPushFloat(float value);
     void stackPushDouble(double value);
-    void stackPushObject(FlintJavaObject *obj);
+    void stackPushObject(JObject *obj);
 
     int32_t stackPopInt32(void);
     int64_t stackPopInt64(void);
     float stackPopFloat(void);
     double stackPopDouble(void);
-    FlintJavaObject *stackPopObject(void);
+    JObject *stackPopObject(void);
 private:
     FlintError initNewContext(FlintMethodInfo *methodInfo, uint16_t argc);
 
@@ -53,8 +53,8 @@ private:
 
     FlintError lockClass(FlintClassData *cls);
     void unlockClass(FlintClassData *cls);
-    FlintError lockObject(FlintJavaObject *obj);
-    void unlockObject(FlintJavaObject *obj);
+    FlintError lockObject(JObject *obj);
+    void unlockObject(JObject *obj);
 
     FlintError invoke(FlintMethodInfo *methodInfo, uint8_t argc);
     FlintError invokeStatic(FlintConstMethod *constMethod);
@@ -74,7 +74,7 @@ private:
 public:
     bool run(FlintMethodInfo *method);
     bool hasTerminateRequest(void) const;
-    FlintResult<FlintJavaThread> getOnwerThread(void);
+    FlintResult<JThread> getOnwerThread(void);
 
     friend class Flint;
     friend class FlintDebugger;

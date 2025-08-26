@@ -31,7 +31,7 @@ public:
     FlintExecutionNode *prev;
     FlintExecutionNode *next;
 
-    FlintExecutionNode(Flint &flint, FlintJavaThread *onwerThread, uint32_t stackSize = DEFAULT_STACK_SIZE);
+    FlintExecutionNode(Flint &flint, JThread *onwerThread, uint32_t stackSize = DEFAULT_STACK_SIZE);
 private:
     FlintExecutionNode(void) = delete;
     FlintExecutionNode(const FlintExecutionNode &) = delete;
@@ -45,12 +45,12 @@ private:
     static uint32_t objectCount;
     FlintDebugger *dbg;
     FlintExecutionNode * volatile executionList;
-    FlintJavaObject *objectList;
+    JObject *objectList;
     FlintClassDataBinaryTree classDataTree;
     FlintClassBinaryTree constClassTree;
     FlintStringBinaryTree constStringTree;
     FlintConstUtf8BinaryTree constUtf8Tree;
-    FlintObjectArray * volatile classArray0;
+    JObjectArray * volatile classArray0;
     uint32_t objectSizeToGc;
 
     Flint(void);
@@ -72,49 +72,49 @@ public:
     void print(int64_t num);
     void print(const char *text);
     void print(FlintConstUtf8 &utf8);
-    void print(FlintJavaString *str);
+    void print(JString *str);
     void print(const char *text, uint32_t length, uint8_t coder);
     void println(int64_t num);
     void println(const char *text);
     void println(FlintConstUtf8 &utf8);
-    void println(FlintJavaString *str);
+    void println(JString *str);
 
-    FlintResult<FlintExecution> newExecution(FlintJavaThread *onwerThread = NULL_PTR, uint32_t stackSize = DEFAULT_STACK_SIZE);
-    FlintResult<FlintExecution> getExcutionByThread(FlintJavaThread *thread) const;
+    FlintResult<FlintExecution> newExecution(JThread *onwerThread = NULL_PTR, uint32_t stackSize = DEFAULT_STACK_SIZE);
+    FlintResult<FlintExecution> getExcutionByThread(JThread *thread) const;
     void freeExecution(FlintExecution *execution);
 
-    FlintResult<FlintJavaObject> newObject(uint32_t size, FlintConstUtf8 *type, uint8_t dimensions);
-    FlintResult<FlintJavaObject> newObject(FlintConstUtf8 *type);
-    FlintResult<FlintInt8Array> newBooleanArray(uint32_t length);
-    FlintResult<FlintInt8Array> newByteArray(uint32_t length);
-    FlintResult<FlintInt16Array> newCharArray(uint32_t length);
-    FlintResult<FlintInt16Array> newShortArray(uint32_t length);
-    FlintResult<FlintInt32Array> newIntegerArray(uint32_t length);
-    FlintResult<FlintFloatArray> newFloatArray(uint32_t length);
-    FlintResult<FlintInt64Array> newLongArray(uint32_t length);
-    FlintResult<FlintDoubleArray> newDoubleArray(uint32_t length);
-    FlintResult<FlintObjectArray> newObjectArray(FlintConstUtf8 *type, uint32_t length);
+    FlintResult<JObject> newObject(uint32_t size, FlintConstUtf8 *type, uint8_t dimensions);
+    FlintResult<JObject> newObject(FlintConstUtf8 *type);
+    FlintResult<JInt8Array> newBooleanArray(uint32_t length);
+    FlintResult<JInt8Array> newByteArray(uint32_t length);
+    FlintResult<JInt16Array> newCharArray(uint32_t length);
+    FlintResult<JInt16Array> newShortArray(uint32_t length);
+    FlintResult<JInt32Array> newIntegerArray(uint32_t length);
+    FlintResult<JFloatArray> newFloatArray(uint32_t length);
+    FlintResult<JInt64Array> newLongArray(uint32_t length);
+    FlintResult<JDoubleArray> newDoubleArray(uint32_t length);
+    FlintResult<JObjectArray> newObjectArray(FlintConstUtf8 *type, uint32_t length);
 
-    FlintResult<FlintJavaObject> newMultiArray(FlintConstUtf8 *typeName, int32_t *counts, uint8_t startDims, uint8_t endDims);
+    FlintResult<JObject> newMultiArray(FlintConstUtf8 *typeName, int32_t *counts, uint8_t startDims, uint8_t endDims);
 private:
-    FlintResult<FlintJavaClass> newClass(FlintJavaString *typeName);
-    FlintResult<FlintJavaClass> newClass(const char *typeName, uint16_t length);
+    FlintResult<JClass> newClass(JString *typeName);
+    FlintResult<JClass> newClass(const char *typeName, uint16_t length);
 public:
-    FlintResult<FlintJavaClass> getConstClass(const char *text, uint16_t length);
-    FlintResult<FlintJavaClass> getConstClass(FlintJavaString &str);
+    FlintResult<JClass> getConstClass(const char *text, uint16_t length);
+    FlintResult<JClass> getConstClass(JString *str);
 
-    FlintResult<FlintJavaString> newString(uint16_t length, uint8_t coder);
-    FlintResult<FlintJavaString> newString(const char *text);
-    FlintResult<FlintJavaString> newString(const char *text, uint16_t size, bool isUtf8);
-    FlintResult<FlintJavaString> getConstString(FlintConstUtf8 &utf8);
-    FlintResult<FlintJavaString> getConstString(FlintJavaString &str);
+    FlintResult<JString> newString(uint16_t length, uint8_t coder);
+    FlintResult<JString> newString(const char *text);
+    FlintResult<JString> newString(const char *text, uint16_t size, bool isUtf8);
+    FlintResult<JString> getConstString(FlintConstUtf8 &utf8);
+    FlintResult<JString> getConstString(JString *str);
 
     FlintResult<FlintConstUtf8> getConstUtf8(const char *text, uint16_t length);
     FlintResult<FlintConstUtf8> getTypeNameConstUtf8(const char *typeName, uint16_t length);
 
-    FlintResult<FlintObjectArray> getClassArray0(void);
+    FlintResult<JObjectArray> getClassArray0(void);
 
-    FlintResult<FlintJavaThrowable> newThrowable(FlintJavaString *str, FlintConstUtf8 *excpType);
+    FlintResult<JThrowable> newThrowable(JString *str, FlintConstUtf8 *excpType);
 
     FlintResult<FlintJavaBoolean> newBoolean(bool value);
     FlintResult<FlintJavaByte> newByte(int8_t value);
@@ -130,30 +130,26 @@ public:
     FlintResult<FlintMethodInfo> findMethod(FlintConstMethod &constMethod);
     FlintResult<FlintMethodInfo> findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
 
-    FlintResult<bool> isInstanceof(FlintJavaObject *obj, const char *typeName, uint16_t length);
-    FlintResult<bool> isInstanceof(FlintJavaObject *obj, FlintConstUtf8 &typeName);
+    FlintResult<bool> isInstanceof(JObject *obj, const char *typeName, uint16_t length = 0);
     FlintResult<bool> isInstanceof(FlintConstUtf8 &typeName1, uint32_t dimensions1, FlintConstUtf8 &typeName2, uint32_t dimensions2);
 private:
-    static void garbageCollectionProtectObject(FlintJavaObject *obj);
+    static void garbageCollectionProtectObject(JObject *obj);
 public:
     bool isObject(uint32_t address) const;
-    void clearProtectObjectNew(FlintJavaObject *obj);
+    void clearProtectObjectNew(JObject *obj);
     void garbageCollection(void);
 private:
-    FlintResult<FlintClassData> createFlintClassData(Flint *flint, const char *className, uint16_t length);
+    FlintResult<FlintClassData> createFlintClassData(const char *className, uint16_t length);
 public:
-    FlintResult<FlintClassLoader> load(const char *className, uint16_t length);
-    FlintResult<FlintClassLoader> load(const char *className);
-    FlintResult<FlintClassLoader> load(FlintConstUtf8 &className);
+    FlintResult<FlintClassLoader> load(const char *className, uint16_t length = 0);
 
-    FlintError runToMain(const char *mainClass);
-    FlintError runToMain(const char *mainClass, uint32_t stackSize);
+    FlintError runToMain(const char *mainClass, uint32_t stackSize = DEFAULT_STACK_SIZE);
 
     bool isRunning(void) const;
     void stopRequest(void);
     void terminateRequest(void);
     void terminate(void);
-    void freeObject(FlintJavaObject *obj);
+    void freeObject(JObject *obj);
     void clearAllStaticFields(void);
     void freeAllObject(void);
     void freeAllExecution(void);

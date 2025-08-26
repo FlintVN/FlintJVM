@@ -22,7 +22,7 @@
 static const void **opcodeLabelsStop = NULL_PTR;
 static const void **opcodeLabelsExit = NULL_PTR;
 
-FlintExecution::FlintExecution(Flint &flint, FlintJavaThread *onwerThread, uint32_t stackSize) : flint(flint), stackLength(stackSize / sizeof(int32_t)) {
+FlintExecution::FlintExecution(Flint &flint, JThread *onwerThread, uint32_t stackSize) : flint(flint), stackLength(stackSize / sizeof(int32_t)) {
     this->opcodes = 0;
     this->lr = -1;
     this->sp = -1;
@@ -54,7 +54,7 @@ void FlintExecution::stackPushDouble(double value) {
     peakSp = sp;
 }
 
-void FlintExecution::stackPushObject(FlintJavaObject *obj) {
+void FlintExecution::stackPushObject(JObject *obj) {
     stack[++sp] = (int32_t)obj;
     peakSp = sp;
     if(obj && (obj->getProtected() & 0x02))
@@ -84,8 +84,8 @@ double FlintExecution::stackPopDouble(void) {
     return *(double *)&ret;
 }
 
-FlintJavaObject *FlintExecution::stackPopObject(void) {
-    return (FlintJavaObject *)stack[sp--];
+JObject *FlintExecution::stackPopObject(void) {
+    return (JObject *)stack[sp--];
 }
 
 bool FlintExecution::getStackTrace(uint32_t index, FlintStackFrame *stackTrace, bool *isEndStack) const {
@@ -181,7 +181,7 @@ void FlintExecution::stackRestoreContext(void) {
                 unlockClass((FlintClassData *)&method->classLoader);
         }
         else
-            unlockObject((FlintJavaObject *)locals[0]);
+            unlockObject((JObject *)locals[0]);
     }
     sp = startSp;
     startSp = stackPopInt32();
@@ -215,7 +215,7 @@ void FlintExecution::unlockClass(FlintClassData *cls) {
     Flint::unlock();
 }
 
-FlintError FlintExecution::lockObject(FlintJavaObject *obj) {
+FlintError FlintExecution::lockObject(JObject *obj) {
     Flint::lock();
     if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
         obj->ownId = (int32_t)this;
@@ -231,7 +231,7 @@ FlintError FlintExecution::lockObject(FlintJavaObject *obj) {
     return ERR_LOCK_FAIL;
 }
 
-void FlintExecution::unlockObject(FlintJavaObject *obj) {
+void FlintExecution::unlockObject(JObject *obj) {
     Flint::lock();
     if(obj->monitorCount)
         obj->monitorCount--;
@@ -254,7 +254,7 @@ FlintError FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
         FlintError err = nativeCode(this);
         if(err != ERR_OK) {
             if(err == ERR_THROW) {
-                FlintJavaObject *excp = stackPopObject();
+                JObject *excp = stackPopObject();
                 sp = retSp;
                 stackPushObject(excp);
             }
@@ -271,7 +271,7 @@ FlintError FlintExecution::invoke(FlintMethodInfo *methodInfo, uint8_t argc) {
                 stackPushInt64(ret);
             }
             else if(retType == 'L' || retType == '[') {
-                FlintJavaObject *ret = stackPopObject();
+                JObject *ret = stackPopObject();
                 sp = retSp;
                 stackPushObject(ret);
             }
@@ -344,7 +344,7 @@ FlintError FlintExecution::invokeSpecial(FlintConstMethod *constMethod) {
         }
     }
     if(methodInfo->accessFlag & METHOD_SYNCHRONIZED) {
-        FlintError err = lockObject((FlintJavaObject *)stack[sp - argc - 1]);
+        FlintError err = lockObject((JObject *)stack[sp - argc - 1]);
         if(err == ERR_LOCK_FAIL) {
             FlintAPI::Thread::yield();
             return ERR_OK;
@@ -357,10 +357,10 @@ FlintError FlintExecution::invokeSpecial(FlintConstMethod *constMethod) {
 
 FlintError FlintExecution::invokeVirtual(FlintConstMethod *constMethod) {
     uint8_t argc = constMethod->getArgc();
-    FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc];
+    JObject *obj = (JObject *)stack[sp - argc];
     if(obj == NULL_PTR)
         return throwNullPointerException(this, constMethod);
-    FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
+    FlintConstUtf8 &type = (obj->dimensions > 0 || JObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
     FlintMethodInfo *methodInfo = constMethod->methodInfo;
     if((!methodInfo) || (methodInfo->classLoader.thisClass != &type)) {
         auto tmp = flint.findMethod(type, constMethod->nameAndType);
@@ -385,10 +385,10 @@ FlintError FlintExecution::invokeVirtual(FlintConstMethod *constMethod) {
 }
 
 FlintError FlintExecution::invokeInterface(FlintConstInterfaceMethod *interfaceMethod, uint8_t argc) {
-    FlintJavaObject *obj = (FlintJavaObject *)stack[sp - argc + 1];
+    JObject *obj = (JObject *)stack[sp - argc + 1];
     if(obj == NULL_PTR)
         return throwNullPointerException(this, (FlintConstMethod *)interfaceMethod);
-    FlintConstUtf8 &type = (obj->dimensions > 0 || FlintJavaObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
+    FlintConstUtf8 &type = (obj->dimensions > 0 || JObject::isPrimType(obj->type)) ? (FlintConstUtf8 &)objectClassName : obj->type;
     FlintMethodInfo *methodInfo = interfaceMethod->methodInfo;
     if((!methodInfo) || (methodInfo->classLoader.thisClass != &type)) {
         auto tmp = flint.findMethod(type, interfaceMethod->nameAndType);
@@ -663,29 +663,29 @@ FlintError FlintExecution::run(void) {
         pc++;
         goto *opcodes[code[pc]];
     op_aload:
-        stackPushObject((FlintJavaObject *)locals[code[pc + 1]]);
+        stackPushObject((JObject *)locals[code[pc + 1]]);
         pc += 2;
         goto *opcodes[code[pc]];
     op_aload_0:
-        stackPushObject((FlintJavaObject *)locals[0]);
+        stackPushObject((JObject *)locals[0]);
         pc++;
         goto *opcodes[code[pc]];
     op_aload_1:
-        stackPushObject((FlintJavaObject *)locals[1]);
+        stackPushObject((JObject *)locals[1]);
         pc++;
         goto *opcodes[code[pc]];
     op_aload_2:
-        stackPushObject((FlintJavaObject *)locals[2]);
+        stackPushObject((JObject *)locals[2]);
         pc++;
         goto *opcodes[code[pc]];
     op_aload_3:
-        stackPushObject((FlintJavaObject *)locals[3]);
+        stackPushObject((JObject *)locals[3]);
         pc++;
         goto *opcodes[code[pc]];
     op_iaload:
     op_faload: {
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
@@ -699,7 +699,7 @@ FlintError FlintExecution::run(void) {
     op_laload:
     op_daload: {
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int64_t))) {
@@ -712,20 +712,20 @@ FlintError FlintExecution::run(void) {
     }
     op_aaload: {
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
             RETURN_IF_NOT_THROW(throwArrayIndexOutOfBoundsException(this, index, obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
-        stackPushObject(((FlintJavaObject **)obj->data)[index]);
+        stackPushObject(((JObject **)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_baload: {
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int8_t))) {
@@ -739,7 +739,7 @@ FlintError FlintExecution::run(void) {
     op_caload:
     op_saload: {
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int16_t))) {
@@ -843,7 +843,7 @@ FlintError FlintExecution::run(void) {
     op_aastore: {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int32_t)))) {
@@ -858,7 +858,7 @@ FlintError FlintExecution::run(void) {
     op_dastore: {
         int64_t value = stackPopInt64();
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int64_t)))) {
@@ -872,7 +872,7 @@ FlintError FlintExecution::run(void) {
     op_bastore: {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int8_t)))) {
@@ -887,7 +887,7 @@ FlintError FlintExecution::run(void) {
     op_sastore: {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int16_t)))) {
@@ -1446,7 +1446,7 @@ FlintError FlintExecution::run(void) {
         int32_t retVal = (int32_t)stackPopObject();
         stackRestoreContext();
         code = this->code;
-        stackPushObject((FlintJavaObject *)retVal);
+        stackPushObject((JObject *)retVal);
         pc = lr;
         goto *opcodes[code[pc]];
     }
@@ -1460,7 +1460,7 @@ FlintError FlintExecution::run(void) {
     op_getstatic: {
         auto constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         RETURN_IF_ERR(constField.err);
-        auto classData = flint.load(constField.value->className);
+        auto classData = flint.load(constField.value->className.text);
         if(classData.err != ERR_OK) {
             RETURN_IF_NOT_THROW(checkAndThrowForFlintError(this, classData.err, &constField.value->className));
             goto exception_handler;
@@ -1522,7 +1522,7 @@ FlintError FlintExecution::run(void) {
     op_putstatic: {
         auto constField = method->classLoader.getConstField(ARRAY_TO_INT16(&code[pc + 1]));
         RETURN_IF_ERR(constField.err);
-        auto classData = flint.load(constField.value->className);
+        auto classData = flint.load(constField.value->className.text);
         if(classData.err != ERR_OK) {
             RETURN_IF_NOT_THROW(checkAndThrowForFlintError(this, classData.err, &constField.value->className));
             goto exception_handler;
@@ -1609,7 +1609,7 @@ FlintError FlintExecution::run(void) {
         switch(constField.value->nameAndType.descriptor.text[0]) {
             case 'J':
             case 'D': {
-                FlintJavaObject *obj = stackPopObject();
+                JObject *obj = stackPopObject();
                 if(obj == 0) {
                     RETURN_IF_NOT_THROW(throwNullPointerException(this, constField.value));
                     goto exception_handler;
@@ -1625,7 +1625,7 @@ FlintError FlintExecution::run(void) {
             }
             case 'L':
             case '[': {
-                FlintJavaObject *obj = stackPopObject();
+                JObject *obj = stackPopObject();
                 if(obj == 0) {
                     RETURN_IF_NOT_THROW(throwNullPointerException(this, constField.value));
                     goto exception_handler;
@@ -1640,7 +1640,7 @@ FlintError FlintExecution::run(void) {
                 goto *opcodes[code[pc]];
             }
             default: {
-                FlintJavaObject *obj = stackPopObject();
+                JObject *obj = stackPopObject();
                 if(obj == 0) {
                     RETURN_IF_NOT_THROW(throwNullPointerException(this, constField.value));
                 }
@@ -1662,7 +1662,7 @@ FlintError FlintExecution::run(void) {
             case 'Z':
             case 'B': {
                 int32_t value = stackPopInt32();
-                FlintJavaObject *obj = stackPopObject();
+                JObject *obj = stackPopObject();
                 if(obj == 0) {
                     RETURN_IF_NOT_THROW(throwNullPointerException(this, constField.value));
                     goto exception_handler;
@@ -1679,7 +1679,7 @@ FlintError FlintExecution::run(void) {
             case 'C':
             case 'S': {
                 int32_t value = stackPopInt32();
-                FlintJavaObject *obj = stackPopObject();
+                JObject *obj = stackPopObject();
                 if(obj == 0) {
                     RETURN_IF_NOT_THROW(throwNullPointerException(this, constField.value));
                     goto exception_handler;
@@ -1696,7 +1696,7 @@ FlintError FlintExecution::run(void) {
             case 'J':
             case 'D': {
                 int64_t value = stackPopInt64();
-                FlintJavaObject *obj = stackPopObject();
+                JObject *obj = stackPopObject();
                 if(obj == 0) {
                     RETURN_IF_NOT_THROW(throwNullPointerException(this, constField.value));
                     goto exception_handler;
@@ -1712,8 +1712,8 @@ FlintError FlintExecution::run(void) {
             }
             case 'L':
             case '[': {
-                FlintJavaObject *value = stackPopObject();
-                FlintJavaObject *obj = stackPopObject();
+                JObject *value = stackPopObject();
+                JObject *obj = stackPopObject();
                 if(obj == 0) {
                     RETURN_IF_NOT_THROW(throwNullPointerException(this, constField.value));
                     goto exception_handler;
@@ -1729,7 +1729,7 @@ FlintError FlintExecution::run(void) {
             }
             default: {
                 int32_t value = stackPopInt32();
-                FlintJavaObject *obj = stackPopObject();
+                JObject *obj = stackPopObject();
                 if(obj == 0) {
                     RETURN_IF_NOT_THROW(throwNullPointerException(this, constField.value));
                     goto exception_handler;
@@ -1816,7 +1816,7 @@ FlintError FlintExecution::run(void) {
         auto obj = flint.newObject(sizeof(FlintFieldsData), constClass, 0);
         RETURN_IF_ERR(obj.err);
         memset(obj.value->data, 0, sizeof(FlintFieldsData));
-        auto classData = flint.load(*constClass);
+        auto classData = flint.load(constClass->text);
         if(classData.err != ERR_OK) {
             RETURN_IF_NOT_THROW(checkAndThrowForFlintError(this, classData.err, constClass));
             goto exception_handler;
@@ -1834,7 +1834,7 @@ FlintError FlintExecution::run(void) {
         if(count < 0)
             goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
-        uint8_t typeSize = FlintJavaObject::getPrimitiveTypeSize(atype);
+        uint8_t typeSize = JObject::getPrimitiveTypeSize(atype);
         auto obj = flint.newObject(typeSize * count, primTypeConstUtf8List[atype - 4], 1);
         RETURN_IF_ERR(obj.err);
         memset(obj.value->data, 0, obj.value->size);
@@ -1856,7 +1856,7 @@ FlintError FlintExecution::run(void) {
         goto *opcodes[code[pc]];
     }
     op_arraylength: {
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0) {
             RETURN_IF_NOT_THROW(throwNullPointerException(this, "Cannot read the array length from null object"));
             goto exception_handler;
@@ -1866,7 +1866,7 @@ FlintError FlintExecution::run(void) {
         goto *opcodes[code[pc]];
     }
     op_athrow: {
-        FlintJavaObject *obj = (FlintJavaObject *)stack[sp];
+        JObject *obj = (JObject *)stack[sp];
         if(obj == 0) {
             stackPopObject();
             RETURN_IF_NOT_THROW(throwNullPointerException(this, "Cannot throw exception by null object"));
@@ -1877,9 +1877,9 @@ FlintError FlintExecution::run(void) {
         uint32_t tracePc = pc;
         int32_t traceStartSp = startSp;
         FlintMethodInfo *traceMethod = method;
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(dbg && dbg->exceptionIsEnabled())
-            dbg->caughtException(this, (FlintJavaThrowable *)obj);
+            dbg->caughtException(this, (JThrowable *)obj);
         while(1) {
             uint16_t exceptionLength = traceMethod->getExceptionLength();
             for(uint16_t i = 0; i < exceptionLength; i++) {
@@ -1889,7 +1889,8 @@ FlintError FlintExecution::run(void) {
                     if(exception->catchType == 0)
                         isMatch = true;
                     else {
-                        auto isIns = flint.isInstanceof(obj, traceMethod->classLoader.getConstUtf8Class(exception->catchType));
+                        FlintConstUtf8 &catchType = traceMethod->classLoader.getConstUtf8Class(exception->catchType);
+                        auto isIns = flint.isInstanceof(obj, catchType.text, catchType.length);
                         if(isIns.err == ERR_OK)
                             isMatch = isIns.value;
                         else
@@ -1909,7 +1910,7 @@ FlintError FlintExecution::run(void) {
             }
             if(traceStartSp < 4) {
                 if(dbg && !dbg->exceptionIsEnabled())
-                    dbg->caughtException(this, (FlintJavaThrowable *)obj);
+                    dbg->caughtException(this, (JThrowable *)obj);
                 stackPushObject(obj);
                 return ERR_THROW;
             }
@@ -1919,10 +1920,10 @@ FlintError FlintExecution::run(void) {
         }
     }
     op_checkcast: {
-        FlintJavaObject *obj = (FlintJavaObject *)stack[sp];
+        JObject *obj = (JObject *)stack[sp];
         FlintConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
         if(obj != 0) {
-            auto isIns = flint.isInstanceof(obj, type);
+            auto isIns = flint.isInstanceof(obj, type.text, type.length);
             if(isIns.err == ERR_OK) {
                 if(isIns.value == false) {
                     RETURN_IF_NOT_THROW(throwClassCastException(this, obj, type));
@@ -1938,9 +1939,9 @@ FlintError FlintExecution::run(void) {
         goto *opcodes[code[pc]];
     }
     op_instanceof: {
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         FlintConstUtf8 &type = method->classLoader.getConstUtf8Class(ARRAY_TO_INT16(&code[pc + 1]));
-        auto isIns = flint.isInstanceof(obj, type);
+        auto isIns = flint.isInstanceof(obj, type.text, type.length);
         if(isIns.err == ERR_OK)
             stackPushInt32(isIns.value);
         else {
@@ -1951,7 +1952,7 @@ FlintError FlintExecution::run(void) {
         goto *opcodes[code[pc]];
     }
     op_monitorenter: {
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         if(obj == 0) {
             RETURN_IF_NOT_THROW(throwNullPointerException(this, "Cannot enter synchronized block by null object"));
             goto exception_handler;
@@ -1966,7 +1967,7 @@ FlintError FlintExecution::run(void) {
         goto *opcodes[code[pc]];
     }
     op_monitorexit: {
-        FlintJavaObject *obj = stackPopObject();
+        JObject *obj = stackPopObject();
         unlockObject(obj);
         pc++;
         goto *opcodes[code[pc]];
@@ -1981,7 +1982,7 @@ FlintError FlintExecution::run(void) {
             }
             case OP_ALOAD: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                stackPushObject((FlintJavaObject *)locals[index]);
+                stackPushObject((JObject *)locals[index]);
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
@@ -2034,7 +2035,7 @@ FlintError FlintExecution::run(void) {
         const char *typeNameText = typeName->text;
         uint32_t length = typeName->length - dimensions;
         if(typeNameText[dimensions] != 'L') {
-            uint8_t atype = FlintJavaObject::convertToAType(typeNameText[dimensions]);
+            uint8_t atype = JObject::convertToAType(typeNameText[dimensions]);
             if(atype == 0)
                 return throwIllegalArgumentException(this, "invalid primative type");
             typeName = (FlintConstUtf8 *)primTypeConstUtf8List[atype - 4];
@@ -2115,8 +2116,8 @@ void FlintExecution::runTask(FlintExecution *exec) {
         case ERR_TERMINATE_REQUEST:
             break;
         case ERR_THROW: {
-            FlintJavaThrowable *ex = (FlintJavaThrowable *)exec->stackPopObject();
-            FlintJavaString *str = ex->getDetailMessage();
+            JThrowable *ex = (JThrowable *)exec->stackPopObject();
+            JString *str = ex->getDetailMessage();
             if(str)
                 exec->flint.println(str);
             else
@@ -2173,14 +2174,14 @@ bool FlintExecution::hasTerminateRequest(void) const {
     return (opcodes == opcodeLabelsExit);
 }
 
-FlintResult<FlintJavaThread> FlintExecution::getOnwerThread() {
+FlintResult<JThread> FlintExecution::getOnwerThread() {
     Flint::lock();
     if(onwerThread == NULL_PTR) {
         auto obj = flint.newObject((FlintConstUtf8 *)threadClassName);
         if(obj.err == ERR_OK)
-            onwerThread = (FlintJavaThread *)obj.value;
+            onwerThread = (JThread *)obj.value;
         Flint::unlock();
-        return *(FlintResult<FlintJavaThread> *)&obj;
+        return *(FlintResult<JThread> *)&obj;
     }
     Flint::unlock();
     return onwerThread;

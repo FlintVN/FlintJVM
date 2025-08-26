@@ -55,11 +55,11 @@ void FlintDebugger::print(const char *text, uint32_t length, uint8_t coder) {
 
 void FlintDebugger::consolePut(uint16_t ch) {
     char buff[3];
-    uint8_t count = FlintJavaString::utf8Encode(ch, buff);
+    uint8_t count = JString::utf8Encode(ch, buff);
     for(uint8_t i = 0; i < count; i++) {
         uint32_t nextOffset = (consoleOffset + 1) % sizeof(consoleBuff);
         if(consoleLength == sizeof(consoleBuff))
-            consoleLength -= FlintJavaString::getUtf8EncodeSize(consoleBuff[nextOffset]);
+            consoleLength -= JString::getUtf8EncodeSize(consoleBuff[nextOffset]);
         consoleBuff[consoleOffset] = buff[i];
         consoleOffset = nextOffset;
         if(consoleLength < sizeof(consoleBuff))
@@ -228,10 +228,10 @@ void FlintDebugger::responseStackTrace(uint32_t stackIndex) {
 
 void FlintDebugger::responseExceptionInfo(void) {
     if(csr & DBG_STATUS_STOP) {
-        auto isThrowable = flint.isInstanceof(exception, *(FlintConstUtf8 *)throwableClassName);
+        auto isThrowable = flint.isInstanceof(exception, ((FlintConstUtf8 *)throwableClassName)->text, ((FlintConstUtf8 *)throwableClassName)->length);
         if(exception && (csr & DBG_STATUS_EXCP) && isThrowable.err == ERR_OK && isThrowable.value) {
             FlintConstUtf8 &type = exception->type;
-            FlintJavaString *str = exception->getDetailMessage();
+            JString *str = exception->getDetailMessage();
             uint32_t responseSize = sizeof(FlintConstUtf8) * 2 + type.length + (str ? str->getUft8BuffSize() : 0) + 2;
             uint8_t coder = str ? str->getCoder() : 0;
             const char *text = str ? str->getText() : 0;
@@ -244,12 +244,12 @@ void FlintDebugger::responseExceptionInfo(void) {
             if(!dataFrameAppend((uint16_t)0)) return;
             if(msgLen) {
                 if(coder == 0) for(uint32_t i = 0; i < msgLen; i++) {
-                    uint8_t encodeSize = FlintJavaString::utf8Encode(text[i], utf8Buff);
+                    uint8_t encodeSize = JString::utf8Encode(text[i], utf8Buff);
                     for(uint8_t j = 0; j < encodeSize; j++)
                         if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
                 }
                 else for(uint32_t i = 0; i < msgLen; i++) {
-                    uint8_t encodeSize = FlintJavaString::utf8Encode(((uint16_t *)text)[i], utf8Buff);
+                    uint8_t encodeSize = JString::utf8Encode(((uint16_t *)text)[i], utf8Buff);
                     for(uint8_t j = 0; j < encodeSize; j++)
                         if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
                 }
@@ -273,7 +273,7 @@ void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localInd
                 uint32_t responseSize = 8;
                 uint32_t valueSize = 4;
                 if(isObject) {
-                    FlintJavaObject &obj = *(FlintJavaObject *)value;
+                    JObject &obj = *(JObject *)value;
                     FlintConstUtf8 &type = obj.type;
                     uint8_t isPrim = obj.isPrimType(type);
                     valueSize = obj.size;
@@ -284,7 +284,7 @@ void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localInd
                 if(!dataFrameAppend((uint32_t)value)) return;
 
                 if(isObject) {
-                    FlintJavaObject &obj = *(FlintJavaObject *)value;
+                    JObject &obj = *(JObject *)value;
                     FlintConstUtf8 &type = obj.type;
                     uint8_t isPrim = obj.isPrimType(type);
                     uint16_t typeLength = obj.dimensions + (isPrim ? 0 : 2) + type.length;
@@ -320,7 +320,7 @@ void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localInd
         sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseField(FlintJavaObject *obj, FlintConstUtf8 &fieldName) {
+void FlintDebugger::responseField(JObject *obj, FlintConstUtf8 &fieldName) {
     if(csr & DBG_STATUS_STOP) {
         if(!flint.isObject((uint32_t)obj)) {
             sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
@@ -348,7 +348,7 @@ void FlintDebugger::responseField(FlintJavaObject *obj, FlintConstUtf8 &fieldNam
                 if(!dataFrameAppend((uint64_t)((FlintFieldData64 *)fieldData)->value)) return;
             }
             else {
-                FlintJavaObject *subObj = ((FlintFieldObject *)fieldData)->object;
+                JObject *subObj = ((FlintFieldObject *)fieldData)->object;
                 if(subObj) {
                     FlintConstUtf8 &type = subObj->type;
                     uint8_t isPrim = subObj->isPrimType(type);
@@ -381,11 +381,11 @@ void FlintDebugger::responseField(FlintJavaObject *obj, FlintConstUtf8 &fieldNam
         sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseArray(FlintJavaObject *array, uint32_t index, uint32_t length) {
+void FlintDebugger::responseArray(JObject *array, uint32_t index, uint32_t length) {
     if(csr & DBG_STATUS_STOP) {
         if(flint.isObject((uint32_t)array) && array->dimensions > 0) {
-            uint8_t atype = FlintJavaObject::isPrimType(array->type);
-            uint8_t elementSize = atype ? FlintJavaObject::getPrimitiveTypeSize(atype) : sizeof(FlintJavaObject *);
+            uint8_t atype = JObject::isPrimType(array->type);
+            uint8_t elementSize = atype ? JObject::getPrimitiveTypeSize(atype) : sizeof(JObject *);
             uint32_t arrayLength = array->size / elementSize;
             uint32_t arrayEnd = index + length;
             arrayEnd = (arrayEnd < arrayLength) ? arrayEnd : arrayLength;
@@ -421,7 +421,7 @@ void FlintDebugger::responseArray(FlintJavaObject *array, uint32_t index, uint32
         sendRespCode(DBG_CMD_READ_ARRAY, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseObjSizeAndType(FlintJavaObject *obj) {
+void FlintDebugger::responseObjSizeAndType(JObject *obj) {
     if(csr & DBG_STATUS_STOP) {
         if(!obj) {
             sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_FAIL);
@@ -808,7 +808,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             return true;
         }
         case DBG_CMD_READ_FIELD: {
-            FlintJavaObject *obj = (FlintJavaObject *)*(uint32_t *)&data[4];
+            JObject *obj = (JObject *)*(uint32_t *)&data[4];
             FlintConstUtf8 &fieldName = *(FlintConstUtf8 *)&data[8];
             responseField(obj, fieldName);
             return true;
@@ -821,7 +821,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             if(length == 18) {
                 uint32_t length = (*(uint32_t *)&data[4]);
                 uint32_t index = *(uint32_t *)&data[8];
-                FlintJavaObject *array = (FlintJavaObject *)*(uint32_t *)&data[12];
+                JObject *array = (JObject *)*(uint32_t *)&data[12];
                 responseArray(array, index, length);
             }
             else
@@ -830,7 +830,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_READ_SIZE_AND_TYPE: {
             if(length == 10) {
-                FlintJavaObject *obj = (FlintJavaObject *)*(uint32_t *)&data[4];
+                JObject *obj = (JObject *)*(uint32_t *)&data[4];
                 responseObjSizeAndType(obj);
             }
             else
@@ -921,7 +921,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
 
 bool FlintDebugger::addBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor) {
     if(breakPointCount < LENGTH(breakPoints)) {
-        auto loader = flint.load(className);
+        auto loader = flint.load(className.text);
         if(loader.err != ERR_OK)
             return false;
         auto method = loader.value->getMethodInfo(methodName, descriptor);
@@ -954,7 +954,7 @@ uint8_t FlintDebugger::getSavedOpcode(uint32_t pc, FlintMethodInfo *method) {
 
 bool FlintDebugger::removeBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor) {
     if(breakPointCount) {
-        auto loader = flint.load(className);
+        auto loader = flint.load(className.text);
         if(loader.err != ERR_OK)
             return false;
         auto method = loader.value->getMethodInfo(methodName, descriptor);
@@ -988,7 +988,7 @@ bool FlintDebugger::checkStop(FlintExecution *exec) {
     return waitStop(exec);
 }
 
-void FlintDebugger::caughtException(FlintExecution *exec, FlintJavaThrowable *excp) {
+void FlintDebugger::caughtException(FlintExecution *exec, JThrowable *excp) {
     lock();
     uint16_t tmp = csr & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     tmp |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;

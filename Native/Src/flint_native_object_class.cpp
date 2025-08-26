@@ -8,9 +8,9 @@
 
 static FlintError nativeGetClass(FlintExecution *exec) {
     uint32_t idx = 0;
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     uint16_t length = obj->type.length;
-    bool isPrim = FlintJavaObject::isPrimType(obj->type);
+    bool isPrim = JObject::isPrimType(obj->type);
     if(obj->dimensions) {
         length += obj->dimensions;
         if(!isPrim)
@@ -32,7 +32,7 @@ static FlintError nativeGetClass(FlintExecution *exec) {
     }
     if(obj->dimensions && !isPrim)
         byteArray[idx++] = ';';
-    auto cls = exec->flint.getConstClass(*strObj.value);
+    auto cls = exec->flint.getConstClass(strObj.value);
     if(cls.err != ERR_OK) {
         exec->flint.freeObject(strObj.value->getValue());
         exec->flint.freeObject(strObj.value);
@@ -43,18 +43,18 @@ static FlintError nativeGetClass(FlintExecution *exec) {
 }
 
 static FlintError nativeHashCode(FlintExecution *exec) {
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     exec->stackPushInt32((int32_t)obj);
     return ERR_OK;
 }
 
 static FlintError nativeClone(FlintExecution *exec) {
-    FlintJavaObject *obj = exec->stackPopObject();
+    JObject *obj = exec->stackPopObject();
     if(obj->dimensions > 0) {
         auto cloneObj = exec->flint.newObject(obj->size, &obj->type, obj->dimensions);
         if(cloneObj.err != ERR_OK)
             return checkAndThrowForFlintError(exec, cloneObj.err, cloneObj.getErrorMsg(), cloneObj.getErrorMsgLength());
-        memcpy(((FlintInt8Array *)cloneObj.value)->getData(), ((FlintInt8Array *)obj)->getData(), ((FlintInt8Array *)obj)->getLength());
+        memcpy(((JInt8Array *)cloneObj.value)->getData(), ((JInt8Array *)obj)->getData(), ((JInt8Array *)obj)->getLength());
         exec->stackPushObject(cloneObj.value);
     }
     else

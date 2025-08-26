@@ -5,35 +5,35 @@
 #include "flint_fields_data.h"
 #include "flint.h"
 
-FlintJavaString &FlintJavaClass::getName(void) const {
-    return *(FlintJavaString *)getFields().getFieldObject(*(FlintConstUtf8 *)nameFieldName)->object;
+JString *JClass::getName(void) const {
+    return (JString *)getFields().getFieldObject(*(FlintConstUtf8 *)nameFieldName)->object;
 }
 
-void FlintJavaClass::setName(FlintJavaString *name) {
+void JClass::setName(JString *name) {
     getFields().getFieldObject(*(FlintConstUtf8 *)nameFieldName)->object = name;
 }
 
-bool FlintJavaClass::isArray(void) const {
-    FlintJavaString &name = getName();
-    const char *text = name.getText();
-    uint8_t coder = name.getCoder();
-    uint32_t length = name.getLength();
+bool JClass::isArray(void) const {
+    JString *name = getName();
+    const char *text = name->getText();
+    uint8_t coder = name->getCoder();
+    uint32_t length = name->getLength();
     if(length > 1 && coder == 0 && text[0] == '[')
         return true;
     else
         return false;
 }
 
-bool FlintJavaClass::isPrimitive(void) const {
-    FlintJavaString &name = getName();
-    uint8_t coder = name.getCoder();
-    uint32_t length = name.getLength();
+bool JClass::isPrimitive(void) const {
+    JString *name = getName();
+    uint8_t coder = name->getCoder();
+    uint32_t length = name->getLength();
     if(coder == 0) {
         switch(length) {
             case 3:
-                return (strncmp(name.getText(), "int", length) == 0);
+                return (strncmp(name->getText(), "int", length) == 0);
             case 4: {
-                const char *text = name.getText();
+                const char *text = name->getText();
                 if(strncmp(text, "void", length) == 0)
                     return true;
                 else if(strncmp(text, "byte", length) == 0)
@@ -45,7 +45,7 @@ bool FlintJavaClass::isPrimitive(void) const {
                 return false;
             }
             case 5: {
-                const char *text = name.getText();
+                const char *text = name->getText();
                 if(strncmp(text, "float", length) == 0)
                     return true;
                 else if(strncmp(text, "short", length) == 0)
@@ -53,9 +53,9 @@ bool FlintJavaClass::isPrimitive(void) const {
                 return false;
             }
             case 6:
-                return (strncmp(name.getText(), "double", length) == 0);
+                return (strncmp(name->getText(), "double", length) == 0);
             case 7:
-                return (strncmp(name.getText(), "boolean", length) == 0);
+                return (strncmp(name->getText(), "boolean", length) == 0);
             default:
                 return false;
         }
@@ -63,11 +63,11 @@ bool FlintJavaClass::isPrimitive(void) const {
     return false;
 }
 
-FlintResult<FlintConstUtf8> FlintJavaClass::getBaseTypeName(Flint &flint, uint32_t *dimensions) const {
+FlintResult<FlintConstUtf8> JClass::getBaseTypeName(Flint &flint, uint32_t *dimensions) const {
     uint32_t dims = 0;
-    FlintJavaString &name = getName();
-    const char *typeText = name.getText();
-    uint32_t typeLength = name.getLength();
+    JString *name = getName();
+    const char *typeText = name->getText();
+    uint32_t typeLength = name->getLength();
     while((*typeText == '[') && typeLength) {
         typeText++;
         typeLength--;
@@ -115,13 +115,13 @@ FlintResult<FlintConstUtf8> FlintJavaClass::getBaseTypeName(Flint &flint, uint32
         typeLength -= (typeText[typeLength - 1] == ';') ? 2 : 1;
         typeText++;
     }
-    uint8_t atype = FlintJavaObject::convertToAType(typeText[0]);
+    uint8_t atype = JObject::convertToAType(typeText[0]);
     if((dims != 0) && (atype != 0))
         return (FlintConstUtf8 *)primTypeConstUtf8List[atype - 4];
     return flint.getTypeNameConstUtf8(typeText, typeLength);
 }
 
-FlintConstClass::FlintConstClass(FlintJavaClass &flintClass) : flintClass(flintClass) {
+FlintConstClass::FlintConstClass(JClass &flintClass) : flintClass(flintClass) {
     next1 = 0;
     next2 = 0;
 }

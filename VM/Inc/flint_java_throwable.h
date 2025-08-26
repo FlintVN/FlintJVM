@@ -4,14 +4,14 @@
 
 #include "flint_java_string.h"
 
-class FlintJavaThrowable : public FlintJavaObject {
+class JThrowable : public JObject {
 public:
-    FlintJavaString *getDetailMessage(void) const;
-    void setDetailMessage(FlintJavaString &strObj);
+    JString *getDetailMessage(void) const;
+    void setDetailMessage(JString *strObj);
 protected:
-    FlintJavaThrowable(void) = delete;
-    FlintJavaThrowable(const FlintJavaThrowable &) = delete;
-    void operator=(const FlintJavaThrowable &) = delete;
+    JThrowable(void) = delete;
+    JThrowable(const JThrowable &) = delete;
+    void operator=(const JThrowable &) = delete;
 };
 
 #endif /* __FLINT_JAVA_THROWABLE_H */

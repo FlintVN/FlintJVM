@@ -4,7 +4,7 @@
 
 #include "flint_java_object.h"
 
-class FlintJavaLong : public FlintJavaObject {
+class FlintJavaLong : public JObject {
 public:
     int64_t getValue(void) const;
     void setValue(int64_t value);

@@ -6,7 +6,7 @@
 #include "flint_native_class_class.h"
 #include "flint_throw_support.h"
 
-static void freeObjectArray(Flint &flint, FlintObjectArray *array, uint32_t length) {
+static void freeObjectArray(Flint &flint, JObjectArray *array, uint32_t length) {
     for(uint32_t i = 0; i < length; i++)
         flint.freeObject(array->getData()[i]);
     flint.freeObject(array);
@@ -29,7 +29,7 @@ static FlintError checkClassIsExist(const char *type, uint32_t typeLen) {
 }
 
 static FlintError nativeGetPrimitiveClass(FlintExecution *exec) {
-    FlintJavaString *str = (FlintJavaString *)exec->stackPopObject();
+    JString *str = (JString *)exec->stackPopObject();
     if(str->getCoder() == 0) {
         uint32_t len = str->getLength();
         bool isPrim = false;
@@ -80,7 +80,7 @@ static FlintError nativeGetPrimitiveClass(FlintExecution *exec) {
 }
 
 static FlintError nativeForName(FlintExecution *exec) {
-    FlintJavaString *type = (FlintJavaString *)exec->stackPopObject();
+    JString *type = (JString *)exec->stackPopObject();
     if(type == NULL_PTR)
         return throwNullPointerException(exec);
     RETURN_IF_ERR(checkClassIsExist(type->getText(), type->getLength()));
@@ -97,11 +97,11 @@ static FlintError nativeForName(FlintExecution *exec) {
 }
 
 static FlintError nativeIsInstance(FlintExecution *exec) {
-    FlintJavaObject *obj = (FlintJavaObject *)exec->stackPopObject();
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
-    FlintJavaString &typeName = clsObj->getName();
-    if(typeName.getCoder() == 0) {
-        auto res = exec->flint.isInstanceof(obj, typeName.getText(), typeName.getLength());
+    JObject *obj = (JObject *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
+    JString *typeName = clsObj->getName();
+    if(typeName->getCoder() == 0) {
+        auto res = exec->flint.isInstanceof(obj, typeName->getText(), typeName->getLength());
         if(res.err == ERR_OK) {
             exec->stackPushInt32(res.value ? 1 : 0);
             return ERR_OK;
@@ -114,8 +114,8 @@ static FlintError nativeIsInstance(FlintExecution *exec) {
 }
 
 static FlintError nativeIsAssignableFrom(FlintExecution *exec) {
-    FlintJavaClass *cls = (FlintJavaClass *)exec->stackPopObject();
-    FlintJavaClass *thisCls = (FlintJavaClass *)exec->stackPopObject();
+    JClass *cls = (JClass *)exec->stackPopObject();
+    JClass *thisCls = (JClass *)exec->stackPopObject();
     if(cls == NULL_PTR || thisCls == NULL_PTR)
         return throwNullPointerException(exec);
     uint32_t clsDims, thisDims;
@@ -134,14 +134,14 @@ static FlintError nativeIsAssignableFrom(FlintExecution *exec) {
 }
 
 static FlintError nativeIsInterface(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive())
         exec->stackPushInt32(0);
     else {
         auto typeName = clsObj->getBaseTypeName(exec->flint);
         if(typeName.err != ERR_OK)
             return checkAndThrowForFlintError(exec, typeName.err, typeName.value);
-        auto loader = exec->flint.load(*typeName.value);
+        auto loader = exec->flint.load(typeName.value->text);
         if(loader.err != ERR_OK)
             return checkAndThrowForFlintError(exec, loader.err, typeName.value);
         const FlintClassAccessFlag modifiers = loader.value->getAccessFlag();
@@ -151,26 +151,26 @@ static FlintError nativeIsInterface(FlintExecution *exec) {
 }
 
 static FlintError nativeIsArray(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     exec->stackPushInt32(clsObj->isArray());
     return ERR_OK;
 }
 
 static FlintError nativeIsPrimitive(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     exec->stackPushInt32(clsObj->isPrimitive());
     return ERR_OK;
 }
 
 static FlintError nativeGetSuperclass(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive())
         exec->stackPushObject(NULL_PTR);
     else {
         auto typeName = clsObj->getBaseTypeName(exec->flint);
         if(typeName.err != ERR_OK)
             return checkAndThrowForFlintError(exec, typeName.err, typeName.getErrorMsg(), typeName.getErrorMsgLength());
-        auto loader = exec->flint.load(*typeName.value);
+        auto loader = exec->flint.load(typeName.value->text);
         if(loader.err != ERR_OK)
             return checkAndThrowForFlintError(exec, loader.err, typeName.value);
         FlintConstUtf8 *superClass = loader.value->superClass;
@@ -186,7 +186,7 @@ static FlintError nativeGetSuperclass(FlintExecution *exec) {
 }
 
 static FlintError nativeGetInterfaces0(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         auto array = exec->flint.getClassArray0();
         RETURN_IF_ERR(array.err);
@@ -196,7 +196,7 @@ static FlintError nativeGetInterfaces0(FlintExecution *exec) {
         auto typeName = clsObj->getBaseTypeName(exec->flint);
         if(typeName.err)
             return checkAndThrowForFlintError(exec, typeName.err, typeName.getErrorMsg(), typeName.getErrorMsgLength());
-        auto loader = exec->flint.load(*typeName.value);
+        auto loader = exec->flint.load(typeName.value->text);
         if(loader.err != ERR_OK)
             return checkAndThrowForFlintError(exec, loader.err, typeName.value);
         uint32_t interfaceCount = loader.value->getInterfacesCount();
@@ -224,7 +224,7 @@ static FlintError nativeGetInterfaces0(FlintExecution *exec) {
     return ERR_OK;
 }
 
-static FlintResult<FlintJavaClass> getClass(Flint &flint, const char *typeName, uint16_t length) {
+static FlintResult<JClass> getClass(Flint &flint, const char *typeName, uint16_t length) {
     if(length == 1) {
         switch(*typeName) {
             case 'Z':   /* boolean */
@@ -250,11 +250,11 @@ static FlintResult<FlintJavaClass> getClass(Flint &flint, const char *typeName, 
 }
 
 static FlintError nativeGetComponentType(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
-    FlintJavaString &name = clsObj->getName();
-    const char *text = name.getText();
-    uint8_t coder = name.getCoder();
-    uint32_t length = name.getLength();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
+    JString *name = clsObj->getName();
+    const char *text = name->getText();
+    uint8_t coder = name->getCoder();
+    uint32_t length = name->getLength();
     if(length > 1 && coder == 0 && text[0] == '[') {
         auto cls = getClass(exec->flint, &text[1], length - 1);
         RETURN_IF_ERR(cls.err);
@@ -266,7 +266,7 @@ static FlintError nativeGetComponentType(FlintExecution *exec) {
 }
 
 static FlintError nativeGetModifiers(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     int32_t modifiers;
     if(clsObj->isArray() || clsObj->isPrimitive())
         modifiers = 0x0411;
@@ -274,7 +274,7 @@ static FlintError nativeGetModifiers(FlintExecution *exec) {
         auto typeName = clsObj->getBaseTypeName(exec->flint);
         if(typeName.err != ERR_OK)
             return checkAndThrowForFlintError(exec, typeName.err, typeName.getErrorMsg(), typeName.getErrorMsgLength());
-        auto loader = exec->flint.load(*typeName.value);
+        auto loader = exec->flint.load(typeName.value->text);
         if(loader.err != ERR_OK)
             return checkAndThrowForFlintError(exec, loader.err, typeName.value);
         modifiers = loader.value->getAccessFlag() & 0xFFDF;
@@ -284,14 +284,14 @@ static FlintError nativeGetModifiers(FlintExecution *exec) {
 }
 
 static FlintError nativeGetNestHost0(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         exec->stackPushObject(clsObj);
         return ERR_OK;
     }
-    FlintJavaString &clsName = clsObj->getName();
-    char *clsTxt = clsName.getText();
-    uint32_t clsLen = clsName.getLength();
+    JString *clsName = clsObj->getName();
+    char *clsTxt = clsName->getText();
+    uint32_t clsLen = clsName->getLength();
     uint32_t clsNestHostLen = 0;
     while((clsNestHostLen < clsLen) && clsTxt[clsNestHostLen] != '$')
         clsNestHostLen++;
@@ -317,7 +317,7 @@ static FlintError nativeIsHidden(FlintExecution *exec) {
     return throwUnsupportedOperationException(exec, "isHidden is not implemented in VM");
 }
 
-static FlintResult<FlintJavaClass> getReturnType(Flint &flint, FlintMethodInfo *methodInfo) {
+static FlintResult<JClass> getReturnType(Flint &flint, FlintMethodInfo *methodInfo) {
     FlintConstUtf8 &methodDesc = methodInfo->getDescriptor();
     const char *text = methodDesc.text;
     while(*text++ != ')');
@@ -353,14 +353,14 @@ static uint8_t getParameterCount(FlintMethodInfo *methodInfo) {
     return count;
 }
 
-static FlintResult<FlintObjectArray> getParameterTypes(Flint &flint, FlintMethodInfo *methodInfo, FlintResult<FlintObjectArray> &classArray0) {
+static FlintResult<JObjectArray> getParameterTypes(Flint &flint, FlintMethodInfo *methodInfo, FlintResult<JObjectArray> &classArray0) {
     uint8_t count = getParameterCount(methodInfo);
     if(count == 0)
         return classArray0;
     auto array = flint.newObjectArray((FlintConstUtf8 *)classClassName, count);
     if(array.err != ERR_OK)
         return array;
-    FlintJavaObject **data = array.value->getData();
+    JObject **data = array.value->getData();
     count = 0;
     const char *text = methodInfo->getDescriptor().text;
     while(*text == '(')
@@ -388,7 +388,7 @@ static FlintResult<FlintObjectArray> getParameterTypes(Flint &flint, FlintMethod
         auto cls = getClass(flint, start, len);
         if(cls.err != ERR_OK) {
             flint.freeObject(array.value);
-            return *(FlintResult<FlintObjectArray> *)&cls;
+            return *(FlintResult<JObjectArray> *)&cls;
         }
         data[count] = cls.value;
         count++;
@@ -396,7 +396,7 @@ static FlintResult<FlintObjectArray> getParameterTypes(Flint &flint, FlintMethod
     return array;
 }
 
-static FlintResult<FlintObjectArray> getExceptionTypes(Flint &flint, FlintMethodInfo *methodInfo, FlintResult<FlintObjectArray> &classArray0) {
+static FlintResult<JObjectArray> getExceptionTypes(Flint &flint, FlintMethodInfo *methodInfo, FlintResult<JObjectArray> &classArray0) {
     if(methodInfo->accessFlag & METHOD_NATIVE)
         return classArray0;
     uint16_t exceptionLength = methodInfo->getExceptionLength();
@@ -406,13 +406,13 @@ static FlintResult<FlintObjectArray> getExceptionTypes(Flint &flint, FlintMethod
     if(excpTypes.err != ERR_OK)
         return excpTypes;
     FlintClassLoader &classLoader = methodInfo->classLoader;
-    FlintJavaObject **data = excpTypes.value->getData();
+    JObject **data = excpTypes.value->getData();
     for(uint16_t i = 0; i < exceptionLength; i++) {
         FlintConstUtf8 &catchType = classLoader.getConstUtf8Class(methodInfo->getException(i)->catchType);
         auto cls = flint.getConstClass(catchType.text, catchType.length);
         if(cls.err != ERR_OK) {
             flint.freeObject(excpTypes.value);
-            return *(FlintResult<FlintObjectArray> *)&cls;
+            return *(FlintResult<JObjectArray> *)&cls;
         }
         data[i] = cls.value;
     }
@@ -420,7 +420,7 @@ static FlintResult<FlintObjectArray> getExceptionTypes(Flint &flint, FlintMethod
 }
 
 static FlintError nativeGetDeclaredFields0(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         auto array = exec->flint.newObjectArray((FlintConstUtf8 *)fieldClassName, 0);
         RETURN_IF_ERR(array.err);
@@ -430,7 +430,7 @@ static FlintError nativeGetDeclaredFields0(FlintExecution *exec) {
     auto typeName = clsObj->getBaseTypeName(exec->flint);
     if(typeName.err != ERR_OK)
         return checkAndThrowForFlintError(exec, typeName.err, typeName.getErrorMsg(), typeName.getErrorMsgLength());
-    auto loader = exec->flint.load(*typeName.value);
+    auto loader = exec->flint.load(typeName.value->text);
     if(loader.err != ERR_OK)
         return checkAndThrowForFlintError(exec, loader.err, typeName.value);
     uint16_t fieldCount = loader.value->getFieldsCount();
@@ -476,7 +476,7 @@ static FlintError nativeGetDeclaredFields0(FlintExecution *exec) {
 }
 
 static FlintError nativeGetDeclaredMethods0(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     if(clsObj->isPrimitive()) {
         auto array = exec->flint.newObjectArray((FlintConstUtf8 *)methodClassName, 0);
         RETURN_IF_ERR(array.err);
@@ -493,7 +493,7 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution *exec) {
         typeName = tmp.value;
     }
 
-    auto loader = exec->flint.load(*typeName);
+    auto loader = exec->flint.load(typeName->text);
     if(loader.err != ERR_OK)
         return checkAndThrowForFlintError(exec, loader.err, typeName);
     uint16_t methodCount = loader.value->getMethodsCount();
@@ -572,7 +572,7 @@ static FlintError nativeGetDeclaredMethods0(FlintExecution *exec) {
 }
 
 static FlintError nativeGetDeclaredConstructors0(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
     if(clsObj->isArray() || clsObj->isPrimitive()) {
         auto array = exec->flint.newObjectArray((FlintConstUtf8 *)constructorClassName, 0);
         RETURN_IF_ERR(array.err);
@@ -582,7 +582,7 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution *exec) {
     auto typeName = clsObj->getBaseTypeName(exec->flint);
     if(typeName.err != ERR_OK)
         return checkAndThrowForFlintError(exec, typeName.err, typeName.getErrorMsg(), typeName.getErrorMsgLength());
-    auto loader = exec->flint.load(*typeName.value);
+    auto loader = exec->flint.load(typeName.value->text);
     if(loader.err != ERR_OK)
         return checkAndThrowForFlintError(exec, loader.err, typeName.value);
     uint16_t methodCount = loader.value->getMethodsCount();
@@ -641,15 +641,15 @@ static FlintError nativeGetDeclaredConstructors0(FlintExecution *exec) {
 }
 
 static FlintError nativeGetDeclaringClass0(FlintExecution *exec) {
-    FlintJavaClass *clsObj = (FlintJavaClass *)exec->stackPopObject();
-    FlintJavaString &clsName = clsObj->getName();
-    const char *text = clsName.getText();
+    JClass *clsObj = (JClass *)exec->stackPopObject();
+    JString *clsName = clsObj->getName();
+    const char *text = clsName->getText();
     if(text[0] == '[') {
         exec->stackPushObject(NULL_PTR);
         return ERR_OK;
     }
     else {
-        int32_t index = clsName.getLength() - 1;
+        int32_t index = clsName->getLength() - 1;
         while(index >= 1 && text[index] != '$')
             index--;
         if(text[index] == '$') {

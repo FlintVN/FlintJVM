@@ -98,7 +98,7 @@ private:
     FlintMutex dbgMutex;
     class Flint &flint;
     class FlintExecution *execution;
-    FlintJavaThrowable *exception;
+    JThrowable *exception;
     void *dirHandle;
     void *fileHandle;
     volatile uint32_t stepCodeLength;
@@ -138,9 +138,9 @@ private:
     void responseStackTrace(uint32_t stackIndex);
     void responseExceptionInfo(void);
     void responseLocalVariable(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType);
-    void responseField(FlintJavaObject *obj, FlintConstUtf8 &fieldName);
-    void responseArray(FlintJavaObject *array, uint32_t index, uint32_t length);
-    void responseObjSizeAndType(FlintJavaObject *obj);
+    void responseField(JObject *obj, FlintConstUtf8 &fieldName);
+    void responseArray(JObject *array, uint32_t index, uint32_t length);
+    void responseObjSizeAndType(JObject *obj);
     void responseOpenFile(char *fileName, FlintFileMode mode);
     void responseReadFile(uint32_t size);
     void responseWriteFile(uint8_t *data, uint32_t size);
@@ -157,7 +157,7 @@ public:
     bool exceptionIsEnabled(void);
     bool waitStop(FlintExecution *exec);
     bool checkStop(FlintExecution *exec);
-    void caughtException(FlintExecution *exec, FlintJavaThrowable *excp);
+    void caughtException(FlintExecution *exec, JThrowable *excp);
     void hitBreakpoint(FlintExecution *exec);
     uint8_t getSavedOpcode(uint32_t pc, FlintMethodInfo *method);
 private:

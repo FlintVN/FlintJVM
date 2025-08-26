@@ -4,13 +4,13 @@
 
 #include "flint_java_object.h"
 
-class FlintJavaThread : public FlintJavaObject {
+class JThread : public JObject {
 public:
-    FlintJavaObject *getTask(void) const;
+    JObject *getTask(void) const;
 protected:
-    FlintJavaThread(void) = delete;
-    FlintJavaThread(const FlintJavaThread &) = delete;
-    void operator=(const FlintJavaThread &) = delete;
+    JThread(void) = delete;
+    JThread(const JThread &) = delete;
+    void operator=(const JThread &) = delete;
 };
 
 #endif /* __FLINT_JAVA_THREAD_H */

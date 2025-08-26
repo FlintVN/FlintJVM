@@ -33,7 +33,7 @@ static const uint32_t colorMask[] = {0x03E07C1F, 0x07E0F81F, 0x07E0F81F};
         ((_y) < ((_clipY) + (_clipH)))                      \
     ) ? true : false)
 
-class FlintJavaColor : public FlintJavaObject {
+class JColor : public JObject {
 public:
     uint32_t getValue(int32_t valueMode) const {
         uint32_t value = getFields().getFieldData32ByIndex(0)->value;
@@ -54,18 +54,18 @@ public:
     }
 };
 
-class FlintGraphics : public FlintJavaObject {
+class JGraphics : public JObject {
 private:
-    FlintGraphics(void) = delete;
-    FlintGraphics(const FlintGraphics &) = delete;
-    void operator=(const FlintGraphics &) = delete;
+    JGraphics(void) = delete;
+    JGraphics(const JGraphics &) = delete;
+    void operator=(const JGraphics &) = delete;
 
     int32_t getColorMode(void) {
         return getFields().getFieldData32ByIndex(0)->value;
     }
 
     uint8_t *getColorBuffer(void) {
-        return (uint8_t *)((FlintInt8Array *)(getFields().getFieldObjectByIndex(0)->object))->getData();
+        return (uint8_t *)((JInt8Array *)(getFields().getFieldObjectByIndex(0)->object))->getData();
     }
 
     int32_t getX(void) {
@@ -370,7 +370,7 @@ private:
         }
     }
 public:
-    void drawLine(FlintJavaColor *color, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
+    void drawLine(JColor *color, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
         uint32_t colorValue = color->getValue(getColorMode());
         int32_t originX = getX();
         int32_t originY = getY();
@@ -419,7 +419,7 @@ public:
         }
     }
 
-    void drawRect(FlintJavaColor *color, int32_t x, int32_t y, int32_t width, int32_t height) {
+    void drawRect(JColor *color, int32_t x, int32_t y, int32_t width, int32_t height) {
         uint32_t colorValue = color->getValue(getColorMode());
         int32_t originX = getX();
         int32_t originY = getY();
@@ -445,7 +445,7 @@ public:
         }
     }
 
-    void fillRect(FlintJavaColor *color, int32_t x, int32_t y, int32_t width, int32_t height) {
+    void fillRect(JColor *color, int32_t x, int32_t y, int32_t width, int32_t height) {
         int32_t originX = getX();
         int32_t originY = getY();
         int32_t clipX = getClipX() - originX;
@@ -467,7 +467,7 @@ public:
         fillFastRect(color->getValue(getColorMode()), x1, x2, y1, y2);
     }
 
-    void drawRoundRect(FlintJavaColor *color, int32_t x, int32_t y, int32_t width, int32_t height, int32_t r1, int32_t r2, int32_t r3, int32_t r4) {
+    void drawRoundRect(JColor *color, int32_t x, int32_t y, int32_t width, int32_t height, int32_t r1, int32_t r2, int32_t r3, int32_t r4) {
         uint32_t colorValue = color->getValue(getColorMode());
         int32_t originX = getX();
         int32_t originY = getY();
@@ -503,7 +503,7 @@ public:
         if(r4) drawCircleQuadrant(colorValue, x + r4, y + height - 1 - r4, r4, 0x08);
     }
 
-    void fillRoundRect(FlintJavaColor *color, int32_t x, int32_t y, int32_t width, int32_t height, int32_t r1, int32_t r2, int32_t r3, int32_t r4) {
+    void fillRoundRect(JColor *color, int32_t x, int32_t y, int32_t width, int32_t height, int32_t r1, int32_t r2, int32_t r3, int32_t r4) {
         r1 = FLINT_MIN(r1, (width - 1) / 2);
         r2 = FLINT_MIN(r2, (width - 1) / 2);
         r3 = FLINT_MIN(r3, (width - 1) / 2);
@@ -553,7 +553,7 @@ public:
         if(r4) fillCircleQuadrant(colorValue, x + r4, y + height - 1 - r4, r4, 0x08);
     }
 
-    void drawEllipse(FlintJavaColor *color, int32_t x, int32_t y, int32_t width, int32_t height) {
+    void drawEllipse(JColor *color, int32_t x, int32_t y, int32_t width, int32_t height) {
         uint32_t colorValue = color->getValue(getColorMode());
         int32_t originX = getX();
         int32_t originY = getY();
@@ -608,7 +608,7 @@ public:
         }
     }
 
-    void fillEllipse(FlintJavaColor *color, int32_t x, int32_t y, int32_t width, int32_t height) {
+    void fillEllipse(JColor *color, int32_t x, int32_t y, int32_t width, int32_t height) {
         uint32_t colorValue = color->getValue(getColorMode());
         int32_t originX = getX();
         int32_t originY = getY();
@@ -661,13 +661,13 @@ public:
         }
     }
 
-    void drawPolyline(FlintJavaColor *color, int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
+    void drawPolyline(JColor *color, int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
         nPoints--;
         for(int32_t i = 0; i < nPoints; i++)
             drawLine(color, xPoints[i], yPoints[i], xPoints[i + 1], yPoints[i + 1]);
     }
 
-    void drawPolygon(FlintJavaColor *color, int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
+    void drawPolygon(JColor *color, int32_t *xPoints, int32_t *yPoints, int32_t nPoints) {
         if(nPoints > 0) {
             drawPolyline(color, xPoints, yPoints, nPoints);
             drawLine(color, xPoints[0], yPoints[0], xPoints[nPoints - 1], yPoints[nPoints - 1]);
@@ -676,8 +676,8 @@ public:
 };
 
 static FlintError nativeClear(FlintExecution *exec) {
-    FlintJavaObject *g = exec->stackPopObject();
-    FlintInt8Array *colorBuffer = (FlintInt8Array *)g->getFields().getFieldObjectByIndex(0)->object;
+    JObject *g = exec->stackPopObject();
+    JInt8Array *colorBuffer = (JInt8Array *)g->getFields().getFieldObjectByIndex(0)->object;
     memset(colorBuffer->getData(), 0, colorBuffer->getLength());
     return ERR_OK;
 }
@@ -687,10 +687,10 @@ static FlintError nativeDrawLine(FlintExecution *exec) {
     int32_t x2 = exec->stackPopInt32();
     int32_t y1 = exec->stackPopInt32();
     int32_t x1 = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     g->drawLine(colorObj, x1, y1, x2, y2);
     return ERR_OK;
 }
@@ -700,10 +700,10 @@ static FlintError nativeDrawRect(FlintExecution *exec) {
     int32_t width = exec->stackPopInt32();
     int32_t y = exec->stackPopInt32();
     int32_t x = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     g->drawRect(colorObj, x, y, width, height);
     return ERR_OK;
 }
@@ -713,10 +713,10 @@ static FlintError nativeFillRect(FlintExecution *exec) {
     int32_t width = exec->stackPopInt32();
     int32_t y = exec->stackPopInt32();
     int32_t x = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     g->fillRect(colorObj, x, y, width, height);
     return ERR_OK;
 }
@@ -730,10 +730,10 @@ static FlintError nativeDrawRoundRect(FlintExecution *exec) {
     int32_t width = exec->stackPopInt32();
     int32_t y = exec->stackPopInt32();
     int32_t x = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     g->drawRoundRect(colorObj, x, y, width, height, r1, r2, r3, r4);
     return ERR_OK;
 }
@@ -747,10 +747,10 @@ static FlintError nativeFillRoundRect(FlintExecution *exec) {
     int32_t width = exec->stackPopInt32();
     int32_t y = exec->stackPopInt32();
     int32_t x = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     g->fillRoundRect(colorObj, x, y, width, height, r1, r2, r3, r4);
     return ERR_OK;
 }
@@ -760,10 +760,10 @@ static FlintError nativeDrawEllipse(FlintExecution *exec) {
     int32_t width = exec->stackPopInt32();
     int32_t y = exec->stackPopInt32();
     int32_t x = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     g->drawEllipse(colorObj, x, y, width, height);
     return ERR_OK;
 }
@@ -773,10 +773,10 @@ static FlintError nativeFillEllipse(FlintExecution *exec) {
     int32_t width = exec->stackPopInt32();
     int32_t y = exec->stackPopInt32();
     int32_t x = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     g->fillEllipse(colorObj, x, y, width, height);
     return ERR_OK;
 }
@@ -788,10 +788,10 @@ static FlintError nativeDrawArc(FlintExecution *exec) {
     int32_t width = exec->stackPopInt32();
     int32_t y = exec->stackPopInt32();
     int32_t x = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     // TODO
     return ERR_OK;
 }
@@ -803,22 +803,22 @@ static FlintError nativeFillArc(FlintExecution *exec) {
     int32_t width = exec->stackPopInt32();
     int32_t y = exec->stackPopInt32();
     int32_t x = exec->stackPopInt32();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     // TODO
     return ERR_OK;
 }
 
 static FlintError nativeDrawPolyline(FlintExecution *exec) {
     int32_t nPoints = exec->stackPopInt32();
-    FlintInt32Array *yPoints = (FlintInt32Array *)exec->stackPopObject();
-    FlintInt32Array *xPoints = (FlintInt32Array *)exec->stackPopObject();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JInt32Array *yPoints = (JInt32Array *)exec->stackPopObject();
+    JInt32Array *xPoints = (JInt32Array *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!yPoints || !xPoints || !colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     if(nPoints > xPoints->getLength())
         return throwArrayIndexOutOfBoundsException(exec, nPoints, xPoints->getLength());
     if(nPoints > yPoints->getLength())
@@ -829,12 +829,12 @@ static FlintError nativeDrawPolyline(FlintExecution *exec) {
 
 static FlintError nativeDrawPolygon(FlintExecution *exec) {
     int32_t nPoints = exec->stackPopInt32();
-    FlintInt32Array *yPoints = (FlintInt32Array *)exec->stackPopObject();
-    FlintInt32Array *xPoints = (FlintInt32Array *)exec->stackPopObject();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JInt32Array *yPoints = (JInt32Array *)exec->stackPopObject();
+    JInt32Array *xPoints = (JInt32Array *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!yPoints || !xPoints || !colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     if(nPoints > xPoints->getLength())
         return throwArrayIndexOutOfBoundsException(exec, nPoints, xPoints->getLength());
     if(nPoints > yPoints->getLength())
@@ -845,30 +845,30 @@ static FlintError nativeDrawPolygon(FlintExecution *exec) {
 
 static FlintError nativeFillPolygon(FlintExecution *exec) {
     int32_t nPoints = exec->stackPopInt32();
-    FlintInt32Array *yPoints = (FlintInt32Array *)exec->stackPopObject();
-    FlintInt32Array *xPoints = (FlintInt32Array *)exec->stackPopObject();
-    FlintJavaColor *colorObj = (FlintJavaColor *)exec->stackPopObject();
+    JInt32Array *yPoints = (JInt32Array *)exec->stackPopObject();
+    JInt32Array *xPoints = (JInt32Array *)exec->stackPopObject();
+    JColor *colorObj = (JColor *)exec->stackPopObject();
     if(!yPoints || !xPoints || !colorObj)
         return throwNullPointerException(exec);
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     // TODO
     return ERR_OK;
 }
 
 static FlintError nativeDrawString(FlintExecution *exec) {
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     // TODO
     return ERR_OK;
 }
 
 static FlintError nativeDrawImage1(FlintExecution *exec) {
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     // TODO
     return ERR_OK;
 }
 
 static FlintError nativeDrawImage2(FlintExecution *exec) {
-    FlintGraphics *g = (FlintGraphics *)exec->stackPopObject();
+    JGraphics *g = (JGraphics *)exec->stackPopObject();
     // TODO
     return ERR_OK;
 }

@@ -10,15 +10,15 @@ static const uint8_t utf8ByteCount[] = {
     4, 4, 4, 4, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6
 };
 
-uint8_t FlintJavaString::getUtf8DecodeSize(char c) {
+uint8_t JString::getUtf8DecodeSize(char c) {
     return (c & 0x80) ? utf8ByteCount[((uint8_t)c - 0xC0) & 0xFC] : 1;
 }
 
-uint8_t FlintJavaString::getUtf8EncodeSize(uint16_t c) {
+uint8_t JString::getUtf8EncodeSize(uint16_t c) {
     return (c < 0x80) ? 1 : ((c < 0x0800) ? 2 : 3);
 }
 
-uint32_t FlintJavaString::utf8Decode(const char *c) {
+uint32_t JString::utf8Decode(const char *c) {
     if(*c & 0x80) {
         uint8_t byteCount = getUtf8DecodeSize(*c);
 
@@ -33,7 +33,7 @@ uint32_t FlintJavaString::utf8Decode(const char *c) {
     return *c;
 }
 
-uint8_t FlintJavaString::utf8Encode(uint16_t c, char *buff) {
+uint8_t JString::utf8Encode(uint16_t c, char *buff) {
     if(c < 0x80) {
         buff[0] = (uint8_t)c;
         return 1;
@@ -51,7 +51,7 @@ uint8_t FlintJavaString::utf8Encode(uint16_t c, char *buff) {
     }
 }
 
-uint32_t FlintJavaString::utf8StrLen(const char *utf8) {
+uint32_t JString::utf8StrLen(const char *utf8) {
     uint32_t len = 0;
     while(*utf8) {
         utf8 += getUtf8DecodeSize(*utf8);
@@ -60,7 +60,7 @@ uint32_t FlintJavaString::utf8StrLen(const char *utf8) {
     return len;
 }
 
-uint32_t FlintJavaString::getUft8BuffSize(void) {
+uint32_t JString::getUft8BuffSize(void) {
     uint32_t length = getLength();
     const char *text = getText();
     uint32_t ret = 0;
@@ -75,7 +75,7 @@ uint32_t FlintJavaString::getUft8BuffSize(void) {
     return ret;
 }
 
-bool FlintJavaString::isLatin1(const char *utf8) {
+bool JString::isLatin1(const char *utf8) {
     while(*utf8) {
         if((int8_t)*utf8 < 0) {
             uint8_t byteCount = getUtf8DecodeSize(*utf8);
@@ -89,46 +89,46 @@ bool FlintJavaString::isLatin1(const char *utf8) {
     return true;
 }
 
-FlintInt8Array *FlintJavaString::getValue(void) const {
-    return (FlintInt8Array *)getFields().getFieldObjectByIndex(0)->object;
+JInt8Array *JString::getValue(void) const {
+    return (JInt8Array *)getFields().getFieldObjectByIndex(0)->object;
 }
 
-void FlintJavaString::setValue(FlintInt8Array &byteArray) {
+void JString::setValue(JInt8Array &byteArray) {
     getFields().getFieldObjectByIndex(0)->object = &byteArray;
 }
 
-char *FlintJavaString::getText(void) const {
-    FlintInt8Array *byteArray = getValue();
+char *JString::getText(void) const {
+    JInt8Array *byteArray = getValue();
     return (char *)byteArray->getData();
 }
 
-uint32_t FlintJavaString::getLength(void) const {
-    FlintInt8Array *byteArray = getValue();
+uint32_t JString::getLength(void) const {
+    JInt8Array *byteArray = getValue();
     if(getCoder() == 0)
         return byteArray->getLength();
     else
         return byteArray->getLength() / 2;
 }
 
-uint8_t FlintJavaString::getCoder(void) const {
+uint8_t JString::getCoder(void) const {
     return getFields().getFieldData32ByIndex(0)->value;
 }
 
-void FlintJavaString::setCoder(uint8_t coder) {
+void JString::setCoder(uint8_t coder) {
     getFields().getFieldData32ByIndex(0)->value = coder;
 }
 
-int32_t FlintJavaString::compareTo(FlintJavaString &another) const {
-    if(this == &another)
+int32_t JString::compareTo(JString *another) const {
+    if(this == another)
         return 0;
     uint32_t len1 = getLength();
-    if(getLength() != another.getLength())
-        return len1 - another.getLength();
+    if(getLength() != another->getLength())
+        return len1 - another->getLength();
     uint8_t coder1 = getCoder();
-    if(coder1 != another.getCoder())
+    if(coder1 != another->getCoder())
         return coder1 ? 1 : -1;
     const char *txt1 = getText();
-    const char *txt2 = another.getText();
+    const char *txt2 = another->getText();
     if(txt1 == txt2)
         return 0;
     for(uint32_t i = 0; i < len1; i++) {
@@ -138,7 +138,7 @@ int32_t FlintJavaString::compareTo(FlintJavaString &another) const {
     return 0;
 }
 
-int32_t FlintJavaString::compareTo(FlintConstUtf8 &utf8) const {
+int32_t JString::compareTo(FlintConstUtf8 &utf8) const {
     uint32_t len2 = utf8StrLen(utf8.text);
     if(getLength() != len2)
         return getLength() - len2;

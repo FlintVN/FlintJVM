@@ -6,8 +6,8 @@
 #include "flint_throw_support.h"
 
 static FlintError nativeIntern(FlintExecution *exec) {
-    FlintJavaString *obj = (FlintJavaString *)exec->stackPopObject();
-    auto strIntern = exec->flint.getConstString(*obj);
+    JString *obj = (JString *)exec->stackPopObject();
+    auto strIntern = exec->flint.getConstString(obj);
     if(strIntern.err == ERR_OK)
         exec->stackPushObject(strIntern.value);
     return checkAndThrowForFlintError(exec, strIntern.err, strIntern.getErrorMsg(), strIntern.getErrorMsgLength());

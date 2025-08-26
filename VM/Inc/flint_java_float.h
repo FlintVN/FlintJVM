@@ -4,7 +4,7 @@
 
 #include "flint_java_object.h"
 
-class FlintJavaFloat : public FlintJavaObject {
+class FlintJavaFloat : public JObject {
 public:
     float getValue(void) const;
     void setValue(float value);
