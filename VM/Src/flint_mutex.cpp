@@ -2,18 +2,18 @@
 #include "flint_mutex.h"
 #include "flint_system_api.h"
 
-FlintMutex::FlintMutex(void) {
+FMutex::FMutex(void) {
     locked.clear();
     lockNest = 0;
-    lockThread = NULL_PTR;
+    lockThread = NULL;
 }
 
-void FlintMutex::lock(void) {
+void FMutex::lock(void) {
     void *currentThread = FlintAPI::Thread::getCurrentThread();
     while(1) {
         while(atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
-            FlintAPI::Thread::sleep(0);
-        if(lockThread == NULL_PTR) {
+            FlintAPI::Thread::sleep(1);
+        if(lockThread == NULL) {
             lockNest = 1;
             lockThread = currentThread;
             atomic_flag_clear_explicit(&locked, memory_order_release);
@@ -29,9 +29,9 @@ void FlintMutex::lock(void) {
     }
 }
 
-void FlintMutex::unlock(void) {
+void FMutex::unlock(void) {
     while(atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
-        FlintAPI::Thread::sleep(0);
+        FlintAPI::Thread::sleep(1);
     if(lockNest > 0) {
         if(--lockNest == 0)
             lockThread = 0;

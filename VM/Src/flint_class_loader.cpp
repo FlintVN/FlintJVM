@@ -1,153 +1,163 @@
 
-#include <iostream>
-#include <string.h>
+#include <new>
 #include "flint.h"
 #include "flint_opcodes.h"
-#include "flint_system_api.h"
-#include "flint_class_loader.h"
 #include "flint_default_conf.h"
-#include "flint_default_compiler_define.h"
+#include "flint_class_loader.h"
+
+#define FLAG_HAS_CLINIT         0x01
+#define FLAG_STATIC_INIT        0x02
 
 typedef struct {
-    FlintConstUtf8 *constUtf8Class;
-    JClass *constClass;
-} ConstClassValue;
+    ConstPoolTag tag;
+    uint16_t clsNameIndex;
+    JClass *cls;
+} ConstClass;
 
-static void *ClassLoader_Open(const char *fileName, uint32_t length) {
+static FileHandle FOpen(FExec *ctx, const char *fileName, uint8_t length = 0xFF) {
     char buff[FILE_NAME_BUFF_SIZE];
-    memcpy(buff, fileName, length);
-    memcpy(&buff[length], ".class", sizeof(".class"));
-
-    void *file = FlintAPI::IO::fopen(buff, FLINT_FILE_READ);
-
-    return file;
+    char *tmp = buff;
+    uint8_t index = 0;
+    while(fileName[index] && index < length) *tmp++ = fileName[index++];
+    fileName = ".class";
+    while(*fileName) *tmp++ = *fileName++;
+    *tmp = 0;
+    FileHandle handle = FlintAPI::IO::fopen(buff, FLINT_FILE_READ);
+    if(ctx != NULL && handle == NULL)
+        ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fopen failed for '%s'", buff);
+    return handle;
 }
 
-static FlintError ClassLoader_Read(void *file, void *buff, uint32_t size) {
+static bool FRead(FExec *ctx, FileHandle file, void *buff, uint32_t size) {
     uint32_t temp;
-    FlintFileResult ret = FlintAPI::IO::fread(file, buff, size, &temp);
-    if((ret != FILE_RESULT_OK) || (temp != size))
-        return ERR_CLASS_LOAD_FAIL;
-    return ERR_OK;
-}
-
-static FlintError ClassLoader_ReadUInt8(void *file, uint8_t &value) {
-    return ClassLoader_Read(file, &value, sizeof(uint8_t));
-}
-
-static FlintError ClassLoader_ReadUInt16(void *file, uint16_t &value) {
-    RETURN_IF_ERR(ClassLoader_Read(file, &value, sizeof(uint16_t)));
-    value = SWAP16(value);
-    return ERR_OK;
-}
-
-static FlintError ClassLoader_ReadUInt32(void *file, uint32_t &value) {
-    RETURN_IF_ERR(ClassLoader_Read(file, &value, sizeof(uint32_t)));
-    value = SWAP32(value);
-    return ERR_OK;
-}
-
-static FlintError ClassLoader_ReadUInt64(void *file, uint64_t &value) {
-    RETURN_IF_ERR(ClassLoader_Read(file, &value, sizeof(uint64_t)));
-    value = SWAP64(value);
-    return ERR_OK;
-}
-
-static FlintError ClassLoader_Offset(void *file, int32_t offset) {
-    if(FlintAPI::IO::fseek(file, FlintAPI::IO::ftell(file) + offset) != FILE_RESULT_OK)
-        return ERR_CLASS_LOAD_FAIL;
-    return ERR_OK;
-}
-
-static FlintError dumpAttribute(void *file) {
-    RETURN_IF_ERR(ClassLoader_Offset(file, 2)); /* nameIndex */
-    uint32_t length;
-    RETURN_IF_ERR(ClassLoader_ReadUInt32(file, length));
-    RETURN_IF_ERR(ClassLoader_Offset(file, length));
-    return ERR_OK;
-}
-
-static FlintAttributeType parseAttributeType(FlintConstUtf8 &name) {
-    switch(name.length) {
-        case 4:
-            if(strncmp(name.text, "Code", name.length) == 0)
-                return ATTRIBUTE_CODE;
-            break;
-        case 13:
-            if(strncmp(name.text, "ConstantValue", name.length) == 0)
-                return ATTRIBUTE_CONSTANT_VALUE;
-            break;
-        case 16:
-            if(strncmp(name.text, "BootstrapMethods", name.length) == 0)
-                return ATTRIBUTE_BOOTSTRAP_METHODS;
-            break;
-        default:
-            break;
+    FileResult ret = FlintAPI::IO::fread(file, buff, size, &temp);
+    if((ret != FILE_RESULT_OK) || (temp != size)) {
+        if(ctx != NULL)
+            ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fread failed");
+        return false;
     }
-    return ATTRIBUTE_UNKNOW;
+    return true;
 }
 
-FlintClassLoader::FlintClassLoader(Flint &flint) : thisClass(NULL_PTR), superClass(NULL_PTR), flint(flint) {
-    staticCtorInfo = 0;
+static bool FReadUInt8(FExec *ctx, FileHandle file, uint8_t &value) {
+    return FRead(ctx, file, &value, sizeof(uint8_t));
+}
+
+static bool FReadUInt16(FExec *ctx, FileHandle file, uint16_t &value) {
+    if(!FRead(ctx, file, &value, sizeof(uint16_t))) return false;
+    value = Swap16(value);
+    return true;
+}
+
+static bool FReadUInt32(FExec *ctx, FileHandle file, uint32_t &value) {
+    if(!FRead(ctx, file, &value, sizeof(uint32_t))) return false;
+    value = Swap32(value);
+    return true;
+}
+
+static bool FReadUInt64(FExec *ctx, FileHandle file, uint64_t &value) {
+    if(!FRead(ctx, file, &value, sizeof(uint64_t))) return false;
+    value = Swap64(value);
+    return true;
+}
+
+static bool Fseek(FExec *ctx, FileHandle file, int32_t offset) {
+    if(FlintAPI::IO::fseek(file, offset) != FILE_RESULT_OK) {
+        if(ctx != NULL)
+            ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fseek failed");
+        return false;
+    }
+    return true;
+}
+
+static bool FOffset(FExec *ctx, FileHandle file, int32_t offset) {
+    return Fseek(ctx, file, FlintAPI::IO::ftell(file) + offset);
+}
+
+static bool FClose(FExec *ctx, FileHandle handle) {
+    if(FlintAPI::IO::fclose(handle) != FILE_RESULT_OK) {
+        if(ctx != NULL)
+            ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fclose failed");
+        return false;
+    }
+    return true;
+}
+
+static bool dumpAttribute(FExec *ctx, void *file) {
+    if(!FOffset(ctx, file, 2)) return false; /* nameIndex */
+    uint32_t length;
+    if(!FReadUInt32(ctx, file, length)) return false;
+    if(!FOffset(ctx, file, length)) return false;
+    return true;
+}
+
+ClassLoader::ClassLoader(void) :
+DictNode<ClassLoader>(), thisClass(NULL), superClass(NULL) {
+    loaderFlags = 0;
     poolCount = 0;
     interfacesCount = 0;
     fieldsCount = 0;
     methodsCount = 0;
-    interfaces = NULL_PTR;
-    fields = NULL_PTR;
-    methods = NULL_PTR;
+    hash = 0;
+    monitorOwnId = 0;
+    monitorCount = 0;
+    poolTable = NULL;
+    interfaces = NULL;
+    fields = NULL;
+    methods = NULL;
+    staticFields = NULL;
 }
 
-FlintError FlintClassLoader::load(const char *fileName, uint16_t length) {
-    void *file = ClassLoader_Open(fileName, length);
-    if(file == NULL_PTR)
-        return ERR_CLASS_NOT_FOUND;
-    FlintError err = load(file);
-    if(FlintAPI::IO::fclose(file) != FILE_RESULT_OK)
-        return ERR_CLASS_LOAD_FAIL;
-    return err;
+uint32_t ClassLoader::getHashKey(void) const {
+    return hash;
 }
 
-FlintError FlintClassLoader::load(void *file) {
+int32_t ClassLoader::compareKey(const char *key, uint16_t length) const {
+    return (length > 0) ? strncmp(this->thisClass, key, length) : strcmp(this->thisClass, key);
+}
+
+int32_t ClassLoader::compareKey(DictNode<ClassLoader> *other) const {
+    return strcmp(this->thisClass, ((ClassLoader *)other)->thisClass);
+}
+
+bool ClassLoader::load(FExec *ctx, FileHandle file) {
     char buff[FILE_NAME_BUFF_SIZE];
     char *utf8Buff = buff;
     uint16_t utf8Length = sizeof(buff);
-    /* RETURN_IF_ERR(ClassLoader_ReadUInt32(file, magic)); */         /* magic = */
-    /* RETURN_IF_ERR(ClassLoader_ReadUInt16(file, minorVersion)); */  /* minorVersion = */
-    /* RETURN_IF_ERR(ClassLoader_ReadUInt16(file, majorVersion)); */  /* majorVersion = */
-    RETURN_IF_ERR(ClassLoader_Offset(file, 8));
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, poolCount));
+    /* if(!FReadUInt32(file, magic)) return false; */         /* magic = */
+    /* if(!FReadUInt16(file, minorVersion)) return false; */  /* minorVersion = */
+    /* if(!FReadUInt16(file, majorVersion)) return false; */  /* majorVersion = */
+    if(!FOffset(ctx, file, 8)) return false;
+    if(!FReadUInt16(ctx, file, poolCount)) return false;
     poolCount--;
-    poolTable = (FlintConstPool *)Flint::malloc(poolCount * sizeof(FlintConstPool));
-    if(poolTable == NULL_PTR)
-        return ERR_OUT_OF_MEMORY;
+    poolTable = (ConstPool *)Flint::malloc(ctx, poolCount * sizeof(ConstPool));
+    if(poolTable == NULL)
+        return false;
     for(uint32_t i = 0; i < poolCount; i++) {
         uint8_t tag;
-        RETURN_IF_ERR(ClassLoader_ReadUInt8(file, tag));
-        *(FlintConstPoolTag *)&poolTable[i].tag = (FlintConstPoolTag)tag;
+        if(!FReadUInt8(ctx, file, tag)) return false;
+        *(ConstPoolTag *)&poolTable[i].tag = (ConstPoolTag)tag;
         switch(tag) {
             case CONST_UTF8: {
                 uint16_t length;
-                RETURN_IF_ERR(ClassLoader_ReadUInt16(file, length));
+                if(!FReadUInt16(ctx, file, length)) return false;
                 if(length > utf8Length) {
-                    if(utf8Buff == buff)
-                        utf8Buff = (char *)Flint::malloc(length);
-                    else
-                        utf8Buff = (char *)Flint::realloc(utf8Buff, length);
-                    if(utf8Buff == NULL_PTR)
-                        return ERR_OUT_OF_MEMORY;
+                    utf8Buff = (char *)((utf8Buff == buff) ? Flint::malloc(ctx, length) : Flint::realloc(ctx, utf8Buff, length));
+                    if(utf8Buff == NULL)
+                        return false;
                     utf8Length = length;
                 }
-                RETURN_IF_ERR(ClassLoader_Read(file, utf8Buff, length));
-                auto utf8 = flint.getConstUtf8(utf8Buff, length);
-                if(utf8.err != ERR_OK)
-                    return utf8.err;
-                *(uint32_t *)&poolTable[i].value = (uint32_t)utf8.value;
+                if(!FRead(ctx, file, utf8Buff, length)) return false;
+                utf8Buff[length] = 0;
+                const char *utf8 = Flint::getUtf8(ctx, utf8Buff);
+                if(utf8 == NULL)
+                    return false;
+                *(uint32_t *)&poolTable[i].value = (uint32_t)utf8;
                 break;
             }
             case CONST_INTEGER:
             case CONST_FLOAT:
-                RETURN_IF_ERR(ClassLoader_ReadUInt32(file, *(uint32_t *)&poolTable[i].value));
+                if(!FReadUInt32(ctx, file, *(uint32_t *)&poolTable[i].value)) return false;
                 break;
             case CONST_FIELD:
             case CONST_METHOD:
@@ -155,545 +165,488 @@ FlintError FlintClassLoader::load(void *file) {
             case CONST_NAME_AND_TYPE:
             case CONST_INVOKE_DYNAMIC:
                 *(uint8_t *)&poolTable[i].tag |= 0x80;
-                RETURN_IF_ERR(ClassLoader_ReadUInt16(file, ((uint16_t *)&poolTable[i].value)[0]));
-                RETURN_IF_ERR(ClassLoader_ReadUInt16(file, ((uint16_t *)&poolTable[i].value)[1]));
+                if(!FReadUInt16(ctx, file, ((uint16_t *)&poolTable[i].value)[0])) return false;
+                if(!FReadUInt16(ctx, file, ((uint16_t *)&poolTable[i].value)[1])) return false;
                 break;
             case CONST_LONG:
             case CONST_DOUBLE: {
                 uint64_t value;
-                RETURN_IF_ERR(ClassLoader_ReadUInt64(file, value));
+                if(!FReadUInt64(ctx, file, value)) return false;
                 *(uint32_t *)&poolTable[i + 0].value = (uint32_t)value;
                 *(uint32_t *)&poolTable[i + 1].value = (uint32_t)(value >> 32);
-                *(FlintConstPoolTag *)&poolTable[i + 1].tag = CONST_UNKOWN;
+                *(ConstPoolTag *)&poolTable[i + 1].tag = CONST_UNKOWN;
                 i++;
                 break;
             }
-            case CONST_CLASS:
+            case CONST_CLASS: {
+                *(uint8_t *)&poolTable[i].tag |= 0x80;
+                ((ConstClass *)&poolTable[i])->cls = NULL;
+                if(!FReadUInt16(ctx, file, ((ConstClass *)&poolTable[i])->clsNameIndex)) return false;
+                break;
+            }
             case CONST_STRING:
                 *(uint8_t *)&poolTable[i].tag |= 0x80;
             case CONST_METHOD_TYPE: {
                 uint16_t tmp;
-                RETURN_IF_ERR(ClassLoader_ReadUInt16(file, tmp));
+                if(!FReadUInt16(ctx, file, tmp)) return false;
                 *(uint32_t *)&poolTable[i].value = tmp;
                 break;
             }
             case CONST_METHOD_HANDLE:
                 *(uint8_t *)&poolTable[i].tag |= 0x80;
-                RETURN_IF_ERR(ClassLoader_ReadUInt8(file, ((uint8_t *)&poolTable[i].value)[0]));
-                RETURN_IF_ERR(ClassLoader_ReadUInt16(file, ((uint16_t *)&poolTable[i].value)[1]));
+                if(!FReadUInt8(ctx, file, ((uint8_t *)&poolTable[i].value)[0])) return false;
+                if(!FReadUInt16(ctx, file, ((uint16_t *)&poolTable[i].value)[1])) return false;
                 break;
-            default:
-                return ERR_CLASS_LOAD_FAIL;
+            default: {
+                if(ctx != NULL) {
+                    JClass *excpCls = Flint::findClass(ctx, "java/lang/ClassFormatError");
+                    ctx->throwNew(excpCls, "Constant pool tag value (%u) is invalid", tag);
+                }
+                return false;
+            }
         }
     }
     if(utf8Buff != buff)
         Flint::free(utf8Buff);
 
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, accessFlags));
+    if(!FReadUInt16(ctx, file, accessFlags)) return false;
 
     uint16_t clsIndex;
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, clsIndex));
-    *(FlintConstUtf8 **)&thisClass = &getConstUtf8Class(clsIndex);
+    if(!FReadUInt16(ctx, file, clsIndex)) return false;
+    *(const char **)&thisClass = getConstClassName(clsIndex);
+    hash = Hash(thisClass);
 
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, clsIndex));
-    *(FlintConstUtf8 **)&superClass = (clsIndex != 0) ? &getConstUtf8Class(clsIndex) : 0;
+    if(!FReadUInt16(ctx, file, clsIndex)) return false;
+    *(const char **)&superClass = (clsIndex != 0) ? getConstClassName(clsIndex) : NULL;
 
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, interfacesCount));
+    if(!FReadUInt16(ctx, file, interfacesCount)) return false;
     if(interfacesCount) {
-        interfaces = (uint16_t *)Flint::malloc(interfacesCount * sizeof(uint16_t));
-        if(interfaces == NULL_PTR)
-            return ERR_OUT_OF_MEMORY;
+        interfaces = (uint16_t *)Flint::malloc(ctx, interfacesCount * sizeof(uint16_t));
+        if(interfaces == NULL) return false;
         for(uint32_t i = 0; i < interfacesCount; i++)
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, interfaces[i]));
+            if(!FReadUInt16(ctx, file, interfaces[i])) return false;
     }
 
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, fieldsCount));
+    if(!FReadUInt16(ctx, file, fieldsCount)) return false;
     if(fieldsCount) {
         uint32_t loadedCount = 0;
-        fields = (FlintFieldInfo *)Flint::malloc(fieldsCount * sizeof(FlintFieldInfo));
-        if(fields == NULL_PTR)
-            return ERR_OUT_OF_MEMORY;
+        fields = (FieldInfo *)Flint::malloc(ctx, fieldsCount * sizeof(FieldInfo));
+        if(fields == NULL) return false;
         for(uint16_t i = 0; i < fieldsCount; i++) {
-            uint16_t flag, fieldsNameIndex, fieldsDescriptorIndex, fieldsAttributesCount;
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, flag));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, fieldsNameIndex));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, fieldsDescriptorIndex));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, fieldsAttributesCount));
+            uint16_t flag, fieldsNameIndex, fieldsDescIndex, fieldsAttributesCount;
+            if(!FReadUInt16(ctx, file, flag)) return false;
+            if(!FReadUInt16(ctx, file, fieldsNameIndex)) return false;
+            if(!FReadUInt16(ctx, file, fieldsDescIndex)) return false;
+            if(!FReadUInt16(ctx, file, fieldsAttributesCount)) return false;
             while(fieldsAttributesCount--) {
-                uint16_t nameIndex;
+                uint16_t attrNameIndex;
                 uint32_t length;
-                RETURN_IF_ERR(ClassLoader_ReadUInt16(file, nameIndex));
-                RETURN_IF_ERR(ClassLoader_ReadUInt32(file, length));
-                FlintAttributeType type = parseAttributeType(getConstUtf8(nameIndex));
+                if(!FReadUInt16(ctx, file, attrNameIndex)) return false;
+                if(!FReadUInt32(ctx, file, length)) return false;
                 if(
-                    type == ATTRIBUTE_CONSTANT_VALUE &&
+                    strcmp(getConstUtf8(attrNameIndex), "ConstantValue") == 0 &&
                     (flag & (FIELD_STATIC | FIELD_FINAL)) == (FIELD_STATIC | FIELD_FINAL)
                 ) {
                     flag = (flag | FIELD_UNLOAD);
                 }
-                RETURN_IF_ERR(ClassLoader_Offset(file, length));
+                if(!FOffset(ctx, file, length)) return false;
             }
             if(!(flag & FIELD_UNLOAD)) {
-                new (&fields[loadedCount])FlintFieldInfo(*this, (FlintFieldAccessFlag)flag, fieldsNameIndex, fieldsDescriptorIndex);
+                const char *fieldName = getConstUtf8(fieldsNameIndex);
+                const char *fieldDesc = getConstUtf8(fieldsDescIndex);
+                new (&fields[loadedCount])FieldInfo((FieldAccessFlag)flag, fieldName, fieldDesc);
                 loadedCount++;
             }
         }
         if(loadedCount == 0) {
             Flint::free(fields);
-            fields = NULL_PTR;
+            fields = NULL;
             fieldsCount = 0;
         }
         else if(loadedCount != fieldsCount) {
-            fields = (FlintFieldInfo *)Flint::realloc(fields, loadedCount * sizeof(FlintFieldInfo));
-            if(fields == NULL_PTR)
-                return ERR_OUT_OF_MEMORY;
+            fields = (FieldInfo *)Flint::realloc(ctx, fields, loadedCount * sizeof(FieldInfo));
+            if(fields == NULL) return false;
             fieldsCount = loadedCount;
         }
     }
 
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, methodsCount));
+    if(!FReadUInt16(ctx, file, methodsCount)) return false;
     if(methodsCount) {
-        methods = (FlintMethodInfo *)Flint::malloc(methodsCount * sizeof(FlintMethodInfo));
-        if(methods == NULL_PTR)
-            return ERR_OUT_OF_MEMORY;
+        methods = (MethodInfo *)Flint::malloc(ctx, methodsCount * sizeof(MethodInfo));
+        if(methods == NULL) return false;
         for(uint16_t i = 0; i < methodsCount; i++) {
-            uint16_t flag, methodNameIndex, methodDescriptorIndex, methodAttributesCount;
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, flag));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, methodNameIndex));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, methodDescriptorIndex));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, methodAttributesCount));
+            uint16_t flag, methodNameIndex, methodDescIndex, methodAttributesCount;
+            if(!FReadUInt16(ctx, file, flag)) return false;
+            if(!FReadUInt16(ctx, file, methodNameIndex)) return false;
+            if(!FReadUInt16(ctx, file, methodDescIndex)) return false;
+            if(!FReadUInt16(ctx, file, methodAttributesCount)) return false;
             if(!(flag & METHOD_NATIVE)) {
-                flag = (flag | METHOD_UNLOADED);
-                if(&getConstUtf8(methodNameIndex) == (FlintConstUtf8 *)staticConstructorName)
-                    flag = (flag | METHOD_SYNCHRONIZED);
+                flag |= METHOD_UNLOADED;
+                if((flag & METHOD_STATIC) && strcmp(getConstUtf8(methodNameIndex), "<clinit>") == 0) {
+                    flag = (flag | METHOD_CLINIT);
+                    loaderFlags |= FLAG_HAS_CLINIT;
+                }
+                else if(strcmp(getConstUtf8(methodNameIndex), "<init>") == 0)
+                    flag = (flag | METHOD_INIT);
             }
-            new (&methods[i])FlintMethodInfo(*this, (FlintMethodAccessFlag)flag, methodNameIndex, methodDescriptorIndex);
+            const char *methodName = getConstUtf8(methodNameIndex);
+            const char *methodDesc = getConstUtf8(methodDescIndex);
+            new (&methods[i])MethodInfo(this, (MethodAccessFlag)flag, methodName, methodDesc);
             while(methodAttributesCount--) {
-                uint16_t nameIndex;
+                uint16_t attrNameIndex;
                 uint32_t length;
-                RETURN_IF_ERR(ClassLoader_ReadUInt16(file, nameIndex));
-                RETURN_IF_ERR(ClassLoader_ReadUInt32(file, length));
-                FlintAttributeType type = parseAttributeType(getConstUtf8(nameIndex));
-                if(type == ATTRIBUTE_CODE && !(flag & METHOD_NATIVE))
+                if(!FReadUInt16(ctx, file, attrNameIndex)) return false;
+                if(!FReadUInt32(ctx, file, length)) return false;
+                if(strcmp(getConstUtf8(attrNameIndex), "Code") == 0 && !(flag & METHOD_NATIVE))
                     methods[i].code = (uint8_t *)FlintAPI::IO::ftell(file);
-                RETURN_IF_ERR(ClassLoader_Offset(file, length));
+                if(!FOffset(ctx, file, length)) return false;
             }
         }
     }
     /*
     uint16_t attributesCount;
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, attributesCount));
+    if(!FReadUInt16(file, attributesCount));
     while(attributesCount--)
         FlintAttribute *attr = readAttribute(file);
     */
-    return ERR_OK;
+    return true;
 }
 
-FlintError FlintClassLoader::readAttributeCode(void *file, FlintMethodInfo &method) {
+ClassLoader *ClassLoader::load(FExec *ctx, const char *clsName, uint16_t length) {
+    ClassLoader *loader = (ClassLoader *)Flint::malloc(ctx, sizeof(ClassLoader));
+    if(loader == NULL)
+        return NULL;
+    new (loader)ClassLoader();
+    FileHandle file = FOpen(ctx, clsName, length);
+    if(file == NULL)
+        return NULL;
+    if(loader->load(ctx, file) == false) {
+        loader->~ClassLoader();
+        Flint::free(loader);
+        return NULL;
+    }
+    if(FClose(ctx, file) == false) {
+        if(loader != NULL) {
+            loader->~ClassLoader();
+            Flint::free(loader);
+        }
+        return NULL;
+    }
+    return loader;
+}
+
+CodeAttribute *ClassLoader::readAttributeCode(FExec *ctx, void *file) {
     uint16_t maxStack, maxLocals;
     uint32_t codeLength;
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, maxStack));
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, maxLocals));
-    RETURN_IF_ERR(ClassLoader_ReadUInt32(file, codeLength));
+    if(!FReadUInt16(ctx, file, maxStack)) return NULL;
+    if(!FReadUInt16(ctx, file, maxLocals)) return NULL;
+    if(!FReadUInt32(ctx, file, codeLength)) return NULL;
     uint32_t codePos = FlintAPI::IO::ftell(file);
 
-    RETURN_IF_ERR(ClassLoader_Offset(file, codeLength));
+    if(!FOffset(ctx, file, codeLength)) return NULL;
     uint16_t exceptionTableLength;
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, exceptionTableLength));
+    if(!FReadUInt16(ctx, file, exceptionTableLength)) return NULL;
 
-    uint32_t codeAttrSize = sizeof(FlintCodeAttribute) + exceptionTableLength * sizeof(FlintExceptionTable) + codeLength + 1;
-    FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)Flint::malloc(codeAttrSize);
-    if(codeAttr == NULL_PTR)
-        return ERR_OUT_OF_MEMORY;
+    uint32_t codeAttrSize = sizeof(CodeAttribute) + exceptionTableLength * sizeof(ExceptionTable) + codeLength + 1;
+    CodeAttribute *codeAttr = (CodeAttribute *)Flint::malloc(ctx, codeAttrSize);
+    if(codeAttr == NULL) return NULL;
     codeAttr->maxStack = maxStack;
     codeAttr->maxLocals = maxLocals;
     codeAttr->codeLength = codeLength;
     codeAttr->exceptionLength = exceptionTableLength;
 
     if(exceptionTableLength) {
-        FlintExceptionTable *exceptionTable = (FlintExceptionTable *)codeAttr->data;
+        ExceptionTable *exceptionTable = (ExceptionTable *)codeAttr->data;
         for(uint16_t i = 0; i < exceptionTableLength; i++) {
             uint16_t startPc, endPc, handlerPc, catchType;
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, startPc));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, endPc));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, handlerPc));
-            RETURN_IF_ERR(ClassLoader_ReadUInt16(file, catchType));
-            new (&exceptionTable[i])FlintExceptionTable(startPc, endPc, handlerPc, catchType);
+            if(!FReadUInt16(ctx, file, startPc)) { Flint::free(codeAttr); return NULL; }
+            if(!FReadUInt16(ctx, file, endPc)) { Flint::free(codeAttr); return NULL; }
+            if(!FReadUInt16(ctx, file, handlerPc)) { Flint::free(codeAttr); return NULL; }
+            if(!FReadUInt16(ctx, file, catchType)) { Flint::free(codeAttr); return NULL; }
+            new (&exceptionTable[i])ExceptionTable(startPc, endPc, handlerPc, catchType);
         }
     }
 
     uint16_t attrbutesCount;
-    RETURN_IF_ERR(ClassLoader_ReadUInt16(file, attrbutesCount));
+    if(!FReadUInt16(ctx, file, attrbutesCount)) { Flint::free(codeAttr); return NULL; }
     while(attrbutesCount--)
-        RETURN_IF_ERR(dumpAttribute(file));
+        if(!dumpAttribute(ctx, file)) { Flint::free(codeAttr); return NULL; }
 
-    FlintAPI::IO::fseek(file, codePos);
-    uint8_t *code = (uint8_t *)&((FlintExceptionTable *)codeAttr->data)[exceptionTableLength];
-    RETURN_IF_ERR(ClassLoader_Read(file, code, codeLength));
+    if(!Fseek(ctx, file, codePos)) { Flint::free(codeAttr); return NULL; }
+    uint8_t *code = (uint8_t *)&((ExceptionTable *)codeAttr->data)[exceptionTableLength];
+    if(!FRead(ctx, file, code, codeLength)) { Flint::free(codeAttr); return NULL; }
     code[codeLength] = OP_EXIT;
 
-    method.code = (uint8_t *)codeAttr;
-
-    return ERR_OK;
+    return codeAttr;
 }
 
-/*
-uint32_t FlintClassLoader::getMagic(void) const {
-    return magic;
-}
-*/
-
-/*
-uint16_t FlintClassLoader::getMinorVersion(void) const {
-    return minorVersion;
-}
-*/
-
-/*
-uint16_t FlintClassLoader::getMajorversion(void) const {
-    return majorVersion;
-}
-*/
-
-FlintConstPool &FlintClassLoader::getConstPool(uint16_t poolIndex) const {
-    return poolTable[poolIndex - 1];
+ConstPoolTag ClassLoader::getConstPoolTag(uint16_t poolIndex) const {
+    return (ConstPoolTag)(poolTable[poolIndex - 1].tag & 0x7F);
 }
 
-int32_t FlintClassLoader::getConstInteger(FlintConstPool &constPool) const {
-    return (int32_t)constPool.value;
+int32_t ClassLoader::getConstInteger(uint16_t poolIndex) const {
+    return (int32_t)poolTable[poolIndex - 1].value;
 }
 
-float FlintClassLoader::getConstFloat(FlintConstPool &constPool) const {
-    return *(float *)&constPool.value;
+float ClassLoader::getConstFloat(uint16_t poolIndex) const {
+    return *(float *)&poolTable[poolIndex - 1].value;
 }
 
-int64_t FlintClassLoader::getConstLong(FlintConstPool &constPool) const {
-    uint16_t poolIndex = (uint16_t)(&constPool - poolTable);
-    return ((uint64_t)poolTable[poolIndex + 1].value << 32) | poolTable[poolIndex].value;
+int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
+    return ((uint64_t)poolTable[poolIndex].value << 32) | poolTable[poolIndex - 1].value;
 }
 
-double FlintClassLoader::getConstDouble(FlintConstPool &constPool) const {
-    uint16_t poolIndex = (uint16_t)(&constPool - poolTable);
-    uint64_t ret = ((uint64_t)poolTable[poolIndex + 1].value << 32) | poolTable[poolIndex].value;
+double ClassLoader::getConstDouble(uint16_t poolIndex) const {
+    uint64_t ret = ((uint64_t)poolTable[poolIndex].value << 32) | poolTable[poolIndex - 1].value;
     return *(double *)&ret;
 }
 
-FlintConstUtf8 &FlintClassLoader::getConstUtf8(uint16_t poolIndex) const {
-    return *(FlintConstUtf8 *)poolTable[poolIndex - 1].value;
+const char *ClassLoader::getConstUtf8(uint16_t poolIndex) const {
+    return (const char *)poolTable[poolIndex - 1].value;
 }
 
-FlintConstUtf8 &FlintClassLoader::getConstUtf8(FlintConstPool &constPool) const {
-    return *(FlintConstUtf8 *)constPool.value;
+const char *ClassLoader::getConstClassName(uint16_t poolIndex) const {
+    ConstClass *constCls = (ConstClass *)&poolTable[poolIndex - 1];
+    return getConstUtf8(constCls->clsNameIndex);
 }
 
-FlintConstUtf8 &FlintClassLoader::getConstUtf8Class(uint16_t poolIndex) const {
+ConstNameAndType *ClassLoader::getConstNameAndType(FExec *ctx, uint16_t poolIndex) {
     poolIndex--;
     if(poolTable[poolIndex].tag & 0x80) {
         Flint::lock();
         if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t index = poolTable[poolIndex].value;
-            Flint::unlock();
-            return getConstUtf8(index);
-        }
-        Flint::unlock();
-    }
-    return *((ConstClassValue *)poolTable[poolIndex].value)->constUtf8Class;
-}
-
-FlintConstUtf8 &FlintClassLoader::getConstUtf8Class(FlintConstPool &constPool) const {
-    if(constPool.tag & 0x80) {
-        Flint::lock();
-        if(constPool.tag & 0x80) {
-            uint16_t index = constPool.value;
-            Flint::unlock();
-            return getConstUtf8(index);
-        }
-        Flint::unlock();
-    }
-    return *((ConstClassValue *)constPool.value)->constUtf8Class;
-}
-
-FlintResult<JClass> FlintClassLoader::getConstClass(FlintConstPool &constPool) {
-    if(constPool.tag & 0x80) {
-        Flint::lock();
-        if(constPool.tag & 0x80) {
-            FlintConstUtf8 &constUtf8Class = getConstUtf8(constPool.value);
-            ConstClassValue *constClassValue = (ConstClassValue *)Flint::malloc(sizeof(ConstClassValue));
-            if(constClassValue == NULL_PTR) {
+            uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+            uint16_t descIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+            ConstNameAndType *tmp = (ConstNameAndType *)Flint::malloc(ctx, sizeof(ConstNameAndType));
+            if(tmp == NULL) {
                 Flint::unlock();
-                return ERR_OUT_OF_MEMORY;
+                return NULL;
             }
-            constClassValue->constUtf8Class = &constUtf8Class;
-            auto cls = flint.getConstClass(constUtf8Class.text, constUtf8Class.length);
-            if(cls.err == ERR_OK) {
-                constClassValue->constClass = cls.value;
-                *(uint32_t *)&constPool.value = (uint32_t)constClassValue;
-                *(FlintConstPoolTag *)&constPool.tag = CONST_CLASS;
-            }
-            Flint::unlock();
-            return cls;
+            new (tmp)ConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descIndex));
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
         }
         Flint::unlock();
     }
-    return ((ConstClassValue *)constPool.value)->constClass;
+    return (ConstNameAndType *)poolTable[poolIndex].value;
 }
 
-FlintResult<JString> FlintClassLoader::getConstString(FlintConstPool &constPool) {
-    if(constPool.tag & 0x80) {
+ConstField *ClassLoader::getConstField(FExec *ctx, uint16_t poolIndex) {
+    poolIndex--;
+    if(poolTable[poolIndex].tag & 0x80) {
         Flint::lock();
-        if(constPool.tag & 0x80) {
-            FlintConstUtf8 &utf8Str = getConstUtf8(constPool.value);
-            auto str = flint.getConstString(utf8Str);
-            if(str.err == ERR_OK) {
-                *(uint32_t *)&constPool.value = (uint32_t)str.value;
-                *(FlintConstPoolTag *)&constPool.tag = CONST_STRING;
+        if(poolTable[poolIndex].tag & 0x80) {
+            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+            ConstField *tmp = (ConstField *)Flint::malloc(ctx, sizeof(ConstField));
+            if(tmp == NULL) {
+                Flint::unlock();
+                return NULL;
+            }
+            ConstNameAndType *nameAndType = getConstNameAndType(ctx, nameAndTypeIndex);
+            if(nameAndType == NULL) {
+                Flint::unlock();
+                Flint::free(tmp);
+                return NULL;
+            }
+            new (tmp)ConstField(getConstClassName(classNameIndex), nameAndType);
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
+        }
+        Flint::unlock();
+    }
+    return (ConstField *)poolTable[poolIndex].value;
+}
+
+ConstMethod *ClassLoader::getConstMethod(FExec *ctx, uint16_t poolIndex) {
+    poolIndex--;
+    if(poolTable[poolIndex].tag & 0x80) {
+        Flint::lock();
+        if(poolTable[poolIndex].tag & 0x80) {
+            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+            ConstMethod *tmp = (ConstMethod *)Flint::malloc(ctx, sizeof(ConstMethod));
+            if(tmp == NULL) {
+                Flint::unlock();
+                return NULL;
+            }
+            ConstNameAndType *nameAndType = getConstNameAndType(ctx, nameAndTypeIndex);
+            if(nameAndType == NULL) {
+                Flint::unlock();
+                Flint::free(tmp);
+                return NULL;
+            }
+            new (tmp)ConstMethod(getConstClassName(classNameIndex), nameAndType);
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
+        }
+        Flint::unlock();
+    }
+    return (ConstMethod *)poolTable[poolIndex].value;
+}
+
+ConstInterfaceMethod *ClassLoader::getConstInterfaceMethod(FExec *ctx, uint16_t poolIndex) {
+    poolIndex--;
+    if(poolTable[poolIndex].tag & 0x80) {
+        Flint::lock();
+        if(poolTable[poolIndex].tag & 0x80) {
+            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
+            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
+            ConstInterfaceMethod *tmp = (ConstInterfaceMethod *)Flint::malloc(ctx, sizeof(ConstInterfaceMethod));
+            if(tmp == NULL) {
+                Flint::unlock();
+                return NULL;
+            }
+            ConstNameAndType *nameAndType = getConstNameAndType(ctx, nameAndTypeIndex);
+            if(nameAndType == NULL) {
+                Flint::unlock();
+                Flint::free(tmp);
+                return NULL;
+            }
+            new (tmp)ConstInterfaceMethod(getConstClassName(classNameIndex), nameAndType);
+            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
+            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
+        }
+        Flint::unlock();
+    }
+    return (ConstInterfaceMethod *)poolTable[poolIndex].value;
+}
+
+JString *ClassLoader::getConstString(FExec *ctx, uint16_t poolIndex) {
+    ConstPool *constPool = (ConstPool *)&poolTable[poolIndex - 1];
+    if(constPool->tag & 0x80) {
+        Flint::lock();
+        if(constPool->tag & 0x80) {
+            const char *utf8 = getConstUtf8(constPool->value);
+            JString *str = Flint::getConstString(ctx, utf8);
+            if(str != NULL) {
+                *(uint32_t *)&constPool->value = (uint32_t)str;
+                *(ConstPoolTag *)&constPool->tag = CONST_STRING;
             }
             Flint::unlock();
             return str;
         }
         Flint::unlock();
     }
-    return (JString *)constPool.value;
+    return (JString *)constPool->value;
 }
 
-FlintConstUtf8 &FlintClassLoader::getConstMethodType(FlintConstPool &constPool) const {
-    return getConstUtf8(constPool.value);
-}
-
-FlintResult<FlintConstNameAndType> FlintClassLoader::getConstNameAndType(uint16_t poolIndex) {
-    poolIndex--;
-    if(poolTable[poolIndex].tag & 0x80) {
+JClass *ClassLoader::getConstClass(FExec *ctx, uint16_t poolIndex) {
+    ConstClass *constCls = (ConstClass *)&poolTable[poolIndex - 1];
+    if(constCls->tag & 0x80) {
         Flint::lock();
-        if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t nameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t descriptorIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            void *tmp = Flint::malloc(sizeof(FlintConstNameAndType));
-            if(tmp == NULL_PTR) {
-                Flint::unlock();
-                return ERR_OUT_OF_MEMORY;
-            }
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            new ((FlintConstNameAndType *)poolTable[poolIndex].value)FlintConstNameAndType(getConstUtf8(nameIndex), getConstUtf8(descriptorIndex));
-            *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_NAME_AND_TYPE;
+        if(constCls->tag & 0x80) {
+            const char *clsName = getConstUtf8(constCls->clsNameIndex);
+            JClass *cls = Flint::findClass(ctx, clsName);
+            constCls->cls = cls;
+            if(cls != NULL)
+                constCls->tag = CONST_CLASS;
         }
         Flint::unlock();
     }
-    return (FlintConstNameAndType *)poolTable[poolIndex].value;
+    return constCls->cls;
 }
 
-FlintResult<FlintConstField> FlintClassLoader::getConstField(uint16_t poolIndex) {
-    poolIndex--;
-    if(poolTable[poolIndex].tag & 0x80) {
-        Flint::lock();
-        if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            void *tmp = Flint::malloc(sizeof(FlintConstField));
-            if(tmp == NULL_PTR) {
-                Flint::unlock();
-                return ERR_OUT_OF_MEMORY;
-            }
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            auto nameAndType = getConstNameAndType(nameAndTypeIndex);
-            if(nameAndType.err != ERR_OK) {
-                Flint::unlock();
-                return *(FlintResult<FlintConstField> *)&nameAndType;
-            }
-            new ((FlintConstField *)poolTable[poolIndex].value)FlintConstField(getConstUtf8Class(classNameIndex), *nameAndType.value);
-            *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_FIELD;
-        }
-        Flint::unlock();
-    }
-    return (FlintConstField *)poolTable[poolIndex].value;
+ClassAccessFlag ClassLoader::getAccessFlag(void) const {
+    return (ClassAccessFlag)accessFlags;
 }
 
-FlintResult<FlintConstMethod> FlintClassLoader::getConstMethod(uint16_t poolIndex) {
-    poolIndex--;
-    if(poolTable[poolIndex].tag & 0x80) {
-        Flint::lock();
-        if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            void *tmp = Flint::malloc(sizeof(FlintConstMethod));
-            if(tmp == NULL_PTR) {
-                Flint::unlock();
-                return ERR_OUT_OF_MEMORY;
-            }
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            auto nameAndType = getConstNameAndType(nameAndTypeIndex);
-            if(nameAndType.err != ERR_OK) {
-                Flint::unlock();
-                return *(FlintResult<FlintConstMethod> *)&nameAndType;
-            }
-            new ((FlintConstMethod *)poolTable[poolIndex].value)FlintConstMethod(getConstUtf8Class(classNameIndex), *nameAndType.value);
-            *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
-        }
-        Flint::unlock();
-    }
-    return (FlintConstMethod *)poolTable[poolIndex].value;
-}
-
-FlintResult<FlintConstInterfaceMethod> FlintClassLoader::getConstInterfaceMethod(uint16_t poolIndex) {
-    poolIndex--;
-    if(poolTable[poolIndex].tag & 0x80) {
-        Flint::lock();
-        if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            void *tmp = Flint::malloc(sizeof(FlintConstInterfaceMethod));
-            if(tmp == NULL_PTR) {
-                Flint::unlock();
-                return ERR_OUT_OF_MEMORY;
-            }
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            auto nameAndType = getConstNameAndType(nameAndTypeIndex);
-            if(nameAndType.err != ERR_OK) {
-                Flint::unlock();
-                return *(FlintResult<FlintConstInterfaceMethod> *)&nameAndType;
-            }
-            new ((FlintConstInterfaceMethod *)poolTable[poolIndex].value)FlintConstInterfaceMethod(getConstUtf8Class(classNameIndex), *nameAndType.value);
-            *(FlintConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
-        }
-        Flint::unlock();
-    }
-    return (FlintConstInterfaceMethod *)poolTable[poolIndex].value;
-}
-
-FlintClassAccessFlag FlintClassLoader::getAccessFlag(void) const {
-    return (FlintClassAccessFlag)accessFlags;
-}
-
-uint16_t FlintClassLoader::getInterfacesCount(void) const {
+uint16_t ClassLoader::getInterfacesCount(void) const {
     return interfacesCount;
 }
 
-FlintConstUtf8 &FlintClassLoader::getInterface(uint8_t interfaceIndex) const {
-    return getConstUtf8Class(interfaces[interfaceIndex]);
+const char *ClassLoader::getInterface(uint16_t interfaceIndex) const {
+    return getConstClassName(interfaces[interfaceIndex]);
 }
 
-uint16_t FlintClassLoader::getFieldsCount(void) const {
+uint16_t ClassLoader::getFieldsCount(void) const {
     return fieldsCount;
 }
 
-FlintFieldInfo *FlintClassLoader::getFieldInfo(uint8_t fieldIndex) const {
+FieldInfo *ClassLoader::getFieldInfo(uint16_t fieldIndex) const {
     return &fields[fieldIndex];
 }
 
-FlintFieldInfo *FlintClassLoader::getFieldInfo(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) const {
-    uint32_t nameHash = CONST_UTF8_HASH(name);
-    uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
-    for(uint16_t i = 0; i < fieldsCount; i++) {
-        FlintConstUtf8 &fieldName = fields[i].getName();
-        FlintConstUtf8 &fieldDesc = fields[i].getDescriptor();
-        if(nameHash == CONST_UTF8_HASH(fieldName) && descriptorHash == CONST_UTF8_HASH(fieldDesc)) {
-            if(&name == &fields[i].getName() && &descriptor == &fieldDesc)
-                return &fields[i];
-            else if(
-                strncmp(name.text, fieldName.text, name.length) == 0 &&
-                strncmp(descriptor.text, fieldDesc.text, descriptor.length) == 0
-            ) {
-                return &fields[i];
-            }
-        }
-    }
-    return NULL_PTR;
-}
-
-FlintFieldInfo *FlintClassLoader::getFieldInfo(FlintConstNameAndType &nameAndType) const {
-    return getFieldInfo(nameAndType.name, nameAndType.descriptor);
-}
-
-uint16_t FlintClassLoader::getMethodsCount(void) const {
+uint16_t ClassLoader::getMethodsCount(void) const {
     return methodsCount;
 }
 
-FlintMethodInfo *FlintClassLoader::getMethodInfoWithUnload(uint8_t methodIndex) {
-    return &methods[methodIndex];
-}
-
-FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(uint8_t methodIndex) {
-    FlintMethodInfo &method = methods[methodIndex];
-    if(method.accessFlag & METHOD_UNLOADED) {
+MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, uint8_t methodIndex) {
+    MethodInfo *method = &methods[methodIndex];
+    if(method->accessFlag & METHOD_UNLOADED) {
         Flint::lock();
-        if(method.accessFlag & METHOD_UNLOADED) {
-            void *file = ClassLoader_Open(thisClass->text, thisClass->length);
-            if(file == NULL_PTR) {
-                Flint::unlock();
-                return FlintResult<FlintMethodInfo>(ERR_CLASS_LOAD_FAIL, thisClass->text, thisClass->length);
-            }
-            if(FlintAPI::IO::fseek(file, (uint32_t)method.code) != FILE_RESULT_OK) {
-                Flint::unlock();
-                FlintAPI::IO::fclose(file);
-                return FlintResult<FlintMethodInfo>(ERR_CLASS_LOAD_FAIL, thisClass->text, thisClass->length);
-            }
-            readAttributeCode(file, method);
-            if(FlintAPI::IO::fclose(file) != FILE_RESULT_OK) {
-                Flint::unlock();
-                return FlintResult<FlintMethodInfo>(ERR_CLASS_LOAD_FAIL, thisClass->text, thisClass->length);
-            }
-            method.accessFlag = (FlintMethodAccessFlag)(method.accessFlag & ~METHOD_UNLOADED);
+        if(method->accessFlag & METHOD_UNLOADED) {
+            void *file = FOpen(ctx, thisClass);
+            if(file == NULL) { Flint::unlock(); return NULL; }
+
+            if(!Fseek(ctx, file, (uint32_t)method->code)) { FClose(NULL, file); Flint::unlock(); return NULL; }
+
+            uint8_t *attrCode = (uint8_t *)readAttributeCode(ctx, file);
+            if(attrCode == NULL) { FClose(NULL, file); Flint::unlock(); return NULL; }
+
+            if(FClose(ctx, file) == false) { Flint::free(attrCode); Flint::unlock(); return NULL; }
+
+            method->code = attrCode;
+            method->accessFlag = (MethodAccessFlag)(method->accessFlag & ~METHOD_UNLOADED);
         }
         Flint::unlock();
     }
-    return &method;
+    return method;
 }
 
-FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) {
-    uint32_t nameHash = CONST_UTF8_HASH(name);
-    uint32_t descriptorHash = CONST_UTF8_HASH(descriptor);
+MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, ConstNameAndType *nameAndType) {
     for(uint16_t i = 0; i < methodsCount; i++) {
-        FlintConstUtf8 &methodName = methods[i].getName();
-        FlintConstUtf8 &methodDesc = methods[i].getDescriptor();
-        if(nameHash == CONST_UTF8_HASH(methodName) && descriptorHash == CONST_UTF8_HASH(methodDesc)) {
-            if(&name == &methodName && &descriptor == &methodDesc)
-                return getMethodInfo(i);
-            else if(
-                strncmp(name.text, methodName.text, name.length) == 0 &&
-                strncmp(descriptor.text, methodDesc.text, descriptor.length) == 0
-            ) {
-                return getMethodInfo(i);
-            }
+        if(
+            nameAndType->hash == methods[i].hash &&
+            strcmp(nameAndType->name, methods[i].name) == 0 &&
+            strcmp(nameAndType->desc, methods[i].desc) == 0
+        ) {
+            return getMethodInfo(ctx, i);
         }
     }
-    return ERR_METHOD_NOT_FOUND;
+    return NULL;
 }
 
-FlintResult<FlintMethodInfo> FlintClassLoader::getMethodInfo(FlintConstNameAndType &nameAndType) {
-    return getMethodInfo(nameAndType.name, nameAndType.descriptor);
+MethodInfo *ClassLoader::getMainMethodInfo(FExec *ctx) {
+    static constexpr ConstNameAndType mainName("main", "([Ljava/lang/String;)V");
+    return getMethodInfo(ctx, (ConstNameAndType *)&mainName);
 }
 
-FlintResult<FlintMethodInfo> FlintClassLoader::getMainMethodInfo(void) {
-    static const uint32_t nameAndType[] = {
-        (uint32_t)"\x04\x00\x1D\x15""main",                     /* method name */
-        (uint32_t)"\x16\x00\x03\x78""([Ljava/lang/String;)V",   /* method type */
-    };
-    return getMethodInfo(*(FlintConstNameAndType *)nameAndType);
+MethodInfo *ClassLoader::getStaticCtor(FExec *ctx) {
+    static constexpr ConstNameAndType clinitName("<clinit>", "()V");
+    return getMethodInfo(ctx, (ConstNameAndType *)&clinitName);
 }
 
-FlintResult<FlintMethodInfo> FlintClassLoader::getStaticCtor(void) {
-    for(uint16_t i = 0; i < methodsCount; i++) {
-        if((FlintConstUtf8 *)staticConstructorName == &methods[i].getName())
-            return getMethodInfo(i);
-    }
-    return ERR_METHOD_NOT_FOUND;
+bool ClassLoader::hasStaticCtor(void) const {
+    return (loaderFlags & FLAG_HAS_CLINIT) ? true : false;
 }
 
-bool FlintClassLoader::hasStaticCtor(void) {
-    if(!staticCtorInfo) {
-        bool isFound = false;
-        for(uint16_t i = 0; i < methodsCount; i++) {
-            if((FlintConstUtf8 *)staticConstructorName == &methods[i].getName()) {
-                isFound = true;
-                break;
-            }
-        }
-        staticCtorInfo = isFound ? 0x81 : 0x80;
-    }
-    return staticCtorInfo & 0x01;
+FieldsData *ClassLoader::getStaticFields(void) const {
+    return staticFields;
 }
 
-FlintClassLoader::~FlintClassLoader(void) {
-    if(poolCount) {
+StaticInitStatus ClassLoader::getStaticInitStatus(void) const {
+    if(!(loaderFlags & FLAG_HAS_CLINIT))
+        return INITIALIZED;
+    if(staticFields == NULL)
+        return UNINITIALIZED;
+    return (loaderFlags & FLAG_STATIC_INIT) ? INITIALIZED : INITIALIZING;
+}
+
+void ClassLoader::staticInitialized(void) {
+    if(staticFields != NULL)
+        loaderFlags |= FLAG_STATIC_INIT;
+}
+
+bool ClassLoader::initStaticFields(FExec *ctx) {
+    staticFields = (FieldsData *)Flint::malloc(ctx, sizeof(FieldsData));
+    if(staticFields == NULL) return false;
+    new (staticFields)FieldsData();
+    return staticFields->init(ctx, this, true);
+}
+
+ClassLoader::~ClassLoader(void) {
+    if(poolCount && poolTable) {
         for(uint32_t i = 0; i < poolCount; i++) {
             switch(poolTable[i].tag) {
                 case CONST_UTF8:
@@ -709,7 +662,6 @@ FlintClassLoader::~FlintClassLoader(void) {
                 case CONST_DOUBLE:
                     i++;
                     break;
-                case CONST_CLASS:
                 case CONST_METHOD_HANDLE:
                     Flint::free((void *)poolTable[i].value);
                     break;
@@ -721,14 +673,17 @@ FlintClassLoader::~FlintClassLoader(void) {
     }
     if(interfacesCount && interfaces)
         Flint::free(interfaces);
-    if(fieldsCount && fields) {
-        for(uint32_t i = 0; i < fieldsCount; i++)
-            fields[i].~FlintFieldInfo();
+    if(fieldsCount && fields)
         Flint::free(fields);
-    }
     if(methodsCount && methods) {
-        for(uint32_t i = 0; i < methodsCount; i++)
-            methods[i].~FlintMethodInfo();
+        for(uint32_t i = 0; i < methodsCount; i++) {
+            if(!(methods[i].accessFlag & METHOD_NATIVE) && methods[i].code)
+                Flint::free(methods[i].code);
+        }
         Flint::free(methods);
+    }
+    if(staticFields != NULL) {
+        staticFields->~FieldsData();
+        Flint::free(staticFields);
     }
 }

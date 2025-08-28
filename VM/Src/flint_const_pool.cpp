@@ -1,29 +1,28 @@
 
 #include <string.h>
-#include "flint_common.h"
+#include "flint_std.h"
 #include "flint_const_pool.h"
 
-uint8_t parseArgc(FlintConstUtf8 &descriptor) {
-    const char *text = descriptor.text;
+static uint8_t parseArgc(const char *desc) {
     uint8_t argc = 0;
-    while(*text == '(')
-        text++;
-    while(*text) {
-        if(*text == ')')
+    while(*desc == '(')
+        desc++;
+    while(*desc) {
+        if(*desc == ')')
             return argc;
-        else if(*text == '[')
-            text++;
+        else if(*desc == '[')
+            desc++;
         else {
-            argc += (*text == 'J' || *text == 'D') ? 2 : 1;
-            if(*text++ == 'L') {
-                while(*text) {
-                    if(*text == ')')
+            argc += (*desc == 'J' || *desc == 'D') ? 2 : 1;
+            if(*desc++ == 'L') {
+                while(*desc) {
+                    if(*desc == ')')
                         return argc;
-                    else if(*text == ';') {
-                        text++;
+                    else if(*desc == ';') {
+                        desc++;
                         break;
                     }
-                    text++;
+                    desc++;
                 }
             }
         }
@@ -31,53 +30,31 @@ uint8_t parseArgc(FlintConstUtf8 &descriptor) {
     return argc;
 }
 
-bool FlintConstUtf8::operator==(FlintConstUtf8 &another) const {
-    if(this == &another)
+bool ConstNameAndType::operator==(ConstNameAndType &another) const {
+    if(
+        hash == another.hash &&
+        strcmp(name, another.name) == 0 &&
+        strcmp(desc, another.desc) == 0
+    ) {
         return true;
-    else if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
-        if(strncmp(text, another.text, length) == 0)
-            return true;
     }
     return false;
 }
 
-bool FlintConstUtf8::operator!=(FlintConstUtf8 &another) const {
-    if(this == &another)
-        return false;
-    else if(CONST_UTF8_HASH(*this) == CONST_UTF8_HASH(another)) {
-        if(strncmp(text, another.text, length) == 0)
-            return false;
-    }
-    return true;
+bool ConstNameAndType::operator!=(ConstNameAndType &another) const {
+    return !(*this == another);
 }
 
-FlintConstNameAndType::FlintConstNameAndType(FlintConstUtf8 &name, FlintConstUtf8 &descriptor) :
-name((FlintConstUtf8 &)name), descriptor((FlintConstUtf8 &)descriptor) {
+ConstField::ConstField(const char *className, ConstNameAndType *nameAndType) :
+className(className), loader(NULL), nameAndType(nameAndType), fieldIndex(0) {
 
 }
 
-FlintConstField::FlintConstField(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
-className((FlintConstUtf8 &)className), nameAndType(nameAndType), fieldIndex(0) {
-
+ConstMethod::ConstMethod(const char *className, ConstNameAndType *nameAndType) :
+className(className), nameAndType(nameAndType), methodInfo(NULL) {
+    argc = parseArgc(nameAndType->desc);
 }
 
-FlintConstMethod::FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) :
-className((FlintConstUtf8 &)className), nameAndType(nameAndType), methodInfo(NULL_PTR) {
-    argc = parseArgc(nameAndType.descriptor);
-}
-
-uint8_t FlintConstMethod::getArgc(void) const {
+uint8_t ConstMethod::getArgc(void) const {
     return argc;
-}
-
-bool FlintConstNameAndType::operator==(FlintConstNameAndType &another) const {
-    if((name == another.name) &&  (descriptor == another.descriptor))
-        return true;
-    return false;
-}
-
-bool FlintConstNameAndType::operator!=(FlintConstNameAndType &another) const {
-    if((name == another.name) && (descriptor == another.descriptor))
-        return false;
-    return true;
 }

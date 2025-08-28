@@ -1,350 +1,275 @@
 
-#include <iostream>
+#include <new>
 #include <string.h>
 #include "flint.h"
+#include "flint_java_object.h"
+#include "flint_class_loader.h"
 #include "flint_fields_data.h"
 
-FlintFieldData32::FlintFieldData32(const FlintFieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
+Field32::Field32(const FieldInfo *fieldInfo) : fieldInfo(fieldInfo), value(0) {
 
 }
 
-FlintFieldData64::FlintFieldData64(const FlintFieldInfo &fieldInfo) : fieldInfo(fieldInfo), value(0) {
+Field64::Field64(const FieldInfo *fieldInfo) : fieldInfo(fieldInfo), value(0) {
 
 }
 
-FlintFieldObject::FlintFieldObject(const FlintFieldInfo &fieldInfo) : fieldInfo(fieldInfo), object(NULL_PTR) {
+FieldObj::FieldObj(const FieldInfo *fieldInfo) : fieldInfo(fieldInfo), value(NULL) {
 
 }
 
-FlintFieldsData::FlintFieldsData(void) : fields32Count(0), fields64Count(0), fieldsObjCount(0) {
+FieldsData::FieldsData(void) :
+fields32Count(0), fields64Count(0), fieldsObjCount(0),
+fields32(NULL), fields64(NULL), fieldsObj(NULL) {
 
 }
 
-FlintResult<FlintClassLoader> FlintFieldsData::loadStatic(FlintClassLoader &classLoader) {
-    uint16_t fieldsCount = classLoader.getFieldsCount();
+bool FieldsData::init(class FExec *ctx, class ClassLoader *loader, bool isStatic) {
+    bool ret = isStatic ? initStatic(ctx, loader) : initNonStatic(ctx, loader);
+    if(ret == false)
+        this->~FieldsData();
+    return ret;
+}
+
+bool FieldsData::initStatic(FExec *ctx, ClassLoader *loader) {
+    uint16_t fieldsCount = loader->getFieldsCount();
     uint16_t field32Index = 0;
     uint16_t field64Index = 0;
     uint16_t fieldObjIndex = 0;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
-        FlintFieldInfo *fieldInfo = classLoader.getFieldInfo(index);
+        FieldInfo *fieldInfo = loader->getFieldInfo(index);
         if((fieldInfo->accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            switch(fieldInfo->getDescriptor().text[0]) {
+            switch(fieldInfo->desc[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
-                    (*(uint32_t *)&fields64Count)++;
+                    fields64Count++;
                     break;
                 case 'L':   /* An instance of class ClassName */
                 case '[':   /* Array */
-                    (*(uint32_t *)&fieldsObjCount)++;
+                    fieldsObjCount++;
                     break;
                 default:
-                    (*(uint32_t *)&fields32Count)++;
+                    fields32Count++;
                     break;
             }
         }
     }
 
     if(fields32Count) {
-        fieldsData32 = (FlintFieldData32 *)Flint::malloc(fields32Count * sizeof(FlintFieldData32));
-        if(fieldsData32 == NULL_PTR)
-            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+        fields32 = (Field32 *)Flint::malloc(ctx, fields32Count * sizeof(Field32));
+        if(fields32 == NULL) return false;
     }
-    else
-        fieldsData32 = NULL_PTR;
 
     if(fields64Count) {
-        fieldsData64 = (FlintFieldData64 *)Flint::malloc(fields64Count * sizeof(FlintFieldData64));
-        if(fieldsData64 == NULL_PTR)
-            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+        fields64 = (Field64 *)Flint::malloc(ctx, fields64Count * sizeof(Field64));
+        if(fields64 == NULL) return false;
     }
-    else
-        fieldsData64 = NULL_PTR;
 
     if(fieldsObjCount) {
-        fieldsObject = (FlintFieldObject *)Flint::malloc(fieldsObjCount * sizeof(FlintFieldObject));
-        if(fieldsObject == NULL_PTR)
-            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+        fieldsObj = (FieldObj *)Flint::malloc(ctx, fieldsObjCount * sizeof(FieldObj));
+        if(fieldsObj == NULL) return false;
     }
-    else
-        fieldsObject = NULL_PTR;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
-        FlintFieldInfo *fieldInfo = classLoader.getFieldInfo(index);
+        FieldInfo *fieldInfo = loader->getFieldInfo(index);
         if((fieldInfo->accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            switch(fieldInfo->getDescriptor().text[0]) {
+            switch(fieldInfo->desc[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
-                    new (&fieldsData64[field64Index++])FlintFieldData64(*fieldInfo);
+                    new (&fields64[field64Index++])Field64(fieldInfo);
                     break;
                 case 'L':   /* An instance of class ClassName */
                 case '[':   /* Array */
-                    new (&fieldsObject[fieldObjIndex++])FlintFieldObject(*fieldInfo);
+                    new (&fieldsObj[fieldObjIndex++])FieldObj(fieldInfo);
                     break;
                 default:
-                    new (&fieldsData32[field32Index++])FlintFieldData32(*fieldInfo);
+                    new (&fields32[field32Index++])Field32(fieldInfo);
                     break;
             }
         }
     }
 
-    return &classLoader;
+    return true;
 }
 
-FlintResult<FlintClassLoader> FlintFieldsData::loadNonStatic(Flint &flint, FlintClassLoader &classLoader) {
-    FlintClassLoader *loader = &classLoader;
+bool FieldsData::initNonStatic(FExec *ctx, ClassLoader *loader) {
+    ClassLoader *ld = loader;
 
-    while(loader) {
-        uint16_t fieldsCount = loader->getFieldsCount();
+    while(ld) {
+        uint16_t fieldsCount = ld->getFieldsCount();
         for(uint16_t index = 0; index < fieldsCount; index++) {
-            FlintFieldInfo *fieldInfo = loader->getFieldInfo(index);
+            FieldInfo *fieldInfo = ld->getFieldInfo(index);
             if((fieldInfo->accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                switch(fieldInfo->getDescriptor().text[0]) {
+                switch(fieldInfo->desc[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
-                        (*(uint32_t *)&fields64Count)++;
+                        fields64Count++;
                         break;
                     case 'L':   /* An instance of class ClassName */
                     case '[':   /* Array */
-                        (*(uint32_t *)&fieldsObjCount)++;
+                        fieldsObjCount++;
                         break;
                     default:
-                        (*(uint32_t *)&fields32Count)++;
+                        fields32Count++;
                         break;
                 }
             }
         }
-        FlintConstUtf8 *superClass = loader->superClass;
-        if(!superClass)
-            break;
-        auto tmp = flint.load(superClass->text);
-        if(tmp.err != ERR_OK)
-            return tmp;
-        loader = tmp.value;
+        if(ld->superClass == NULL) break;
+        ld = Flint::findLoader(ctx, ld->superClass);
+        if(ld == NULL) return false;
     }
 
     if(fields32Count) {
-        fieldsData32 = (FlintFieldData32 *)Flint::malloc(fields32Count * sizeof(FlintFieldData32));
-        if(fieldsData32 == NULL_PTR)
-            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+        fields32 = (Field32 *)Flint::malloc(ctx, fields32Count * sizeof(Field32));
+        if(fields32 == NULL) return false;
     }
-    else
-        fieldsData32 = NULL_PTR;
 
     if(fields64Count) {
-        fieldsData64 = (FlintFieldData64 *)Flint::malloc(fields64Count * sizeof(FlintFieldData64));
-        if(fieldsData64 == NULL_PTR)
-            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+        fields64 = (Field64 *)Flint::malloc(ctx, fields64Count * sizeof(Field64));
+        if(fields64 == NULL) return false;
     }
-    else
-        fieldsData64 = NULL_PTR;
 
     if(fieldsObjCount) {
-        fieldsObject = (FlintFieldObject *)Flint::malloc(fieldsObjCount * sizeof(FlintFieldObject));
-        if(fieldsObject == NULL_PTR)
-            return FlintResult<FlintClassLoader>(ERR_OUT_OF_MEMORY, classLoader.thisClass->text, classLoader.thisClass->length);
+        fieldsObj = (FieldObj *)Flint::malloc(ctx, fieldsObjCount * sizeof(FieldObj));
+        if(fieldsObj == NULL) return false;
     }
-    else
-        fieldsObject = NULL_PTR;
 
     uint16_t field32Index = fields32Count;
     uint16_t field64Index = fields64Count;
     uint16_t fieldObjIndex = fieldsObjCount;
 
-    loader = &classLoader;
-    while(loader) {
-        uint16_t fieldsCount = loader->getFieldsCount();
+    ld = loader;
+    while(ld) {
+        uint16_t fieldsCount = ld->getFieldsCount();
         for(int16_t index = fieldsCount - 1; index >= 0; index--) {
-            FlintFieldInfo *fieldInfo = loader->getFieldInfo(index);
+            FieldInfo *fieldInfo = ld->getFieldInfo(index);
             if((fieldInfo->accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                switch(fieldInfo->getDescriptor().text[0]) {
+                switch(fieldInfo->desc[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
-                        new (&fieldsData64[--field64Index])FlintFieldData64(*fieldInfo);
+                        new (&fields64[--field64Index])Field64(fieldInfo);
                         break;
                     case 'L':   /* An instance of class ClassName */
                     case '[':   /* Array */
-                        new (&fieldsObject[--fieldObjIndex])FlintFieldObject(*fieldInfo);
+                        new (&fieldsObj[--fieldObjIndex])FieldObj(fieldInfo);
                         break;
                     default:
-                        new (&fieldsData32[--field32Index])FlintFieldData32(*fieldInfo);
+                        new (&fields32[--field32Index])Field32(fieldInfo);
                         break;
                 }
             }
         }
-        FlintConstUtf8 *superClass = loader->superClass;
-        if(!superClass)
-            break;
-        auto tmp = flint.load(superClass->text);
-        if(tmp.err != ERR_OK)
-            return tmp;
-        loader = tmp.value;
+        if(ld->superClass == NULL) break;
+        ld = Flint::findLoader(ctx, ld->superClass);
+        if(ld == NULL) return false;
     }
 
-    return &classLoader;
+    return true;
 }
 
-FlintFieldData32 *FlintFieldsData::getFieldData32(const char *fieldName, uint32_t *index) const {
-    if(index && *index)
-        return &fieldsData32[*index & 0x7FFFFFFF];
+Field32 *FieldsData::getField32(ConstField *field) {
+    if(field->fieldIndex == 0 && fields32Count) {
+        for(uint16_t i = 0; i < fields32Count; i++) {
+            if(
+                field->nameAndType->hash == fields32[i].fieldInfo->hash &&
+                strcmp(field->nameAndType->name, fields32[i].fieldInfo->name) == 0 &&
+                strcmp(field->nameAndType->desc, fields32[i].fieldInfo->desc) == 0
+            ) {
+                field->fieldIndex = i | 0x80000000;
+                break;
+            }
+        }
+        if(field->fieldIndex == 0) return NULL;
+    }
+    return &fields32[field->fieldIndex & 0x7FFFFFFF];
+}
+
+Field32 *FieldsData::getField32(const char *name) {
     if(fields32Count) {
-        uint16_t length = strlen(fieldName);
-        uint32_t hash = Flint_CalcHash(fieldName, length, false);
-
+        uint32_t hash = Hash(name);
         for(uint16_t i = 0; i < fields32Count; i++) {
-            const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
-            if(CONST_UTF8_HASH(fieldInfo.getName()) == hash) {
-                if(strncmp(fieldInfo.getName().text, fieldName, length) == 0) {
-                    if(index)
-                        *index = i | 0x80000000;
-                    return &fieldsData32[i];
-                }
+            const FieldInfo *fieldInfo = fields32[i].fieldInfo;
+            if(hash == fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
+                return &fields32[i];
+        }
+    }
+    return NULL;
+}
+
+Field32 *FieldsData::getField32ByIndex(uint32_t index) {
+    return &fields32[index];
+}
+
+Field64 *FieldsData::getField64(ConstField *field) {
+    if(field->fieldIndex == 0 && fields64Count) {
+        for(uint16_t i = 0; i < fields64Count; i++) {
+            if(
+                field->nameAndType->hash == fields64[i].fieldInfo->hash &&
+                strcmp(field->nameAndType->name, fields64[i].fieldInfo->name) == 0 &&
+                strcmp(field->nameAndType->desc, fields64[i].fieldInfo->desc) == 0
+            ) {
+                field->fieldIndex = i | 0x80000000;
+                break;
             }
         }
+        if(field->fieldIndex == 0) return NULL;
     }
-    return NULL_PTR;
+    return &fields64[field->fieldIndex & 0x7FFFFFFF];
 }
 
-FlintFieldData32 *FlintFieldsData::getFieldData32(FlintConstUtf8 &fieldName, uint32_t *index) const {
-    if(index && *index)
-        return &fieldsData32[*index & 0x7FFFFFFF];
-    for(uint16_t i = 0; i < fields32Count; i++) {
-        const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
-        if(fieldInfo.getName() == fieldName) {
-            if(index)
-                *index = i | 0x80000000;
-            return &fieldsData32[i];
-        }
-    }
-    return NULL_PTR;
-}
-
-FlintFieldData32 *FlintFieldsData::getFieldData32(FlintConstField &constField) const {
-    if(constField.fieldIndex == 0 && fields32Count) {
-        for(uint16_t i = 0; i < fields32Count; i++) {
-            const FlintFieldInfo &fieldInfo = fieldsData32[i].fieldInfo;
-            if(fieldInfo.getName() == constField.nameAndType.name && fieldInfo.getDescriptor() == constField.nameAndType.descriptor)
-                constField.fieldIndex = i | 0x80000000;
-        }
-        if(constField.fieldIndex == 0)
-            return NULL_PTR;
-    }
-    return &fieldsData32[constField.fieldIndex & 0x7FFFFFFF];
-}
-
-FlintFieldData32 *FlintFieldsData::getFieldData32ByIndex(int32_t index) const {
-    return &fieldsData32[index];
-}
-
-FlintFieldData64 *FlintFieldsData::getFieldData64(const char *fieldName, uint32_t *index) const {
-    if(index && *index)
-        return &fieldsData64[*index & 0x7FFFFFFF];
+Field64 *FieldsData::getField64(const char *name) {
     if(fields64Count) {
-        uint16_t length = strlen(fieldName);
-        uint32_t hash = Flint_CalcHash(fieldName, length, false);
-
+        uint32_t hash = Hash(name);
         for(uint16_t i = 0; i < fields64Count; i++) {
-            const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
-            if(CONST_UTF8_HASH(fieldInfo.getName()) == hash) {
-                if(strncmp(fieldInfo.getName().text, fieldName, length) == 0) {
-                    if(index)
-                        *index = i | 0x80000000;
-                    return &fieldsData64[i];
-                }
+            const FieldInfo *fieldInfo = fields64[i].fieldInfo;
+            if(hash == fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
+                return &fields64[i];
+        }
+    }
+    return NULL;
+}
+
+Field64 *FieldsData::getField64ByIndex(uint32_t index) {
+    return &fields64[index];
+}
+
+FieldObj *FieldsData::getFieldObj(ConstField *field) {
+    if(field->fieldIndex == 0 && fieldsObjCount) {
+        for(uint16_t i = 0; i < fieldsObjCount; i++) {
+            if(
+                field->nameAndType->hash == fieldsObj[i].fieldInfo->hash &&
+                strcmp(field->nameAndType->name, fieldsObj[i].fieldInfo->name) == 0 &&
+                strcmp(field->nameAndType->desc, fieldsObj[i].fieldInfo->desc) == 0
+            ) {
+                field->fieldIndex = i | 0x80000000;
+                break;
             }
         }
+        if(field->fieldIndex == 0) return NULL;
     }
-    return NULL_PTR;
+    return &fieldsObj[field->fieldIndex & 0x7FFFFFFF];
 }
 
-FlintFieldData64 *FlintFieldsData::getFieldData64(FlintConstUtf8 &fieldName, uint32_t *index) const {
-    if(index && *index)
-        return &fieldsData64[*index & 0x7FFFFFFF];
-    for(uint16_t i = 0; i < fields64Count; i++) {
-        const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
-        if(fieldInfo.getName() == fieldName) {
-            if(index)
-                *index = i | 0x80000000;
-            return &fieldsData64[i];
-        }
-    }
-    return NULL_PTR;
-}
-
-FlintFieldData64 *FlintFieldsData::getFieldData64(FlintConstField &constField) const {
-    if(constField.fieldIndex == 0 && fields64Count) {
-        for(uint16_t i = 0; i < fields64Count; i++) {
-            const FlintFieldInfo &fieldInfo = fieldsData64[i].fieldInfo;
-            if(fieldInfo.getName() == constField.nameAndType.name && fieldInfo.getDescriptor() == constField.nameAndType.descriptor)
-                constField.fieldIndex = i | 0x80000000;
-        }
-        if(constField.fieldIndex == 0)
-            return NULL_PTR;
-    }
-    return &fieldsData64[constField.fieldIndex & 0x7FFFFFFF];
-}
-
-FlintFieldData64 *FlintFieldsData::getFieldData64ByIndex(int32_t index) const {
-    return &fieldsData64[index];
-}
-
-FlintFieldObject *FlintFieldsData::getFieldObject(const char *fieldName, uint32_t *index) const {
-    if(index && *index)
-        return &fieldsObject[*index & 0x7FFFFFFF];
+FieldObj *FieldsData::getFieldObj(const char *name) {
     if(fieldsObjCount) {
-        uint16_t length = strlen(fieldName);
-        uint32_t hash = Flint_CalcHash(fieldName, length, false);
-
+        uint32_t hash = Hash(name);
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
-            const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
-            if(CONST_UTF8_HASH(fieldInfo.getName()) == hash) {
-                if(strncmp(fieldInfo.getName().text, fieldName, length) == 0) {
-                    if(index)
-                        *index = i | 0x80000000;
-                    return &fieldsObject[i];
-                }
-            }
+            const FieldInfo *fieldInfo = fieldsObj[i].fieldInfo;
+            if(hash == fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
+                return &fieldsObj[i];
         }
     }
-    return NULL_PTR;
+    return NULL;
 }
 
-FlintFieldObject *FlintFieldsData::getFieldObject(FlintConstUtf8 &fieldName, uint32_t *index) const {
-    if(index && *index)
-        return &fieldsObject[*index & 0x7FFFFFFF];
-    for(uint16_t i = 0; i < fieldsObjCount; i++) {
-        const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
-        if(fieldInfo.getName() == fieldName) {
-            if(index)
-                *index = i | 0x80000000;
-            return &fieldsObject[i];
-        }
-    }
-    return NULL_PTR;
+FieldObj *FieldsData::getFieldObjByIndex(uint32_t index) {
+    return &fieldsObj[index];
 }
 
-FlintFieldObject *FlintFieldsData::getFieldObject(FlintConstField &constField) const {
-    if(constField.fieldIndex == 0 && fieldsObjCount) {
-        for(uint16_t i = 0; i < fieldsObjCount; i++) {
-            const FlintFieldInfo &fieldInfo = fieldsObject[i].fieldInfo;
-            if(fieldInfo.getName() == constField.nameAndType.name && fieldInfo.getDescriptor() == constField.nameAndType.descriptor)
-                constField.fieldIndex = i | 0x80000000;
-        }
-        if(constField.fieldIndex == 0)
-            return NULL_PTR;
-    }
-    return &fieldsObject[constField.fieldIndex & 0x7FFFFFFF];
-}
-
-FlintFieldObject *FlintFieldsData::getFieldObjectByIndex(int32_t index) const {
-    return &fieldsObject[index];
-}
-
-FlintFieldsData::~FlintFieldsData(void) {
-    if(fieldsData32)
-        Flint::free(fieldsData32);
-    if(fieldsData64)
-        Flint::free(fieldsData64);
-    if(fieldsObject)
-        Flint::free(fieldsObject);
+FieldsData::~FieldsData(void) {
+    if(fields32) Flint::free(fields32);
+    if(fields64) Flint::free(fields64);
+    if(fieldsObj) Flint::free(fieldsObj);
 }

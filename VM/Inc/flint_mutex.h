@@ -2,18 +2,21 @@
 #ifndef __FLINT_MUTEX_H
 #define __FLINT_MUTEX_H
 
-#include <stdatomic.h>
+#include <atomic>
+#include "flint_std.h"
 
-class FlintMutex {
+using namespace std;
+
+class FMutex {
 private:
     atomic_flag locked;
     volatile uint32_t lockNest;
     volatile void *lockThread;
 
-    FlintMutex(const FlintMutex &) = delete;
-    void operator=(const FlintMutex &) = delete;
+    FMutex(const FMutex &) = delete;
+    void operator=(const FMutex &) = delete;
 public:
-    FlintMutex(void);
+    FMutex(void);
 
     void lock(void);
     void unlock(void);

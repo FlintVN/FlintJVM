@@ -1,127 +1,66 @@
 
-#include <string.h>
+#include "flint_common.h"
 #include "flint_java_class.h"
-#include "flint_const_name_base.h"
-#include "flint_fields_data.h"
-#include "flint.h"
 
-JString *JClass::getName(void) const {
-    return (JString *)getFields().getFieldObject(*(FlintConstUtf8 *)nameFieldName)->object;
+JClass::JClass(const char *typeName, ClassLoader *loader) : JObject(sizeof(FieldsData), NULL) {
+    void **internalData = (void **)&getFields()[1];
+    internalData[0] = (void *)typeName;
+    internalData[1] = (void *)loader;
 }
 
-void JClass::setName(JString *name) {
-    getFields().getFieldObject(*(FlintConstUtf8 *)nameFieldName)->object = name;
+const char *JClass::getTypeName(void) const {
+    void **internalData = (void **)&getFields()[1];
+    return (char *)internalData[0];
 }
 
-bool JClass::isArray(void) const {
-    JString *name = getName();
-    const char *text = name->getText();
-    uint8_t coder = name->getCoder();
-    uint32_t length = name->getLength();
-    if(length > 1 && coder == 0 && text[0] == '[')
-        return true;
-    else
-        return false;
+ClassLoader *JClass::getClassLoader(void) const {
+    void **internalData = (void **)&getFields()[1];
+    return (ClassLoader *)internalData[1];
+}
+
+char JClass::isPrimitive(const char *typeName, uint16_t length) {
+    switch(Hash(typeName, length)) {
+        case Hash("int"): return strncmp(typeName, "int", length) == 0 ? 'I' : 0;
+        case Hash("void"): return strncmp(typeName, "void", length) == 0 ? 'V' : 0;
+        case Hash("byte"): return strncmp(typeName, "byte", length) == 0 ? 'B' : 0;
+        case Hash("char"): return strncmp(typeName, "char", length) == 0 ? 'C' : 0;
+        case Hash("long"): return strncmp(typeName, "long", length) == 0 ? 'J' : 0;
+        case Hash("float"): return strncmp(typeName, "float", length) == 0 ? 'F' : 0;
+        case Hash("short"): return strncmp(typeName, "short", length) == 0 ? 'S' : 0;
+        case Hash("double"): return strncmp(typeName, "double", length) == 0 ? 'D' : 0;
+        case Hash("boolean"): return strncmp(typeName, "boolean", length) == 0 ? 'Z' : 0;
+        default: return 0;
+    }
 }
 
 bool JClass::isPrimitive(void) const {
-    JString *name = getName();
-    uint8_t coder = name->getCoder();
-    uint32_t length = name->getLength();
-    if(coder == 0) {
-        switch(length) {
-            case 3:
-                return (strncmp(name->getText(), "int", length) == 0);
-            case 4: {
-                const char *text = name->getText();
-                if(strncmp(text, "void", length) == 0)
-                    return true;
-                else if(strncmp(text, "byte", length) == 0)
-                    return true;
-                else if(strncmp(text, "char", length) == 0)
-                    return true;
-                else if(strncmp(text, "long", length) == 0)
-                    return true;
-                return false;
-            }
-            case 5: {
-                const char *text = name->getText();
-                if(strncmp(text, "float", length) == 0)
-                    return true;
-                else if(strncmp(text, "short", length) == 0)
-                    return true;
-                return false;
-            }
-            case 6:
-                return (strncmp(name->getText(), "double", length) == 0);
-            case 7:
-                return (strncmp(name->getText(), "boolean", length) == 0);
-            default:
-                return false;
-        }
-    }
-    return false;
+    return getClassLoader() == NULL;
 }
 
-FlintResult<FlintConstUtf8> JClass::getBaseTypeName(Flint &flint, uint32_t *dimensions) const {
-    uint32_t dims = 0;
-    JString *name = getName();
-    const char *typeText = name->getText();
-    uint32_t typeLength = name->getLength();
-    while((*typeText == '[') && typeLength) {
-        typeText++;
-        typeLength--;
-        dims++;
-    }
-    if(dimensions)
-        *dimensions = dims;
-    if(dims == 0) {
-        switch(typeLength) {
-            case 3:
-                if(strncmp(typeText, "int", typeLength) == 0)
-                    return (FlintConstUtf8 *)integerPrimTypeName;
-                break;
-            case 4: {
-                if(strncmp(typeText, "void", typeLength) == 0)
-                    return (FlintConstUtf8 *)voidPrimTypeName;
-                else if(strncmp(typeText, "byte", typeLength) == 0)
-                    return (FlintConstUtf8 *)bytePrimTypeName;
-                else if(strncmp(typeText, "char", typeLength) == 0)
-                    return (FlintConstUtf8 *)charPrimTypeName;
-                else if(strncmp(typeText, "long", typeLength) == 0)
-                    return (FlintConstUtf8 *)longPrimTypeName;
-                break;
-            }
-            case 5: {
-                if(strncmp(typeText, "float", typeLength) == 0)
-                    return (FlintConstUtf8 *)floatPrimTypeName;
-                else if(strncmp(typeText, "short", typeLength) == 0)
-                    return (FlintConstUtf8 *)shortPrimTypeName;
-                break;
-            }
-            case 6:
-                if(strncmp(typeText, "double", typeLength) == 0)
-                    return (FlintConstUtf8 *)doublePrimTypeName;
-                break;
-            case 7:
-                if(strncmp(typeText, "boolean", typeLength) == 0)
-                    return (FlintConstUtf8 *)booleanPrimTypeName;
-                break;
-            default:
-                break;
-        }
-    }
-    else if(*typeText == 'L') {
-        typeLength -= (typeText[typeLength - 1] == ';') ? 2 : 1;
-        typeText++;
-    }
-    uint8_t atype = JObject::convertToAType(typeText[0]);
-    if((dims != 0) && (atype != 0))
-        return (FlintConstUtf8 *)primTypeConstUtf8List[atype - 4];
-    return flint.getTypeNameConstUtf8(typeText, typeLength);
+bool JClass::isArray(void) const {
+    const char *typeName = getTypeName();
+    return typeName[0] == '[';
 }
 
-FlintConstClass::FlintConstClass(JClass &flintClass) : flintClass(flintClass) {
-    next1 = 0;
-    next2 = 0;
+uint8_t JClass::componentSize() const {
+    const char *typeName = getTypeName();
+    if(typeName[0] != '[')
+        return 0;
+    switch(typeName[1]) {
+        case 'Z':
+        case 'B':
+            return 1;
+        case 'C':
+        case 'S':
+            return 2;
+        case 'J':
+        case 'D':
+            return 8;
+        default:
+            return 4;
+    }
+}
+
+uint32_t JClass::size(void) {
+    return sizeof(JClass) + sizeof(FieldsData) + sizeof(void *) * 2;
 }

@@ -1,7 +1,7 @@
-#ifndef __MVM_OPCODES_H
-#define __MVM_OPCODES_H
+#ifndef __FLINT_OPCODES_H
+#define __FLINT_OPCODES_H
 
-#include "flint_std_types.h"
+#include "flint_std.h"
 
 typedef enum : uint8_t {
     OP_NOP = 0x00,
@@ -237,4 +237,4 @@ typedef enum : uint8_t {
     OP_EXIT = 0xFF,
 } FlintOpCode;
 
-#endif // __MVM_OPCODES_H
+#endif // __FLINT_OPCODES_H

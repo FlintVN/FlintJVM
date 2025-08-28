@@ -4,7 +4,7 @@
 #include "flint.h"
 #include "flint_system_api.h"
 
-void FlintAPI::System::reset(Flint &flint) {
+void FlintAPI::System::reset(void) {
     #error "FlintAPI::System::reset is not implemented in VM"
 }
 
@@ -20,11 +20,7 @@ void FlintAPI::System::free(void *p) {
     #error "FlintAPI::System::free is not implemented in VM"
 }
 
-bool FlintAPI::System::isInHeapRegion(void *addr) {
-    #error "FlintAPI::System::isInHeapRegion is not implemented in VM"
-}
-
-void FlintAPI::System::print(const char *text, uint32_t length, uint8_t coder) {
+void FlintAPI::System::print(const char *text, uint16_t length, uint8_t coder) {
     #error "FlintAPI::System::print is not implemented in VM"
 }
 
@@ -32,6 +28,6 @@ uint64_t FlintAPI::System::getNanoTime(void) {
     #error "FlintAPI::System::getNanoTime is not implemented in VM"
 }
 
-FlintNativeMethodPtr FlintAPI::System::findNativeMethod(const FlintMethodInfo &methodInfo) {
+JNMPtr FlintAPI::System::findNativeMethod(MethodInfo *methodInfo) {
     #error "FlintAPI::System::findNativeMethod is not implemented in VM"
 }

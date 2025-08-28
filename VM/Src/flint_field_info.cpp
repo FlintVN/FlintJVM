@@ -1,16 +1,13 @@
 
 #include "flint.h"
+#include "flint_common.h"
 #include "flint_field_info.h"
 
-FlintFieldInfo::FlintFieldInfo(FlintClassLoader &classLoader, FlintFieldAccessFlag accessFlag, uint16_t nameIndex, uint16_t descIndex) :
-accessFlag(accessFlag), classLoader(classLoader), nameIndex(nameIndex), descIndex(descIndex) {
+FieldInfo::FieldInfo(FieldAccessFlag accessFlag, const char *name, const char *desc) :
+accessFlag(accessFlag), name(name), desc(desc), hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)) {
 
 }
 
-FlintConstUtf8 &FlintFieldInfo::getName(void) const {
-    return classLoader.getConstUtf8(nameIndex);
-}
-
-FlintConstUtf8 &FlintFieldInfo::getDescriptor(void) const {
-    return classLoader.getConstUtf8(descIndex);
+void FieldInfo::free(FieldInfo *fieldInfo) {
+    Flint::free(fieldInfo);
 }

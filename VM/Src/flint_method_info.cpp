@@ -1,92 +1,59 @@
 
-#include <string.h>
 #include "flint.h"
-#include "flint_system_api.h"
+#include "flint_common.h"
+#include "flint_native.h"
 #include "flint_method_info.h"
-#include "flint_native_class.h"
 
-FlintExceptionTable::FlintExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
+ExceptionTable::ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
 startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 }
 
-static FlintNativeMethodPtr findNativeMethod(FlintMethodInfo *methodInfo) {
-    FlintConstUtf8 &className = *methodInfo->classLoader.thisClass;
-    FlintConstUtf8 &methodName = methodInfo->getName();
-    FlintConstUtf8 &methodDesc = methodInfo->getDescriptor();
-    for(uint32_t i = 0; i < LENGTH(BASE_NATIVE_CLASS_LIST); i++) {
-        if(BASE_NATIVE_CLASS_LIST[i]->className == className) {
-            for(uint32_t k = 0; k < BASE_NATIVE_CLASS_LIST[i]->methodCount; k++) {
-                if(
-                    BASE_NATIVE_CLASS_LIST[i]->methods[k].name == methodName &&
-                    BASE_NATIVE_CLASS_LIST[i]->methods[k].descriptor == methodDesc
-                ) {
-                    return BASE_NATIVE_CLASS_LIST[i]->methods[k].nativeMathod;
-                }
-            }
-            break;
-        }
+MethodInfo::MethodInfo(ClassLoader *loader, MethodAccessFlag accessFlag, const char *name, const char *desc) :
+accessFlag(accessFlag), loader(loader), name(name), desc(desc),
+hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)), retType(NULL), code(NULL) {
+
+}
+
+const char *MethodInfo::getReturnType(void) {
+    if(retType == NULL) {
+        const char *tmp = desc;
+        while(*tmp != ')')
+            tmp++;
+        retType = ++tmp;
     }
-    return FlintAPI::System::findNativeMethod(methodInfo);
+    return retType;
 }
 
-FlintMethodInfo::FlintMethodInfo(FlintClassLoader &classLoader, FlintMethodAccessFlag accessFlag, uint16_t nameIndex, uint16_t descIndex) :
-accessFlag(accessFlag),
-classLoader(classLoader),
-nameIndex(nameIndex),
-descIndex(descIndex),
-code(NULL_PTR) {
-
-}
-
-FlintConstUtf8 &FlintMethodInfo::getName(void) const {
-    return classLoader.getConstUtf8(nameIndex);
-}
-
-FlintConstUtf8 &FlintMethodInfo::getDescriptor(void) const {
-    return classLoader.getConstUtf8(descIndex);
-}
-
-uint8_t *FlintMethodInfo::getCode(void) {
+uint8_t *MethodInfo::getCode(void) {
     if(accessFlag & METHOD_NATIVE) {
         if(code == 0)
-            code = (uint8_t *)findNativeMethod(this);
+            code = (uint8_t *)NativeClass::findNativeMethod(this);
         return (uint8_t *)code;
     }
-    FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)code;
-    return (uint8_t *)&((FlintExceptionTable *)codeAttr->data)[codeAttr->exceptionLength];
+    CodeAttribute *codeAttr = (CodeAttribute *)code;
+    return (uint8_t *)&((ExceptionTable *)codeAttr->data)[codeAttr->exceptionLength];
 }
 
-uint32_t FlintMethodInfo::getCodeLength(void) const {
-    return (accessFlag & METHOD_NATIVE) ? 0 : ((FlintCodeAttribute *)code)->codeLength;
+uint32_t MethodInfo::getCodeLength(void) const {
+    return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->codeLength;
 }
 
-uint16_t FlintMethodInfo::getMaxLocals(void) const {
-    return (accessFlag & METHOD_NATIVE) ? 0 : ((FlintCodeAttribute *)code)->maxLocals;
+uint16_t MethodInfo::getMaxLocals(void) const {
+    return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->maxLocals;
 }
 
-uint16_t FlintMethodInfo::getMaxStack(void) const {
-    return (accessFlag & METHOD_NATIVE) ? 0 : ((FlintCodeAttribute *)code)->maxStack;
+uint16_t MethodInfo::getMaxStack(void) const {
+    return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->maxStack;
 }
 
-uint16_t FlintMethodInfo::getExceptionLength(void) const {
-    return (accessFlag & METHOD_NATIVE) ? 0 : ((FlintCodeAttribute *)code)->exceptionLength;
+uint16_t MethodInfo::getExceptionLength(void) const {
+    return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->exceptionLength;
 }
 
-FlintExceptionTable *FlintMethodInfo::getException(uint16_t index) const {
+ExceptionTable *MethodInfo::getException(uint16_t index) const {
     if(accessFlag & METHOD_NATIVE)
-        return NULL_PTR;
-    FlintCodeAttribute *codeAttr = (FlintCodeAttribute *)code;
-    return &((FlintExceptionTable *)codeAttr->data)[index];
-}
-
-bool FlintMethodInfo::isStaticCtor(void) {
-    return &getName() == (FlintConstUtf8 *)staticConstructorName;
-}
-
-FlintMethodInfo::~FlintMethodInfo(void) {
-    if(!(accessFlag & (METHOD_NATIVE | METHOD_UNLOADED))) {
-        if(code)
-            Flint::free(code);
-    }
+        return NULL;
+    CodeAttribute *codeAttr = (CodeAttribute *)code;
+    return &((ExceptionTable *)codeAttr->data)[index];
 }

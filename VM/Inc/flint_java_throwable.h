@@ -8,6 +8,9 @@ class JThrowable : public JObject {
 public:
     JString *getDetailMessage(void) const;
     void setDetailMessage(JString *strObj);
+
+    JThrowable *getCause(void) const;
+    void setCause(JThrowable *cause);
 protected:
     JThrowable(void) = delete;
     JThrowable(const JThrowable &) = delete;
