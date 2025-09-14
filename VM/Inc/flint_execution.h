@@ -4,7 +4,7 @@
 
 #include <cstdarg>
 #include "flint_common.h"
-// #include "flint_debugger.h"
+#include "flint_debugger.h"
 #include "flint_list.h"
 #include "flint_const_pool.h"
 #include "flint_method_info.h"
@@ -60,9 +60,9 @@ private:
     void exec(void);
     void stopRequest(void);
     void terminateRequest(void);
-    // bool getStackTrace(uint32_t index, FlintStackFrame *stackTrace, bool *isEndStack) const;
-    // bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const;
-    // bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const;
+    bool getStackTrace(uint32_t index, StackFrame *stackTrace, bool *isEndStack) const;
+    bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t *value, bool *isObject) const;
+    bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t *value) const;
 
     static void runTask(FExec *execution);
 public:
@@ -79,7 +79,7 @@ private:
     void operator=(const FExec &) = delete;
 
     friend class Flint;
-    friend class FlintDebugger;
+    friend class FDbg;
 };
 
 #endif /* __FLINT_EXECUTION_H */

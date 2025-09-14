@@ -6,6 +6,7 @@
 #include "flint_fields_data.h"
 
 FMutex Flint::flintLock;
+FDbg *Flint::dbg = NULL;
 FDict<ClassLoader> Flint::loaders;
 FDict<JClassDictNode> Flint::classes;
 FDict<Utf8DictNode> Flint::utf8s;
@@ -137,6 +138,14 @@ void Flint::lock(void) {
 
 void Flint::unlock(void) {
     flintLock.unlock();
+}
+
+FDbg *Flint::getDebugger(void) {
+    return Flint::dbg;
+}
+
+void Flint::setDebugger(FDbg *dbg) {
+    Flint::dbg = dbg;
 }
 
 void Flint::print(const char *buff, uint32_t length, uint8_t coder) {
@@ -719,6 +728,40 @@ void Flint::gc(void) {
         else if(!(prot & 0x02)) obj->clearProtected();
     });
     Flint::unlock();
+}
+
+bool Flint::runToMain(const char *cls) {
+    FExec *exec = Flint::newExecution(NULL);
+    if(exec == NULL) return false;
+    JClass *mainCls = Flint::findClass(NULL, cls);
+    if(mainCls == NULL) return false;
+    return exec->run(mainCls->getClassLoader()->getMainMethodInfo(NULL));
+}
+
+bool Flint::isRunning(void) {
+    return (execs.root != NULL) ? true : false;
+}
+
+void Flint::stopRequest(void) {
+    Flint::lock();
+    execs.forEach([](ListNode<FExec> *item) {
+        ((FExec *)item)->stopRequest();
+    });
+    Flint::unlock();
+}
+
+void Flint::terminateRequest(void) {
+    Flint::lock();
+    execs.forEach([](ListNode<FExec> *item) {
+        ((FExec *)item)->terminateRequest();
+    });
+    Flint::unlock();
+}
+
+void Flint::terminate(void) {
+    terminateRequest();
+    while(isRunning())
+        FlintAPI::Thread::sleep(1);
 }
 
 void Flint::freeObject(JObject *obj) {

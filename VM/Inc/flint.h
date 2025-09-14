@@ -20,6 +20,7 @@
 class Flint {
 private:
     static FMutex flintLock;
+    static FDbg *dbg;
     static FDict<ClassLoader> loaders;
     static FDict<JClassDictNode> classes;
     static FDict<Utf8DictNode> utf8s;
@@ -45,6 +46,8 @@ public:
     static void lock(void);
     static void unlock(void);
 
+    static FDbg *getDebugger(void);
+    static void setDebugger(FDbg *dbg);
 private:
     static void print(const char *buff, uint32_t length, uint8_t coder);
 public:
@@ -81,6 +84,12 @@ public:
     static bool isObject(void *p);
     static void gc(void);
 
+    static bool runToMain(const char *cls);
+
+    static bool isRunning(void);
+    static void stopRequest(void);
+    static void terminateRequest(void);
+    static void terminate(void);
     static void freeObject(JObject *obj);
     static void freeAllObject(void);
 private:

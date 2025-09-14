@@ -607,6 +607,20 @@ MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, ConstNameAndType *nameAndType
     return NULL;
 }
 
+MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, const char *name, const char *desc) {
+    uint32_t hash = (Hash(name) & 0xFFFF) | (Hash(desc) << 16);
+    for(uint16_t i = 0; i < methodsCount; i++) {
+        if(
+            hash == methods[i].hash &&
+            strcmp(name, methods[i].name) == 0 &&
+            strcmp(desc, methods[i].desc) == 0
+        ) {
+            return getMethodInfo(ctx, i);
+        }
+    }
+    return NULL;
+}
+
 MethodInfo *ClassLoader::getMainMethodInfo(FExec *ctx) {
     static constexpr ConstNameAndType mainName("main", "([Ljava/lang/String;)V");
     return getMethodInfo(ctx, (ConstNameAndType *)&mainName);

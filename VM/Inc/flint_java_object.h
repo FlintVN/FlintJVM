@@ -40,6 +40,7 @@ protected:
 
     friend class Flint;
     friend class FExec;
+    friend class FDbg;
 };
 
 #endif /* __FLINT_JAVA_OBJECT_H */

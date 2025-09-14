@@ -83,49 +83,43 @@ JObject *FExec::stackPopObject(void) {
     return (JObject *)stack[sp--];
 }
 
-// bool FExec::getStackTrace(uint32_t index, FlintStackFrame *stackTrace, bool *isEndStack) const {
-//     if(index == 0) {
-//         new (stackTrace)FlintStackFrame(pc, startSp, *method);
-//         if(isEndStack)
-//             *isEndStack = (startSp < 4);
-//         return true;
-//     }
-//     else {
-//         int32_t traceSp = startSp;
-//         if(traceSp < 4)
-//             return false;
-//         while(--index) {
-//             traceSp = stack[traceSp];
-//             if(traceSp < 4)
-//                 return false;
-//         }
-//         uint32_t tracePc = stack[traceSp - 2];
-//         MethodInfo &traceMethod = *(MethodInfo *)stack[traceSp - 3];
-//         traceSp = stack[traceSp];
-//         new (stackTrace)FlintStackFrame(tracePc, traceSp, traceMethod);
-//         if(isEndStack)
-//             *isEndStack = (traceSp < 4);
-//         return true;
-//     }
-// }
+bool FExec::getStackTrace(uint32_t index, StackFrame *stackTrace, bool *isEndStack) const {
+    if(index == 0) {
+        new (stackTrace)StackFrame(pc, startSp, *method);
+        if(isEndStack) *isEndStack = (startSp < 4);
+        return true;
+    }
+    else {
+        int32_t traceSp = startSp;
+        if(traceSp < 4)
+            return false;
+        while(--index) {
+            traceSp = stack[traceSp];
+            if(traceSp < 4) return false;
+        }
+        uint32_t tracePc = stack[traceSp - 2];
+        MethodInfo &traceMethod = *(MethodInfo *)stack[traceSp - 3];
+        traceSp = stack[traceSp];
+        new (stackTrace)StackFrame(tracePc, traceSp, traceMethod);
+        if(isEndStack) *isEndStack = (traceSp < 4);
+        return true;
+    }
+}
 
-// bool FExec::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t &value, bool &isObject) const {
-//     FlintStackFrame stackTrace;
-//     if(!getStackTrace(stackIndex, &stackTrace, 0))
-//         return false;
-//     value = stack[stackTrace.baseSp + 1 + localIndex];
-//     if(isObject)
-//         isObject = flint.isObject(value);
-//     return true;
-// }
+bool FExec::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t *value, bool *isObject) const {
+    StackFrame stackTrace;
+    if(!getStackTrace(stackIndex, &stackTrace, 0)) return false;
+    *value = stack[stackTrace.baseSp + 1 + localIndex];
+    if(*isObject) *isObject = Flint::isObject(value);
+    return true;
+}
 
-// bool FExec::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t &value) const {
-//     FlintStackFrame stackTrace;
-//     if(!getStackTrace(stackIndex, &stackTrace, 0))
-//         return false;
-//     value = *(int64_t *)&stack[stackTrace.baseSp + 1 + localIndex];
-//     return true;
-// }
+bool FExec::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t *value) const {
+    StackFrame stackTrace;
+    if(!getStackTrace(stackIndex, &stackTrace, 0)) return false;
+    *value = *(int64_t *)&stack[stackTrace.baseSp + 1 + localIndex];
+    return true;
+}
 
 void FExec::initNewContext(MethodInfo *methodInfo, uint16_t argc) {
     uint16_t maxLocals = methodInfo->getMaxLocals();
@@ -455,7 +449,7 @@ void FExec::exec(void) {
     ::opcodeLabelsStop = (const void **)opcodeLabelsStop;
     ::opcodeLabelsExit = (const void **)opcodeLabelsExit;
 
-    // FlintDebugger *dbg = Flint::getDebugger();
+    FDbg *dbg = Flint::getDebugger();
     opcodes = (const void ** volatile)opcodeLabels;
 
     stackInitExitPoint(method->getCodeLength());
@@ -471,13 +465,13 @@ void FExec::exec(void) {
 
     goto *opcodes[code[pc]];
     dbg_stop: {
-        // if(dbg && !dbg->checkStop(this)) {
-        //     if(hasTerminateRequest()) {
-        //         // TODO - ERROR
-        //         return;
-        //     }
-        //     opcodes = (const void ** volatile)opcodeLabels;
-        // }
+        if(dbg && !dbg->checkStop(this)) {
+            if(hasTerminateRequest()) {
+                // TODO - ERROR
+                return;
+            }
+            opcodes = (const void ** volatile)opcodeLabels;
+        }
         goto *opcodeLabels[code[pc]];
     }
     op_nop:
@@ -1896,8 +1890,9 @@ void FExec::exec(void) {
         int32_t traceStartSp = startSp;
         MethodInfo *traceMethod = method;
         JObject *obj = excp;
-        // if(dbg && dbg->exceptionIsEnabled())
-        //     dbg->caughtException(this, (JThrowable *)obj);
+        if(((uint32_t)obj & 0x01) != 0) return; /* Is a fatal error, not a throwable, Cannot be handled */
+        if(dbg && dbg->exceptionIsEnabled())
+            dbg->caughtException(this);
         while(1) {
             uint16_t exceptionLength = traceMethod->getExceptionLength();
             for(uint16_t i = 0; i < exceptionLength; i++) {
@@ -1939,8 +1934,8 @@ void FExec::exec(void) {
                 }
             }
             if(traceStartSp < 4) {
-                // if(dbg && !dbg->exceptionIsEnabled())
-                //     dbg->caughtException(this, (JThrowable *)obj);
+                if(dbg && !dbg->exceptionIsEnabled())
+                    dbg->caughtException(this);
                 return;
             }
             traceMethod = (MethodInfo *)stack[traceStartSp - 3];
@@ -2069,34 +2064,34 @@ void FExec::exec(void) {
         goto *opcodes[code[pc]];
     }
     op_breakpoint: {
-        // if(!dbg) {
-        //     pc++;
-        //     goto *opcodes[code[pc]];
-        // }
-        // dbg->hitBreakpoint(this);
-        // if(hasTerminateRequest()) {
-        //     // TODO - ERROR
-        //     return;
-        // }
-        // uint8_t op = code[pc];
-        // if(op == OP_BREAKPOINT) { /* Check opcode again, maybe breakpoint was deleted by user */
-        //     op = dbg->getSavedOpcode(pc, method);
-        //     if(op == OP_UNKNOW)
-        //         op = code[pc];
-        //     else if(op == OP_BREAKPOINT) {
-        //         pc++;
-        //         goto *opcodes[op];
-        //     }
-        // }
-        // goto *opcodeLabels[op];
+        if(!dbg) {
+            pc++;
+            goto *opcodes[code[pc]];
+        }
+        dbg->hitBreakpoint(this);
+        if(hasTerminateRequest()) {
+            // TODO - ERROR
+            return;
+        }
+        uint8_t op = code[pc];
+        if(op == OP_BREAKPOINT) { /* Check opcode again, maybe breakpoint was deleted by user */
+            op = dbg->getSavedOpcode(pc, method);
+            if(op == OP_UNKNOW)
+                op = code[pc];
+            else if(op == OP_BREAKPOINT) {
+                pc++;
+                goto *opcodes[op];
+            }
+        }
+        goto *opcodeLabels[op];
     }
     op_breakpoint_dummy: {
-        // uint8_t op = code[pc];
-        // if(op == OP_BREAKPOINT_DUMMY) {
-        //     ((uint8_t *)code)[pc] = OP_BREAKPOINT;
-        //     op = dbg->getSavedOpcode(pc, method);
-        // }
-        // goto *opcodeLabels[op];
+        uint8_t op = code[pc];
+        if(op == OP_BREAKPOINT_DUMMY) {
+            ((uint8_t *)code)[pc] = OP_BREAKPOINT;
+            op = dbg->getSavedOpcode(pc, method);
+        }
+        goto *opcodeLabels[op];
     }
     op_unknow: {
         throwNew(Flint::findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u", code[pc]);

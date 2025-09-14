@@ -87,6 +87,7 @@ public:
     uint16_t getMethodsCount(void) const;
     MethodInfo *getMethodInfo(FExec *ctx, uint8_t methodIndex);
     MethodInfo *getMethodInfo(FExec *ctx, ConstNameAndType *nameAndType);
+    MethodInfo *getMethodInfo(FExec *ctx, const char *name, const char *desc);
     MethodInfo *getMainMethodInfo(FExec *ctx);
     MethodInfo *getStaticCtor(FExec *ctx);
 
