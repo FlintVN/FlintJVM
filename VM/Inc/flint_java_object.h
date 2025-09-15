@@ -3,10 +3,10 @@
 #define __FLINT_JAVA_OBJECT_H
 
 #include "flint_std.h"
-#include "flint_list_node.h"
+#include "flint_list.h"
 #include "flint_fields_data.h"
 
-class JObject : public ListNode<JObject> {
+class JObject : public ListNode {
 protected:
     const uint32_t size : 30;
 private:

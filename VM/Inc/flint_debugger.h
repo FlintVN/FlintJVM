@@ -98,13 +98,13 @@ private:
     class FExec *exec;
     void *dirHandle;
     void *fileHandle;
-    volatile uint32_t stepCodeLength;
-    volatile uint32_t consoleOffset;
-    volatile uint32_t consoleLength;
+    uint32_t stepCodeLength;
+    uint32_t consoleOffset;
+    uint32_t consoleLength;
     uint32_t txDataLength;
     uint16_t txDataCrc;
     volatile uint16_t csr;
-    volatile uint8_t breakPointCount;
+    uint8_t breakPointCount;
     StackFrame startPoint;
     BreakPoint breakPoints[MAX_OF_BREAK_POINT];
     uint8_t consoleBuff[DBG_CONSOLE_BUFFER_SIZE];

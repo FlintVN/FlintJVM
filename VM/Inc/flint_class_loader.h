@@ -2,7 +2,7 @@
 #define __FLINT_CLASS_LOADER_H
 
 #include "flint_std.h"
-#include "flint_dict_node.h"
+#include "flint_dictionary.h"
 #include "flint_const_pool.h"
 #include "flint_fields_data.h"
 #include "flint_field_info.h"
@@ -28,7 +28,7 @@ typedef enum {
     INITIALIZED = 0x02,
 } StaticInitStatus;
 
-class ClassLoader : public DictNode<ClassLoader> {
+class ClassLoader : public DictNode {
 private:
     uint8_t loaderFlags;
     /*
@@ -56,9 +56,9 @@ private:
     MethodInfo *methods;
     FieldsData *staticFields;
 public:
-    uint32_t getHashKey(void) const;
-    int32_t compareKey(const char *key, uint16_t length) const;
-    int32_t compareKey(DictNode<ClassLoader> *other) const;
+    uint32_t getHashKey(void) const override;
+    int32_t compareKey(const char *key, uint16_t length) const override;
+    int32_t compareKey(DictNode *other) const override;
 
     ConstPoolTag getConstPoolTag(uint16_t poolIndex) const;
     int32_t getConstInteger(uint16_t poolIndex) const;
@@ -97,6 +97,7 @@ public:
     StaticInitStatus getStaticInitStatus(void) const;
     void staticInitialized(void);
     bool initStaticFields(FExec *ctx);
+    void clearStaticFields(void);
 private:
     ClassLoader(void);
     ClassLoader(const ClassLoader &) = delete;

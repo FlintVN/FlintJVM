@@ -1,4 +1,5 @@
 
+#include <string.h>
 #include "flint_method_info.h"
 #include "flint_system_api.h"
 #include "flint_class_loader.h"
@@ -15,7 +16,7 @@
 #include "flint_native_character.h"
 #include "flint_native_print_stream.h"
 
-constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
+static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/lang/Math",          mathMethods),
     NATIVE_CLASS("java/lang/Class",         classMethods),
     NATIVE_CLASS("java/lang/reflect/Array", arrayMethods),

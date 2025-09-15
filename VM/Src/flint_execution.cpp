@@ -19,7 +19,7 @@
 static const void **opcodeLabelsStop = NULL;
 static const void **opcodeLabelsExit = NULL;
 
-FExec::FExec(JThread *onwer, uint32_t stackSize) : ListNode<FExec>(), stackLength(stackSize / sizeof(int32_t)) {
+FExec::FExec(JThread *onwer, uint32_t stackSize) : ListNode(), stackLength(stackSize / sizeof(int32_t)) {
     this->opcodes = 0;
     this->lr = -1;
     this->sp = -1;
@@ -54,6 +54,8 @@ void FExec::stackPushDouble(double value) {
 void FExec::stackPushObject(JObject *obj) {
     stack[++sp] = (int32_t)obj;
     peakSp = sp;
+    if(obj && (obj->getProtected() & 0x02))
+        obj->clearProtected();
 }
 
 int32_t FExec::stackPopInt32(void) {
@@ -110,7 +112,7 @@ bool FExec::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t *value,
     StackFrame stackTrace;
     if(!getStackTrace(stackIndex, &stackTrace, 0)) return false;
     *value = stack[stackTrace.baseSp + 1 + localIndex];
-    if(*isObject) *isObject = Flint::isObject(value);
+    if(*isObject) *isObject = Flint::isObject((void *)*value);
     return true;
 }
 
@@ -190,7 +192,7 @@ bool FExec::lockClass(ClassLoader *cls) {
             return true;
         }
         Flint::unlock();
-        throw(Flint::findClass(this, "java/lang/IllegalMonitorStateException"));
+        throwNew(Flint::findClass(this, "java/lang/IllegalMonitorStateException"));
         return false;
     }
     Flint::unlock();
@@ -214,7 +216,7 @@ bool FExec::lockObject(JObject *obj) {
             return true;
         }
         Flint::unlock();
-        throw(Flint::findClass(this, "java/lang/IllegalMonitorStateException"));
+        throwNew(Flint::findClass(this, "java/lang/IllegalMonitorStateException"));
         return false;
     }
     Flint::unlock();
@@ -300,6 +302,7 @@ void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
             sp = sp - argc;
             if(excp != NULL) return;
             stackPushObject(val);
+            Flint::clearProtectLevel2(val);
             pc = lr;
             return;
         }
@@ -2150,7 +2153,10 @@ bool FExec::run(MethodInfo *method, uint32_t argc, ...) {
             va_start(args, argc);
             for(uint32_t i = 0; i < argc; i++) {
                 int32_t val = va_arg(args, int32_t);
-                this->stackPushInt32(val);
+                if(Flint::isObject((void *)val))
+                    stackPushObject((JObject *)val);
+                else
+                    stackPushInt32(val);
             }
         }
         return (FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this) != 0);
@@ -2202,8 +2208,7 @@ JThread *FExec::getOnwerThread() {
     Flint::lock();
     if(onwerThread == NULL) {
         JObject *obj = Flint::newObject(this, Flint::findClass(this, "java/lang/Thread"));
-        if(obj != NULL)
-            onwerThread = (JThread *)obj;
+        if(obj != NULL) onwerThread = (JThread *)obj;
         Flint::unlock();
         return (JThread *)obj;
     }

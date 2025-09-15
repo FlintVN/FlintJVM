@@ -9,6 +9,7 @@ public:
     uint32_t getLength(void) const;
     uint32_t getSizeInByte(void) const;
     uint8_t componentSize() const;
+    const char *getCompTypeName(uint16_t *length);
     void *getData(void) const;
     void clearArray(void);
 private:

@@ -2,7 +2,7 @@
 #include "flint_common.h"
 #include "flint_java_string_dict_node.h"
 
-JStringDictNode::JStringDictNode(JString *str) : DictNode<JStringDictNode>(), str(str) {
+JStringDictNode::JStringDictNode(JString *str) : DictNode(), str(str) {
 
 }
 
@@ -14,7 +14,7 @@ int32_t JStringDictNode::compareKey(const char *key, uint16_t length) const {
     return str->compareTo(key, length);
 }
 
-int32_t JStringDictNode::compareKey(DictNode<JStringDictNode> *other) const {
+int32_t JStringDictNode::compareKey(DictNode *other) const {
     return str->compareTo(((JStringDictNode *)other)->str);
 }
 

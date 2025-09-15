@@ -1,5 +1,6 @@
 
 #include <new>
+#include <string.h>
 #include <stdlib.h>
 #include "flint.h"
 #include "flint_system_api.h"
@@ -17,7 +18,7 @@ FList<JObject> Flint::objs;
 JClass *Flint::classOfClass = NULL;
 
 uint32_t Flint::heapCount = 0;
-uint32_t Flint::objectSizeToGc = 0;
+uint32_t Flint::objectCountToGc = 0;
 void *Flint::heapStart = (void *)0xFFFFFFFF;
 void *Flint::headEnd = (void *)0x00;
 
@@ -25,8 +26,7 @@ alignas(4) static const char outOfMemoryErrorTypeName[] = "java/lang/OutOfMemory
 
 static uint32_t getDimensions(const char *typeName) {
     const char *text = typeName;
-    while(*text == '[')
-        text++;
+    while(*text == '[') text++;
     return (uint32_t)(text - typeName);
 }
 
@@ -40,10 +40,8 @@ static bool isPrimitiveTypes(const char *typeName) {
         case 'S':
         case 'I':
         case 'J':
-        case 'V':
-            return true;
-        default:
-            return false;
+        case 'V': return true;
+        default:  return false;
     }
     return false;
 }
@@ -82,10 +80,9 @@ bool Flint::isHeapPointer(void *p) {
     return (((uint32_t)p & 0x03) == 0) && (heapStart <= p) && (p <= headEnd);
 }
 
-uint64_t tung = 0;
-
 void *Flint::malloc(FExec *ctx, uint32_t size) {
-    tung += size;
+    if(++objectCountToGc >= OBJECT_COUNT_TO_GC)
+        gc();
     void *p = FlintAPI::System::malloc(size);
     if(p == NULL) {
         gc();
@@ -149,9 +146,9 @@ void Flint::setDebugger(FDbg *dbg) {
 }
 
 void Flint::print(const char *buff, uint32_t length, uint8_t coder) {
-    // if(dbg)
-    //     dbg->print(buff, length, coder);
-    // else
+    if(dbg)
+        dbg->print(buff, length, coder);
+    else
         FlintAPI::System::print(buff, length, coder);
 }
 
@@ -656,7 +653,16 @@ JString *Flint::getConstString(FExec *ctx, JString *str) {
     return str;
 }
 
-void Flint::protectObject(JObject *obj) {
+void Flint::clearProtectLevel2(JObject *obj) {
+    lock();
+    /* This step to ensure all objects are cleared level 2 protection  */
+    markObjectRecursion(obj);
+    /* Final step to clear all the marks */
+    clearMarkRecursion(obj);
+    unlock();
+}
+
+void Flint::clearMarkRecursion(JObject *obj) {
     obj->clearProtected();
     const char *typeName = obj->getTypeName();
     if(typeName[0] == '[') {
@@ -665,8 +671,32 @@ void Flint::protectObject(JObject *obj) {
             JObject **data = array->getData();
             uint32_t count = array->getLength();
             for(uint32_t i = 0; i < count; i++) {
+                if(data[i] && (data[i]->getProtected() & 0x01))
+                    clearMarkRecursion(data[i]);
+            }
+        }
+    }
+    else {
+        FieldsData *fieldData = obj->getFields();
+        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
+            JObject *tmp = fieldData->fieldsObj[i].value;
+            if(tmp && (tmp->getProtected() & 0x01))
+                clearMarkRecursion(tmp);
+        }
+    }
+}
+
+void Flint::markObjectRecursion(JObject *obj) {
+    obj->setProtected();
+    const char *typeName = obj->getTypeName();
+    if(typeName[0] == '[') {
+        if(typeName[1] == '[' || typeName[1] == 'L') {
+            JObjectArray *array = (JObjectArray *)obj;
+            JObject **data = array->getData();
+            uint32_t count = array->getLength();
+            for(uint32_t i = 0; i < count; i++) {
                 if(data[i] && (data[i]->getProtected() & 0x01) == 0)
-                    protectObject(data[i]);
+                    markObjectRecursion(data[i]);
             }
         }
     }
@@ -675,7 +705,7 @@ void Flint::protectObject(JObject *obj) {
         for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
             JObject *tmp = fieldData->fieldsObj[i].value;
             if(tmp && (tmp->getProtected() & 0x01) == 0)
-                protectObject(tmp);
+                markObjectRecursion(tmp);
         }
     }
 }
@@ -687,7 +717,7 @@ bool Flint::isObject(void *p) {
     if(obj->prev == NULL) return p == objs.root;
     if(!isHeapPointer(obj->prev)) return false;
     if(obj->prev->next != p) return false;
-    if(obj->next) {
+    if(obj->next != NULL) {
         if(!isHeapPointer(obj->next)) return false;
         return obj->next->prev == p;
     }
@@ -696,16 +726,17 @@ bool Flint::isObject(void *p) {
 
 void Flint::gc(void) {
     Flint::lock();
-    objectSizeToGc = 0;
-    constStr.forEach([](DictNode<JStringDictNode> *item) {
-        JString *str = ((JStringDictNode *)item)->getString();
+    objectCountToGc = 0;
+    constStr.forEach([](JStringDictNode *item) {
+        JString *str = item->getString();
         if((str->getProtected() & 0x01) == 0)
-            protectObject(str);
+            markObjectRecursion(str);
     });
-    execs.forEach([](ListNode<FExec> *item) {
-        FExec *exec = (FExec *)item;
+    execs.forEach([](FExec *exec) {
         if(exec->onwerThread && (exec->onwerThread->getProtected() & 0x01) == 0)
-            protectObject(exec->onwerThread);
+            markObjectRecursion(exec->onwerThread);
+        if(exec->excp != NULL && ((uint32_t)exec->excp & 0x01) != 0 && (exec->excp->getProtected() & 0x01) == 0)
+            markObjectRecursion(exec->excp);
         int32_t startSp = exec->startSp;
         int32_t endSp = (exec->sp > exec->peakSp) ? exec->sp : exec->peakSp;
         while(startSp >= 3) {
@@ -713,17 +744,16 @@ void Flint::gc(void) {
                 if(isObject((void *)exec->stack[i])) {
                     JObject *obj = (JObject *)exec->stack[i];
                     if(obj && (obj->getProtected() & 0x01) == 0)
-                        protectObject(obj);
+                        markObjectRecursion(obj);
                 }
             }
             endSp = startSp - 4;
             startSp = exec->stack[startSp];
         }
     });
-    objs.forEach([](ListNode<JObject> *item) {
-        JObject *obj = (JObject *)item;
+    objs.forEach([](JObject *obj) {
         uint8_t prot = obj->getProtected();
-        /* Free object if it is unprotected and not a JClass */
+        /* Free object if it is not marked and not a JClass */
         if(prot == 0 && obj->type != NULL) freeObject(obj);
         else if(!(prot & 0x02)) obj->clearProtected();
     });
@@ -744,16 +774,16 @@ bool Flint::isRunning(void) {
 
 void Flint::stopRequest(void) {
     Flint::lock();
-    execs.forEach([](ListNode<FExec> *item) {
-        ((FExec *)item)->stopRequest();
+    execs.forEach([](FExec *exec) {
+        exec->stopRequest();
     });
     Flint::unlock();
 }
 
 void Flint::terminateRequest(void) {
     Flint::lock();
-    execs.forEach([](ListNode<FExec> *item) {
-        ((FExec *)item)->terminateRequest();
+    execs.forEach([](FExec *exec) {
+        exec->terminateRequest();
     });
     Flint::unlock();
 }
@@ -773,11 +803,56 @@ void Flint::freeObject(JObject *obj) {
 
 void Flint::freeAllObject(void) {
     Flint::lock();
-    classes.forEach([](DictNode<JClassDictNode> *item) { Flint::free(item); });
+    classes.forEach([](JClassDictNode *item) { Flint::free(item); });
     classes.clear();
-    constStr.forEach([](DictNode<JStringDictNode> *item) { Flint::free(item); });
+    constStr.forEach([](JStringDictNode *item) { Flint::free(item); });
     constStr.clear();
-    objs.forEach([](ListNode<JObject> *item) { ((JObject *)item)->~JObject(); Flint::free(item); });
+    objs.forEach([](JObject *obj) { obj->~JObject(); Flint::free(obj); });
     objs.clear();
     Flint::unlock();
+}
+
+void Flint::clearAllStaticFields(void) {
+    loaders.forEach([](ClassLoader *item) {
+        item->monitorOwnId = 0;
+        item->clearStaticFields();
+    });
+}
+
+void Flint::freeAllExecution(void) {
+    Flint::lock();
+    execs.forEach([](FExec *exec) {
+        execs.remove(exec);
+        Flint::free(exec);
+    });
+    execs.clear();
+    Flint::unlock();
+}
+
+void Flint::freeAllClassLoader(void) {
+    Flint::lock();
+    loaders.forEach([](ClassLoader *item) {
+        item->~ClassLoader();
+        Flint::free(item);
+    });
+    loaders.clear();
+    Flint::unlock();
+}
+
+void Flint::freeAllConstUtf8(void) {
+    Flint::lock();
+    utf8s.forEach([](Utf8DictNode *item) { Flint::free(item); });
+    utf8s.clear();
+    Flint::unlock();
+}
+
+void Flint::freeAll(void) {
+    freeAllObject();
+    freeAllExecution();
+    freeAllClassLoader();
+    freeAllConstUtf8();
+}
+
+void Flint::reset(void) {
+    FlintAPI::System::reset();
 }

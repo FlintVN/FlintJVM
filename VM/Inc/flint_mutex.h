@@ -10,7 +10,7 @@ using namespace std;
 class FMutex {
 private:
     atomic_flag locked;
-    volatile uint32_t lockNest;
+    uint32_t lockNest;
     volatile void *lockThread;
 
     FMutex(const FMutex &) = delete;

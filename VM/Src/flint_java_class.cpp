@@ -1,4 +1,5 @@
 
+#include <string.h>
 #include "flint_common.h"
 #include "flint_java_class.h"
 

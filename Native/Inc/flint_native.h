@@ -12,12 +12,12 @@
 typedef void (*JNMPtr)(FNIEnv *env, ...);
 
 class NativeMethod {
-private:
+public:
     const char * const name;
     const char * const desc;
     const uint32_t hash;
     const uint32_t methodPtr;
-public:
+
     constexpr NativeMethod(const char *name, const char *desc, uint32_t method) :
     name(name), desc(desc),
     hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)),
@@ -31,13 +31,13 @@ private:
 };
 
 class NativeClass {
-private:
+public:
     const char * const className;
     const NativeMethod * const methods;
     const uint32_t hash;
     const uint16_t methodCount;
-public:
-    constexpr NativeClass(const char *className, const NativeMethod *methods, uint32_t count) :
+
+    consteval NativeClass(const char *className, const NativeMethod *methods, uint32_t count) :
     className(className), methods(methods), hash(Hash(className)), methodCount(count) {
 
     }

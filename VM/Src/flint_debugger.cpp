@@ -256,6 +256,7 @@ void FDbg::responseExceptionInfo(void) {
                 for(uint8_t j = 0; j < encodeSize; j++)
                     if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
             }
+            if(!dataFrameAppend((uint8_t)0)) return;
             dataFrameFinish();
         }
         else
@@ -376,15 +377,13 @@ void FDbg::responseArray(JObject *array, uint32_t index, uint32_t length) {
 
 void FDbg::responseObjSizeAndType(JObject *obj) {
     if(csr & DBG_STATUS_STOP) {
-        if(obj == NULL || Flint::isObject(obj)) {
+        if(obj == NULL || Flint::isObject(obj) == false) {
             sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_FAIL);
             return;
         }
         const char *type = obj->getTypeName();
-        uint16_t len = strlen(type);
-        initDataFrame(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_OK, 4 + (2 + len + 1));
+        initDataFrame(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_OK, 4 + (2 + strlen(type) + 1));
         if(!dataFrameAppend((uint32_t)obj->size)) return;
-        if(!dataFrameAppend((uint16_t)len)) return;
         if(!dataFrameAppend(type)) return;
         dataFrameFinish();
     }
@@ -618,28 +617,28 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             uint32_t index = 4;
 
             uint32_t pc = *(uint32_t *)&data[index];
-            index += sizeof(uint32_t);
+            index += sizeof(pc);
 
             uint16_t clsNameLen = (data[index + 1] << 8) | data[index];
             index += sizeof(clsNameLen);
 
             const char *clsName = (char *)&data[index];
-            index += 2 + clsNameLen + 1;
+            index += clsNameLen + 1;
 
-            uint16_t methodNameLen = (data[index + 1] << 8) | data[index];
-            index += sizeof(methodNameLen);
+            uint16_t nameLen = (data[index + 1] << 8) | data[index];
+            index += sizeof(nameLen);
 
-            const char *methodName = (char *)&data[index];
-            index += 2 + methodNameLen + 1;
-        
-            uint16_t descriptorLen = (data[index + 1] << 8) | data[index];
-            index += sizeof(descriptorLen);
-        
-            const char *descriptor = (char *)&data[index];
+            const char *name = (char *)&data[index];
+            index += nameLen + 1;
+
+            uint16_t descLen = (data[index + 1] << 8) | data[index];
+            index += sizeof(descLen);
+
+            const char *desc = (char *)&data[index];
             if(cmd == DBG_CMD_ADD_BKP)
-                sendRespCode(DBG_CMD_ADD_BKP, addBreakPoint(pc, clsName, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
+                sendRespCode(DBG_CMD_ADD_BKP, addBreakPoint(pc, clsName, name, desc) ? DBG_RESP_OK : DBG_RESP_FAIL);
             else
-                sendRespCode(DBG_CMD_REMOVE_BKP, removeBreakPoint(pc, clsName, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
+                sendRespCode(DBG_CMD_REMOVE_BKP, removeBreakPoint(pc, clsName, name, desc) ? DBG_RESP_OK : DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_REMOVE_ALL_BKP: {
@@ -671,11 +670,11 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             exec = NULL;
             unlock();
             Flint::setDebugger(this);
-            // Flint::terminate();
-            // Flint::clearAllStaticFields();
-            // Flint::freeAllExecution();
+            Flint::terminate();
+            Flint::clearAllStaticFields();
+            Flint::freeAllExecution();
             Flint::gc();
-            // Flint::reset();
+            Flint::reset();
             if(Flint::runToMain(mainClass) == true)
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
             else
@@ -687,9 +686,9 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             lock();
             csr = (csr & DBG_CONTROL_EXCP_EN) | DBG_STATUS_RESET;
             unlock();
-            // Flint::terminate();
-            // Flint::reeAll();
-            // Flint::reset();
+            Flint::terminate();
+            Flint::freeAll();
+            Flint::reset();
             sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
             return !endDbg;
         }

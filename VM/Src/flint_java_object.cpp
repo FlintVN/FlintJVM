@@ -1,11 +1,12 @@
 
 #include <new>
+#include <string.h>
 #include "flint.h"
 #include "flint_java_class.h"
 #include "flint_java_object.h"
 
 JObject::JObject(uint32_t size, JClass *type) :
-ListNode<JObject>(),
+ListNode(),
 size(size), prot(0x02), type(type), monitorCount(0), ownId(0) {
 
 }

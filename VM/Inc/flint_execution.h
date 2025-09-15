@@ -12,7 +12,7 @@
 #include "flint_java_throwable.h"
 #include "flint_default_conf.h"
 
-class FExec : ListNode<FExec> {
+class FExec : public ListNode {
 private:
     const void ** volatile opcodes;
     const uint32_t stackLength;

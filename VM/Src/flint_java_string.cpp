@@ -50,7 +50,7 @@ bool JString::setAscii(FExec *ctx, const char *format, va_list args) {
     uint32_t strLen = vsnprintf(NULL, 0, format, args);
     JByteArray *value = (JByteArray *)Flint::newArray(ctx, Flint::findClass(ctx, "[B"), strLen);
     if(value == NULL) return false;
-    vsprintf((char *)value->getData(), format, args);
+    vsnprintf((char *)value->getData(), strLen, format, args);
     setValue(value);
     setCoder(0);
     setHash(0);

@@ -31,7 +31,7 @@ private:
     static JClass *classOfClass;
 
     static uint32_t heapCount;
-    static uint32_t objectSizeToGc;
+    static uint32_t objectCountToGc;
     static void *heapStart;
     static void *headEnd;
 private:
@@ -81,6 +81,7 @@ public:
     static JString *newAscii(FExec *ctx, const char *format, ...);
     static JString *newAscii(FExec *ctx, const char *format, va_list args);
 
+    static void clearProtectLevel2(JObject *obj);
     static bool isObject(void *p);
     static void gc(void);
 
@@ -91,13 +92,21 @@ public:
     static void terminateRequest(void);
     static void terminate(void);
     static void freeObject(JObject *obj);
+    static void clearAllStaticFields(void);
+    static void freeAllExecution(void);
+    static void freeAll(void);
+    static void reset(void);
+private:
     static void freeAllObject(void);
+    static void freeAllClassLoader(void);
+    static void freeAllConstUtf8(void);
+    static void clearMarkRecursion(JObject *obj);
+    static void markObjectRecursion(JObject *obj);
 private:
     static const char *getArrayClassName(FExec *ctx, const char *clsName, uint8_t dimensions);
     static JClass *newClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, uint8_t flag = 0x00);
     static JClass *newClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
     static JClass *newClassOfClass(FExec *ctx);
-    static void protectObject(JObject *obj);
 private:
     Flint(void) = delete;
     Flint(const Flint &) = delete;

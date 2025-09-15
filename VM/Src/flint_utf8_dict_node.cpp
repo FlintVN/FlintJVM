@@ -1,4 +1,5 @@
 
+#include <string.h>
 #include "flint_common.h"
 #include "flint_utf8_dict_node.h"
 
@@ -21,7 +22,7 @@ int32_t Utf8DictNode::compareKey(const char *key, uint16_t length) const {
     return strncmp(value, key, length);
 }
 
-int32_t Utf8DictNode::compareKey(DictNode<Utf8DictNode> *other) const {
+int32_t Utf8DictNode::compareKey(DictNode *other) const {
     return strcmp(value, ((Utf8DictNode *)other)->value);
 }
 

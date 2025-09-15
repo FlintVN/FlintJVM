@@ -1,5 +1,6 @@
 
 #include <new>
+#include <string.h>
 #include "flint.h"
 #include "flint_opcodes.h"
 #include "flint_default_conf.h"
@@ -91,8 +92,7 @@ static bool dumpAttribute(FExec *ctx, void *file) {
     return true;
 }
 
-ClassLoader::ClassLoader(void) :
-DictNode<ClassLoader>(), thisClass(NULL), superClass(NULL) {
+ClassLoader::ClassLoader(void) : DictNode(), thisClass(NULL), superClass(NULL) {
     loaderFlags = 0;
     poolCount = 0;
     interfacesCount = 0;
@@ -116,7 +116,7 @@ int32_t ClassLoader::compareKey(const char *key, uint16_t length) const {
     return (length > 0) ? strncmp(this->thisClass, key, length) : strcmp(this->thisClass, key);
 }
 
-int32_t ClassLoader::compareKey(DictNode<ClassLoader> *other) const {
+int32_t ClassLoader::compareKey(DictNode *other) const {
     return strcmp(this->thisClass, ((ClassLoader *)other)->thisClass);
 }
 
@@ -659,6 +659,13 @@ bool ClassLoader::initStaticFields(FExec *ctx) {
     return staticFields->init(ctx, this, true);
 }
 
+void ClassLoader::clearStaticFields(void) {
+    if(staticFields != NULL) {
+        staticFields->~FieldsData();
+        Flint::free(staticFields);
+    }
+}
+
 ClassLoader::~ClassLoader(void) {
     if(poolCount && poolTable) {
         for(uint32_t i = 0; i < poolCount; i++) {
@@ -691,13 +698,10 @@ ClassLoader::~ClassLoader(void) {
         Flint::free(fields);
     if(methodsCount && methods) {
         for(uint32_t i = 0; i < methodsCount; i++) {
-            if(!(methods[i].accessFlag & METHOD_NATIVE) && methods[i].code)
+            if(!(methods[i].accessFlag & (METHOD_NATIVE | METHOD_UNLOADED)) && methods[i].code)
                 Flint::free(methods[i].code);
         }
         Flint::free(methods);
     }
-    if(staticFields != NULL) {
-        staticFields->~FieldsData();
-        Flint::free(staticFields);
-    }
+    clearStaticFields();
 }

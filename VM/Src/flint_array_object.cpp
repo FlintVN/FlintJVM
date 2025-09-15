@@ -15,6 +15,28 @@ uint8_t JArray::componentSize() const {
     return type->componentSize();
 }
 
+const char *JArray::getCompTypeName(uint16_t *length) {
+    const char *name = getTypeName();
+    uint32_t len = 0;
+    while(*name == '[') name++;
+    if(*name == 'L') name++;
+    while(name[len] && name[len] != ';') len++;
+    if(len == 1) switch (*name) {
+        case 'Z': *length = strlen("boolean"); return "boolean";
+        case 'C': *length = strlen("char"); return "char";
+        case 'F': *length = strlen("float"); return "float";
+        case 'D': *length = strlen("double"); return "double";
+        case 'B': *length = strlen("byte"); return "byte";
+        case 'S': *length = strlen("short"); return "short";
+        case 'I': *length = strlen("int"); return "int";
+        case 'J': *length = strlen("long"); return "long";
+        case 'V': *length = strlen("void"); return "void";
+        default: break;
+    }
+    *length = len;
+    return name;
+}
+
 void *JArray::getData(void) const {
     return (void *)data;
 }

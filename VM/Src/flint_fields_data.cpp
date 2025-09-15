@@ -188,10 +188,10 @@ Field32 *FieldsData::getField32(ConstField *field) {
 
 Field32 *FieldsData::getField32(const char *name) {
     if(fields32Count) {
-        uint32_t hash = Hash(name);
+        uint16_t hash = Hash(name);
         for(uint16_t i = 0; i < fields32Count; i++) {
             const FieldInfo *fieldInfo = fields32[i].fieldInfo;
-            if(hash == fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
+            if(hash == (uint16_t)fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
                 return &fields32[i];
         }
     }
@@ -221,10 +221,10 @@ Field64 *FieldsData::getField64(ConstField *field) {
 
 Field64 *FieldsData::getField64(const char *name) {
     if(fields64Count) {
-        uint32_t hash = Hash(name);
+        uint16_t hash = Hash(name);
         for(uint16_t i = 0; i < fields64Count; i++) {
             const FieldInfo *fieldInfo = fields64[i].fieldInfo;
-            if(hash == fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
+            if(hash == (uint16_t)fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
                 return &fields64[i];
         }
     }
@@ -254,10 +254,10 @@ FieldObj *FieldsData::getFieldObj(ConstField *field) {
 
 FieldObj *FieldsData::getFieldObj(const char *name) {
     if(fieldsObjCount) {
-        uint32_t hash = Hash(name);
+        uint16_t hash = Hash(name);
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
             const FieldInfo *fieldInfo = fieldsObj[i].fieldInfo;
-            if(hash == fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
+            if(hash == (uint16_t)fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
                 return &fieldsObj[i];
         }
     }

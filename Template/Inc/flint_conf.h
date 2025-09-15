@@ -9,7 +9,7 @@
 #define FILE_NAME_BUFF_SIZE         256
 
 #define DEFAULT_STACK_SIZE          MEGA_BYTE(1)
-#define OBJECT_SIZE_TO_GC           MEGA_BYTE(1)
+#define OBJECT_COUNT_TO_GC          10000
 
 #define MAX_OF_BREAK_POINT          20
 #define DBG_TX_BUFFER_SIZE          KILO_BYTE(1)

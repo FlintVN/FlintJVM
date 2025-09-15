@@ -6,27 +6,6 @@
 #include "flint_array_object.h"
 #include "flint_native_array.h"
 
-static const char *getCompTypeName(const char *name, uint16_t *length) {
-    uint32_t len = 0;
-    while(*name == '[') name++;
-    if(*name == 'L') name++;
-    while(name[len] && name[len] != ';') len++;
-    if(len == 1) switch (*name) {
-        case 'Z': *length = strlen("boolean"); return "boolean";
-        case 'C': *length = strlen("char"); return "char";
-        case 'F': *length = strlen("float"); return "float";
-        case 'D': *length = strlen("double"); return "double";
-        case 'B': *length = strlen("byte"); return "byte";
-        case 'S': *length = strlen("short"); return "short";
-        case 'I': *length = strlen("int"); return "int";
-        case 'J': *length = strlen("long"); return "long";
-        case 'V': *length = strlen("void"); return "void";
-        default: break;
-    }
-    *length = len;
-    return name;
-}
-
 static bool checkIsArray(FNIEnv *env, jobject obj) {
     if(obj == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
@@ -57,7 +36,7 @@ static bool checkIndex(FNIEnv *env, jarray array, int32_t index) {
     if(index < 0 || index >= array->getLength()) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
-        const char *name = getCompTypeName(array->getTypeName(), &len);
+        const char *name = array->getCompTypeName(&len);
         env->throwNew(excpCls, "index %d out of bounds for %.*s[%d]", index, len, name, array->getLength());
         return false;
     }
@@ -112,13 +91,13 @@ static char isArrayOfPrimative(jobject obj) {
     return 0;
 }
 
-jint nativeGetLength(FNIEnv *env, jobject obj) {
+jint nativeArrayGetLength(FNIEnv *env, jobject obj) {
     (void)env;
     if(checkIsArray(env, obj) == false) return 0;
     return ((jarray)obj)->getLength();
 }
 
-jobject nativeGet(FNIEnv *env, jobject obj, jint index) {
+jobject nativeArrayGet(FNIEnv *env, jobject obj, jint index) {
     if(checkIsArray(env, obj) == false) return NULL;
     if(checkIndex(env, (jarray)obj, index) == false) return NULL;
     char c = isArrayOfPrimative(obj);
@@ -177,7 +156,7 @@ jobject nativeGet(FNIEnv *env, jobject obj, jint index) {
     return ((jobjectArray)obj)->getData()[index];
 }
 
-jbool nativeGetBoolean(FNIEnv *env, jobject obj, jint index) {
+jbool nativeArrayGetBoolean(FNIEnv *env, jobject obj, jint index) {
     if(isArrayOfPrimative(obj) != 'Z') {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "object type %s is not a boolean[] array", obj->getTypeName());
@@ -187,7 +166,7 @@ jbool nativeGetBoolean(FNIEnv *env, jobject obj, jint index) {
     return ((jboolArray)obj)->getData()[index];
 }
 
-jbyte nativeGetByte(FNIEnv *env, jobject obj, jint index) {
+jbyte nativeArrayGetByte(FNIEnv *env, jobject obj, jint index) {
     if(isArrayOfPrimative(obj) != 'B') {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "object type %s is not a byte[] array", obj->getTypeName());
@@ -197,7 +176,7 @@ jbyte nativeGetByte(FNIEnv *env, jobject obj, jint index) {
     return ((jbyteArray)obj)->getData()[index];
 }
 
-jchar nativeGetChar(FNIEnv *env, jobject obj, jint index) {
+jchar nativeArrayGetChar(FNIEnv *env, jobject obj, jint index) {
     if(isArrayOfPrimative(obj) != 'C') {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "object type %s is not a char[] array", obj->getTypeName());
@@ -207,7 +186,7 @@ jchar nativeGetChar(FNIEnv *env, jobject obj, jint index) {
     return ((jcharArray)obj)->getData()[index];
 }
 
-jshort nativeGetShort(FNIEnv *env, jobject obj, jint index) {
+jshort nativeArrayGetShort(FNIEnv *env, jobject obj, jint index) {
     if(checkIsArray(env, obj) == false) return 0;
     if(checkIndex(env, (jarray)obj, index) == false) return 0;
     switch(isArrayOfPrimative(obj)) {
@@ -223,7 +202,7 @@ jshort nativeGetShort(FNIEnv *env, jobject obj, jint index) {
     }
 }
 
-jint nativeGetInt(FNIEnv *env, jobject obj, jint index) {
+jint nativeArrayGetInt(FNIEnv *env, jobject obj, jint index) {
     if(checkIsArray(env, obj) == false) return 0;
     if(checkIndex(env, (jarray)obj, index) == false) return 0;
     switch(isArrayOfPrimative(obj)) {
@@ -242,7 +221,7 @@ jint nativeGetInt(FNIEnv *env, jobject obj, jint index) {
     }
 }
 
-jlong nativeGetLong(FNIEnv *env, jobject obj, jint index) {
+jlong nativeArrayGetLong(FNIEnv *env, jobject obj, jint index) {
     if(checkIsArray(env, obj) == false) return 0;
     if(checkIndex(env, (jarray)obj, index) == false) return 0;
     switch(isArrayOfPrimative(obj)) {
@@ -263,7 +242,7 @@ jlong nativeGetLong(FNIEnv *env, jobject obj, jint index) {
     }
 }
 
-jfloat nativeGetFloat(FNIEnv *env, jobject obj, jint index) {
+jfloat nativeArrayGetFloat(FNIEnv *env, jobject obj, jint index) {
     if(checkIsArray(env, obj) == false) return 0;
     if(checkIndex(env, (jarray)obj, index) == false) return 0;
     switch(isArrayOfPrimative(obj)) {
@@ -286,7 +265,7 @@ jfloat nativeGetFloat(FNIEnv *env, jobject obj, jint index) {
     }
 }
 
-jdouble nativeGetDouble(FNIEnv *env, jobject obj, jint index) {
+jdouble nativeArrayGetDouble(FNIEnv *env, jobject obj, jint index) {
     if(checkIsArray(env, obj) == false) return 0;
     if(checkIndex(env, (jarray)obj, index) == false) return 0;
     switch(isArrayOfPrimative(obj)) {
@@ -336,7 +315,7 @@ static char parseWrapperClass(jobject obj) {
     }
 }
 
-jvoid nativeSet(FNIEnv *env, jobject obj, jint index, jobject v) {
+jvoid nativeArraySet(FNIEnv *env, jobject obj, jint index, jobject v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     char c = isArrayOfPrimative(obj);
@@ -409,7 +388,7 @@ jvoid nativeSet(FNIEnv *env, jobject obj, jint index, jobject v) {
     else ((jobjectArray)obj)->getData()[index] = v;
 }
 
-jvoid nativeSetBoolean(FNIEnv *env, jobject obj, jint index, jbool v) {
+jvoid nativeArraySetBoolean(FNIEnv *env, jobject obj, jint index, jbool v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     if(isArrayOfPrimative(obj) != 'Z') {
@@ -419,7 +398,7 @@ jvoid nativeSetBoolean(FNIEnv *env, jobject obj, jint index, jbool v) {
     ((jbyteArray)obj)->getData()[index] = !!v;
 }
 
-jvoid nativeSetByte(FNIEnv *env, jobject obj, jint index, jbyte v) {
+jvoid nativeArraySetByte(FNIEnv *env, jobject obj, jint index, jbyte v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     switch(isArrayOfPrimative(obj)) {
@@ -448,7 +427,7 @@ jvoid nativeSetByte(FNIEnv *env, jobject obj, jint index, jbyte v) {
     }
 }
 
-jvoid nativeSetChar(FNIEnv *env, jobject obj, jint index, jchar v) {
+jvoid nativeArraySetChar(FNIEnv *env, jobject obj, jint index, jchar v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     switch(isArrayOfPrimative(obj)) {
@@ -474,7 +453,7 @@ jvoid nativeSetChar(FNIEnv *env, jobject obj, jint index, jchar v) {
     }
 }
 
-jvoid nativeSetShort(FNIEnv *env, jobject obj, jint index, jshort v) {
+jvoid nativeArraySetShort(FNIEnv *env, jobject obj, jint index, jshort v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     switch(isArrayOfPrimative(obj)) {
@@ -500,7 +479,7 @@ jvoid nativeSetShort(FNIEnv *env, jobject obj, jint index, jshort v) {
     }
 }
 
-jvoid nativeSetInt(FNIEnv *env, jobject obj, jint index, jint v) {
+jvoid nativeArraySetInt(FNIEnv *env, jobject obj, jint index, jint v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     switch(isArrayOfPrimative(obj)) {
@@ -523,7 +502,7 @@ jvoid nativeSetInt(FNIEnv *env, jobject obj, jint index, jint v) {
     }
 }
 
-jvoid nativeSetLong(FNIEnv *env, jobject obj, jint index, jlong v) {
+jvoid nativeArraySetLong(FNIEnv *env, jobject obj, jint index, jlong v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     switch(isArrayOfPrimative(obj)) {
@@ -543,7 +522,7 @@ jvoid nativeSetLong(FNIEnv *env, jobject obj, jint index, jlong v) {
     }
 }
 
-jvoid nativeSetFloat(FNIEnv *env, jobject obj, jint index, jfloat v) {
+jvoid nativeArraySetFloat(FNIEnv *env, jobject obj, jint index, jfloat v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     switch(isArrayOfPrimative(obj)) {
@@ -560,7 +539,7 @@ jvoid nativeSetFloat(FNIEnv *env, jobject obj, jint index, jfloat v) {
     }
 }
 
-jvoid nativeSetDouble(FNIEnv *env, jobject obj, jint index, jdouble v) {
+jvoid nativeArraySetDouble(FNIEnv *env, jobject obj, jint index, jdouble v) {
     if(checkIsArray(env, obj) == false) return;
     if(checkIndex(env, (jarray)obj, index) == false) return;
     if(isArrayOfPrimative(obj) != 'D') {
@@ -570,7 +549,7 @@ jvoid nativeSetDouble(FNIEnv *env, jobject obj, jint index, jdouble v) {
     ((jdoubleArray)obj)->getData()[index] = v;
 }
 
-jobject nativeNewArray(FNIEnv *env, jclass componentType, jint length) {
+jobject nativeArrayNewArray(FNIEnv *env, jclass componentType, jint length) {
     if(checkIsClassType(env, componentType) == false) return NULL;
     if(length < 0) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
@@ -595,7 +574,7 @@ jobject nativeNewArray(FNIEnv *env, jclass componentType, jint length) {
     }
 }
 
-jobject nativeMultiNewArray(FNIEnv *env, jclass componentType, jintArray dimensions) {
+jobject nativeArrayMultiNewArray(FNIEnv *env, jclass componentType, jintArray dimensions) {
     if(checkIsClassType(env, componentType) == false) return NULL;
     if(checkDimensions(env, dimensions) == false) return NULL;
     if(componentType->isPrimitive()) {

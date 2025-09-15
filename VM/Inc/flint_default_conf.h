@@ -21,10 +21,10 @@
     #warning "DEFAULT_STACK_SIZE is not defined. Default value will be used"
 #endif /* DEFAULT_STACK_SIZE */
 
-#ifndef OBJECT_SIZE_TO_GC
-    #define OBJECT_SIZE_TO_GC           MEGA_BYTE(1)
-    #warning "OBJECT_SIZE_TO_GC is not defined. Default value will be used"
-#endif /* OBJECT_SIZE_TO_GC */
+#ifndef OBJECT_COUNT_TO_GC
+    #define OBJECT_COUNT_TO_GC          10000
+    #warning "OBJECT_COUNT_TO_GC is not defined. Default value will be used"
+#endif /* OBJECT_COUNT_TO_GC */
 
 #ifndef MAX_OF_BREAK_POINT
     #define MAX_OF_BREAK_POINT          20

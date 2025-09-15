@@ -3,24 +3,42 @@
 #ifndef __FLINT_DICTIONARY_H
 #define __FLINT_DICTIONARY_H
 
-#include "flint.h"
-#include "flint_dict_node.h"
+#include <concepts>
 #include "flint_common.h"
 
+class DictNode {
+public:
+    DictNode *left;
+    DictNode *right;
+    uint32_t height;
+protected:
+    DictNode(void) : left(NULL), right(NULL), height(0) {
+
+    }
+public:
+    virtual uint32_t getHashKey(void) const = 0;
+    virtual int32_t compareKey(const char *key, uint16_t length = 0xFFFF) const = 0;
+    virtual int32_t compareKey(DictNode *other) const = 0;
+private:
+    DictNode(const DictNode &) = delete;
+    void operator=(const DictNode &) = delete;
+};
+
 template <class T>
+requires std::derived_from<T, DictNode>
 class FDict {
 private:
-    DictNode<T> *root;
+    DictNode *root;
 
-    static uint32_t getHeight(DictNode<T> *node) {
+    static uint32_t getHeight(DictNode *node) {
         return node ? node->height : 0;
     }
 
-    static int32_t getBalance(DictNode<T> *node) {
+    static int32_t getBalance(DictNode *node) {
         return node ? getHeight(node->left) - getHeight(node->right) : 0;
     }
 
-    static void updateHeight(DictNode<T> *node) {
+    static void updateHeight(DictNode *node) {
         if(node) {
             uint32_t leftHeight = getHeight(node->left);
             uint32_t rightHeight = getHeight(node->right);
@@ -28,9 +46,9 @@ private:
         }
     }
 
-    static DictNode<T> *rotateRight(DictNode<T> *y) {
-        DictNode<T> *x = y->left;
-        DictNode<T> *t = x->right;
+    static DictNode *rotateRight(DictNode *y) {
+        DictNode *x = y->left;
+        DictNode *t = x->right;
 
         x->right = y;
         y->left = t;
@@ -41,9 +59,9 @@ private:
         return x;
     }
 
-    static DictNode<T> *rotateLeft(DictNode<T> *x) {
-        DictNode<T> *y = x->right;
-        DictNode<T> *t = y->left;
+    static DictNode *rotateLeft(DictNode *x) {
+        DictNode *y = x->right;
+        DictNode *t = y->left;
 
         y->left = x;
         x->right = t;
@@ -54,7 +72,7 @@ private:
         return y;
     }
 
-    static DictNode<T> *balance(DictNode<T> *node) {
+    static DictNode *balance(DictNode *node) {
         if(!node)
             return node;
         updateHeight(node);
@@ -72,7 +90,7 @@ private:
         return node;
     }
 
-    static DictNode<T> *insert(DictNode<T> *root, DictNode<T> *node) {
+    static DictNode *insert(DictNode *root, DictNode *node) {
         if(!root) return node;
         int32_t cmp = node->getHashKey() - root->getHashKey();
         if(cmp == 0) cmp = node->compareKey(root);
@@ -82,11 +100,11 @@ private:
         return balance(root);
     }
 
-    static void forEach(DictNode<T> *node, void (*func)(DictNode<T> *item)) {
+    static void forEach(DictNode *node, void (*func)(T *item)) {
         if(node) {
             forEach(node->left, func);
             forEach(node->right, func);
-            func(node);
+            func((T *)node);
         }
     }
 
@@ -97,7 +115,7 @@ private:
     T *find(const char *key, uint16_t length = 0xFFFF) {
         if(root == NULL) return NULL;
         uint32_t hash = Hash(key, length);
-        DictNode<T> *node = root;
+        DictNode *node = root;
         while(node) {
             int32_t cmp = node->getHashKey() - hash;
             if(cmp == 0) cmp = node->compareKey(key, length);
@@ -108,10 +126,10 @@ private:
         return NULL;
     }
 
-    T *find(DictNode<T> *value) {
+    T *find(T *value) {
         if(root == NULL) return NULL;
         uint32_t hash = value->getHashKey();
-        DictNode<T> *node = root;
+        DictNode *node = root;
         while(node) {
             int32_t cmp = node->getHashKey() - hash;
             if(cmp == 0) cmp = node->compareKey(value);
@@ -122,11 +140,11 @@ private:
         return NULL;
     }
 
-    void add(DictNode<T> *node) {
+    void add(DictNode *node) {
         root = insert(root, node);
     }
 
-    void forEach(void (*func)(DictNode<T> *item)) {
+    void forEach(void (*func)(T *item)) {
         forEach(root, func);
     }
 

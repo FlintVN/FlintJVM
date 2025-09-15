@@ -2,16 +2,16 @@
 #ifndef __FLINT_UTF8_DICT_NODE_H
 #define __FLINT_UTF8_DICT_NODE_H
 
-#include "flint_dict_node.h"
+#include "flint_dictionary.h"
 
-class Utf8DictNode : public DictNode<Utf8DictNode> {
-private:    
+class Utf8DictNode : public DictNode {
+private:
     uint32_t hash;
     char value[];
 public:
-    uint32_t getHashKey(void) const;
-    int32_t compareKey(const char *key, uint16_t length) const;
-    int32_t compareKey(DictNode<Utf8DictNode> *other) const;
+    uint32_t getHashKey(void) const override;
+    int32_t compareKey(const char *key, uint16_t length) const override;
+    int32_t compareKey(DictNode *other) const override;
 
     const char *getValue() const;
 private:
