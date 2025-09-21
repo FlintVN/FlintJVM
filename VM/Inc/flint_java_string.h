@@ -2,28 +2,36 @@
 #ifndef __FLINT_JAVA_STRING_H
 #define __FLINT_JAVA_STRING_H
 
+#include <cstdarg>
 #include "flint_java_object.h"
 #include "flint_array_object.h"
 
 class JString : public JObject {
 public:
-    JInt8Array *getValue(void) const;
-    void setValue(JInt8Array &byteArray);
-    char *getText(void) const;
+    bool setUtf8(FExec *ctx, const char *utf8);
+    bool setAscii(FExec *ctx, const char *format, va_list args);
+
+    JByteArray *getValue(void) const;
+    const char *getAscii(void) const;
+    void setValue(JByteArray *value);
+
     uint32_t getLength(void) const;
+
     uint8_t getCoder(void) const;
     void setCoder(uint8_t coder);
-    int32_t compareTo(JString *another) const;
-    int32_t compareTo(FlintConstUtf8 &utf8) const;
-    uint32_t getUft8BuffSize(void);
 
-    static bool isLatin1(const char *utf8);
-    static uint8_t getUtf8DecodeSize(char c);
-    static uint8_t getUtf8EncodeSize(uint16_t c);
-    static uint32_t utf8Decode(const char *c);
-    static uint8_t utf8Encode(uint16_t c, char *buff);
-    static uint32_t utf8StrLen(const char *utf8);
-protected:
+    uint32_t getHashCode(void);
+
+    uint16_t getCharAt(uint32_t index) const;
+
+    int32_t compareTo(JString *other) const;
+    int32_t compareTo(const char *utf8, uint16_t length) const;
+private:
+    uint32_t getHash(void) const;
+    void setHash(uint32_t hash);
+    bool getHashIsZero(void) const;
+    void setHashIsZero(bool value);
+
     JString(void) = delete;
     JString(const JString &) = delete;
     void operator=(const JString &) = delete;

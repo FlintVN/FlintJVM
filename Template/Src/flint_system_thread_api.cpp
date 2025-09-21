@@ -3,23 +3,15 @@
 
 #include "flint_system_api.h"
 
-FlintAPI::Thread::LockHandle *FlintAPI::Thread::createLockHandle(void) {
-    #error "FlintAPI::System::createLockHandle is not implemented in VM";
-}
-
-void FlintAPI::Thread::lock(FlintAPI::Thread::LockHandle *lockHandle) {
-    #error "FlintAPI::System::lock is not implemented in VM";
-}
-
-void FlintAPI::Thread::unlock(FlintAPI::Thread::LockHandle *lockHandle) {
-    #error "FlintAPI::System::unlock is not implemented in VM";
-}
-
-void *FlintAPI::Thread::create(void (*task)(void *), void *param, uint32_t stackSize) {
+ThreadHandle FlintAPI::Thread::create(void (*task)(void *), void *param, uint32_t stackSize) {
     #error "FlintAPI::Thread::create is not implemented in VM";
 }
 
-void FlintAPI::Thread::terminate(void *threadHandle) {
+ThreadHandle FlintAPI::Thread::getCurrentThread(void) {
+    #error "FlintAPI::Thread::getCurrentThread is not implemented in VM";
+}
+
+void FlintAPI::Thread::terminate(ThreadHandle handle) {
     #error "FlintAPI::Thread::terminate is not implemented in VM";
 }
 

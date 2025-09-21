@@ -4,7 +4,6 @@
 
 #include "flint_method_info.h"
 #include "flint_java_throwable.h"
-#include "flint_const_name_base.h"
 #include "flint_mutex.h"
 #include "flint_system_api.h"
 #include "flint_default_conf.h"
@@ -57,7 +56,7 @@ typedef enum : uint8_t {
     DBG_CMD_READ_DIR,
     DBG_CMD_CREATE_DIR,
     DBG_CMD_CLOSE_DIR,
-} FlintDbgCmd;
+} DbgCmd;
 
 typedef enum : uint8_t {
     DBG_RESP_OK = 0,
@@ -66,54 +65,52 @@ typedef enum : uint8_t {
     DBG_RESP_CRC_FAIL = 3,
     DBG_RESP_LENGTH_INVAILD = 4,
     DBG_RESP_UNKNOW = 0xFF,
-} FlintDbgRespCode;
+} DbgRespCode;
 
-class FlintBreakPoint {
+class BreakPoint {
 public:
     uint8_t opcode;
     uint32_t pc;
-    FlintMethodInfo *method;
+    MethodInfo *method;
 
-    FlintBreakPoint(void);
-    FlintBreakPoint(uint8_t opcode, uint32_t pc, FlintMethodInfo *method);
+    BreakPoint(void);
+    BreakPoint(uint8_t opcode, uint32_t pc, MethodInfo *method);
 private:
-    FlintBreakPoint(const FlintBreakPoint &) = delete;
+    BreakPoint(const BreakPoint &) = delete;
 };
 
-class FlintStackFrame {
+class StackFrame {
 public:
     const uint32_t pc;
     const uint32_t baseSp;
-    FlintMethodInfo &method;
+    MethodInfo &method;
 
-    FlintStackFrame(void);
-    FlintStackFrame(uint32_t pc, uint32_t baseSp, FlintMethodInfo &method);
+    StackFrame(void);
+    StackFrame(uint32_t pc, uint32_t baseSp, MethodInfo &method);
 private:
-    FlintStackFrame(const FlintStackFrame &) = delete;
-    void operator=(const FlintStackFrame &) = delete;
+    StackFrame(const StackFrame &) = delete;
+    void operator=(const StackFrame &) = delete;
 };
 
-class FlintDebugger {
+class FDbg {
 private:
-    FlintMutex dbgMutex;
-    class Flint &flint;
-    class FlintExecution *execution;
-    JThrowable *exception;
+    FMutex dbgMutex;
+    class FExec *exec;
     void *dirHandle;
     void *fileHandle;
-    volatile uint32_t stepCodeLength;
-    volatile uint32_t consoleOffset;
-    volatile uint32_t consoleLength;
+    uint32_t stepCodeLength;
+    uint32_t consoleOffset;
+    uint32_t consoleLength;
     uint32_t txDataLength;
     uint16_t txDataCrc;
     volatile uint16_t csr;
-    volatile uint8_t breakPointCount;
-    FlintStackFrame startPoint;
-    FlintBreakPoint breakPoints[MAX_OF_BREAK_POINT];
+    uint8_t breakPointCount;
+    StackFrame startPoint;
+    BreakPoint breakPoints[MAX_OF_BREAK_POINT];
     uint8_t consoleBuff[DBG_CONSOLE_BUFFER_SIZE];
     uint8_t txBuff[DBG_TX_BUFFER_SIZE];
 public:
-    FlintDebugger(Flint &flint);
+    FDbg(void);
 
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
 
@@ -123,31 +120,31 @@ private:
     void consoleClear(void);
 
     void clearTxBuffer(void);
-    void initDataFrame(FlintDbgCmd cmd, FlintDbgRespCode responseCode, uint32_t dataLength);
+    void initDataFrame(DbgCmd cmd, DbgRespCode responseCode, uint32_t dataLength);
     bool dataFrameAppend(uint8_t data);
     bool dataFrameAppend(uint16_t data);
     bool dataFrameAppend(uint32_t data);
     bool dataFrameAppend(uint64_t data);
     bool dataFrameAppend(uint8_t *data, uint16_t length);
-    bool dataFrameAppend(FlintConstUtf8 &utf8);
+    bool dataFrameAppend(const char *utf8);
     bool dataFrameFinish(void);
-    bool sendRespCode(FlintDbgCmd cmd, FlintDbgRespCode responseCode);
+    bool sendRespCode(DbgCmd cmd, DbgRespCode responseCode);
 
     void responseInfo(void);
     void responseStatus(void);
     void responseStackTrace(uint32_t stackIndex);
     void responseExceptionInfo(void);
     void responseLocalVariable(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType);
-    void responseField(JObject *obj, FlintConstUtf8 &fieldName);
+    void responseField(JObject *obj, const char *fieldName);
     void responseArray(JObject *array, uint32_t index, uint32_t length);
     void responseObjSizeAndType(JObject *obj);
-    void responseOpenFile(char *fileName, FlintFileMode mode);
+    void responseOpenFile(char *fileName, FileMode mode);
     void responseReadFile(uint32_t size);
     void responseWriteFile(uint8_t *data, uint32_t size);
     void responseSeekFile(uint32_t offset);
     void responseCloseFile(void);
     void responseFileInfo(const char *fileName);
-    void responseCreateDelete(FlintDbgCmd cmd, const char *path);
+    void responseCreateDelete(DbgCmd cmd, const char *path);
     void responseOpenDir(const char *path);
     void responseReadDir(void);
     void responseCloseDir(void);
@@ -155,17 +152,17 @@ private:
 public:
     bool receivedDataHandler(uint8_t *data, uint32_t length);
     bool exceptionIsEnabled(void);
-    bool waitStop(FlintExecution *exec);
-    bool checkStop(FlintExecution *exec);
-    void caughtException(FlintExecution *exec, JThrowable *excp);
-    void hitBreakpoint(FlintExecution *exec);
-    uint8_t getSavedOpcode(uint32_t pc, FlintMethodInfo *method);
+    bool waitStop(FExec *exec);
+    bool checkStop(FExec *exec);
+    void caughtException(FExec *exec);
+    void hitBreakpoint(FExec *exec);
+    uint8_t getSavedOpcode(uint32_t pc, MethodInfo *method);
 private:
-    FlintDebugger(const FlintDebugger &) = delete;
-    void operator=(const FlintDebugger &) = delete;
+    FDbg(const FDbg &) = delete;
+    void operator=(const FDbg &) = delete;
 
-    bool addBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor);
-    bool removeBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor);
+    bool addBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc);
+    bool removeBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc);
 
     void lock(void);
     void unlock(void);

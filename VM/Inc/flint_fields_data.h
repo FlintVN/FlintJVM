@@ -1,84 +1,80 @@
+#ifndef __FLINT_FIELDS_DATA_H
+#define __FLINT_FIELDS_DATA_H
 
-#ifndef __FLINT_FIELD_DATA_H
-#define __FLINT_FIELD_DATA_H
-
-#include "flint_java_object.h"
 #include "flint_const_pool.h"
-#include "flint_class_loader.h"
+#include "flint_field_info.h"
 
-class FlintFieldData32 {
+class Field32 {
 public:
-    const FlintFieldInfo &fieldInfo;
+    const FieldInfo * const fieldInfo;
     int32_t value;
 private:
-    FlintFieldData32(const FlintFieldInfo &fieldInfo);
-    FlintFieldData32(const FlintFieldData32 &) = delete;
-    void operator=(const FlintFieldData32 &) = delete;
+    Field32(const FieldInfo *fieldInfo);
+    Field32(const Field32 &) = delete;
+    void operator=(const Field32 &) = delete;
 
-    friend class FlintFieldsData;
+    friend class FieldsData;
 };
 
-class FlintFieldData64 {
+class Field64 {
 public:
-    const FlintFieldInfo &fieldInfo;
+    const FieldInfo *fieldInfo;
     int64_t value;
 private:
-    FlintFieldData64(const FlintFieldInfo &fieldInfo);
-    FlintFieldData64(const FlintFieldData64 &) = delete;
-    void operator=(const FlintFieldData64 &) = delete;
+    Field64(const FieldInfo *fieldInfo);
+    Field64(const Field64 &) = delete;
+    void operator=(const Field64 &) = delete;
 
-    friend class FlintFieldsData;
+    friend class FieldsData;
 };
 
-class FlintFieldObject {
+class FieldObj {
 public:
-    const FlintFieldInfo &fieldInfo;
-    JObject *object;
+    const FieldInfo *fieldInfo;
+    class JObject *value;
 private:
-    FlintFieldObject(const FlintFieldInfo &fieldInfo);
-    FlintFieldObject(const FlintFieldObject &) = delete;
-    void operator=(const FlintFieldObject &) = delete;
+    FieldObj(const FieldInfo *fieldInfo);
+    FieldObj(const FieldObj &) = delete;
+    void operator=(const FieldObj &) = delete;
 
-    friend class FlintFieldsData;
+    friend class FieldsData;
 };
 
-class FlintFieldsData {
+class FieldsData {
+private:
+    uint16_t fields32Count;
+    uint16_t fields64Count;
+    uint16_t fieldsObjCount;
+
+    Field32 *fields32;
+    Field64 *fields64;
+    FieldObj *fieldsObj;
 public:
-    const uint16_t fields32Count;
-    const uint16_t fields64Count;
-    const uint16_t fieldsObjCount;
+    FieldsData(void);
 
-    FlintResult<FlintClassLoader> loadStatic(FlintClassLoader &classLoader);
-    FlintResult<FlintClassLoader> loadNonStatic(Flint &flint, FlintClassLoader &classLoader);
+    Field32 *getField32(ConstField *field);
+    Field32 *getField32(const char *name);
+    Field32 *getField32ByIndex(uint32_t index);
 
-    FlintFieldData32 *getFieldData32(const char *fieldName, uint32_t *index = 0) const;
-    FlintFieldData32 *getFieldData32(FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
-    FlintFieldData32 *getFieldData32(FlintConstField &constField) const;
-    FlintFieldData32 *getFieldData32ByIndex(int32_t index) const;
+    Field64 *getField64(ConstField *field);
+    Field64 *getField64(const char *name);
+    Field64 *getField64ByIndex(uint32_t index);
 
-    FlintFieldData64 *getFieldData64(const char *fieldName, uint32_t *index = 0) const;
-    FlintFieldData64 *getFieldData64(FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
-    FlintFieldData64 *getFieldData64(FlintConstField &constField) const;
-    FlintFieldData64 *getFieldData64ByIndex(int32_t index) const;
+    FieldObj *getFieldObj(ConstField *field);
+    FieldObj *getFieldObj(const char *name);
+    FieldObj *getFieldObjByIndex(uint32_t index);
 
-    FlintFieldObject *getFieldObject(const char *fieldName, uint32_t *index = 0) const;
-    FlintFieldObject *getFieldObject(FlintConstUtf8 &fieldName, uint32_t *index = 0) const;
-    FlintFieldObject *getFieldObject(FlintConstField &constField) const;
-    FlintFieldObject *getFieldObjectByIndex(int32_t index) const;
+    bool init(class FExec *ctx, class ClassLoader *loader, bool isStatic);
+
+    ~FieldsData(void);
 private:
-    FlintFieldData32 *fieldsData32;
-    FlintFieldData64 *fieldsData64;
-    FlintFieldObject *fieldsObject;
+    bool initStatic(class FExec *ctx, class ClassLoader *loader);
+    bool initNonStatic(class FExec *ctx, class ClassLoader *loader);
 private:
-    FlintFieldsData(void);
-    FlintFieldsData(const FlintFieldsData &) = delete;
-    void operator=(const FlintFieldsData &) = delete;
-
-    ~FlintFieldsData(void);
+    FieldsData(const FieldsData &) = delete;
+    void operator=(const FieldsData &) = delete;
 
     friend class Flint;
-    friend class FlintClassData;
-    friend class FlintExecution;
 };
 
-#endif /* __FLINT_FIELD_DATA_H */
+#endif /* __FLINT_FIELDS_DATA_H */

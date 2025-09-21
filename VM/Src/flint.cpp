@@ -1,68 +1,155 @@
 
 #include <new>
 #include <string.h>
+#include <stdlib.h>
 #include "flint.h"
-#include "flint_const_name_base_hash_table.h"
+#include "flint_system_api.h"
+#include "flint_fields_data.h"
 
-FlintMutex Flint::flintMutex;
-Flint Flint::flintInstance;
-uint32_t Flint::objectCount = 0;
+FMutex Flint::flintLock;
+FDbg *Flint::dbg = NULL;
+FDict<ClassLoader> Flint::loaders;
+FDict<JClassDictNode> Flint::classes;
+FDict<Utf8DictNode> Flint::utf8s;
+FDict<JStringDictNode> Flint::constStr;
+FList<FExec> Flint::execs;
+FList<JObject> Flint::objs;
 
-FlintExecutionNode::FlintExecutionNode(Flint &flint, JThread *onwerThread, uint32_t stackSize) : FlintExecution(flint, onwerThread, stackSize) {
-    prev = NULL_PTR;
-    next = NULL_PTR;
+JClass *Flint::classOfClass = NULL;
+
+uint32_t Flint::heapCount = 0;
+uint32_t Flint::objectCountToGc = 0;
+void *Flint::heapStart = (void *)0xFFFFFFFF;
+void *Flint::headEnd = (void *)0x00;
+
+alignas(4) static const char outOfMemoryErrorTypeName[] = "java/lang/OutOfMemoryError";
+
+static uint32_t getDimensions(const char *typeName) {
+    const char *text = typeName;
+    while(*text == '[') text++;
+    return (uint32_t)(text - typeName);
 }
 
-void Flint::lock(void) {
-    flintMutex.lock();
-}
-
-void Flint::unlock(void) {
-    flintMutex.unlock();
-}
-
-void *Flint::malloc(uint32_t size) {
-    void *ret = FlintAPI::System::malloc(size);
-    if(ret == 0) {
-        flintInstance.garbageCollection();
-        ret = FlintAPI::System::malloc(size);
+static bool isPrimitiveTypes(const char *typeName) {
+    if(typeName[1] == 0) switch(typeName[0]) {
+        case 'Z':
+        case 'C':
+        case 'F':
+        case 'D':
+        case 'B':
+        case 'S':
+        case 'I':
+        case 'J':
+        case 'V': return true;
+        default:  return false;
     }
-    objectCount++;
-    return ret;
+    return false;
 }
 
-void *Flint::realloc(void *p, uint32_t size) {
-    void *ret = FlintAPI::System::realloc(p, size);
-    if(ret == 0) {
-        flintInstance.garbageCollection();
-        ret = FlintAPI::System::realloc(p, size);
+static int32_t compareArrayClassName(const char *clsName, uint32_t dimensions, const char *arrayClsName) {
+    for(uint8_t i = 0; i < dimensions; i++)
+        if('[' != arrayClsName[i]) return (uint8_t)'[' - (uint8_t)arrayClsName[i];
+    arrayClsName += dimensions;
+    bool isObjectType = !isPrimitiveTypes(clsName) && clsName[0] != '[';
+    if(isObjectType) {
+        if('L' != *arrayClsName) return (uint8_t)'L' - (uint8_t)*arrayClsName;
+        arrayClsName++;
     }
-    return ret;
+    while(*clsName && *arrayClsName) {
+        if(*clsName != *arrayClsName) return (uint8_t)*clsName - (uint8_t)*arrayClsName;
+        clsName++;
+        arrayClsName++;
+    }
+    if(isObjectType) if(*clsName == 0) return (uint8_t)';' - (uint8_t)*arrayClsName;
+    return 0;
+}
+
+void Flint::updateHeapRegion(void *p) {
+    if(p < heapStart)
+        heapStart = p;
+    if(p > headEnd)
+        headEnd = p;
+}
+
+void Flint::resetHeapRegion(void) {
+    heapStart = (void *)0xFFFFFFFF;
+    headEnd = (void *)0x00;
+}
+
+bool Flint::isHeapPointer(void *p) {
+    return (((uint32_t)p & 0x03) == 0) && (heapStart <= p) && (p <= headEnd);
+}
+
+void *Flint::malloc(FExec *ctx, uint32_t size) {
+    if(++objectCountToGc >= OBJECT_COUNT_TO_GC)
+        gc();
+    void *p = FlintAPI::System::malloc(size);
+    if(p == NULL) {
+        gc();
+        p = FlintAPI::System::malloc(size);
+    }
+    if(p == NULL) {
+        if(ctx != NULL) {
+            JClass *excpCls = Flint::findClass(NULL, outOfMemoryErrorTypeName);
+            if(excpCls != NULL)
+                ctx->throwNew(excpCls);
+            else
+                ctx->excp = (JThrowable *)((uint32_t)outOfMemoryErrorTypeName | 0x01);
+        }
+    }
+    else {
+        updateHeapRegion(p);
+        heapCount++;
+    }
+    return p;
+}
+
+void *Flint::realloc(FExec *ctx, void *p, uint32_t size) {
+    p = FlintAPI::System::realloc(p, size);
+    if(p == NULL) {
+        gc();
+        p = FlintAPI::System::malloc(size);
+    }
+    if(p == NULL) {
+        if(ctx != NULL) {
+            JClass *excpCls = Flint::findClass(NULL, outOfMemoryErrorTypeName);
+            if(excpCls != NULL)
+                ctx->throwNew(excpCls);
+            else
+                ctx->excp = (JThrowable *)((uint32_t)outOfMemoryErrorTypeName | 0x01);
+        }
+    }
+    else
+        updateHeapRegion(p);
+    return p;
 }
 
 void Flint::free(void *p) {
-    objectCount--;
-    FlintAPI::System::free(p);
+    ::free(p);
+    heapCount--;
 }
 
-Flint &Flint::getInstance(void) {
-    return flintInstance;
+void Flint::lock(void) {
+    flintLock.lock();
 }
 
-Flint::Flint(void): classDataTree(), constClassTree(), constStringTree(), constUtf8Tree() {
-    dbg = NULL_PTR;
-    executionList = NULL_PTR;
-    objectList = NULL_PTR;
-    classArray0 = NULL_PTR;
-    objectSizeToGc = 0;
+void Flint::unlock(void) {
+    flintLock.unlock();
 }
 
-FlintDebugger *Flint::getDebugger(void) const {
-    return dbg;
+FDbg *Flint::getDebugger(void) {
+    return Flint::dbg;
 }
 
-void Flint::setDebugger(FlintDebugger *dbg) {
-    this->dbg = dbg;
+void Flint::setDebugger(FDbg *dbg) {
+    Flint::dbg = dbg;
+}
+
+void Flint::print(const char *buff, uint32_t length, uint8_t coder) {
+    if(dbg)
+        dbg->print(buff, length, coder);
+    else
+        FlintAPI::System::print(buff, length, coder);
 }
 
 void Flint::print(int64_t num) {
@@ -78,24 +165,12 @@ void Flint::print(int64_t num) {
     print(&buff[index], sizeof(buff) - index - 1, 0);
 }
 
-void Flint::print(const char *text) {
-    uint32_t len = strlen(text);
-    print(text, len, 0);
-}
-
-void Flint::print(FlintConstUtf8 &utf8) {
-    print(utf8.text, utf8.length, 0);
+void Flint::print(const char *ascii) {
+    print(ascii, strlen(ascii), 0);
 }
 
 void Flint::print(JString *str) {
-    print(str->getText(), str->getLength(), str->getCoder());
-}
-
-void Flint::print(const char *text, uint32_t length, uint8_t coder) {
-    if(dbg)
-        dbg->print(text, length, coder);
-    else
-        FlintAPI::System::print(text, length, coder);
+    print(str->getAscii(), str->getLength(), str->getCoder());
 }
 
 void Flint::println(int64_t num) {
@@ -103,794 +178,613 @@ void Flint::println(int64_t num) {
     print("\n", 1, 0);
 }
 
-void Flint::println(const char *text) {
-    uint32_t len = strlen(text);
-    print(text, len, 0);
-    print("\n", 1, 0);
-}
-
-void Flint::println(FlintConstUtf8 &utf8) {
-    print(utf8.text, utf8.length, 0);
+void Flint::println(const char *ascii) {
+    print(ascii, strlen(ascii), 0);
     print("\n", 1, 0);
 }
 
 void Flint::println(JString *str) {
-    print(str->getText(), str->getLength(), str->getCoder());
+    print(str->getAscii(), str->getLength(), str->getCoder());
     print("\n", 1, 0);
 }
 
-FlintResult<FlintExecution> Flint::newExecution(JThread *onwerThread, uint32_t stackSize) {
-    FlintExecutionNode *newNode = (FlintExecutionNode *)Flint::malloc(sizeof(FlintExecutionNode));
-    new (newNode)FlintExecutionNode(*this, onwerThread, stackSize);
-    if(newNode == NULL_PTR)
-        return ERR_OUT_OF_MEMORY;
+const char *Flint::getUtf8(FExec *ctx, const char *utf8, uint16_t length) {
     lock();
-    newNode->next = executionList;
-    if(executionList)
-        executionList->prev = newNode;
-    executionList = newNode;
+
+    Utf8DictNode *utf8Node = utf8s.find(utf8, length);
+    if(utf8Node != NULL) { unlock(); return utf8Node->getValue(); }
+
+    uint16_t len = strlen(utf8);
+    len = (len < length) ? len : length;
+    utf8Node = (Utf8DictNode *)Flint::malloc(ctx, sizeof(Utf8DictNode) + len + 1);
+    if(utf8Node == NULL) { unlock(); return NULL; }
+    new (utf8Node)Utf8DictNode(utf8, len);
+    utf8s.add(utf8Node);
+
     unlock();
-    return newNode;
+    return utf8Node->getValue();
 }
 
-FlintResult<FlintExecution> Flint::getExcutionByThread(JThread *thread) const {
-    Flint::lock();
-    for(FlintExecutionNode *node = executionList; node != NULL_PTR; node = node->next) {
-        if(node->onwerThread == thread) {
-            Flint::unlock();
-            return node;
+const char *Flint::getArrayClassName(FExec *ctx, const char *clsName, uint8_t dimensions) {
+    lock();
+
+    uint32_t hash = 0;
+    bool isObjectType = !isPrimitiveTypes(clsName) && clsName[0] != '[';
+    Utf8DictNode *utf8Node = NULL;
+    do {
+        if(utf8s.root == NULL) break;
+        for(uint8_t i = 0; i < dimensions; i++) hash = Hash("[", 1, hash);
+        if(isObjectType) hash = Hash("L", 1, hash);
+        hash = Hash(clsName, 0, hash);
+        if(isObjectType) hash = Hash(";", 1, hash);
+        Utf8DictNode *node = (Utf8DictNode *)utf8s.root;
+        while(node) {
+            int32_t cmp = hash - node->getHashKey();
+            if(cmp == 0) cmp = compareArrayClassName(clsName, dimensions, node->value);
+            if(cmp == 0) { utf8Node = node; break; }
+            else if(cmp < 0) node = (Utf8DictNode *)node->left;
+            else node = (Utf8DictNode *)node->right;
         }
-    }
-    Flint::unlock();
-    return FlintResult<FlintExecution>(NULL_PTR);
+    } while(false);
+    if(utf8Node != NULL) { unlock(); return utf8Node->getValue(); }
+
+    uint32_t len = strlen(clsName);
+    utf8Node = (Utf8DictNode *)Flint::malloc(ctx, sizeof(Utf8DictNode) + dimensions + len + 1 + (isObjectType ? 2 : 0));
+    if(utf8Node == NULL) { unlock(); return NULL; }
+    new (utf8Node)Utf8DictNode();
+    utf8Node->hash = hash;
+    char *txt = utf8Node->value;
+    while(dimensions--) *txt++ = '[';
+    if(isObjectType) *txt++ = 'L';
+    while(*clsName) *txt++ = *clsName++;
+    if(isObjectType) *txt++ = ';';
+    *txt = 0;
+    utf8s.add(utf8Node);
+
+    unlock();
+    return utf8Node->getValue();
 }
 
-void Flint::freeExecution(FlintExecution *exec) {
+bool Flint::isInstanceof(FExec *ctx, JObject *obj, JClass *type) {
+    JClass *objType = (obj->type != NULL) ? obj->type : getClassOfClass(ctx);
+    return isAssignableFrom(ctx, objType, type);
+}
+
+bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
+    const char *typeName1 = fromType->getTypeName();
+    const char *typeName2 = toType->getTypeName();
+    uint8_t dim1 = getDimensions(typeName1);
+    uint8_t dim2 = getDimensions(typeName2);
+    const char *compTypeName1 = &typeName1[dim1];
+    const char *compTypeName2 = &typeName2[dim2];
+
+    if(compTypeName1[0] == 'L') compTypeName1++;
+    if(compTypeName2[0] == 'L') compTypeName2++;
+
+    if(dim1 >= dim2 && strncmp(compTypeName2, "java/lang/Object", 16) == 0) return true;
+    if(dim1 != dim2) return false;
+    if(isPrimitiveTypes(compTypeName1) || isPrimitiveTypes(compTypeName2))
+        return (compTypeName1[0] == compTypeName2[0]) && (compTypeName1[1] == compTypeName2[1]);
+
+    uint32_t len1 = 0, len2 = 0;
+    while(compTypeName1[len1] != 0 && compTypeName1[len1] != ';') len1++;
+    while(compTypeName2[len2] != 0 && compTypeName2[len2] != ';') len2++;
+
+    ClassLoader *loader = Flint::findLoader(ctx, compTypeName1, len1);
+    while(loader != NULL) {
+        if(strncmp(loader->thisClass, compTypeName2, len2) == 0) return true;
+        if(loader == NULL) return false;
+        uint16_t ifCount = loader->getInterfacesCount();
+        for(uint32_t i = 0; i < ifCount; i++) {
+            if(strncmp(loader->getInterface(i), compTypeName2, len2) == 0)
+                return true;
+        }
+        if(loader->superClass == NULL) return false;
+        loader = Flint::findLoader(ctx, loader->superClass);
+    }
+    return false;
+}
+
+FExec *Flint::newExecution(FExec *ctx, JThread *onwer, uint32_t stackSize) {
+    FExec *newExec = (FExec *)Flint::malloc(ctx, sizeof(FExec) + stackSize);
+    if(newExec == NULL) return NULL;
+    new (newExec)FExec(onwer, stackSize);
+    lock();
+    execs.add(newExec);
+    unlock();
+    return newExec;
+}
+
+void Flint::freeExecution(FExec *exec) {
     Flint::lock();
-    FlintExecutionNode *prev = ((FlintExecutionNode *)exec)->prev;
-    FlintExecutionNode *next = ((FlintExecutionNode *)exec)->next;
-    if(prev)
-        prev->next = next;
-    else
-        executionList = next;
-    if(next)
-        next->prev = prev;
-    ((FlintExecutionNode *)exec)->~FlintExecutionNode();
+    execs.remove(exec);
     Flint::free(exec);
     Flint::unlock();
 }
 
-FlintResult<JObject> Flint::newObject(uint32_t size, FlintConstUtf8 *type, uint8_t dimensions) {
-    objectSizeToGc += size;
-    if(objectSizeToGc >= OBJECT_SIZE_TO_GC)
-        garbageCollection();
-    JObject *newNode = (JObject *)Flint::malloc(sizeof(JObject) + size);
-    if(newNode == NULL_PTR)
-        return ERR_OUT_OF_MEMORY;
-    new (newNode)JObject(size, *type, dimensions);
+JObject *Flint::newObject(FExec *ctx, JClass *type) {
+    if(type == NULL) return NULL;
+    JObject *newObj = (JObject *)Flint::malloc(ctx, sizeof(JObject) + sizeof(FieldsData));
+    if(newObj == NULL) return NULL;
+    new (newObj)JObject(sizeof(FieldsData), type);
+
+    if(newObj->initFields(ctx, type->getClassLoader()) == false) { Flint::free(newObj); return NULL; }
 
     Flint::lock();
-    newNode->prev = NULL_PTR;
-    newNode->next = objectList;
-    if(objectList)
-        objectList->prev = newNode;
-    objectList = newNode;
+    objs.add(newObj);
     Flint::unlock();
 
-    return newNode;
+    return newObj;
 }
 
-FlintResult<JObject> Flint::newObject(FlintConstUtf8 *type) {
-    auto obj = newObject(sizeof(FlintFieldsData), type, 0);
-    if(obj.err == ERR_OK) {
-        memset(obj.value->data, 0, sizeof(FlintFieldsData));
-
-        auto loader = load(type->text);
-        if(loader.err != ERR_OK) {
-            freeObject(obj.value);
-            return *(FlintResult<JObject> *)&loader;
-        }
-
-        /* init field data */
-        FlintFieldsData *fields = (FlintFieldsData *)obj.value->data;
-        new (fields)FlintFieldsData();
-        auto res = fields->loadNonStatic(*this, *loader.value);
-        if(res.err != ERR_OK)
-            return FlintResult<JObject>(res.err, res.getErrorMsg(), res.getErrorMsgLength());
+JObject *Flint::newArray(FExec *ctx, JClass *type, uint32_t count) {
+    if(type == NULL) return NULL;
+    uint8_t compSz = type->componentSize();
+    if(compSz == 0) {
+        if(ctx != NULL)
+            ctx->throwNew(Flint::findClass(ctx, "java/lang/IllegalArgumentException"));
+        return NULL;
     }
-    return obj;
+    JObject *newObj = (JObject *)Flint::malloc(ctx, sizeof(JObject) + compSz * count);
+    if(newObj == NULL) return NULL;
+    new (newObj)JObject(compSz * count, type);
+
+    Flint::lock();
+    objs.add(newObj);
+    Flint::unlock();
+
+    return newObj;
 }
 
-FlintResult<JInt8Array> Flint::newBooleanArray(uint32_t length) {
-    auto obj = newObject(length, (FlintConstUtf8 *)booleanPrimTypeName, 1);
-    return *(FlintResult<JInt8Array> *)&obj;
-}
-
-FlintResult<JInt8Array> Flint::newByteArray(uint32_t length) {
-    auto obj = newObject(length, (FlintConstUtf8 *)bytePrimTypeName, 1);
-    return *(FlintResult<JInt8Array> *)&obj;
-}
-
-FlintResult<JInt16Array> Flint::newCharArray(uint32_t length) {
-    auto obj = newObject(length * sizeof(int16_t), (FlintConstUtf8 *)charPrimTypeName, 1);
-    return *(FlintResult<JInt16Array> *)&obj;
-}
-
-FlintResult<JInt16Array> Flint::newShortArray(uint32_t length) {
-    auto obj = newObject(length * sizeof(int16_t), (FlintConstUtf8 *)shortPrimTypeName, 1);
-    return *(FlintResult<JInt16Array> *)&obj;
-}
-
-FlintResult<JInt32Array> Flint::newIntegerArray(uint32_t length) {
-    auto obj = newObject(length * sizeof(int32_t), (FlintConstUtf8 *)integerPrimTypeName, 1);
-    return *(FlintResult<JInt32Array> *)&obj;
-}
-
-FlintResult<JFloatArray> Flint::newFloatArray(uint32_t length) {
-    auto obj = newObject(length * sizeof(float), (FlintConstUtf8 *)floatPrimTypeName, 1);
-    return *(FlintResult<JFloatArray> *)&obj;
-}
-
-FlintResult<JInt64Array> Flint::newLongArray(uint32_t length) {
-    auto obj = newObject(length * sizeof(int64_t), (FlintConstUtf8 *)longPrimTypeName, 1);
-    return *(FlintResult<JInt64Array> *)&obj;
-}
-
-FlintResult<JDoubleArray> Flint::newDoubleArray(uint32_t length) {
-    auto obj = newObject(length * sizeof(double), (FlintConstUtf8 *)doublePrimTypeName, 1);
-    return *(FlintResult<JDoubleArray> *)&obj;
-}
-
-FlintResult<JObjectArray> Flint::newObjectArray(FlintConstUtf8 *type, uint32_t length) {
-    auto obj = newObject(length * sizeof(JObject *), type, 1);
-    return *(FlintResult<JObjectArray> *)&obj;
-}
-
-FlintResult<JObject> Flint::newMultiArray(FlintConstUtf8 *typeName, int32_t *counts, uint8_t startDims, uint8_t endDims) {
-    if(startDims > 1) {
-        auto array = newObject(counts[0] * sizeof(JObject *), typeName, startDims);
-        if(array.err == ERR_OK) {
-            if(startDims > endDims) {
-                for(uint32_t i = 0; i < counts[0]; i++) {
-                    auto subArray = newMultiArray(typeName, &counts[1], startDims - 1, endDims);
-                    if(subArray.err != ERR_OK) {
-                        for(uint32_t j = 0; j < i; j++)
-                            freeObject(((JObject **)(array.value->data))[j]);
-                        return subArray;
-                    }
-                    ((JObject **)(array.value->data))[i] = subArray.value;
+JObject *Flint::newMultiArray(FExec *ctx, JClass *type, int32_t *counts, uint8_t depth) {
+    JObject *array = newArray(ctx, type, *counts);
+    if(array == NULL) return NULL;
+    const char *compTypeName = &type->getTypeName()[1];
+    depth--;
+    if(compTypeName[0] == '[' && depth > 0) {
+        uint32_t i, length = *counts;
+        JObject **objData = ((JObjectArray *)array)->getData();
+        JClass *compType = Flint::findClass(ctx, compTypeName);
+        if(compType == NULL) { freeObject(array); return NULL; }
+        counts++;
+        for(i = 0; i < length; i++) {
+            JObject *tmp = newMultiArray(ctx, compType, counts, depth);
+            if(tmp == NULL) {
+                while(i > 0) {
+                    i--;
+                    freeObject(objData[i]);
                 }
+                freeObject(array);
+                return NULL;
             }
-            else
-                memset(array.value->data, 0, array.value->size);
-        }
-        return array;
-    }
-    else {
-        uint8_t atype = JObject::isPrimType(*typeName);
-        uint8_t typeSize = atype ? JObject::getPrimitiveTypeSize(atype) : sizeof(JObject *);
-        auto array = newObject(typeSize * counts[0], typeName, 1);
-        if(array.err == ERR_OK)
-            memset(array.value->data, 0, array.value->size);
-        return array;
-    }
-}
-
-FlintResult<JClass> Flint::newClass(JString *typeName) {
-    // TODO - Check the existence of type
-
-    auto cls = newObject((FlintConstUtf8 *)classClassName);
-
-    /* set value for name field */
-    if(cls.err == ERR_OK)
-        ((JClass *)cls.value)->setName(typeName);
-
-    return *(FlintResult<JClass> *)&cls;
-}
-
-FlintResult<JClass> Flint::newClass(const char *typeName, uint16_t length) {
-    /* create String object to store typeName */
-    auto name = newString(typeName, length, false);
-    if(name.err != ERR_OK)
-        return *(FlintResult<JClass> *)&name;
-
-    /* replace '/' to '.' */
-    char *text = (char *)name.value->getText();
-    for(uint32_t i = 0; i < length; i++) {
-        if(text[i] == '/')
-            text[i] = '.';
-    }
-    auto cls = newClass(name.value);
-    if(cls.err != ERR_OK)
-        freeObject(name.value);
-    return cls;
-}
-
-FlintResult<JClass> Flint::getConstClass(const char *typeName, uint16_t length) {
-    if(*typeName == 'L') {
-        length -= (typeName[length - 1] == ';') ? 2 : 1;
-        typeName++;
-    }
-
-    Flint::lock();
-    JClass *cls = constClassTree.find(typeName, length);
-    if(!cls) {
-        auto newCls = newClass(typeName, length);
-        if(newCls.err == ERR_OK)
-            constClassTree.add(newCls.value);
-        Flint::unlock();
-        return newCls;
-    }
-    Flint::unlock();
-
-    return cls;
-}
-
-FlintResult<JClass> Flint::getConstClass(JString *str) {
-    Flint::lock();
-    JClass *cls = constClassTree.find(str);
-    if(!cls) {
-        auto newCls = newClass(str);
-        if(newCls.err == ERR_OK)
-            constClassTree.add(newCls.value);
-        Flint::unlock();
-        return newCls;
-    }
-    Flint::unlock();
-
-    return cls;
-}
-
-FlintResult<JString> Flint::newString(uint16_t length, uint8_t coder) {
-    /* create new byte array to store string */
-    auto byteArray = newByteArray(length << (coder ? 1 : 0));
-    if(byteArray.err != ERR_OK)
-        return *(FlintResult<JString> *)&byteArray;
-
-    /* create new string object */
-    auto str = newObject((FlintConstUtf8 *)stringClassName);
-    if(str.err != ERR_OK)
-        freeObject(byteArray.value);
-    else {
-        /* set value for value field */
-        ((JString *)str.value)->setValue(*byteArray.value);
-        /* set value for coder field */
-        ((JString *)str.value)->setCoder(coder);
-    }
-
-    return *(FlintResult<JString> *)&str;
-}
-
-FlintResult<JString> Flint::newString(const char *text) {
-    uint32_t len = strlen(text);
-    return newString(text, len, false);
-}
-
-FlintResult<JString> Flint::newString(const char *text, uint16_t size, bool isUtf8) {
-    uint32_t index = 0;
-    bool isLatin1 = isUtf8 ? JString::isLatin1(text) : true;
-    uint32_t strLen = isUtf8 ? JString::utf8StrLen(text) : size;
-
-    /* create new byte array to store string */
-    uint32_t arrayLen = isLatin1 ? strLen : (strLen << 1);
-    auto byteArray = newByteArray(arrayLen);
-    if(byteArray.err != ERR_OK)
-        return *(FlintResult<JString> *)&byteArray;
-    uint8_t *byteArrayData = (uint8_t *)byteArray.value->getData();
-    if(!isUtf8)
-        memcpy(byteArrayData, text, strLen);
-    else {
-        if(isLatin1) {
-            while(*text) {
-                uint32_t c = JString::utf8Decode(text);
-                byteArrayData[index] = c;
-                text += JString::getUtf8DecodeSize(*text);
-                index++;
-            }
-        }
-        else while(*text) {
-            uint32_t c = JString::utf8Decode(text);
-            ((uint16_t *)byteArrayData)[index] = c;
-            text += JString::getUtf8DecodeSize(*text);
-            index++;
+            objData[i] = tmp;
         }
     }
-
-    /* create new string object */
-    auto str = newObject((FlintConstUtf8 *)stringClassName);
-    if(str.err != ERR_OK)
-        freeObject(byteArray.value);
-    else {
-        /* set value for value field */
-        ((JString *)str.value)->setValue(*byteArray.value);
-        /* set value for coder field */
-        ((JString *)str.value)->setCoder(isLatin1 ? 0 : 1);
-    }
-
-    return *(FlintResult<JString> *)&str;
+    else
+        array->clearData();
+    return array;
 }
 
-FlintResult<JString> Flint::getConstString(FlintConstUtf8 &utf8) {
-    Flint::lock();
-    JString *str = constStringTree.find(utf8);
-    if(!str) {
-        auto newStr = newString(utf8.text, utf8.length, true);
-        if(newStr.err == ERR_OK)
-            newStr = constStringTree.add(newStr.value);
-        Flint::unlock();
-        return newStr;
-    }
-    Flint::unlock();
+JString *Flint::newString(FExec *ctx, const char *utf8) {
+    JString *str = (JString *)newObject(ctx, Flint::findClass(ctx, "java/lang/String"));
+    if(str == NULL) return NULL;
+    str->setUtf8(ctx, utf8);
     return str;
 }
 
-FlintResult<JString> Flint::getConstString(JString *str) {
-    Flint::lock();
-    JString *ret = constStringTree.find(str);
-    if(!ret) {
-        auto tmp = constStringTree.add(str);
-        Flint::unlock();
-        return tmp;
-    }
-    Flint::unlock();
-    return ret;
+JString *Flint::newAscii(FExec *ctx, const char *format, ...) {
+    va_list args;
+    va_start(args, format);
+    return newAscii(ctx, format, args);
 }
 
-static FlintConstUtf8 *getConstUtf8InBaseConstName(const char *text, uint32_t hash, bool isTypeName) {
-    uint32_t hashIndex = Flint_HashIndex(hash, LENGTH(baseConstUtf8HashTable));
-    if(baseConstUtf8HashTable[hashIndex]) {
-        int32_t left = 0;
-        int32_t right = baseConstUtf8HashTable[hashIndex]->count - 1;
-        FlintConstUtf8 * const *constUtf8List = baseConstUtf8HashTable[hashIndex]->values;
-        while(left <= right) {
-            int32_t mid = left + (right - left) / 2;
-            int32_t compareResult = FlintConstUtf8BinaryTree::compareConstUtf8(text, hash, (FlintConstUtf8 &)*constUtf8List[mid], isTypeName);
-            if(compareResult == 0)
-                return (FlintConstUtf8 *)constUtf8List[mid];
-            else if(compareResult > 0)
-                left = mid + 1;
-            else
-                right = mid - 1;
+JString *Flint::newAscii(FExec *ctx, const char *format, va_list args) {
+    JString *str = (JString *)newObject(ctx, Flint::findClass(ctx, "java/lang/String"));
+    if(str == NULL) return NULL;
+    str->setAscii(ctx, format, args);
+    return str;
+}
+
+static bool verifyComponentType(FExec *ctx, const char *clsName, uint16_t length) {
+    uint16_t start = 0;
+    while(start < length && clsName[start] == '[') start++;
+    uint16_t end = start;
+    while(end < length && clsName[end]) end++;
+    int32_t len = end - start;
+    bool isVaild = true;
+    if(clsName[start] == 'L') {
+        start++;
+        if(clsName[end - 1] == ';') end--;
+        else isVaild = false;
+        if(isVaild == true) {
+            len = end - start;
+            if(len <= 0) isVaild = false;
+            /* findLoader checked ClassNotFoundException can return immediately if error */
+            else if(Flint::findLoader(ctx, &clsName[start], len) == NULL) return false;
         }
     }
-    return NULL_PTR;
-}
-
-FlintResult<FlintConstUtf8> Flint::getConstUtf8(const char *text, uint16_t length) {
-    uint32_t hash = Flint_CalcHash(text, length, false);
-    FlintConstUtf8 *ret = getConstUtf8InBaseConstName(text, hash, false);
-    if(ret)
-        return ret;
-
-    Flint::lock();
-    ret = constUtf8Tree.find(text, hash, false);
-    if(!ret) {
-        auto utf8 = constUtf8Tree.add(text, hash, false);
-        if(utf8.err != ERR_OK) {
-            Flint::unlock();
-            return *(FlintResult<FlintConstUtf8> *)&utf8;
-        }
-        ret = utf8.value;
-    }
-    Flint::unlock();
-
-    return ret;
-}
-
-FlintResult<FlintConstUtf8> Flint::getTypeNameConstUtf8(const char *typeName, uint16_t length) {
-    uint32_t hash = Flint_CalcHash(typeName, length, true);
-    FlintConstUtf8 *ret = getConstUtf8InBaseConstName(typeName, hash, true);
-    if(ret)
-        return ret;
-
-    Flint::lock();
-    ret = constUtf8Tree.find(typeName, hash, true);
-    if(!ret) {
-        auto utf8 = constUtf8Tree.add(typeName, hash, true);
-        if(utf8.err != ERR_OK) {
-            Flint::unlock();
-            return *(FlintResult<FlintConstUtf8> *)&utf8;
-        }
-        ret = utf8.value;
-    }
-    Flint::unlock();
-
-    return ret;
-}
-
-FlintResult<JObjectArray> Flint::getClassArray0(void) {
-    if(classArray0)
-        return classArray0;
-    Flint::lock();
-    if(classArray0 == NULL_PTR) {
-        auto obj = newObjectArray((FlintConstUtf8 *)classClassName, 0);
-        if(obj.err == ERR_OK)
-            classArray0 = obj.value;
-        Flint::unlock();
-        return obj;
-    }
-    else {
-        Flint::unlock();
-        return classArray0;
-    }
-}
-
-FlintResult<JThrowable> Flint::newThrowable(JString *str, FlintConstUtf8 *excpType) {
-    /* create new exception object */
-    auto excp = newObject(excpType);
-
-    /* set detailMessage value */
-    if(excp.err == ERR_OK && str)
-        ((JThrowable *)excp.value)->setDetailMessage(str);
-
-    return *(FlintResult<JThrowable> *)&excp;
-}
-
-FlintResult<FlintJavaBoolean> Flint::newBoolean(bool value) {
-    auto obj = newObject((FlintConstUtf8 *)booleanClassName);
-    if(obj.err == ERR_OK)
-        ((FlintJavaBoolean *)obj.value)->setValue(value);
-    return *(FlintResult<FlintJavaBoolean> *)&obj;
-}
-
-FlintResult<FlintJavaByte> Flint::newByte(int8_t value) {
-    auto obj = newObject((FlintConstUtf8 *)byteClassName);
-    if(obj.err == ERR_OK)
-        ((FlintJavaByte *)obj.value)->setValue(value);
-    return *(FlintResult<FlintJavaByte> *)&obj;
-}
-
-FlintResult<FlintJavaCharacter> Flint::newCharacter(uint16_t value) {
-    auto obj = newObject((FlintConstUtf8 *)characterClassName);
-    if(obj.err == ERR_OK)
-        ((FlintJavaCharacter *)obj.value)->setValue(value);
-    return *(FlintResult<FlintJavaCharacter> *)&obj;
-}
-
-FlintResult<FlintJavaShort> Flint::newShort(int16_t value) {
-    auto obj = newObject((FlintConstUtf8 *)shortClassName);
-    if(obj.err == ERR_OK)
-        ((FlintJavaShort *)obj.value)->setValue(value);
-    return *(FlintResult<FlintJavaShort> *)&obj;
-}
-
-FlintResult<FlintJavaInteger> Flint::newInteger(int32_t value) {
-    auto obj = newObject((FlintConstUtf8 *)integerClassName);
-    if(obj.err == ERR_OK)
-        ((FlintJavaInteger *)obj.value)->setValue(value);
-    return *(FlintResult<FlintJavaInteger> *)&obj;
-}
-
-FlintResult<FlintJavaFloat> Flint::newFloat(float value) {
-    auto obj = newObject((FlintConstUtf8 *)floatClassName);
-    if(obj.err == ERR_OK)
-        ((FlintJavaFloat *)obj.value)->setValue(value);
-    return *(FlintResult<FlintJavaFloat> *)&obj;
-}
-
-FlintResult<FlintJavaLong> Flint::newLong(int64_t value) {
-    auto obj = newObject((FlintConstUtf8 *)longClassName);
-    if(obj.err == ERR_OK)
-        ((FlintJavaLong *)obj.value)->setValue(value);
-    return *(FlintResult<FlintJavaLong> *)&obj;
-}
-
-FlintResult<FlintJavaDouble> Flint::newDouble(double value) {
-    auto obj = newObject((FlintConstUtf8 *)doubleClassName);
-    if(obj.err == ERR_OK)
-        ((FlintJavaDouble *)obj.value)->setValue(value);
-    return *(FlintResult<FlintJavaDouble> *)&obj;
-}
-
-void Flint::garbageCollectionProtectObject(JObject *obj) {
-    bool isPrim = JObject::isPrimType(obj->type);
-    obj->setProtected();
-    if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
-        uint32_t count = obj->size / 4;
-        for(uint32_t i = 0; i < count; i++) {
-            JObject *tmp = ((JObject **)obj->data)[i];
-            if(tmp && !tmp->getProtected())
-                garbageCollectionProtectObject(tmp);
+    else if(len == 1) {
+        switch(clsName[start]) {
+            case 'Z':
+            case 'C':
+            case 'F':
+            case 'D':
+            case 'B':
+            case 'S':
+            case 'I':
+            case 'J':
+            case 'V':
+                break;
+            default:
+                isVaild = false;
         }
     }
-    else if(!isPrim) {
-        FlintFieldsData &fieldData = *(FlintFieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
-            JObject *tmp = fieldData.fieldsObject[i].object;
-            if(tmp && !tmp->getProtected())
-                garbageCollectionProtectObject(tmp);
-        }
+    else isVaild = false;
+    if(isVaild == false) {
+        JClass *excpCls = Flint::findClass(ctx, "java/lang/ClassNotFoundException");
+        ctx->throwNew(excpCls, "%.*s", length, clsName);
     }
+    return isVaild;
 }
 
-static bool checkAddressIsValid(uint32_t address) {
-    if(address & 0x03)
-        return false;
-    if(!FlintAPI::System::isInHeapRegion((void *)address))
-        return false;
-    return true;
+JClass *Flint::newClass(FExec *ctx, const char *clsName, uint16_t length, uint8_t flag) {
+    ClassLoader *loader = NULL;
+    if(!(flag & 0x01)) {        /* Check primitive flag - if not primitive type */
+        if(clsName[0] == '[') {
+            if(flag & 0x02)     /* Check verify component type name flag */
+                if(verifyComponentType(ctx, clsName, length) == false) return NULL;
+            loader = findLoader(ctx, "java/lang/Object");
+        }
+        else
+            loader = findLoader(ctx, clsName, length);
+        if(loader == NULL) return NULL;
+    }
+
+    JClass *clsOfCls = getClassOfClass(ctx);
+    if(clsOfCls == NULL) return NULL;
+    ClassLoader *jClsLoader = clsOfCls->getClassLoader();
+    if(jClsLoader == NULL) return NULL;
+
+    JClass *cls = (JClass *)Flint::malloc(ctx, JClass::size());
+    if(cls == NULL) return NULL;
+    /* Make sure clsName string is managed */
+    clsName = ((flag & 0x01) || clsName[0] == '[') ? getUtf8(ctx, clsName, length) : loader->thisClass;
+    if(clsName == NULL) return NULL;
+    new (cls)JClass(clsName, loader);
+
+    if(cls->initFields(ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
+
+    objs.add(cls);
+
+    return cls;
 }
 
-bool Flint::isObject(uint32_t address) const {
-    if(!address)
-        return false;
-    if(!checkAddressIsValid(address))
-        return false;
-    JObject *obj = (JObject *)address;
-    if(obj->prev == 0)
-        return address == (uint32_t)objectList;
-    if(!checkAddressIsValid((uint32_t)obj->prev))
-        return false;
-    if((uint32_t)obj->prev->next != address)
-        return false;
-    if(obj->next) {
-        if(!checkAddressIsValid((uint32_t)obj->next))
-            return false;
-        return (uint32_t)obj->next->prev == address;
-    }
-    return true;
+JClass *Flint::newClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions) {
+    clsName = getArrayClassName(ctx, clsName, dimensions);
+    if(clsName == NULL) return NULL;
+    return newClass(ctx, clsName);
 }
 
-void Flint::clearProtectObjectNew(JObject *obj) {
-    bool isPrim = JObject::isPrimType(obj->type);
-    obj->clearProtected();
-    if((obj->dimensions > 1) || (obj->dimensions == 1 && !isPrim)) {
-        uint32_t count = obj->size / 4;
-        for(uint32_t i = 0; i < count; i++) {
-            JObject *tmp = ((JObject **)obj->data)[i];
-            if(tmp && (tmp->getProtected() & 0x02))
-                clearProtectObjectNew(tmp);
-        }
-    }
-    else if(!isPrim) {
-        FlintFieldsData &fieldData = *(FlintFieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData.fieldsObjCount; i++) {
-            JObject *tmp = fieldData.fieldsObject[i].object;
-            if(tmp && (tmp->getProtected() & 0x02))
-                clearProtectObjectNew(tmp);
-        }
-    }
+JClass *Flint::newClassOfClass(FExec *ctx) {
+    ClassLoader *jClsLoader = findLoader(ctx, "java/lang/Class");
+    if(jClsLoader == NULL) return NULL;
+
+    JClass *cls = (JClass *)Flint::malloc(ctx, JClass::size());
+    if(cls == NULL) return NULL;
+    new (cls)JClass(jClsLoader->thisClass, jClsLoader);
+
+    if(cls->initFields(ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
+
+    objs.add(cls);
+
+    return cls;
 }
 
-void Flint::garbageCollection(void) {
-    Flint::lock();
-    objectSizeToGc = 0;
-    constClassTree.forEach([](JClass *item) {
-        if(!item->getProtected())
-            garbageCollectionProtectObject(item);
-    });
-    constStringTree.forEach([](JString *item) {
-        if(!item->getProtected())
-            garbageCollectionProtectObject(item);
-    });
-    classDataTree.forEach([](FlintClassData *item) {
-        FlintFieldsData *fieldsData = item->staticFieldsData;
-        if(fieldsData && fieldsData->fieldsObjCount) {
-            for(uint32_t i = 0; i < fieldsData->fieldsObjCount; i++) {
-                JObject *obj = fieldsData->fieldsObject[i].object;
-                if(obj && !obj->getProtected())
-                    garbageCollectionProtectObject(obj);
-            }
-        }
-    });
-    for(FlintExecutionNode *node = executionList; node != NULL_PTR; node = node->next) {
-        if(node->onwerThread && !node->onwerThread->getProtected())
-            garbageCollectionProtectObject(node->onwerThread);
-        int32_t startSp = node->startSp;
-        int32_t endSp = FLINT_MAX(node->sp, node->peakSp);
-        while(startSp >= 3) {
-            for(int32_t i = startSp; i <= endSp; i++) {
-                if(isObject(node->stack[i])) {
-                    JObject *obj = (JObject *)node->stack[i];
-                    if(obj && !obj->getProtected())
-                        garbageCollectionProtectObject(obj);
+ClassLoader *Flint::findLoader(FExec *ctx, const char *clsName, uint16_t length) {
+    lock();
+    ClassLoader *loader = loaders.find(clsName, length);
+    if(loader == NULL) {
+        loader = ClassLoader::load(ctx, clsName, length);
+        if(loader == NULL) {
+            unlock();
+            if(ctx != NULL) {
+                JClass *excpCls = Flint::findClass(NULL, "java/lang/ClassNotFoundException");
+                if(excpCls == NULL) {
+                    alignas(4) static const char *errMsg = "Cannot load java/lang/ClassNotFoundException";
+                    ctx->excp = (JThrowable *)((uint32_t)errMsg | 0x01);
                 }
+                else
+                    ctx->throwNew(excpCls, "%.*s", length, clsName);
             }
-            endSp = startSp - 4;
-            startSp = node->stack[startSp];
+            return NULL;
         }
+        loaders.add(loader);
     }
-    if(classArray0 && !((JObjectArray *)classArray0)->getProtected())
-        garbageCollectionProtectObject((JObject *)classArray0);
-    for(JObject *node = objectList; node != NULL_PTR;) {
-        JObject *next = node->next;
-        uint8_t prot = node->getProtected();
-        if(prot == 0) {
-            if(node->prev)
-                node->prev->next = node->next;
-            else
-                objectList = node->next;
-            if(node->next)
-                node->next->prev = node->prev;
-
-            if(node->dimensions == 0)
-                node->getFields().~FlintFieldsData();
-            Flint::free(node);
-        }
-        else if(!(prot & 0x02))
-            node->clearProtected();
-        node = next;
-    }
-    Flint::unlock();
-}
-
-FlintResult<FlintClassData> Flint::createFlintClassData(const char *className, uint16_t length) {
-    FlintClassData *classData = (FlintClassData *)Flint::malloc(sizeof(FlintClassData));
-    if(classData == NULL_PTR)
-        return ERR_OUT_OF_MEMORY;
-    classData->staticFieldsData = NULL_PTR;
-    new (classData)FlintClassData(*this);
-    FlintError err = classData->load(className, length);
-    if(err != ERR_OK)
-        return FlintResult<FlintClassData>(err, className, length);
-    return classData;
-}
-
-FlintResult<FlintClassLoader> Flint::load(const char *className, uint16_t length) {
-    if(length == 0)
-        length = strlen(className);
-    Flint::lock();
-    FlintClassLoader *loader = (FlintClassLoader *)classDataTree.find(className, length);
-    if(!loader) {
-        auto newLoader = createFlintClassData(className, length);
-        if(newLoader.err == ERR_OK)
-            classDataTree.add(*newLoader.value);
-        Flint::unlock();
-        return *(FlintResult<FlintClassLoader> *)&newLoader;
-    }
-    Flint::unlock();
+    unlock();
     return loader;
 }
 
-FlintError Flint::initStaticField(FlintClassData *classData) {
-    FlintFieldsData *fieldsData = (FlintFieldsData *)Flint::malloc(sizeof(FlintFieldsData));
-    if(fieldsData == NULL_PTR)
-        return ERR_OUT_OF_MEMORY;
-    new (fieldsData)FlintFieldsData();
-    FlintError err = fieldsData->loadStatic(*classData).err;
-    if(err != ERR_OK)
-        return err;
-    classData->staticFieldsData = fieldsData;
-    return ERR_OK;
+JClass *Flint::findClass(FExec *ctx, const char *clsName, uint16_t length, bool verify) {
+    lock();
+
+    JClassDictNode *clsNode = classes.find(clsName, length);
+    if(clsNode != NULL) { unlock(); return clsNode->getClass(); }
+
+    JClass *newCls = newClass(ctx, clsName, length, verify ? 0x02 : 0x00);
+    if(newCls == NULL) { unlock(); return NULL; }
+
+    clsNode = (JClassDictNode *)Flint::malloc(ctx, sizeof(JClassDictNode));
+    if(clsNode == NULL) { unlock(); freeObject(newCls); return NULL; }
+    new (clsNode)JClassDictNode(newCls);
+    classes.add(clsNode);
+
+    unlock();
+    return newCls;
 }
 
-FlintResult<FlintMethodInfo> Flint::findMethod(FlintConstMethod &constMethod) {
-    auto loader = load(constMethod.className.text);
-    if(loader.err != ERR_OK)
-        return *(FlintResult<FlintMethodInfo> *)&loader;
-    while(loader.err == ERR_OK) {
-        auto methodInfo = loader.value->getMethodInfo(constMethod.nameAndType);
-        if(methodInfo.err != ERR_METHOD_NOT_FOUND)
-            return methodInfo;
-        FlintConstUtf8 *superClass = loader.value->superClass;
-        if(!superClass)
-            return ERR_METHOD_NOT_FOUND;
-        loader = load(superClass->text);
+JClass *Flint::findClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions) {
+    lock();
+
+    JClassDictNode *clsNode = NULL;
+    do {
+        if(classes.root == NULL) break;
+        uint32_t hash = 0;
+        bool isObjectType = !isPrimitiveTypes(clsName) && clsName[0] != '[';
+        for(uint8_t i = 0; i < dimensions; i++) hash = Hash("[", 1, hash);
+        if(isObjectType) hash = Hash("L", 1, hash);
+        hash = Hash(clsName, 0, hash);
+        if(isObjectType) hash = Hash(";", 1, hash);
+        JClassDictNode *node = (JClassDictNode *)classes.root;
+        while(node) {
+            int32_t cmp = hash - node->getHashKey();
+            if(cmp == 0) cmp = compareArrayClassName(clsName, dimensions, node->cls->getTypeName());
+            if(cmp == 0) { clsNode = node; break; }
+            else if(cmp < 0) node = (JClassDictNode *)node->left;
+            else node = (JClassDictNode *)node->right;
+        }
+    } while(false);
+    if(clsNode != NULL) { unlock(); return clsNode->getClass(); }
+
+    JClass *newCls = newClassOfArray(ctx, clsName, dimensions);
+    if(newCls == NULL) { unlock(); return NULL; }
+
+    clsNode = (JClassDictNode *)Flint::malloc(ctx, sizeof(JClassDictNode));
+    if(clsNode == NULL) { unlock(); freeObject(newCls); return NULL; }
+    new (clsNode)JClassDictNode(newCls);
+    classes.add(clsNode);
+
+    unlock();
+    return newCls;
+}
+
+JClass *Flint::getPrimitiveClass(FExec *ctx, const char *name, uint16_t length) {
+    if(JClass::isPrimitive(name, length) == 0) {
+        JClass *excpCls = Flint::findClass(ctx, "java/lang/IllegalArgumentException");
+        if(ctx != NULL) ctx->throwNew(excpCls, "primitive type name is invalid");
     }
-    return *(FlintResult<FlintMethodInfo> *)&loader;
+    lock();
+
+    JClassDictNode *clsNode = classes.find(name, length);
+    if(clsNode != NULL) { unlock(); return clsNode->getClass(); }
+
+    JClass *newCls = newClass(ctx, name, length, 0x01);
+    if(newCls == NULL) { unlock(); return NULL; }
+
+    clsNode = (JClassDictNode *)Flint::malloc(ctx, sizeof(JClassDictNode));
+    if(clsNode == NULL) { unlock(); freeObject(newCls); return NULL; }
+    new (clsNode)JClassDictNode(newCls);
+    classes.add(clsNode);
+
+    unlock();
+    return newCls;
 }
 
-FlintResult<FlintMethodInfo> Flint::findMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType) {
-    auto loader = load(className.text);
-    while(loader.err == ERR_OK) {
-        auto methodInfo = loader.value->getMethodInfo(nameAndType);
-        if(methodInfo.err != ERR_METHOD_NOT_FOUND)
-            return methodInfo;
-        FlintConstUtf8 *superClass = loader.value->superClass;
-        if(!superClass)
-            return ERR_METHOD_NOT_FOUND;
-        loader = load(superClass->text);
+JClass *Flint::getClassOfClass(FExec *ctx) {
+    if(classOfClass != NULL) return classOfClass;
+
+    /* Reimplement JClass creation instead of using findClass or newClass to avoid infinite recursion */
+    do {
+        lock();
+
+        JClassDictNode *clsNode = classes.find("java/lang/Class");
+        if(clsNode != NULL) { unlock(); classOfClass = clsNode->getClass(); break; }
+
+        JClass *newCls = newClassOfClass(ctx);
+        if(newCls == NULL) { unlock(); break; }
+
+        clsNode = (JClassDictNode *)Flint::malloc(ctx, sizeof(JClassDictNode));
+        if(clsNode == NULL) { unlock(); freeObject(newCls); break; }
+        new (clsNode)JClassDictNode(newCls);
+        classes.add(clsNode);
+
+        unlock();
+        classOfClass = newCls;
+    } while(false);
+
+    return classOfClass;
+}
+
+MethodInfo *Flint::findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAndType) {
+    if(cls == NULL) return NULL;
+    ClassLoader *loader = cls->getClassLoader();
+    while(loader != NULL) {
+        MethodInfo *mtInfo = loader->getMethodInfo(ctx, nameAndType);
+        if(mtInfo != NULL) return mtInfo;
+        if(ctx->excp != NULL) return NULL;
+        if(loader->superClass == NULL) break;
+        loader = findLoader(ctx, loader->superClass);
     }
-    return *(FlintResult<FlintMethodInfo> *)&loader;
+    if(ctx != NULL && ctx->excp == NULL)
+        ctx->throwNew(Flint::findClass(ctx, "java/lang/NoSuchMethodError"), "%s.%s", cls->getTypeName(), nameAndType->name);
+    return NULL;
 }
 
-static bool compareClassName(FlintConstUtf8 &className1, const char *className2, uint32_t hash) {
-    if(CONST_UTF8_HASH(className1) != hash)
-        return false;
-    const char *txt1 = className1.text;
-    uint16_t length = className1.length;
-    for(uint16_t i = 0; i < length; i++) {
-        if(txt1[i] == className2[i])
-            continue;
-        else if((txt1[i] == '.' && className2[i] == '/') || (txt1[i] == '/' && className2[i] == '.'))
-            continue;
-        return false;
+JString *Flint::getConstString(FExec *ctx, const char *utf8) {
+    lock();
+
+    JStringDictNode *strNode = constStr.find(utf8);
+    if(strNode != NULL) { unlock(); return strNode->getString(); }
+
+    JString *newStr = newString(ctx, utf8);
+    if(newStr == NULL) { unlock(); return NULL; }
+
+    strNode = (JStringDictNode *)Flint::malloc(ctx, sizeof(JStringDictNode));
+    if(strNode == NULL) { unlock(); freeObject(newStr); return NULL; }
+    new (strNode)JStringDictNode(newStr);
+    constStr.add(strNode);
+
+    unlock();
+    return newStr;
+}
+
+JString *Flint::getConstString(FExec *ctx, JString *str) {
+    JStringDictNode tmp(str);
+    lock();
+
+    JStringDictNode *strNode = constStr.find(&tmp);
+    if(strNode != NULL) { unlock(); return strNode->getString(); }
+
+    strNode = (JStringDictNode *)Flint::malloc(ctx, sizeof(JStringDictNode));
+    if(strNode == NULL) { unlock(); return NULL; }
+    new (strNode)JStringDictNode(str);
+    constStr.add(strNode);
+
+    unlock();
+    return str;
+}
+
+void Flint::clearProtectLevel2(JObject *obj) {
+    lock();
+    /* This step to ensure all objects are cleared level 2 protection  */
+    markObjectRecursion(obj);
+    /* Final step to clear all the marks */
+    clearMarkRecursion(obj);
+    unlock();
+}
+
+void Flint::clearMarkRecursion(JObject *obj) {
+    obj->clearProtected();
+    const char *typeName = obj->getTypeName();
+    if(typeName[0] == '[') {
+        if(typeName[1] == '[' || typeName[1] == 'L') {
+            JObjectArray *array = (JObjectArray *)obj;
+            JObject **data = array->getData();
+            uint32_t count = array->getLength();
+            for(uint32_t i = 0; i < count; i++) {
+                if(data[i] && (data[i]->getProtected() & 0x01))
+                    clearMarkRecursion(data[i]);
+            }
+        }
+    }
+    else {
+        FieldsData *fieldData = obj->getFields();
+        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
+            JObject *tmp = fieldData->fieldsObj[i].value;
+            if(tmp && (tmp->getProtected() & 0x01))
+                clearMarkRecursion(tmp);
+        }
+    }
+}
+
+void Flint::markObjectRecursion(JObject *obj) {
+    obj->setProtected();
+    const char *typeName = obj->getTypeName();
+    if(typeName[0] == '[') {
+        if(typeName[1] == '[' || typeName[1] == 'L') {
+            JObjectArray *array = (JObjectArray *)obj;
+            JObject **data = array->getData();
+            uint32_t count = array->getLength();
+            for(uint32_t i = 0; i < count; i++) {
+                if(data[i] && (data[i]->getProtected() & 0x01) == 0)
+                    markObjectRecursion(data[i]);
+            }
+        }
+    }
+    else {
+        FieldsData *fieldData = obj->getFields();
+        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
+            JObject *tmp = fieldData->fieldsObj[i].value;
+            if(tmp && (tmp->getProtected() & 0x01) == 0)
+                markObjectRecursion(tmp);
+        }
+    }
+}
+
+bool Flint::isObject(void *p) {
+    if(!isHeapPointer(p) || objs.root == NULL) return false;
+    JObject *obj = (JObject *)p;
+    if(obj->onwerList != (void *)&objs) return false;
+    if(obj->prev == NULL) return p == objs.root;
+    if(!isHeapPointer(obj->prev)) return false;
+    if(obj->prev->next != p) return false;
+    if(obj->next != NULL) {
+        if(!isHeapPointer(obj->next)) return false;
+        return obj->next->prev == p;
     }
     return true;
 }
 
-static uint32_t getDimensions(const char *typeName) {
-    const char *text = typeName;
-    while(*text == '[')
-        text++;
-    return (uint32_t)(text - typeName);
-}
-
-FlintResult<bool> Flint::isInstanceof(JObject *obj, const char *typeName, uint16_t length) {
-    uint32_t dimensions = getDimensions(typeName);
-    if(length == 0)
-        length = strlen(typeName);
-    typeName += dimensions;
-    length -= dimensions;
-    if(*typeName == 'L') {
-        length -= (typeName[length - 1] == ';') ? 2 : 1;
-        typeName++;
-    }
-    uint32_t typeNameHash = Flint_CalcHash(typeName, length, true);
-    if((obj->dimensions >= dimensions) && compareClassName(*(FlintConstUtf8 *)objectClassName, typeName, typeNameHash))
-        return true;
-    if(dimensions != obj->dimensions)
-        return false;
-    FlintConstUtf8 *objType = &obj->type;
-    if(JObject::isPrimType(*objType) || ((length == 1) && JObject::convertToAType(typeName[0])))
-        return (length == objType->length) && (typeName[0] == objType->text[0]);
-    while(1) {
-        if(compareClassName(*objType, typeName, typeNameHash))
-            return true;
-        auto loader = load(objType->text);
-        if(loader.err != ERR_OK)
-            return *(FlintResult<bool> *)&loader;
-        uint16_t interfacesCount = loader.value->getInterfacesCount();
-        for(uint32_t i = 0; i < interfacesCount; i++) {
-            if(compareClassName(loader.value->getInterface(i), typeName, typeNameHash))
-                return true;
+void Flint::gc(void) {
+    Flint::lock();
+    objectCountToGc = 0;
+    constStr.forEach([](JStringDictNode *item) {
+        JString *str = item->getString();
+        if((str->getProtected() & 0x01) == 0)
+            markObjectRecursion(str);
+    });
+    execs.forEach([](FExec *exec) {
+        if(exec->onwerThread && (exec->onwerThread->getProtected() & 0x01) == 0)
+            markObjectRecursion(exec->onwerThread);
+        if(exec->excp != NULL && ((uint32_t)exec->excp & 0x01) != 0 && (exec->excp->getProtected() & 0x01) == 0)
+            markObjectRecursion(exec->excp);
+        int32_t startSp = exec->startSp;
+        int32_t endSp = (exec->sp > exec->peakSp) ? exec->sp : exec->peakSp;
+        while(startSp >= 3) {
+            for(int32_t i = startSp; i <= endSp; i++) {
+                if(isObject((void *)exec->stack[i])) {
+                    JObject *obj = (JObject *)exec->stack[i];
+                    if(obj && (obj->getProtected() & 0x01) == 0)
+                        markObjectRecursion(obj);
+                }
+            }
+            endSp = startSp - 4;
+            startSp = exec->stack[startSp];
         }
-        objType = loader.value->superClass;
-        if(objType == NULL_PTR)
-            return false;
-    }
+    });
+    objs.forEach([](JObject *obj) {
+        uint8_t prot = obj->getProtected();
+        /* Free object if it is not marked and not a JClass */
+        if(prot == 0 && obj->type != NULL) freeObject(obj);
+        else if(!(prot & 0x02)) obj->clearProtected();
+    });
+    Flint::unlock();
 }
 
-FlintResult<bool> Flint::isInstanceof(FlintConstUtf8 &typeName1, uint32_t dimensions1, FlintConstUtf8 &typeName2, uint32_t dimensions2) {
-    if((dimensions1 >= dimensions2) && (typeName2 == *(FlintConstUtf8 *)objectClassName))
-        return ERR_OK;
-    if(dimensions1 != dimensions2)
-        return false;
-    if(JObject::isPrimType(typeName1) || JObject::isPrimType(typeName2))
-        return typeName1.text[0] == typeName2.text[0];
-    FlintConstUtf8 *objType = &typeName1;
-    while(1) {
-        if(*objType == typeName2)
-            return true;
-        auto loader = load(objType->text);
-        if(loader.err != ERR_OK)
-            return *(FlintResult<bool> *)&loader;
-        uint16_t interfacesCount = loader.value->getInterfacesCount();
-        for(uint32_t i = 0; i < interfacesCount; i++) {
-            if(loader.value->getInterface(i) == typeName2)
-                return true;
-        }
-        objType = loader.value->superClass;
-        if(objType == NULL_PTR)
-            return false;
-    }
+bool Flint::runToMain(const char *cls) {
+    FExec *exec = Flint::newExecution(NULL);
+    if(exec == NULL) return false;
+    JClass *mainCls = Flint::findClass(NULL, cls);
+    if(mainCls == NULL) return false;
+    return exec->run(mainCls->getClassLoader()->getMainMethodInfo(NULL));
 }
 
-FlintError Flint::runToMain(const char *mainClass, uint32_t stackSize) {
-    auto loader = load(mainClass);
-    RETURN_IF_ERR(loader.err);
-    auto mainMethodInfo = loader.value->getMainMethodInfo();
-    RETURN_IF_ERR(mainMethodInfo.err);
-    auto exec = newExecution(NULL_PTR, stackSize);
-    RETURN_IF_ERR(exec.err);
-    return exec.value->run(mainMethodInfo.value) ? ERR_OK : ERR_OUT_OF_MEMORY;
-}
-
-bool Flint::isRunning(void) const {
-    return executionList ? true : false;
+bool Flint::isRunning(void) {
+    return (execs.root != NULL) ? true : false;
 }
 
 void Flint::stopRequest(void) {
     Flint::lock();
-    for(FlintExecutionNode *node = executionList; node != NULL_PTR; node = node->next)
-        node->stopRequest();
+    execs.forEach([](FExec *exec) {
+        exec->stopRequest();
+    });
     Flint::unlock();
 }
 
 void Flint::terminateRequest(void) {
     Flint::lock();
-    for(FlintExecutionNode *node = executionList; node != NULL_PTR; node = node->next)
-        node->terminateRequest();
+    execs.forEach([](FExec *exec) {
+        exec->terminateRequest();
+    });
     Flint::unlock();
 }
 
@@ -901,65 +795,56 @@ void Flint::terminate(void) {
 }
 
 void Flint::freeObject(JObject *obj) {
-    Flint::lock();
-    if(obj->prev)
-        obj->prev->next = obj->next;
-    else
-        objectList = obj->next;
-    if(obj->next)
-        obj->next->prev = obj->prev;
-
-    if(obj->dimensions == 0)
-        obj->getFields().~FlintFieldsData();
+    objs.remove(obj);
+    if(obj->isArray() == false)
+        obj->getFields()->~FieldsData();
     Flint::free(obj);
-    Flint::unlock();
-}
-
-void Flint::clearAllStaticFields(void) {
-    classDataTree.forEach([](FlintClassData *item) {
-        item->staticInitOwnId = 0;
-        item->clearStaticFields();
-    });
 }
 
 void Flint::freeAllObject(void) {
     Flint::lock();
-    constClassTree.clear();
-    constStringTree.clear();
-    for(JObject *node = objectList; node != NULL_PTR;) {
-        JObject *next = node->next;
-        if(node->dimensions == 0)
-            node->getFields().~FlintFieldsData();
-        Flint::free(node);
-        node = next;
-    }
-    objectList = NULL_PTR;
-    classArray0 = NULL_PTR;
-    objectSizeToGc = 0;
+    classes.forEach([](JClassDictNode *item) { Flint::free(item); });
+    classes.clear();
+    constStr.forEach([](JStringDictNode *item) { Flint::free(item); });
+    constStr.clear();
+    objs.forEach([](JObject *obj) { obj->~JObject(); Flint::free(obj); });
+    objs.clear();
+    objectCountToGc = 0;
     Flint::unlock();
+}
+
+void Flint::clearAllStaticFields(void) {
+    loaders.forEach([](ClassLoader *item) {
+        item->monitorOwnId = 0;
+        item->clearStaticFields();
+    });
 }
 
 void Flint::freeAllExecution(void) {
     Flint::lock();
-    for(FlintExecutionNode *node = executionList; node != NULL_PTR;) {
-        FlintExecutionNode *next = node->next;
-        node->~FlintExecutionNode();
-        Flint::free(node);
-        node = next;
-    }
-    executionList = NULL_PTR;
+    execs.forEach([](FExec *exec) {
+        execs.remove(exec);
+        Flint::free(exec);
+    });
+    execs.clear();
     Flint::unlock();
 }
 
 void Flint::freeAllClassLoader(void) {
     Flint::lock();
-    classDataTree.clear();
+    loaders.forEach([](ClassLoader *item) {
+        item->~ClassLoader();
+        Flint::free(item);
+    });
+    loaders.clear();
+    classOfClass = NULL;
     Flint::unlock();
 }
 
 void Flint::freeAllConstUtf8(void) {
     Flint::lock();
-    constUtf8Tree.clear();
+    utf8s.forEach([](Utf8DictNode *item) { Flint::free(item); });
+    utf8s.clear();
     Flint::unlock();
 }
 
@@ -971,5 +856,5 @@ void Flint::freeAll(void) {
 }
 
 void Flint::reset(void) {
-    FlintAPI::System::reset(*this);
+    FlintAPI::System::reset();
 }

@@ -1,6 +1,6 @@
 # Change Log
 ## V1.1.7
-- Fixed bug in FlintExecution::getOnwerThread function that did not return value.
+- Fixed bug in FExec::getOnwerThread function that did not return value.
 - Self-implemented mutex (No need to implement when porting).
 - Debugger:
   - Fixed bug breakpoints and jumps being jumped in place when static constructor is called.
@@ -26,7 +26,7 @@
 - Fix bug when handling finally block in exception.
 ## V1.1.3
 - Fix bug when calling invokevirtual invokeinterface with null object.
-- Fix bug stuck in FlintMethodInfo::getAttribute, FlintMethodInfo::getAttributeCode and FlintMethodInfo::getAttributeNative.
+- Fix bug stuck in MethodInfo::getAttribute, MethodInfo::getAttributeCode and MethodInfo::getAttributeNative.
 - Fix bug related to object synchronization and static method synchronization.
 - Fix bug of not calling static constructor in some cases.
 - Fix breakpoint not working when doing step in/out/over.

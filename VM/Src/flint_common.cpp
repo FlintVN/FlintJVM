@@ -36,7 +36,11 @@ static const uint16_t crc16Table[] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-uint32_t SWAP32(uint32_t value) {
+uint16_t Swap16(uint16_t value) {
+    return ((value) << 8) | ((value) >> 8);
+}
+
+uint32_t Swap32(uint32_t value) {
     uint32_t ret;
     ((uint8_t *)&ret)[0] = ((uint8_t *)&value)[3];
     ((uint8_t *)&ret)[1] = ((uint8_t *)&value)[2];
@@ -45,7 +49,7 @@ uint32_t SWAP32(uint32_t value) {
     return ret;
 }
 
-uint64_t SWAP64(uint64_t value) {
+uint64_t Swap64(uint64_t value) {
     uint64_t ret;
     ((uint8_t *)&ret)[0] = ((uint8_t *)&value)[7];
     ((uint8_t *)&ret)[1] = ((uint8_t *)&value)[6];
@@ -58,32 +62,14 @@ uint64_t SWAP64(uint64_t value) {
     return ret;
 }
 
-uint16_t Flint_CalcCrc(const uint8_t *data, uint32_t length) {
+uint16_t Crc(const uint8_t *data, uint32_t length) {
     uint16_t crc = 0xFFFF;
     for(uint32_t i = 0; i < length; i++)
         crc = crc16Table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
     return ~crc;
 }
 
-static uint16_t Flint_CalcTypeNameCrc(const uint8_t *typeName, uint32_t length) {
-    uint16_t crc = 0xFFFF;
-    for(uint32_t i = 0; i < length; i++)
-        crc = crc16Table[(crc ^ ((typeName[i] == '.') ? '/' : typeName[i])) & 0xFF] ^ (crc >> 8);
-    return ~crc;
-}
-
-uint32_t Flint_CalcHash(const char *text, uint32_t length, bool isTypeName) {
-    uint32_t hash;
-    ((uint16_t *)&hash)[0] = length;
-    ((uint16_t *)&hash)[1] = isTypeName ? Flint_CalcTypeNameCrc((uint8_t *)text, length) : Flint_CalcCrc((uint8_t *)text, length);
-    return hash;
-}
-
-uint32_t Flint_HashIndex(uint32_t hash, uint32_t hashTableLength) {
-    return ((uint16_t *)&hash)[1] % hashTableLength;
-}
-
-int64_t Flint_GetUnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
+int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
     static const uint16_t dayCount[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
     int64_t ret = dayCount[month - 1] + day;
     if(year % 4 == 0 && month > 2)

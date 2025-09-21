@@ -2,86 +2,90 @@
 #ifndef __FLINT_CONST_POOL_H
 #define __FLINT_CONST_POOL_H
 
-#include "flint_types.h"
+#include "flint_common.h"
 
-#define CONST_UTF8_HASH(utf8)       *(uint32_t *)&(utf8)
+typedef enum : uint8_t {
+    CONST_UTF8 = 1,
+    CONST_INTEGER = 3,
+    CONST_FLOAT = 4,
+    CONST_LONG = 5,
+    CONST_DOUBLE = 6,
+    CONST_CLASS = 7,
+    CONST_STRING = 8,
+    CONST_FIELD = 9,
+    CONST_METHOD = 10,
+    CONST_INTERFACE_METHOD = 11,
+    CONST_NAME_AND_TYPE = 12,
+    CONST_METHOD_HANDLE = 15,
+    CONST_METHOD_TYPE = 16,
+    CONST_INVOKE_DYNAMIC = 18,
+    CONST_UNKOWN = 0xFF,
+} ConstPoolTag;
 
-class FlintConstPool {
+class ConstPool {
 public:
-    volatile const FlintConstPoolTag tag;
-    volatile const uint32_t value;
+    const ConstPoolTag tag;
+    const uint32_t value;
 private:
-    FlintConstPool(void) = delete;
-    FlintConstPool(const FlintConstPool &) = delete;
-    void operator=(const FlintConstPool &) = delete;
+    ConstPool(void) = delete;
+    ConstPool(const ConstPool &) = delete;
+    void operator=(const ConstPool &) = delete;
 };
 
-class FlintConstUtf8 {
+class ConstNameAndType {
 public:
-    const uint16_t length;
-    const uint16_t crc;
-    const char text[];
-private:
-    FlintConstUtf8(const FlintConstUtf8 &) = delete;
-    void operator=(const FlintConstUtf8 &) = delete;
+    const char * const name;
+    const char * const desc;
+    const uint32_t hash;
 
-    friend class FlintClassLoader;
-public:
-    bool operator==(FlintConstUtf8 &another) const;
-    bool operator!=(FlintConstUtf8 &another) const;
+    bool operator==(ConstNameAndType &another) const;
+    bool operator!=(ConstNameAndType &another) const;
+
+    constexpr ConstNameAndType(const char *name, const char *desc) :
+    name(name), desc(desc),
+    hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)) { }
+
+    ConstNameAndType(const ConstNameAndType &) = delete;
+    void operator=(const ConstNameAndType &) = delete;
+
+    friend class ClassLoader;
 };
 
-class FlintConstNameAndType {
+class ConstField {
 public:
-    FlintConstUtf8 &name;
-    FlintConstUtf8 &descriptor;
-
-    bool operator==(FlintConstNameAndType &another) const;
-    bool operator!=(FlintConstNameAndType &another) const;
-private:
-    FlintConstNameAndType(FlintConstUtf8 &name, FlintConstUtf8 &descriptor);
-    FlintConstNameAndType(const FlintConstNameAndType &) = delete;
-    void operator=(const FlintConstNameAndType &) = delete;
-
-    friend class FlintClassLoader;
-};
-
-class FlintConstField {
-public:
-    FlintConstUtf8 &className;
-    FlintConstNameAndType &nameAndType;
+    const char * const className;
+    class ClassLoader *loader;
+    ConstNameAndType *nameAndType;
 private:
     uint32_t fieldIndex;
 private:
-    FlintConstField(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
-    FlintConstField(const FlintConstField &) = delete;
-    void operator=(const FlintConstField &) = delete;
+    ConstField(const char *className, ConstNameAndType *nameAndType);
+    ConstField(const ConstField &) = delete;
+    void operator=(const ConstField &) = delete;
 
-    friend class FlintClassLoader;
-    friend class FlintFieldsData;
+    friend class ClassLoader;
+    friend class FieldsData;
 };
 
-uint8_t parseArgc(FlintConstUtf8 &descriptor);
-
-class FlintConstMethod {
+class ConstMethod {
 public:
-    FlintConstUtf8 &className;
-    FlintConstNameAndType &nameAndType;
+    const char * const className;
+    ConstNameAndType *nameAndType;
 private:
-    class FlintMethodInfo *methodInfo;
+    class MethodInfo *methodInfo;
     uint8_t argc;
 public:
     uint8_t getArgc(void) const;
 private:
-    FlintConstMethod(FlintConstUtf8 &className, FlintConstNameAndType &nameAndType);
-    FlintConstMethod(const FlintConstMethod &) = delete;
-    void operator=(const FlintConstMethod &) = delete;
+    ConstMethod(const char *className, ConstNameAndType *nameAndType);
+    ConstMethod(const ConstMethod &) = delete;
+    void operator=(const ConstMethod &) = delete;
 
     friend class Flint;
-    friend class FlintExecution;
-    friend class FlintClassLoader;
+    friend class FExec;
+    friend class ClassLoader;
 };
 
-typedef FlintConstMethod FlintConstInterfaceMethod;
+typedef ConstMethod ConstInterfaceMethod;
 
 #endif /* __FLINT_CONST_POOL_H */

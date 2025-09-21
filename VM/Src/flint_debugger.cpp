@@ -2,30 +2,30 @@
 #include <iostream>
 #include <string.h>
 #include "flint.h"
+#include "flint_utf8.h"
 #include "flint_opcodes.h"
 #include "flint_debugger.h"
 
-FlintBreakPoint::FlintBreakPoint(void) : pc(0), method(NULL_PTR) {
+BreakPoint::BreakPoint(void) : pc(0), method(NULL) {
 
 }
 
-FlintBreakPoint::FlintBreakPoint(uint8_t opcode, uint32_t pc, FlintMethodInfo *method) : opcode(opcode), pc(pc), method(method) {
+BreakPoint::BreakPoint(uint8_t opcode, uint32_t pc, MethodInfo *method) : opcode(opcode), pc(pc), method(method) {
 
 }
 
-FlintStackFrame::FlintStackFrame(void) : pc(0), baseSp(0), method(*(FlintMethodInfo *)0) {
+StackFrame::StackFrame(void) : pc(0), baseSp(0), method(*(MethodInfo *)0) {
 
 }
 
-FlintStackFrame::FlintStackFrame(uint32_t pc, uint32_t baseSp, FlintMethodInfo &method) : pc(pc), baseSp(baseSp), method(method) {
+StackFrame::StackFrame(uint32_t pc, uint32_t baseSp, MethodInfo &method) : pc(pc), baseSp(baseSp), method(method) {
 
 }
 
-FlintDebugger::FlintDebugger(Flint &flint) : dbgMutex(), flint(flint) {
-    execution = NULL_PTR;
-    exception = NULL_PTR;
-    dirHandle = NULL_PTR;
-    fileHandle = NULL_PTR;
+FDbg::FDbg(void) : dbgMutex() {
+    exec = NULL;
+    dirHandle = NULL;
+    fileHandle = NULL;
     stepCodeLength = 0;
     consoleOffset = 0;
     consoleLength = 0;
@@ -34,7 +34,7 @@ FlintDebugger::FlintDebugger(Flint &flint) : dbgMutex(), flint(flint) {
     txDataLength = 0;
 }
 
-void FlintDebugger::print(const char *text, uint32_t length, uint8_t coder) {
+void FDbg::print(const char *text, uint32_t length, uint8_t coder) {
     lock();
     if(coder == 0) {
         while(length) {
@@ -53,13 +53,13 @@ void FlintDebugger::print(const char *text, uint32_t length, uint8_t coder) {
     unlock();
 }
 
-void FlintDebugger::consolePut(uint16_t ch) {
+void FDbg::consolePut(uint16_t ch) {
     char buff[3];
-    uint8_t count = JString::utf8Encode(ch, buff);
+    uint8_t count = Utf8EncodeOneChar(ch, buff);
     for(uint8_t i = 0; i < count; i++) {
         uint32_t nextOffset = (consoleOffset + 1) % sizeof(consoleBuff);
         if(consoleLength == sizeof(consoleBuff))
-            consoleLength -= JString::getUtf8EncodeSize(consoleBuff[nextOffset]);
+            consoleLength -= Utf8EncodeSize(consoleBuff[nextOffset]);
         consoleBuff[consoleOffset] = buff[i];
         consoleOffset = nextOffset;
         if(consoleLength < sizeof(consoleBuff))
@@ -67,16 +67,16 @@ void FlintDebugger::consolePut(uint16_t ch) {
     }
 }
 
-void FlintDebugger::consoleClear(void) {
+void FDbg::consoleClear(void) {
     consoleOffset = 0;
     consoleLength = 0;
 }
 
-void FlintDebugger::clearTxBuffer(void) {
+void FDbg::clearTxBuffer(void) {
     txDataLength = 0;
 }
 
-void FlintDebugger::initDataFrame(FlintDbgCmd cmd, FlintDbgRespCode responseCode, uint32_t dataLength) {
+void FDbg::initDataFrame(DbgCmd cmd, DbgRespCode responseCode, uint32_t dataLength) {
     dataLength += 7;
     txBuff[0] = (uint8_t)(cmd | 0x80);
     txBuff[1] = (uint8_t)(dataLength >> 0);
@@ -87,7 +87,7 @@ void FlintDebugger::initDataFrame(FlintDbgCmd cmd, FlintDbgRespCode responseCode
     txDataCrc = txBuff[0] + txBuff[1] + txBuff[2] + txBuff[3] + txBuff[4];
 }
 
-bool FlintDebugger::dataFrameAppend(uint8_t data) {
+bool FDbg::dataFrameAppend(uint8_t data) {
     if(txDataLength == sizeof(txBuff)) {
         if(!sendData(txBuff, sizeof(txBuff)))
             return false;
@@ -98,13 +98,13 @@ bool FlintDebugger::dataFrameAppend(uint8_t data) {
     return true;
 }
 
-bool FlintDebugger::dataFrameAppend(uint16_t data) {
+bool FDbg::dataFrameAppend(uint16_t data) {
     if(!dataFrameAppend((uint8_t)data))
         return false;
     return dataFrameAppend((uint8_t)(data >> 8));
 }
 
-bool FlintDebugger::dataFrameAppend(uint32_t data) {
+bool FDbg::dataFrameAppend(uint32_t data) {
     if(!dataFrameAppend((uint8_t)data))
         return false;
     else if(!dataFrameAppend((uint8_t)(data >> 8)))
@@ -114,7 +114,7 @@ bool FlintDebugger::dataFrameAppend(uint32_t data) {
     return dataFrameAppend((uint8_t)(data >> 24));
 }
 
-bool FlintDebugger::dataFrameAppend(uint64_t data) {
+bool FDbg::dataFrameAppend(uint64_t data) {
     if(!dataFrameAppend((uint8_t)data))
         return false;
     else if(!dataFrameAppend((uint8_t)(data >> 8)))
@@ -132,25 +132,19 @@ bool FlintDebugger::dataFrameAppend(uint64_t data) {
     return dataFrameAppend((uint8_t)(data >> 56));
 }
 
-bool FlintDebugger::dataFrameAppend(uint8_t *data, uint16_t length) {
-    for(uint16_t i = 0; i < length; i++) {
-        if(!dataFrameAppend(data[i]))
-            return false;
-    }
+bool FDbg::dataFrameAppend(uint8_t *data, uint16_t length) {
+    for(uint16_t i = 0; i < length; i++)
+        if(!dataFrameAppend(data[i])) return false;
     return true;
 }
 
-bool FlintDebugger::dataFrameAppend(FlintConstUtf8 &utf8) {
-    uint32_t size = sizeof(FlintConstUtf8) + utf8.length + 1;
-    uint8_t *buff = (uint8_t *)&utf8;
-    for(uint32_t i = 0; i < size; i++) {
-        if(!dataFrameAppend(buff[i]))
-            return false;
-    }
-    return true;
+bool FDbg::dataFrameAppend(const char *utf8) {
+    uint16_t len = strlen(utf8);
+    dataFrameAppend(len);
+    return dataFrameAppend((uint8_t *)utf8, len + 1);
 }
 
-bool FlintDebugger::dataFrameFinish(void) {
+bool FDbg::dataFrameFinish(void) {
     dataFrameAppend((uint16_t)txDataCrc);
     if(txDataLength) {
         uint32_t length = txDataLength;
@@ -160,12 +154,12 @@ bool FlintDebugger::dataFrameFinish(void) {
     return true;
 }
 
-bool FlintDebugger::sendRespCode(FlintDbgCmd cmd, FlintDbgRespCode responseCode) {
+bool FDbg::sendRespCode(DbgCmd cmd, DbgRespCode responseCode) {
     initDataFrame(cmd, responseCode, 0);
     return dataFrameFinish();
 }
 
-void FlintDebugger::responseInfo(void) {
+void FDbg::responseInfo(void) {
     initDataFrame(DBG_CMD_READ_VM_INFO, DBG_RESP_OK, 7 + sizeof(FLINT_VARIANT_NAME));
 
     if(!dataFrameAppend((uint8_t)FLINT_VERSION_MAJOR)) return;
@@ -173,19 +167,16 @@ void FlintDebugger::responseInfo(void) {
     if(!dataFrameAppend((uint8_t)FLINT_VERSION_PATCH)) return;
 
     if(!dataFrameAppend((uint16_t)(sizeof(FLINT_VARIANT_NAME) - 1))) return;
-    if(!dataFrameAppend((uint16_t)0)) return;
-    if(!dataFrameAppend((uint16_t)0)) return;
     if(!dataFrameAppend((uint8_t *)FLINT_VARIANT_NAME, sizeof(FLINT_VARIANT_NAME) - 1)) return;
-    if(!dataFrameAppend((uint8_t)0)) return;
 
     dataFrameFinish();
 }
 
-void FlintDebugger::responseStatus(void) {
+void FDbg::responseStatus(void) {
     uint16_t tmp = csr | (consoleLength ? DBG_STATUS_CONSOLE : 0);
     if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT))
         tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
-    if(!flint.isRunning())
+    if(!Flint::isRunning())
         tmp |= DBG_STATUS_DONE;
     initDataFrame(DBG_CMD_READ_STATUS, DBG_RESP_OK, 1);
     dataFrameAppend((uint8_t)tmp);
@@ -196,27 +187,26 @@ void FlintDebugger::responseStatus(void) {
     }
 }
 
-void FlintDebugger::responseStackTrace(uint32_t stackIndex) {
+void FDbg::responseStackTrace(uint32_t stackIndex) {
     if(csr & DBG_STATUS_STOP) {
-        FlintStackFrame stackTrace;
+        StackFrame stackTrace;
         bool isEndStack = false;
-        if(execution->getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
-            FlintMethodInfo &method = stackTrace.method;
-            FlintConstUtf8 &className = *method.classLoader.thisClass;
-            FlintConstUtf8 &methodName = method.getName();
-            FlintConstUtf8 &methodDesc = method.getDescriptor();
+        if(exec->getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
+            const char *clsName = stackTrace.method.loader->thisClass;
+            const char *name = stackTrace.method.name;
+            const char *desc = stackTrace.method.desc;
 
             uint32_t responseSize = 8;
-            responseSize += sizeof(FlintConstUtf8) + className.length + 1;
-            responseSize += sizeof(FlintConstUtf8) + methodName.length + 1;
-            responseSize += sizeof(FlintConstUtf8) + methodDesc.length + 1;
+            responseSize += 2 + strlen(clsName) + 1;
+            responseSize += 2 + strlen(name) + 1;
+            responseSize += 2 + strlen(desc) + 1;
 
             initDataFrame(DBG_CMD_READ_STACK_TRACE, DBG_RESP_OK, responseSize);
             if(!dataFrameAppend((uint32_t)(stackIndex | (isEndStack << 31)))) return;
             if(!dataFrameAppend((uint32_t)stackTrace.pc)) return;
-            if(!dataFrameAppend(className)) return;
-            if(!dataFrameAppend(methodName)) return;
-            if(!dataFrameAppend(methodDesc)) return;
+            if(!dataFrameAppend(clsName)) return;
+            if(!dataFrameAppend(name)) return;
+            if(!dataFrameAppend(desc)) return;
             dataFrameFinish();
         }
         else
@@ -226,33 +216,45 @@ void FlintDebugger::responseStackTrace(uint32_t stackIndex) {
         sendRespCode(DBG_CMD_READ_STACK_TRACE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseExceptionInfo(void) {
+static uint32_t getUft8Size(JString *str) {
+    uint32_t length = str->getLength();
+    const char *text = str->getAscii();
+    uint32_t ret = 0;
+    if(str->getCoder() == 0) {
+        for(uint32_t i = 0; i < length; i++)
+            ret += Utf8EncodeSize(text[i]);
+    }
+    else {
+        for(uint32_t i = 0; i < length; i++)
+            ret += Utf8EncodeSize(((uint16_t *)text)[i]);
+    }
+    return ret;
+}
+
+void FDbg::responseExceptionInfo(void) {
     if(csr & DBG_STATUS_STOP) {
-        auto isThrowable = flint.isInstanceof(exception, ((FlintConstUtf8 *)throwableClassName)->text, ((FlintConstUtf8 *)throwableClassName)->length);
-        if(exception && (csr & DBG_STATUS_EXCP) && isThrowable.err == ERR_OK && isThrowable.value) {
-            FlintConstUtf8 &type = exception->type;
-            JString *str = exception->getDetailMessage();
-            uint32_t responseSize = sizeof(FlintConstUtf8) * 2 + type.length + (str ? str->getUft8BuffSize() : 0) + 2;
-            uint8_t coder = str ? str->getCoder() : 0;
-            const char *text = str ? str->getText() : 0;
-            uint32_t msgLen = str ? str->getLength() : 0;
+        if(exec->excp != NULL && (csr & DBG_STATUS_EXCP)) {
+            const char *type = exec->excp->getTypeName();
+            JString *msg = exec->excp->getDetailMessage();
+            uint8_t coder = msg ? msg->getCoder() : 0;
+            const char *text = msg ? msg->getAscii() : 0;
+            uint32_t msgLen = msg ? msg->getLength() : 0;
+
+            uint32_t responseSize = (2 + strlen(type) + 1) + (2 + (msg ? (getUft8Size(msg) + 1) : 0));
             char utf8Buff[3];
 
             initDataFrame(DBG_CMD_READ_EXCP_INFO, DBG_RESP_OK, responseSize);
             if(!dataFrameAppend(type)) return;
             if(!dataFrameAppend((uint16_t)msgLen)) return;
-            if(!dataFrameAppend((uint16_t)0)) return;
-            if(msgLen) {
-                if(coder == 0) for(uint32_t i = 0; i < msgLen; i++) {
-                    uint8_t encodeSize = JString::utf8Encode(text[i], utf8Buff);
-                    for(uint8_t j = 0; j < encodeSize; j++)
-                        if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
-                }
-                else for(uint32_t i = 0; i < msgLen; i++) {
-                    uint8_t encodeSize = JString::utf8Encode(((uint16_t *)text)[i], utf8Buff);
-                    for(uint8_t j = 0; j < encodeSize; j++)
-                        if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
-                }
+            if(coder == 0) for(uint32_t i = 0; i < msgLen; i++) {
+                uint8_t encodeSize = Utf8EncodeOneChar(text[i], utf8Buff);
+                for(uint8_t j = 0; j < encodeSize; j++)
+                    if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
+            }
+            else for(uint32_t i = 0; i < msgLen; i++) {
+                uint8_t encodeSize = Utf8EncodeOneChar(((uint16_t *)text)[i], utf8Buff);
+                for(uint8_t j = 0; j < encodeSize; j++)
+                    if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
             }
             if(!dataFrameAppend((uint8_t)0)) return;
             dataFrameFinish();
@@ -264,41 +266,19 @@ void FlintDebugger::responseExceptionInfo(void) {
         sendRespCode(DBG_CMD_READ_EXCP_INFO, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType) {
+void FDbg::responseLocalVariable(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType) {
     if(csr & DBG_STATUS_STOP) {
         if(variableType < 2) { /* 32 bit value or object */
             uint32_t value;
             bool isObject = !!variableType;
-            if(execution->readLocal(stackIndex, localIndex, value, isObject)) {
+            if(exec->readLocal(stackIndex, localIndex, &value, &isObject)) {
                 uint32_t responseSize = 8;
-                uint32_t valueSize = 4;
-                if(isObject) {
-                    JObject &obj = *(JObject *)value;
-                    FlintConstUtf8 &type = obj.type;
-                    uint8_t isPrim = obj.isPrimType(type);
-                    valueSize = obj.size;
-                    responseSize += sizeof(FlintConstUtf8) + obj.dimensions + (isPrim ? 0 : 2) + type.length + 1;
-                }
+                uint32_t valueSize = isObject ? ((JObject *)value)->size : 4;
+                if(isObject) responseSize += 2 + strlen(((JObject *)value)->getTypeName()) + 1;
                 initDataFrame(DBG_CMD_READ_LOCAL, DBG_RESP_OK, responseSize);
                 if(!dataFrameAppend((uint32_t)valueSize)) return;
                 if(!dataFrameAppend((uint32_t)value)) return;
-
-                if(isObject) {
-                    JObject &obj = *(JObject *)value;
-                    FlintConstUtf8 &type = obj.type;
-                    uint8_t isPrim = obj.isPrimType(type);
-                    uint16_t typeLength = obj.dimensions + (isPrim ? 0 : 2) + type.length;
-                    if(!dataFrameAppend((uint16_t)typeLength)) return;
-                    if(!dataFrameAppend((uint16_t)0)) return;
-                    for(uint32_t i = 0; i < obj.dimensions; i++)
-                        if(!dataFrameAppend((uint8_t)'[')) return;
-                    if(!isPrim)
-                        if(!dataFrameAppend((uint8_t)'L')) return;
-                    if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
-                    if(!isPrim)
-                        if(!dataFrameAppend((uint8_t)';')) return;
-                    if(!dataFrameAppend((uint8_t)0)) return;
-                }
+                if(isObject) if(!dataFrameAppend(((JObject *)value)->getTypeName())) return;
                 dataFrameFinish();
             }
             else
@@ -306,7 +286,7 @@ void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localInd
         }
         else { /* 64 bit value */
             uint64_t value;
-            if(execution->readLocal(stackIndex, localIndex, value)) {
+            if(exec->readLocal(stackIndex, localIndex, &value)) {
                 initDataFrame(DBG_CMD_READ_LOCAL, DBG_RESP_OK, 12);
                 if(!dataFrameAppend((uint32_t)8)) return;
                 if(!dataFrameAppend((uint64_t)value)) return;
@@ -320,78 +300,52 @@ void FlintDebugger::responseLocalVariable(uint32_t stackIndex, uint32_t localInd
         sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseField(JObject *obj, FlintConstUtf8 &fieldName) {
+void FDbg::responseField(JObject *obj, const char *fieldName) {
     if(csr & DBG_STATUS_STOP) {
-        if(!flint.isObject((uint32_t)obj)) {
+        if(!Flint::isObject(obj)) {
             sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
             return;
         }
-        uint8_t fieldType = 0;
-        void *fieldData = obj->getFields().getFieldData32(fieldName);
-        if(!fieldData) {
-            fieldType = 1;
-            fieldData = obj->getFields().getFieldData64(fieldName);
-            if(!fieldData) {
-                fieldType = 2;
-                fieldData = obj->getFields().getFieldObject(fieldName);
-            }
+        FieldsData *fileds = obj->getFields();
+        if(Field32 *field = fileds->getField32(fieldName); field != NULL) {
+            initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8);
+            if(!dataFrameAppend((uint32_t)4)) return;
+            if(!dataFrameAppend((uint32_t)field->value)) return;
         }
-        if(fieldData) {
-            if(fieldType == 0) {
-                initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8);
-                if(!dataFrameAppend((uint32_t)4)) return;
-                if(!dataFrameAppend((uint32_t)((FlintFieldData32 *)fieldData)->value)) return;
-            }
-            else if(fieldType == 1) {
-                initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 12);
-                if(!dataFrameAppend((uint32_t)8)) return;
-                if(!dataFrameAppend((uint64_t)((FlintFieldData64 *)fieldData)->value)) return;
+        else if(Field64 *field = fileds->getField64(fieldName); field != NULL) {
+             initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 12);
+            if(!dataFrameAppend((uint32_t)8)) return;
+            if(!dataFrameAppend((uint64_t)field->value)) return;
+        }
+        else if(FieldObj *field = fileds->getFieldObj(fieldName); field != NULL) {
+            JObject *subObj = field->value;
+            if(subObj != NULL) {
+                const char *type = subObj->getTypeName();
+                initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8 + (2 + strlen(type) + 1));
+                if(!dataFrameAppend((uint32_t)subObj->size)) return;
+                if(!dataFrameAppend((uint32_t)field->value)) return;
+                if(!dataFrameAppend(type)) return;
             }
             else {
-                JObject *subObj = ((FlintFieldObject *)fieldData)->object;
-                if(subObj) {
-                    FlintConstUtf8 &type = subObj->type;
-                    uint8_t isPrim = subObj->isPrimType(type);
-                    uint16_t typeLength = subObj->dimensions + (isPrim ? 0 : 2) + type.length;
-                    uint32_t responseSize = 8 + sizeof(FlintConstUtf8) + typeLength + 1;
-
-                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, responseSize);
-                    if(!dataFrameAppend((uint32_t)subObj->size)) return;
-                    if(!dataFrameAppend((uint32_t)((FlintFieldObject *)fieldData)->object)) return;
-                    if(!dataFrameAppend((uint16_t)typeLength)) return;
-                    if(!dataFrameAppend((uint16_t)0)) return;
-                    for(uint32_t i = 0; i < subObj->dimensions; i++)
-                        if(!dataFrameAppend((uint8_t)'[')) return;
-                    if(!isPrim)
-                        if(!dataFrameAppend((uint8_t)'L')) return;
-                    if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
-                    if(!isPrim)
-                        if(!dataFrameAppend((uint8_t)';')) return;
-                    if(!dataFrameAppend((uint8_t)0)) return;
-                }
-                else {
-                    initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 4);
-                    if(!dataFrameAppend((uint32_t)0)) return;
-                }
+                initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 4);
+                if(!dataFrameAppend((uint32_t)0)) return;
             }
-            dataFrameFinish();
         }
+        dataFrameFinish();
     }
-    else
-        sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_BUSY);
+    else sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseArray(JObject *array, uint32_t index, uint32_t length) {
+void FDbg::responseArray(JObject *array, uint32_t index, uint32_t length) {
     if(csr & DBG_STATUS_STOP) {
-        if(flint.isObject((uint32_t)array) && array->dimensions > 0) {
-            uint8_t atype = JObject::isPrimType(array->type);
-            uint8_t elementSize = atype ? JObject::getPrimitiveTypeSize(atype) : sizeof(JObject *);
-            uint32_t arrayLength = array->size / elementSize;
+        if(Flint::isObject(array) && array->isArray()) {
+            uint8_t compSz = array->type->componentSize();
+            uint32_t arrayLen = ((JArray *)array)->getLength();
             uint32_t arrayEnd = index + length;
-            arrayEnd = (arrayEnd < arrayLength) ? arrayEnd : arrayLength;
+            arrayEnd = (arrayEnd < arrayLen) ? arrayEnd : arrayLen;
             if(index < arrayEnd) {
-                initDataFrame(DBG_CMD_READ_ARRAY, DBG_RESP_OK, (arrayEnd - index) * elementSize);
-                switch(elementSize) {
+                initDataFrame(DBG_CMD_READ_ARRAY, DBG_RESP_OK, (arrayEnd - index) * compSz);
+                switch(compSz) {
                     case 1:
                         for(uint32_t i = index; i < arrayEnd; i++)
                             dataFrameAppend(((uint8_t *)array->data)[i]);
@@ -421,43 +375,30 @@ void FlintDebugger::responseArray(JObject *array, uint32_t index, uint32_t lengt
         sendRespCode(DBG_CMD_READ_ARRAY, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseObjSizeAndType(JObject *obj) {
+void FDbg::responseObjSizeAndType(JObject *obj) {
     if(csr & DBG_STATUS_STOP) {
-        if(!obj) {
+        if(obj == NULL || Flint::isObject(obj) == false) {
             sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_FAIL);
             return;
         }
-        FlintConstUtf8 &type = obj->type;
-        uint8_t isPrim = obj->isPrimType(type);
-        uint16_t typeLength = obj->dimensions + (isPrim ? 0 : 2) + type.length;
-        uint32_t responseSize = 4 + sizeof(FlintConstUtf8) + typeLength + 1;
-
-        initDataFrame(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_OK, responseSize);
+        const char *type = obj->getTypeName();
+        initDataFrame(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_OK, 4 + (2 + strlen(type) + 1));
         if(!dataFrameAppend((uint32_t)obj->size)) return;
-        if(!dataFrameAppend((uint16_t)typeLength)) return;
-        if(!dataFrameAppend((uint16_t)0)) return;
-        for(uint32_t i = 0; i < obj->dimensions; i++)
-            if(!dataFrameAppend((uint8_t)'[')) return;
-        if(!isPrim)
-            if(!dataFrameAppend((uint8_t)'L')) return;
-        if(!dataFrameAppend((uint8_t *)type.text, type.length)) return;
-        if(!isPrim)
-            if(!dataFrameAppend((uint8_t)';')) return;
-        if(!dataFrameAppend((uint8_t)0)) return;
+        if(!dataFrameAppend(type)) return;
         dataFrameFinish();
     }
     else
         sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseOpenFile(char *fileName, FlintFileMode mode) {
+void FDbg::responseOpenFile(char *fileName, FileMode mode) {
     if(csr & DBG_STATUS_RESET) {
         if(fileHandle)
             FlintAPI::IO::fclose(fileHandle);
         for(uint16_t i = 0; fileName[i]; i++) {
             if((fileName[i] == '/') || (fileName[i] == '\\')) {
                 fileName[i] = 0;
-                if(FlintAPI::IO::finfo(fileName, NULL_PTR, NULL_PTR) != FILE_RESULT_OK) {
+                if(FlintAPI::IO::finfo(fileName, NULL, NULL) != FILE_RESULT_OK) {
                     if(FlintAPI::IO::mkdir(fileName) != FILE_RESULT_OK) {
                         sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_FAIL);
                         return;
@@ -476,7 +417,7 @@ void FlintDebugger::responseOpenFile(char *fileName, FlintFileMode mode) {
         sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseReadFile(uint32_t size) {
+void FDbg::responseReadFile(uint32_t size) {
     if(csr & DBG_STATUS_RESET) {
         if(fileHandle) {
             uint32_t br = 0;
@@ -496,7 +437,7 @@ void FlintDebugger::responseReadFile(uint32_t size) {
         sendRespCode(DBG_CMD_READ_FILE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseWriteFile(uint8_t *data, uint32_t size) {
+void FDbg::responseWriteFile(uint8_t *data, uint32_t size) {
     if(csr & DBG_STATUS_RESET) {
         uint32_t bw = 0;
         if(
@@ -513,7 +454,7 @@ void FlintDebugger::responseWriteFile(uint8_t *data, uint32_t size) {
         sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseSeekFile(uint32_t offset) {
+void FDbg::responseSeekFile(uint32_t offset) {
     if(csr & DBG_STATUS_RESET) {
         if(fileHandle && FlintAPI::IO::fseek(fileHandle, offset) == FILE_RESULT_OK)
             sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_OK);
@@ -524,13 +465,13 @@ void FlintDebugger::responseSeekFile(uint32_t offset) {
         sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseCloseFile(void) {
+void FDbg::responseCloseFile(void) {
     if(csr & DBG_STATUS_RESET) {
         if(
             fileHandle &&
             FlintAPI::IO::fclose(fileHandle) == FILE_RESULT_OK
         ) {
-            fileHandle = NULL_PTR;
+            fileHandle = NULL;
             sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_OK);
         }
         else
@@ -540,11 +481,11 @@ void FlintDebugger::responseCloseFile(void) {
         sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseFileInfo(const char *fileName) {
+void FDbg::responseFileInfo(const char *fileName) {
     if(csr & DBG_STATUS_RESET) {
         uint32_t size;
         int64_t time;
-        FlintFileResult ret = FlintAPI::IO::finfo(fileName, &size, &time);
+        FileResult ret = FlintAPI::IO::finfo(fileName, &size, &time);
         if(ret != FILE_RESULT_OK)
             sendRespCode(DBG_CMD_FILE_INFO, DBG_RESP_FAIL);
         else {
@@ -558,20 +499,16 @@ void FlintDebugger::responseFileInfo(const char *fileName) {
         sendRespCode(DBG_CMD_FILE_INFO, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseCreateDelete(FlintDbgCmd cmd, const char *path) {
+void FDbg::responseCreateDelete(DbgCmd cmd, const char *path) {
     if(csr & DBG_STATUS_RESET) {
-        FlintFileResult ret;
-        if(cmd == DBG_CMD_DELETE_FILE)
-            ret = FlintAPI::IO::fremove(path);
-        else
-            ret = FlintAPI::IO::mkdir(path);
+        FileResult ret = (cmd == DBG_CMD_DELETE_FILE) ? FlintAPI::IO::fremove(path) : FlintAPI::IO::mkdir(path);
         sendRespCode(cmd, (ret == FILE_RESULT_OK) ? DBG_RESP_OK : DBG_RESP_FAIL);
     }
     else
         sendRespCode(cmd, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseOpenDir(const char *path) {
+void FDbg::responseOpenDir(const char *path) {
     if(csr & DBG_STATUS_RESET) {
         if(dirHandle)
             FlintAPI::IO::closedir(dirHandle);
@@ -582,7 +519,7 @@ void FlintDebugger::responseOpenDir(const char *path) {
         sendRespCode(DBG_CMD_OPEN_DIR, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseReadDir(void) {
+void FDbg::responseReadDir(void) {
     if(csr & DBG_STATUS_RESET) {
         if(dirHandle) {
             uint8_t attribute;
@@ -590,13 +527,12 @@ void FlintDebugger::responseReadDir(void) {
             int64_t time = 0;
             uint8_t fileBuff[256];
             if(FlintAPI::IO::readdir(dirHandle, &attribute, (char *)fileBuff, sizeof(fileBuff), &size, &time) == FILE_RESULT_OK) {
-                uint16_t nameLength = strlen((char *)fileBuff);
-                uint32_t respLength = 6 + nameLength + sizeof(size) + sizeof(time);
-                initDataFrame(DBG_CMD_READ_DIR, DBG_RESP_OK, respLength);
+                uint16_t nameLen = strlen((char *)fileBuff);
+                uint32_t respLen = sizeof(attribute) + (2 + nameLen + 1) + sizeof(size) + sizeof(time);
+                initDataFrame(DBG_CMD_READ_DIR, DBG_RESP_OK, respLen);
                 if(!dataFrameAppend((uint8_t)attribute)) return;
-                if(!dataFrameAppend((uint16_t)nameLength)) return;
-                if(!dataFrameAppend((uint16_t)0)) return;
-                for(uint32_t i = 0; i < nameLength; i++)
+                if(!dataFrameAppend((uint16_t)nameLen)) return;
+                for(uint32_t i = 0; i < nameLen; i++)
                     if(!dataFrameAppend((uint8_t)fileBuff[i])) return;
                 if(!dataFrameAppend((uint8_t)0)) return;
                 if(!dataFrameAppend(size)) return;
@@ -611,13 +547,13 @@ void FlintDebugger::responseReadDir(void) {
         sendRespCode(DBG_CMD_READ_DIR, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseCloseDir(void) {
+void FDbg::responseCloseDir(void) {
     if(csr & DBG_STATUS_RESET) {
         if(
             dirHandle &&
             FlintAPI::IO::closedir(fileHandle) == FILE_RESULT_OK
         ) {
-            dirHandle = NULL_PTR;
+            dirHandle = NULL;
             sendRespCode(DBG_CMD_CLOSE_DIR, DBG_RESP_OK);
         }
         else
@@ -627,7 +563,7 @@ void FlintDebugger::responseCloseDir(void) {
         sendRespCode(DBG_CMD_CLOSE_DIR, DBG_RESP_BUSY);
 }
 
-void FlintDebugger::responseConsoleBuffer(void) {
+void FDbg::responseConsoleBuffer(void) {
     lock();
     if(consoleLength) {
         initDataFrame(DBG_CMD_READ_CONSOLE, DBG_RESP_OK, consoleLength);
@@ -645,15 +581,15 @@ void FlintDebugger::responseConsoleBuffer(void) {
     unlock();
 }
 
-bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
-    FlintDbgCmd cmd = (FlintDbgCmd)data[0];
+bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
+    DbgCmd cmd = (DbgCmd)data[0];
     uint32_t rxLength = data[1] | (data[2] << 8) | (data[3] << 16);
     if(rxLength != length) {
         sendRespCode(cmd, DBG_RESP_LENGTH_INVAILD);
         return true;
     }
     uint16_t crc = data[rxLength - 2] | (data[rxLength - 1] << 8);
-    if(crc != Flint_CalcCrc(data, rxLength - 2)) {
+    if(crc != Crc(data, rxLength - 2)) {
         sendRespCode(cmd, DBG_RESP_CRC_FAIL);
         return true;
     }
@@ -663,7 +599,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             return true;
         }
         case DBG_CMD_ENTER_DEBUG: {
-            flint.setDebugger(this);
+            Flint::setDebugger(this);
             sendRespCode(DBG_CMD_ENTER_DEBUG, DBG_RESP_OK);
             return true;
         }
@@ -679,17 +615,30 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_ADD_BKP:
         case DBG_CMD_REMOVE_BKP: {
             uint32_t index = 4;
+
             uint32_t pc = *(uint32_t *)&data[index];
-            index += sizeof(uint32_t);
-            FlintConstUtf8 &className = *(FlintConstUtf8 *)&data[index];
-            index += sizeof(FlintConstUtf8) + className.length + 1;
-            FlintConstUtf8 &methodName = *(FlintConstUtf8 *)&data[index];
-            index += sizeof(FlintConstUtf8) + methodName.length + 1;
-            FlintConstUtf8 &descriptor = *(FlintConstUtf8 *)&data[index];
+            index += sizeof(pc);
+
+            uint16_t clsNameLen = (data[index + 1] << 8) | data[index];
+            index += sizeof(clsNameLen);
+
+            const char *clsName = (char *)&data[index];
+            index += clsNameLen + 1;
+
+            uint16_t nameLen = (data[index + 1] << 8) | data[index];
+            index += sizeof(nameLen);
+
+            const char *name = (char *)&data[index];
+            index += nameLen + 1;
+
+            uint16_t descLen = (data[index + 1] << 8) | data[index];
+            index += sizeof(descLen);
+
+            const char *desc = (char *)&data[index];
             if(cmd == DBG_CMD_ADD_BKP)
-                sendRespCode(DBG_CMD_ADD_BKP, addBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
+                sendRespCode(DBG_CMD_ADD_BKP, addBreakPoint(pc, clsName, name, desc) ? DBG_RESP_OK : DBG_RESP_FAIL);
             else
-                sendRespCode(DBG_CMD_REMOVE_BKP, removeBreakPoint(pc, className, methodName, descriptor) ? DBG_RESP_OK : DBG_RESP_FAIL);
+                sendRespCode(DBG_CMD_REMOVE_BKP, removeBreakPoint(pc, clsName, name, desc) ? DBG_RESP_OK : DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_REMOVE_ALL_BKP: {
@@ -700,7 +649,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_RUN: {
             lock();
             csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
-            execution = NULL_PTR;
+            exec = NULL;
             unlock();
             sendRespCode(DBG_CMD_RUN, DBG_RESP_OK);
             return true;
@@ -708,25 +657,25 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_STOP: {
             lock();
             csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
-            execution = NULL_PTR;
+            exec = NULL;
             unlock();
-            flint.stopRequest();
+            Flint::stopRequest();
             sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
             return true;
         }
         case DBG_CMD_RESTART: {
-            FlintConstUtf8 *mainClass = (FlintConstUtf8 *)&data[4];
+            const char *mainClass = (char *)&data[4 + 2];
             lock();
             csr &= DBG_CONTROL_EXCP_EN;
-            execution = NULL_PTR;
+            exec = NULL;
             unlock();
-            flint.setDebugger(this);
-            flint.terminate();
-            flint.clearAllStaticFields();
-            flint.freeAllExecution();
-            flint.garbageCollection();
-            flint.reset();
-            if(flint.runToMain(mainClass->text) == ERR_OK)
+            Flint::setDebugger(this);
+            Flint::terminate();
+            Flint::clearAllStaticFields();
+            Flint::freeAllExecution();
+            Flint::gc();
+            Flint::reset();
+            if(Flint::runToMain(mainClass) == true)
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
             else
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_FAIL);
@@ -737,9 +686,9 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             lock();
             csr = (csr & DBG_CONTROL_EXCP_EN) | DBG_STATUS_RESET;
             unlock();
-            flint.terminate();
-            flint.freeAll();
-            flint.reset();
+            Flint::terminate();
+            Flint::freeAll();
+            Flint::reset();
             sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
             return !endDbg;
         }
@@ -747,7 +696,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_STEP_OVER: {
             if(csr & DBG_STATUS_STOP) {
                 stepCodeLength = *(uint32_t *)&data[4];
-                if(length == 10 && stepCodeLength && execution->getStackTrace(0, &startPoint, 0)) {
+                if(length == 10 && stepCodeLength && exec->getStackTrace(0, &startPoint, 0)) {
                     lock();
                     if(cmd == DBG_CMD_STEP_IN)
                         csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_IN;
@@ -765,7 +714,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_STEP_OUT: {
             if(csr & DBG_STATUS_STOP) {
-                if(execution->getStackTrace(0, &startPoint, 0)) {
+                if(exec->getStackTrace(0, &startPoint, 0)) {
                     lock();
                     csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER)) | DBG_CONTROL_STEP_OUT;
                     unlock();
@@ -809,7 +758,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_READ_FIELD: {
             JObject *obj = (JObject *)*(uint32_t *)&data[4];
-            FlintConstUtf8 &fieldName = *(FlintConstUtf8 *)&data[8];
+            const char *fieldName = (char *)&data[8 + 2];
             responseField(obj, fieldName);
             return true;
         }
@@ -838,8 +787,8 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
             return true;
         }
         case DBG_CMD_OPEN_FILE: {
-            FlintFileMode fileMode = (FlintFileMode)data[4];
-            char *fileName = (char *)((FlintConstUtf8 *)&data[5])->text;
+            FileMode fileMode = (FileMode)data[4];
+            char *fileName = (char *)&data[5 + 2];
             responseOpenFile(fileName, fileMode);
             return true;
         }
@@ -874,7 +823,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_FILE_INFO: {
             if(length >= 12) {
-                const char *path = (const char *)((FlintConstUtf8 *)&data[4])->text;
+                const char *path = (char *)&data[4 + 2];
                 responseFileInfo(path);
             }
             else
@@ -884,7 +833,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         case DBG_CMD_DELETE_FILE:
         case DBG_CMD_CREATE_DIR: {
             if(length >= 12) {
-                const char *path = (const char *)((FlintConstUtf8 *)&data[4])->text;
+                const char *path = (char *)&data[4 + 2];
                 responseCreateDelete(cmd, path);
             }
             else
@@ -893,7 +842,7 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
         }
         case DBG_CMD_OPEN_DIR: {
             if(length >= 11) {
-                char *path = (char *)((FlintConstUtf8 *)&data[4])->text;
+                char *path = (char *)&data[4 + 2];
                 responseOpenDir(path);
             }
             else
@@ -919,24 +868,21 @@ bool FlintDebugger::receivedDataHandler(uint8_t *data, uint32_t length) {
     }
 }
 
-bool FlintDebugger::addBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor) {
+bool FDbg::addBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc) {
     if(breakPointCount < LENGTH(breakPoints)) {
-        auto loader = flint.load(className.text);
-        if(loader.err != ERR_OK)
-            return false;
-        auto method = loader.value->getMethodInfo(methodName, descriptor);
-        if(method.err != ERR_OK)
-            return false;
-        if(method.value->accessFlag & METHOD_NATIVE)
-            return false;
-        uint8_t *code = method.value->getCode();
+        ClassLoader *loader = Flint::findLoader(NULL, clsName);
+        if(loader == NULL) return false;
+        MethodInfo *method = loader->getMethodInfo(NULL, name, desc);
+        if(method == NULL) return false;
+        if(method->accessFlag & METHOD_NATIVE) return false;
+        uint8_t *code = method->getCode();
         for(uint8_t i = 0; i < breakPointCount; i++) {
-            if(method.value == breakPoints[i].method && pc == breakPoints[i].pc) {
+            if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
                 code[pc] = (uint8_t)OP_BREAKPOINT;
                 return true;
             }
         }
-        new (&breakPoints[breakPointCount])FlintBreakPoint(code[pc], pc, method.value);
+        new (&breakPoints[breakPointCount])BreakPoint(code[pc], pc, method);
         breakPointCount++;
         code[pc] = (uint8_t)OP_BREAKPOINT;
         return true;
@@ -944,7 +890,7 @@ bool FlintDebugger::addBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintC
     return false;
 }
 
-uint8_t FlintDebugger::getSavedOpcode(uint32_t pc, FlintMethodInfo *method) {
+uint8_t FDbg::getSavedOpcode(uint32_t pc, MethodInfo *method) {
     for(uint8_t i = 0; i < breakPointCount; i++) {
         if(method == breakPoints[i].method && pc == breakPoints[i].pc)
             return breakPoints[i].opcode;
@@ -952,17 +898,15 @@ uint8_t FlintDebugger::getSavedOpcode(uint32_t pc, FlintMethodInfo *method) {
     return OP_UNKNOW;
 }
 
-bool FlintDebugger::removeBreakPoint(uint32_t pc, FlintConstUtf8 &className, FlintConstUtf8 &methodName, FlintConstUtf8 &descriptor) {
+bool FDbg::removeBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc) {
     if(breakPointCount) {
-        auto loader = flint.load(className.text);
-        if(loader.err != ERR_OK)
-            return false;
-        auto method = loader.value->getMethodInfo(methodName, descriptor);
-        if(method.err != ERR_OK)
-            return false;
+        ClassLoader *loader = Flint::findLoader(NULL, clsName);
+        if(loader == NULL) return false;
+        MethodInfo *method = loader->getMethodInfo(NULL, name, desc);
+        if(method == NULL) return false;
         for(uint8_t i = 0; i < breakPointCount; i++) {
-            if(method.value == breakPoints[i].method && pc == breakPoints[i].pc) {
-                method.value->getCode()[breakPoints[i].pc] = breakPoints[i].opcode;
+            if(method == breakPoints[i].method && pc == breakPoints[i].pc) {
+                method->getCode()[breakPoints[i].pc] = breakPoints[i].opcode;
                 breakPoints[i] = breakPoints[breakPointCount - 1];
                 breakPointCount--;
             }
@@ -972,15 +916,15 @@ bool FlintDebugger::removeBreakPoint(uint32_t pc, FlintConstUtf8 &className, Fli
     return false;
 }
 
-bool FlintDebugger::exceptionIsEnabled(void) {
+bool FDbg::exceptionIsEnabled(void) {
     return (csr & DBG_CONTROL_EXCP_EN) == DBG_CONTROL_EXCP_EN;
 }
 
-bool FlintDebugger::checkStop(FlintExecution *exec) {
-    if((csr & DBG_CONTROL_STOP) && (execution == NULL_PTR)) {
+bool FDbg::checkStop(FExec *exec) {
+    if((csr & DBG_CONTROL_STOP) && (this->exec == NULL)) {
         lock();
-        if(execution == NULL_PTR) {
-            execution = exec;
+        if(this->exec == NULL) {
+            this->exec = exec;
             csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
         }
         unlock();
@@ -988,31 +932,30 @@ bool FlintDebugger::checkStop(FlintExecution *exec) {
     return waitStop(exec);
 }
 
-void FlintDebugger::caughtException(FlintExecution *exec, JThrowable *excp) {
+void FDbg::caughtException(FExec *exec) {
     lock();
     uint16_t tmp = csr & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     tmp |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     csr = tmp;
-    execution = exec;
-    exception = excp;
+    this->exec = exec;
     unlock();
-    flint.stopRequest();
+    Flint::stopRequest();
     waitStop(exec);
 }
 
-void FlintDebugger::hitBreakpoint(FlintExecution *exec) {
+void FDbg::hitBreakpoint(FExec *exec) {
     lock();
     csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
-    execution = exec;
+    this->exec = exec;
     unlock();
-    flint.stopRequest();
+    Flint::stopRequest();
     waitStop(exec);
 }
 
-bool FlintDebugger::waitStop(FlintExecution *exec) {
+bool FDbg::waitStop(FExec *exec) {
     while(csr & (DBG_STATUS_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT | DBG_STATUS_EXCP)) {
         uint16_t tmp = csr;
-        if(execution == exec) {
+        if(this->exec == exec) {
             static uint32_t oldPc = 0;
             if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) {
                 if(tmp & DBG_STATUS_STOP) {
@@ -1045,7 +988,7 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
                 if(isStopped) {
                     if(exec->code[exec->pc] == OP_BREAKPOINT)
                         return false;
-                    flint.stopRequest();
+                    Flint::stopRequest();
                     lock();
                     csr = (csr & ~(DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     unlock();
@@ -1061,10 +1004,10 @@ bool FlintDebugger::waitStop(FlintExecution *exec) {
     return (csr & DBG_CONTROL_STOP) ? true : false;
 }
 
-void FlintDebugger::lock(void) {
+void FDbg::lock(void) {
     dbgMutex.lock();
 }
 
-void FlintDebugger::unlock(void) {
+void FDbg::unlock(void) {
     dbgMutex.unlock();
 }
