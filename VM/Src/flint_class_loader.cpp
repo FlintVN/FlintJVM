@@ -663,6 +663,8 @@ void ClassLoader::clearStaticFields(void) {
     if(staticFields != NULL) {
         staticFields->~FieldsData();
         Flint::free(staticFields);
+        staticFields = NULL;
+        loaderFlags &= ~FLAG_STATIC_INIT;
     }
 }
 

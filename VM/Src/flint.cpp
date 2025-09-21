@@ -809,6 +809,7 @@ void Flint::freeAllObject(void) {
     constStr.clear();
     objs.forEach([](JObject *obj) { obj->~JObject(); Flint::free(obj); });
     objs.clear();
+    objectCountToGc = 0;
     Flint::unlock();
 }
 
@@ -836,6 +837,7 @@ void Flint::freeAllClassLoader(void) {
         Flint::free(item);
     });
     loaders.clear();
+    classOfClass = NULL;
     Flint::unlock();
 }
 
