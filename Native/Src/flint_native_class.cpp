@@ -84,7 +84,7 @@ jstring nativeInitClassName(FNIEnv *env, jclass cls) {
 
 jclass nativeGetSuperclass(FNIEnv *env, jclass cls) {
     if(cls->isArray() || cls->isPrimitive()) return NULL;
-    return env->findClass(cls->getClassLoader()->superClass);
+    return cls->getClassLoader()->getSuperClass(env->exec);
 }
 
 static jobjectArray getEmptyClassArray(FNIEnv *env) {
@@ -161,10 +161,7 @@ jint nativeGetModifiers(FNIEnv *env, jclass cls) {
 
 jclass nativeGetNestHost0(FNIEnv *env, jclass cls) {
     if(cls->isArray() || cls->isPrimitive()) return cls;
-    const char *clsName = cls->getTypeName();
-    uint16_t len = 0;
-    while(clsName[len] && clsName[len] != '$') len++;
-    return env->findClass(clsName, len);
+    return cls->getClassLoader()->getNestHost(env->exec);
 }
 
 jbool nativeIsHidden(FNIEnv *env) {

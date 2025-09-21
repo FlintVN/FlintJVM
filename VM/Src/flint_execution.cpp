@@ -141,7 +141,7 @@ void FExec::initNewContext(MethodInfo *methodInfo, uint16_t argc) {
     method = methodInfo;
     code = methodInfo->getCode();
     if(code == NULL) {
-        throwNew(Flint::findClass(this, "java/lang/LinkageError"), methodInfo->loader->thisClass, methodInfo->name);
+        throwNew(Flint::findClass(this, "java/lang/LinkageError"), methodInfo->loader->getName(), methodInfo->name);
         return;
     }
     pc = 0;
@@ -260,7 +260,7 @@ static T callToNative(FNIEnv *env, T (*nmtptr)(FNIEnv *, ...), int32_t *args, ui
 void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
     JNMPtr nmtptr = (JNMPtr)methodInfo->getCode();
     if(!nmtptr) {
-        throwNew(Flint::findClass(this, "java/lang/LinkageError"), "%s.%s", methodInfo->loader->thisClass, methodInfo->name);
+        throwNew(Flint::findClass(this, "java/lang/LinkageError"), "%s.%s", methodInfo->loader->getName(), methodInfo->name);
         return;
     }
     FNIEnv env(this);
@@ -581,7 +581,7 @@ void FExec::exec(void) {
                 goto *opcodes[code[pc]];
             default: {
                 JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
-                throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->thisClass);
+                throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
                 return;
             }
         }
@@ -622,7 +622,7 @@ void FExec::exec(void) {
                 goto *opcodes[code[pc]];
             default: {
                 JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
-                throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->thisClass);
+                throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
                 return;
             }
         }
@@ -641,7 +641,7 @@ void FExec::exec(void) {
                 goto *opcodes[code[pc]];
             default: {
                 JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
-                throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->thisClass);
+                throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
                 return;
             }
         }
@@ -2164,6 +2164,12 @@ bool FExec::run(MethodInfo *method, uint32_t argc, ...) {
     return false;
 }
 
+ClassLoader *FExec::getCurrentClassLoader(void) {
+    if(method != NULL)
+        return method->loader;
+    return NULL;
+}
+
 void FExec::throwNew(JClass *cls, const char *msg, ...) {
     va_list args;
     va_start(args, msg);
@@ -2190,6 +2196,10 @@ void FExec::vThrowNew(JClass *cls, const char *msg, va_list args) {
     }
     if(excp != NULL) obj->setCause(excp);
     excp = obj;
+}
+
+bool FExec::hasException(void) const {
+    return (excp != NULL) ? true : false;
 }
 
 void FExec::stopRequest(void) {

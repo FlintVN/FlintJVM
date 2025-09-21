@@ -68,8 +68,11 @@ private:
 public:
     bool run(MethodInfo *method, uint32_t argc = 0, ...);
 
+    ClassLoader *getCurrentClassLoader(void);
+
     void throwNew(JClass *cls, const char *msg = NULL, ...);
     void vThrowNew(JClass *cls, const char *msg, va_list args);
+    bool hasException(void) const;
 
     bool hasTerminateRequest(void) const;
     JThread *getOnwerThread(void);

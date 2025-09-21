@@ -116,8 +116,10 @@ bool FieldsData::initNonStatic(FExec *ctx, ClassLoader *loader) {
                 }
             }
         }
-        if(ld->superClass == NULL) break;
-        ld = Flint::findLoader(ctx, ld->superClass);
+        /* Don't use ld->getSuperClass here to avoid endless recursion */
+        const char *superName = ld->getSuperClassName();
+        if(superName == NULL) break;
+        ld = Flint::findLoader(ctx, superName);
         if(ld == NULL) return false;
     }
 
@@ -161,8 +163,10 @@ bool FieldsData::initNonStatic(FExec *ctx, ClassLoader *loader) {
                 }
             }
         }
-        if(ld->superClass == NULL) break;
-        ld = Flint::findLoader(ctx, ld->superClass);
+        /* Don't use ld->getSuperClass here to avoid endless recursion */
+        const char *superName = ld->getSuperClassName();
+        if(superName == NULL) break;
+        ld = Flint::findLoader(ctx, superName);
         if(ld == NULL) return false;
     }
 

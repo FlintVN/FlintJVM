@@ -36,7 +36,7 @@ JNMPtr NativeClass::findNativeMethod(MethodInfo *methodInfo) {
         const NativeClass *nativeCls = &BASE_NATIVE_CLASS_LIST[i];
         if(
             classNameHash == nativeCls->hash &&
-            strcmp(nativeCls->className, methodInfo->loader->thisClass) == 0
+            strcmp(nativeCls->className, methodInfo->loader->getName()) == 0
         ) {
             for(uint32_t k = 0; k < nativeCls->methodCount; k++) {
                 if(

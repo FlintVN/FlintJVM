@@ -92,12 +92,16 @@ static bool dumpAttribute(FExec *ctx, void *file) {
     return true;
 }
 
-ClassLoader::ClassLoader(void) : DictNode(), thisClass(NULL), superClass(NULL) {
+ClassLoader::ClassLoader(void) : DictNode() {
     loaderFlags = 0;
     poolCount = 0;
+    thisClass = 0;
+    superClass = 0;
     interfacesCount = 0;
     fieldsCount = 0;
     methodsCount = 0;
+    nestHost = 0;
+    nestMembersCount = 0;
     hash = 0;
     monitorOwnId = 0;
     monitorCount = 0;
@@ -105,6 +109,7 @@ ClassLoader::ClassLoader(void) : DictNode(), thisClass(NULL), superClass(NULL) {
     interfaces = NULL;
     fields = NULL;
     methods = NULL;
+    nestMembers = NULL;
     staticFields = NULL;
 }
 
@@ -113,11 +118,11 @@ uint32_t ClassLoader::getHashKey(void) const {
 }
 
 int32_t ClassLoader::compareKey(const char *key, uint16_t length) const {
-    return (length > 0) ? strncmp(this->thisClass, key, length) : strcmp(this->thisClass, key);
+    return (length > 0) ? strncmp(this->getName(), key, length) : strcmp(this->getName(), key);
 }
 
 int32_t ClassLoader::compareKey(DictNode *other) const {
-    return strcmp(this->thisClass, ((ClassLoader *)other)->thisClass);
+    return strcmp(this->getName(), ((ClassLoader *)other)->getName());
 }
 
 bool ClassLoader::load(FExec *ctx, FileHandle file) {
@@ -211,13 +216,10 @@ bool ClassLoader::load(FExec *ctx, FileHandle file) {
 
     if(!FReadUInt16(ctx, file, accessFlags)) return false;
 
-    uint16_t clsIndex;
-    if(!FReadUInt16(ctx, file, clsIndex)) return false;
-    *(const char **)&thisClass = getConstClassName(clsIndex);
-    hash = Hash(thisClass);
+    if(!FReadUInt16(ctx, file, thisClass)) return false;
+    hash = Hash(getName());
 
-    if(!FReadUInt16(ctx, file, clsIndex)) return false;
-    *(const char **)&superClass = (clsIndex != 0) ? getConstClassName(clsIndex) : NULL;
+    if(!FReadUInt16(ctx, file, superClass)) return false;
 
     if(!FReadUInt16(ctx, file, interfacesCount)) return false;
     if(interfacesCount) {
@@ -239,12 +241,12 @@ bool ClassLoader::load(FExec *ctx, FileHandle file) {
             if(!FReadUInt16(ctx, file, fieldsDescIndex)) return false;
             if(!FReadUInt16(ctx, file, fieldsAttributesCount)) return false;
             while(fieldsAttributesCount--) {
-                uint16_t attrNameIndex;
+                uint16_t attrNameIdx;
                 uint32_t length;
-                if(!FReadUInt16(ctx, file, attrNameIndex)) return false;
+                if(!FReadUInt16(ctx, file, attrNameIdx)) return false;
                 if(!FReadUInt32(ctx, file, length)) return false;
                 if(
-                    strcmp(getConstUtf8(attrNameIndex), "ConstantValue") == 0 &&
+                    strcmp(getConstUtf8(attrNameIdx), "ConstantValue") == 0 &&
                     (flag & (FIELD_STATIC | FIELD_FINAL)) == (FIELD_STATIC | FIELD_FINAL)
                 ) {
                     flag = (flag | FIELD_UNLOAD);
@@ -293,22 +295,37 @@ bool ClassLoader::load(FExec *ctx, FileHandle file) {
             const char *methodDesc = getConstUtf8(methodDescIndex);
             new (&methods[i])MethodInfo(this, (MethodAccessFlag)flag, methodName, methodDesc);
             while(methodAttributesCount--) {
-                uint16_t attrNameIndex;
+                uint16_t attrNameIdx;
                 uint32_t length;
-                if(!FReadUInt16(ctx, file, attrNameIndex)) return false;
+                if(!FReadUInt16(ctx, file, attrNameIdx)) return false;
                 if(!FReadUInt32(ctx, file, length)) return false;
-                if(strcmp(getConstUtf8(attrNameIndex), "Code") == 0 && !(flag & METHOD_NATIVE))
+                if(strcmp(getConstUtf8(attrNameIdx), "Code") == 0 && !(flag & METHOD_NATIVE))
                     methods[i].code = (uint8_t *)FlintAPI::IO::ftell(file);
                 if(!FOffset(ctx, file, length)) return false;
             }
         }
     }
-    /*
     uint16_t attributesCount;
-    if(!FReadUInt16(file, attributesCount));
-    while(attributesCount--)
-        FlintAttribute *attr = readAttribute(file);
-    */
+    if(!FReadUInt16(ctx, file, attributesCount)) return false;
+    while(attributesCount--) {
+        uint16_t attrNameIdx;
+        uint32_t length;
+        if(!FReadUInt16(ctx, file, attrNameIdx)) return false;
+        if(!FReadUInt32(ctx, file, length)) return false;
+        const char *attrName = getConstUtf8(attrNameIdx);
+        if(length == 2 && strcmp(attrName, "NestHost") == 0) {
+            if(!FReadUInt16(ctx, file, nestHost)) return false;
+        }
+        else if(strcmp(attrName, "NestMembers") == 0) {
+            if(!FReadUInt16(ctx, file, nestMembersCount)) return false;
+            if(nestMembersCount > 0)
+                nestMembers = (uint16_t *)Flint::malloc(ctx, nestMembersCount * sizeof(uint16_t));
+            for(uint16_t i = 0; i < nestMembersCount; i++)
+                if(!FReadUInt16(ctx, file, nestMembers[i])) return false;
+        }
+        else
+            if(!FOffset(ctx, file, length)) return false;
+    }
     return true;
 }
 
@@ -551,6 +568,23 @@ ClassAccessFlag ClassLoader::getAccessFlag(void) const {
     return (ClassAccessFlag)accessFlags;
 }
 
+const char *ClassLoader::getName(void) const {
+    return getConstClassName(thisClass);
+}
+
+const char *ClassLoader::getSuperClassName(void) const {
+    if(superClass == 0) return NULL;
+    return getConstClassName(superClass);
+}
+
+JClass *ClassLoader::getThisClass(FExec *ctx) {
+    return getConstClass(ctx, thisClass);
+}
+
+JClass *ClassLoader::getSuperClass(FExec *ctx) {
+    return getConstClass(ctx, superClass);
+}
+
 uint16_t ClassLoader::getInterfacesCount(void) const {
     return interfacesCount;
 }
@@ -576,7 +610,7 @@ MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, uint8_t methodIndex) {
     if(method->accessFlag & METHOD_UNLOADED) {
         Flint::lock();
         if(method->accessFlag & METHOD_UNLOADED) {
-            void *file = FOpen(ctx, thisClass);
+            void *file = FOpen(ctx, getName());
             if(file == NULL) { Flint::unlock(); return NULL; }
 
             if(!Fseek(ctx, file, (uint32_t)method->code)) { FClose(NULL, file); Flint::unlock(); return NULL; }
@@ -633,6 +667,21 @@ MethodInfo *ClassLoader::getStaticCtor(FExec *ctx) {
 
 bool ClassLoader::hasStaticCtor(void) const {
     return (loaderFlags & FLAG_HAS_CLINIT) ? true : false;
+}
+
+JClass *ClassLoader::getNestHost(FExec *ctx) {
+    if(nestHost == 0)
+        return getThisClass(ctx);
+    return getConstClass(ctx, nestHost);
+}
+
+uint16_t ClassLoader::getNestMembersCount(void) const {
+    return nestMembersCount;
+}
+
+JClass *ClassLoader::getNestMember(FExec *ctx, uint16_t index) {
+    if(index >= nestMembersCount) return NULL;
+    return getConstClass(ctx, nestMembers[index]);
 }
 
 FieldsData *ClassLoader::getStaticFields(void) const {
@@ -705,5 +754,7 @@ ClassLoader::~ClassLoader(void) {
         }
         Flint::free(methods);
     }
+    if(nestMembersCount && nestMembers)
+        Flint::free(nestMembers);
     clearStaticFields();
 }

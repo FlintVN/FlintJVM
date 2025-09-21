@@ -39,22 +39,24 @@ private:
     */
     uint16_t poolCount;
     uint16_t accessFlags;
+    uint16_t thisClass;
+    uint16_t superClass;
     uint16_t interfacesCount;
     uint16_t fieldsCount;
     uint16_t methodsCount;
+    uint16_t nestHost;
+    uint16_t nestMembersCount;
 
     uint32_t hash;
 public:
     uint32_t monitorOwnId;
     uint32_t monitorCount;
-
-    const char * const thisClass;
-    const char * const superClass;
 private:
     ConstPool *poolTable;
     uint16_t *interfaces;
     FieldInfo *fields;
     MethodInfo *methods;
+    uint16_t *nestMembers;
     FieldsData *staticFields;
 public:
     uint32_t getHashKey(void) const override;
@@ -79,6 +81,12 @@ public:
 
     ClassAccessFlag getAccessFlag(void) const;
 
+    const char *getName(void) const;
+    const char *getSuperClassName(void) const;
+
+    JClass *getThisClass(FExec *ctx);
+    JClass *getSuperClass(FExec *ctx);
+
     uint16_t getInterfacesCount(void) const;
     const char *getInterface(uint16_t interfaceIndex) const;
 
@@ -93,6 +101,11 @@ public:
     MethodInfo *getStaticCtor(FExec *ctx);
 
     bool hasStaticCtor(void) const;
+
+    JClass *getNestHost(FExec *ctx);
+
+    uint16_t getNestMembersCount(void) const;
+    JClass *getNestMember(FExec *ctx, uint16_t index);
 
     FieldsData *getStaticFields(void) const;
     StaticInitStatus getStaticInitStatus(void) const;

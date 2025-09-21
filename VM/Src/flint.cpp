@@ -272,15 +272,16 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
 
     ClassLoader *loader = Flint::findLoader(ctx, compTypeName1, len1);
     while(loader != NULL) {
-        if(strncmp(loader->thisClass, compTypeName2, len2) == 0) return true;
+        if(strncmp(loader->getName(), compTypeName2, len2) == 0) return true;
         if(loader == NULL) return false;
         uint16_t ifCount = loader->getInterfacesCount();
         for(uint32_t i = 0; i < ifCount; i++) {
             if(strncmp(loader->getInterface(i), compTypeName2, len2) == 0)
                 return true;
         }
-        if(loader->superClass == NULL) return false;
-        loader = Flint::findLoader(ctx, loader->superClass);
+        JClass *super = loader->getSuperClass(ctx);
+        if(super == NULL) break;
+        loader = super->getClassLoader();
     }
     return false;
 }
@@ -448,7 +449,7 @@ JClass *Flint::newClass(FExec *ctx, const char *clsName, uint16_t length, uint8_
     JClass *cls = (JClass *)Flint::malloc(ctx, JClass::size());
     if(cls == NULL) return NULL;
     /* Make sure clsName string is managed */
-    clsName = ((flag & 0x01) || clsName[0] == '[') ? getUtf8(ctx, clsName, length) : loader->thisClass;
+    clsName = ((flag & 0x01) || clsName[0] == '[') ? getUtf8(ctx, clsName, length) : loader->getName();
     if(clsName == NULL) return NULL;
     new (cls)JClass(clsName, loader);
 
@@ -471,7 +472,7 @@ JClass *Flint::newClassOfClass(FExec *ctx) {
 
     JClass *cls = (JClass *)Flint::malloc(ctx, JClass::size());
     if(cls == NULL) return NULL;
-    new (cls)JClass(jClsLoader->thisClass, jClsLoader);
+    new (cls)JClass(jClsLoader->getName(), jClsLoader);
 
     if(cls->initFields(ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
 
@@ -611,10 +612,11 @@ MethodInfo *Flint::findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAnd
         MethodInfo *mtInfo = loader->getMethodInfo(ctx, nameAndType);
         if(mtInfo != NULL) return mtInfo;
         if(ctx->excp != NULL) return NULL;
-        if(loader->superClass == NULL) break;
-        loader = findLoader(ctx, loader->superClass);
+        JClass *super = loader->getSuperClass(ctx);
+        if(super == NULL) break;
+        loader = super->getClassLoader();
     }
-    if(ctx != NULL && ctx->excp == NULL)
+    if(ctx != NULL && !ctx->hasException())
         ctx->throwNew(Flint::findClass(ctx, "java/lang/NoSuchMethodError"), "%s.%s", cls->getTypeName(), nameAndType->name);
     return NULL;
 }

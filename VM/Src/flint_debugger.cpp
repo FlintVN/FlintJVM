@@ -192,7 +192,7 @@ void FDbg::responseStackTrace(uint32_t stackIndex) {
         StackFrame stackTrace;
         bool isEndStack = false;
         if(exec->getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
-            const char *clsName = stackTrace.method.loader->thisClass;
+            const char *clsName = stackTrace.method.loader->getName();
             const char *name = stackTrace.method.name;
             const char *desc = stackTrace.method.desc;
 
