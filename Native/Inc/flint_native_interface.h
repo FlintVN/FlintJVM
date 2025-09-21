@@ -9,9 +9,7 @@ typedef int8_t                      jbyte;
 typedef uint16_t                    jchar;
 typedef int16_t                     jshort;
 typedef int32_t                     jint;
-typedef int64_t                     jlong;
 typedef float                       jfloat;
-typedef double                      jdouble;
 typedef void                        jvoid;
 
 typedef class JObject               *jobject;
@@ -31,6 +29,28 @@ typedef class JInt64Array           *jlongArray;
 typedef class JFloatArray           *jfloatArray;
 typedef class JDoubleArray          *jdoubleArray;
 typedef class JObjectArray          *jobjectArray;
+
+class jlong {
+private:
+    uint32_t low;
+    uint32_t high;
+public:
+    jlong(int64_t value) : low(((uint32_t *)&value)[0]), high(((uint32_t *)&value)[1]) { }
+
+    operator int64_t() const;
+    void operator=(int64_t value);
+};
+
+class jdouble {
+private:
+    uint32_t low;
+    uint32_t high;
+public:
+    jdouble(double value) : low(((uint32_t *)&value)[0]), high(((uint32_t *)&value)[1]) { }
+
+    operator double() const;
+    void operator=(double value);
+};
 
 class FNIEnv {
 public:

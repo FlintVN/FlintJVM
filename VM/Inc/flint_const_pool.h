@@ -43,9 +43,7 @@ public:
 
     constexpr ConstNameAndType(const char *name, const char *desc) :
     name(name), desc(desc),
-    hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)) {
-
-    }
+    hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)) { }
 
     ConstNameAndType(const ConstNameAndType &) = delete;
     void operator=(const ConstNameAndType &) = delete;

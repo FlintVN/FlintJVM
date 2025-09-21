@@ -34,7 +34,7 @@ void FMutex::unlock(void) {
         FlintAPI::Thread::sleep(1);
     if(lockNest > 0) {
         if(--lockNest == 0)
-            lockThread = 0;
+            lockThread = NULL;
     }
     atomic_flag_clear_explicit(&locked, memory_order_release);
 }

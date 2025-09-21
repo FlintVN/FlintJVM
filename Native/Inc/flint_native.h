@@ -21,9 +21,7 @@ public:
     constexpr NativeMethod(const char *name, const char *desc, uint32_t method) :
     name(name), desc(desc),
     hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)),
-    methodPtr(method) {
-
-    }
+    methodPtr(method) { }
 private:
     void operator=(const NativeMethod &) = delete;
 
