@@ -150,8 +150,13 @@ jclass nativeGetComponentType(FNIEnv *env, jclass cls) {
 
 jint nativeGetModifiers(FNIEnv *env, jclass cls) {
     (void)env;
-    if(cls->isArray() || cls->isPrimitive()) return 0x0411;
-    else return cls->getClassLoader()->getAccessFlag() & 0x7FDF;
+    if(cls->isArray() || cls->isPrimitive())
+        return (CLASS_PUBLIC | CLASS_FINAL | CLASS_ABSTRACT);
+    else {
+        uint16_t flag = cls->getClassLoader()->getAccessFlag();
+        flag &= ~(CLASS_SUPER | CLASS_SYNTHETIC | CLASS_MODULE);
+        return flag;
+    }
 }
 
 jclass nativeGetNestHost0(FNIEnv *env, jclass cls) {

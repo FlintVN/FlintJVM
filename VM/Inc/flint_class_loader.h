@@ -20,6 +20,7 @@ typedef enum : uint16_t {
     CLASS_SYNTHETIC = 0x1000,
     CLASS_ANNOTATION = 0x2000,
     CLASS_ENUM = 0x4000,
+    CLASS_MODULE = 0x8000
 } ClassAccessFlag;
 
 typedef enum {
