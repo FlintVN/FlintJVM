@@ -160,8 +160,7 @@ jint nativeGetModifiers(FNIEnv *env, jclass cls) {
 }
 
 jclass nativeGetNestHost0(FNIEnv *env, jclass cls) {
-    if(cls->isArray() || cls->isPrimitive()) return cls;
-    return cls->getClassLoader()->getNestHost(env->exec);
+    return cls->getNestHost(env->exec);
 }
 
 jobjectArray nativeGetNestMembers0(FNIEnv *env, jclass cls) {
@@ -172,13 +171,12 @@ jobjectArray nativeGetNestMembers0(FNIEnv *env, jclass cls) {
         array->getData()[0] = cls;
         return array;
     }
-    jclass nestHost = cls->getClassLoader()->getNestHost(env->exec);
-    ClassLoader *nestHostLoader = nestHost->getClassLoader();
-    uint16_t membersCount = nestHostLoader->getNestMembersCount();
+    jclass nestHost = cls->getNestHost(env->exec);
+    uint16_t membersCount = nestHost->getNestMembersCount();
     array = env->newObjectArray(env->findClass("java/lang/Class"), membersCount + 1);
     array->getData()[0] = nestHost;
     for(uint16_t i = 0; i < membersCount; i++) {
-        jclass clsMember = nestHostLoader->getNestMember(env->exec, i);
+        jclass clsMember = nestHost->getNestMember(env->exec, i);
         if(clsMember == NULL) return NULL;
         array->getData()[i + 1] = clsMember;
     }

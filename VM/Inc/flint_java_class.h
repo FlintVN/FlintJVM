@@ -15,6 +15,11 @@ public:
     bool isPrimitive(void) const;
     bool isArray(void) const;
 
+    JClass *getNestHost(class FExec *ctx);
+
+    uint16_t getNestMembersCount(void) const;
+    JClass *getNestMember(class FExec *ctx, uint16_t index);
+
     uint8_t componentSize() const;
 private:
     JClass(const char *typeName, ClassLoader *loader);

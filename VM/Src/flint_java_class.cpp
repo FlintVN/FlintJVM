@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include "flint_common.h"
+#include "flint_execution.h"
 #include "flint_java_class.h"
 
 JClass::JClass(const char *typeName, ClassLoader *loader) : JObject(sizeof(FieldsData), NULL) {
@@ -41,6 +42,19 @@ bool JClass::isPrimitive(void) const {
 bool JClass::isArray(void) const {
     const char *typeName = getTypeName();
     return typeName[0] == '[';
+}
+
+JClass *JClass::getNestHost(FExec *ctx) {
+    if(isArray() || isPrimitive()) return this;
+    return getClassLoader()->getNestHost(ctx);
+}
+
+uint16_t JClass::getNestMembersCount(void) const {
+    return getClassLoader()->getNestMembersCount();
+}
+
+JClass *JClass::getNestMember(FExec *ctx, uint16_t index) {
+    return getClassLoader()->getNestMember(ctx, index);
 }
 
 uint8_t JClass::componentSize() const {

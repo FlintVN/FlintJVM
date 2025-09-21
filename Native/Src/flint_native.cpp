@@ -14,20 +14,22 @@
 #include "flint_native_system.h"
 #include "flint_native_thread.h"
 #include "flint_native_character.h"
+#include "flint_native_reflection.h"
 #include "flint_native_print_stream.h"
 
 static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
-    NATIVE_CLASS("java/lang/Math",          mathMethods),
-    NATIVE_CLASS("java/lang/Class",         classMethods),
-    NATIVE_CLASS("java/lang/reflect/Array", arrayMethods),
-    NATIVE_CLASS("java/lang/Float",         floatMethods),
-    NATIVE_CLASS("java/lang/Double",        doubleMethods),
-    NATIVE_CLASS("java/lang/Object",        objectMethods),
-    NATIVE_CLASS("java/lang/String",        stringMethods),
-    NATIVE_CLASS("java/lang/System",        systemMethods),
-    NATIVE_CLASS("java/lang/Thread",        threadMethods),
-    NATIVE_CLASS("java/lang/Character",     characterMethods),
-    NATIVE_CLASS("java/io/PrintStream",     printStreamMethods),
+    NATIVE_CLASS("java/lang/Math",                  mathMethods),
+    NATIVE_CLASS("java/lang/Class",                 classMethods),
+    NATIVE_CLASS("java/lang/reflect/Array",         arrayMethods),
+    NATIVE_CLASS("java/lang/Float",                 floatMethods),
+    NATIVE_CLASS("java/lang/Double",                doubleMethods),
+    NATIVE_CLASS("java/lang/Object",                objectMethods),
+    NATIVE_CLASS("java/lang/String",                stringMethods),
+    NATIVE_CLASS("java/lang/System",                systemMethods),
+    NATIVE_CLASS("java/lang/Thread",                threadMethods),
+    NATIVE_CLASS("java/lang/Character",             characterMethods),
+    NATIVE_CLASS("java/io/PrintStream",             printStreamMethods),
+    NATIVE_CLASS("jdk/internal/reflect/Reflection", reflectionMethods),
 };
 
 JNMPtr NativeClass::findNativeMethod(MethodInfo *methodInfo) {
