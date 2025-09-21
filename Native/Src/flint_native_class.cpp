@@ -164,6 +164,27 @@ jclass nativeGetNestHost0(FNIEnv *env, jclass cls) {
     return cls->getClassLoader()->getNestHost(env->exec);
 }
 
+jobjectArray nativeGetNestMembers0(FNIEnv *env, jclass cls) {
+    jobjectArray array;
+    if(cls->isArray() || cls->isPrimitive()) {
+        array = env->newObjectArray(env->findClass("java/lang/Class"), 1);
+        if(array == NULL) return NULL;
+        array->getData()[0] = cls;
+        return array;
+    }
+    jclass nestHost = cls->getClassLoader()->getNestHost(env->exec);
+    ClassLoader *nestHostLoader = nestHost->getClassLoader();
+    uint16_t membersCount = nestHostLoader->getNestMembersCount();
+    array = env->newObjectArray(env->findClass("java/lang/Class"), membersCount + 1);
+    array->getData()[0] = nestHost;
+    for(uint16_t i = 0; i < membersCount; i++) {
+        jclass clsMember = nestHostLoader->getNestMember(env->exec, i);
+        if(clsMember == NULL) return NULL;
+        array->getData()[i + 1] = clsMember;
+    }
+    return array;
+}
+
 jbool nativeIsHidden(FNIEnv *env) {
     // TODO
     env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "isHidden is not implemented in VM");

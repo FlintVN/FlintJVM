@@ -17,6 +17,7 @@ jobjectArray nativeGetInterfaces0(FNIEnv *env, jclass cls);
 jclass nativeGetComponentType(FNIEnv *env, jclass cls);
 jint nativeGetModifiers(FNIEnv *env, jclass cls);
 jclass nativeGetNestHost0(FNIEnv *env, jclass cls);
+jobjectArray nativeGetNestMembers0(FNIEnv *env, jclass cls);
 jbool nativeIsHidden(FNIEnv *env);
 jobjectArray nativeGetDeclaredFields0(FNIEnv *env, jclass cls);
 jobjectArray nativeGetDeclaredMethods0(FNIEnv *env, jclass cls);
@@ -37,6 +38,7 @@ static constexpr NativeMethod classMethods[] = {
     NATIVE_METHOD("getComponentType",         "()Ljava/lang/Class;",                   nativeGetComponentType),
     NATIVE_METHOD("getModifiers",             "()I",                                   nativeGetModifiers),
     NATIVE_METHOD("getNestHost0",             "()Ljava/lang/Class;",                   nativeGetNestHost0),
+    NATIVE_METHOD("getNestMembers0",          "()[Ljava/lang/Class;",                  nativeGetNestMembers0),
     NATIVE_METHOD("isHidden",                 "()Z",                                   nativeIsHidden),
     NATIVE_METHOD("getDeclaredFields0",       "()[Ljava/lang/reflect/Field;",          nativeGetDeclaredFields0),
     NATIVE_METHOD("getDeclaredMethods0",      "()[Ljava/lang/reflect/Method;",         nativeGetDeclaredMethods0),
