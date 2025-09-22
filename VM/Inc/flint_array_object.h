@@ -16,6 +16,8 @@ private:
     JArray(void) = delete;
     JArray(const JArray &) = delete;
     void operator=(const JArray &) = delete;
+    FieldsData *getFields(void) = delete;
+    bool initFields(class FExec *ctx, class ClassLoader *loader) = delete;
 };
 
 class JInt8Array : public JArray {
