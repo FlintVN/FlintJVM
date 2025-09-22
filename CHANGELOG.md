@@ -1,4 +1,19 @@
 # Change Log
+## V2.0.0
+- There are almost no significant changes or additions in this update, but there are huge changes in the structure and usage of the system's API, making it easier to use and more friendly to developers.
+  - FlintConstUtf8 has been removed and only pure string (const char *) is used instead.
+  - The type of a java object is represented by JClass (which extends JObject) instead of simply FlintConstUtf8.
+  - The FlintError type has been removed in this version and all previous functions that used it have been modified to return only the expected data type along with an easier to use and more automatic exception throwing mechanism instead of having to include an error code.
+  - Change the way of writing for native java methods to be more friendly, easy to use, easy to understand and closer to a basic C/C++ function. The writer does not need to care about the java stack anymore, the input parameters of java will be passed as function parameters in C/C++ and the return values ​​just need to return like a normal C/C++ function.
+  - Added support Flint::newAscii method to create JString with input string format instead of just raw string.
+  - Added support FExec::throwNew and FExec::vThrowNew to make throwing exceptions easier.
+  - Changed the format for the debugger command making it incompatible with older versions. To use it, you need to update the FlintJVM Debug extension.
+  - Removed flint.drawing support (will be split into separate library in future).
+  - Updated Class.getModifiers should not return ACC_SUPER, ACC_SYNTHETIC and ACC_MODULE flags.
+  - Implement Class.getNestMembers0 native method.
+  - Implement Reflection.getCallerClass, Reflection.getClassAccessFlags and Reflection.areNestMates methods.
+  - Support for building with C++20.
+  - And there are many other changes that I may not remember.
 ## V1.1.7
 - Fixed bug in FExec::getOnwerThread function that did not return value.
 - Self-implemented mutex (No need to implement when porting).
