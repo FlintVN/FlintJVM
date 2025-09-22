@@ -173,7 +173,7 @@ bool FieldsData::initNonStatic(FExec *ctx, ClassLoader *loader) {
     return true;
 }
 
-Field32 *FieldsData::getField32(ConstField *field) {
+Field32 *FieldsData::getField32(ConstField *field) const {
     if(field->fieldIndex == 0 && fields32Count) {
         for(uint16_t i = 0; i < fields32Count; i++) {
             if(
@@ -190,7 +190,7 @@ Field32 *FieldsData::getField32(ConstField *field) {
     return &fields32[field->fieldIndex & 0x7FFFFFFF];
 }
 
-Field32 *FieldsData::getField32(const char *name) {
+Field32 *FieldsData::getField32(const char *name) const {
     if(fields32Count) {
         uint16_t hash = Hash(name);
         for(uint16_t i = 0; i < fields32Count; i++) {
@@ -202,11 +202,11 @@ Field32 *FieldsData::getField32(const char *name) {
     return NULL;
 }
 
-Field32 *FieldsData::getField32ByIndex(uint32_t index) {
+Field32 *FieldsData::getField32ByIndex(uint32_t index) const {
     return &fields32[index];
 }
 
-Field64 *FieldsData::getField64(ConstField *field) {
+Field64 *FieldsData::getField64(ConstField *field) const {
     if(field->fieldIndex == 0 && fields64Count) {
         for(uint16_t i = 0; i < fields64Count; i++) {
             if(
@@ -223,7 +223,7 @@ Field64 *FieldsData::getField64(ConstField *field) {
     return &fields64[field->fieldIndex & 0x7FFFFFFF];
 }
 
-Field64 *FieldsData::getField64(const char *name) {
+Field64 *FieldsData::getField64(const char *name) const {
     if(fields64Count) {
         uint16_t hash = Hash(name);
         for(uint16_t i = 0; i < fields64Count; i++) {
@@ -235,11 +235,11 @@ Field64 *FieldsData::getField64(const char *name) {
     return NULL;
 }
 
-Field64 *FieldsData::getField64ByIndex(uint32_t index) {
+Field64 *FieldsData::getField64ByIndex(uint32_t index) const {
     return &fields64[index];
 }
 
-FieldObj *FieldsData::getFieldObj(ConstField *field) {
+FieldObj *FieldsData::getFieldObj(ConstField *field) const {
     if(field->fieldIndex == 0 && fieldsObjCount) {
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
             if(
@@ -256,7 +256,7 @@ FieldObj *FieldsData::getFieldObj(ConstField *field) {
     return &fieldsObj[field->fieldIndex & 0x7FFFFFFF];
 }
 
-FieldObj *FieldsData::getFieldObj(const char *name) {
+FieldObj *FieldsData::getFieldObj(const char *name) const {
     if(fieldsObjCount) {
         uint16_t hash = Hash(name);
         for(uint16_t i = 0; i < fieldsObjCount; i++) {
@@ -268,7 +268,7 @@ FieldObj *FieldsData::getFieldObj(const char *name) {
     return NULL;
 }
 
-FieldObj *FieldsData::getFieldObjByIndex(uint32_t index) {
+FieldObj *FieldsData::getFieldObjByIndex(uint32_t index) const {
     return &fieldsObj[index];
 }
 

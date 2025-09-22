@@ -5,18 +5,18 @@
 #include "flint_java_class.h"
 
 JClass::JClass(const char *typeName, ClassLoader *loader) : JObject(sizeof(FieldsData), NULL) {
-    void **internalData = (void **)&getFields()[1];
+    void **internalData = (void **)&((FieldsData *)data)[1];
     internalData[0] = (void *)typeName;
     internalData[1] = (void *)loader;
 }
 
 const char *JClass::getTypeName(void) const {
-    void **internalData = (void **)&getFields()[1];
+    void **internalData = (void **)&((FieldsData *)data)[1];
     return (char *)internalData[0];
 }
 
 ClassLoader *JClass::getClassLoader(void) const {
-    void **internalData = (void **)&getFields()[1];
+    void **internalData = (void **)&((FieldsData *)data)[1];
     return (ClassLoader *)internalData[1];
 }
 

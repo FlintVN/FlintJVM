@@ -679,7 +679,7 @@ void Flint::clearMarkRecursion(JObject *obj) {
         }
     }
     else {
-        FieldsData *fieldData = obj->getFields();
+        FieldsData *fieldData = (FieldsData *)obj->data;
         for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
             JObject *tmp = fieldData->fieldsObj[i].value;
             if(tmp && (tmp->getProtected() & 0x01))
@@ -703,7 +703,7 @@ void Flint::markObjectRecursion(JObject *obj) {
         }
     }
     else {
-        FieldsData *fieldData = obj->getFields();
+        FieldsData *fieldData = (FieldsData *)obj->data;
         for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
             JObject *tmp = fieldData->fieldsObj[i].value;
             if(tmp && (tmp->getProtected() & 0x01) == 0)
@@ -798,8 +798,7 @@ void Flint::terminate(void) {
 
 void Flint::freeObject(JObject *obj) {
     objs.remove(obj);
-    if(obj->isArray() == false)
-        obj->getFields()->~FieldsData();
+    obj->~JObject();
     Flint::free(obj);
 }
 

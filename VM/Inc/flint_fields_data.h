@@ -52,17 +52,17 @@ private:
 public:
     FieldsData(void);
 
-    Field32 *getField32(ConstField *field);
-    Field32 *getField32(const char *name);
-    Field32 *getField32ByIndex(uint32_t index);
+    Field32 *getField32(ConstField *field) const;
+    Field32 *getField32(const char *name) const;
+    Field32 *getField32ByIndex(uint32_t index) const;
 
-    Field64 *getField64(ConstField *field);
-    Field64 *getField64(const char *name);
-    Field64 *getField64ByIndex(uint32_t index);
+    Field64 *getField64(ConstField *field) const;
+    Field64 *getField64(const char *name) const;
+    Field64 *getField64ByIndex(uint32_t index) const;
 
-    FieldObj *getFieldObj(ConstField *field);
-    FieldObj *getFieldObj(const char *name);
-    FieldObj *getFieldObjByIndex(uint32_t index);
+    FieldObj *getFieldObj(ConstField *field) const;
+    FieldObj *getFieldObj(const char *name) const;
+    FieldObj *getFieldObjByIndex(uint32_t index) const;
 
     bool init(class FExec *ctx, class ClassLoader *loader, bool isStatic);
 

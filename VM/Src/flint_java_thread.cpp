@@ -3,5 +3,5 @@
 #include "flint_fields_data.h"
 
 JObject *JThread::getTask(void) const {
-    return getFields()->getFieldObjByIndex(0)->value;
+    return getFieldObjByIndex(0)->value;
 }

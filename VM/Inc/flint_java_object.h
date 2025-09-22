@@ -21,8 +21,19 @@ protected:
 public:
     const char *getTypeName(void) const;
 
-    FieldsData *getFields(void) const;
     bool initFields(class FExec *ctx, class ClassLoader *loader);
+
+    Field32 *getField32(class FExec *ctx, ConstField *field) const;
+    Field32 *getField32(class FExec *ctx, const char *name) const;
+    Field32 *getField32ByIndex(uint32_t index) const;
+
+    Field64 *getField64(class FExec *ctx, ConstField *field) const;
+    Field64 *getField64(class FExec *ctx, const char *name) const;
+    Field64 *getField64ByIndex(uint32_t index) const;
+
+    FieldObj *getFieldObj(class FExec *ctx, ConstField *field) const;
+    FieldObj *getFieldObj(class FExec *ctx, const char *name) const;
+    FieldObj *getFieldObjByIndex(uint32_t index) const;
 
     void clearData(void);
 

@@ -107,7 +107,18 @@ public:
     uint16_t getNestMembersCount(void) const;
     JClass *getNestMember(FExec *ctx, uint16_t index);
 
-    FieldsData *getStaticFields(void) const;
+    Field32 *getStaticField32(class FExec *ctx, ConstField *field) const;
+    Field32 *getStaticField32(class FExec *ctx, const char *name) const;
+    Field32 *getStaticField32ByIndex(uint32_t index) const;
+
+    Field64 *getStaticField64(class FExec *ctx, ConstField *field) const;
+    Field64 *getStaticField64(class FExec *ctx, const char *name) const;
+    Field64 *getStaticField64ByIndex(uint32_t index) const;
+
+    FieldObj *getStaticFieldObj(class FExec *ctx, ConstField *field) const;
+    FieldObj *getStaticFieldObj(class FExec *ctx, const char *name) const;
+    FieldObj *getStaticFieldObjByIndex(uint32_t index) const;
+
     StaticInitStatus getStaticInitStatus(void) const;
     void staticInitialized(void);
     bool initStaticFields(FExec *ctx);

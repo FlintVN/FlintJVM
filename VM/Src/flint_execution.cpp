@@ -1511,39 +1511,26 @@ void FExec::exec(void) {
         }
         StaticInitStatus initStatus = clsLoader->getStaticInitStatus();
         if(initStatus == INITIALIZED || (initStatus == INITIALIZING && clsLoader->monitorOwnId == (uint32_t)this)) {
-            FieldsData *fields = clsLoader->getStaticFields();
             switch(constField->nameAndType->desc[0]) {
                 case 'J':
                 case 'D': {
-                    Field64 *fieldData = fields->getField64(constField);
-                    if(fieldData == NULL) {
-                        JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                        throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                        goto exception_handler;
-                    }
+                    Field64 *fieldData = clsLoader->getStaticField64(this, constField);
+                    if(fieldData == NULL) goto exception_handler;
                     stackPushInt64(fieldData->value);
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'L':
                 case '[': {
-                    FieldObj *fieldData = fields->getFieldObj(constField);
-                    if(fieldData == NULL) {
-                        JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                        throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                        goto exception_handler;
-                    }
+                    FieldObj *fieldData = clsLoader->getStaticFieldObj(this, constField);
+                    if(fieldData == NULL) goto exception_handler;
                     stackPushObject(fieldData->value);
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 default: {
-                    Field32 *fieldData = fields->getField32(constField);
-                    if(fieldData == NULL) {
-                        JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                        throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                        goto exception_handler;
-                    }
+                    Field32 *fieldData = clsLoader->getStaticField32(this, constField);
+                    if(fieldData == NULL) goto exception_handler;
                     stackPushInt32(fieldData->value);
                     pc += 3;
                     goto *opcodes[code[pc]];
@@ -1574,63 +1561,42 @@ void FExec::exec(void) {
         }
         StaticInitStatus initStatus = clsLoader->getStaticInitStatus();
         if(initStatus == INITIALIZED || (initStatus == INITIALIZING && clsLoader->monitorOwnId == (uint32_t)this)) {
-            FieldsData *fields = clsLoader->getStaticFields();
             switch(constField->nameAndType->desc[0]) {
                 case 'Z':
                 case 'B': {
-                    Field32 *fieldData = fields->getField32(constField);
-                    if(fieldData == NULL) {
-                        JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                        throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                        goto exception_handler;
-                    }
+                    Field32 *fieldData = clsLoader->getStaticField32(this, constField);
+                    if(fieldData == NULL) goto exception_handler;
                     fieldData->value = (int8_t)stackPopInt32();
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'C':
                 case 'S': {
-                    Field32 *fieldData = fields->getField32(constField);
-                    if(fieldData == NULL) {
-                        JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                        throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                        goto exception_handler;
-                    }
+                    Field32 *fieldData = clsLoader->getStaticField32(this, constField);
+                    if(fieldData == NULL) goto exception_handler;
                     fieldData->value = (int16_t)stackPopInt32();
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'J':
                 case 'D': {
-                    Field64 *fieldData = fields->getField64(constField);
-                    if(fieldData == NULL) {
-                        JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                        throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                        goto exception_handler;
-                    }
+                    Field64 *fieldData = clsLoader->getStaticField64(this, constField);
+                    if(fieldData == NULL) goto exception_handler;
                     fieldData->value = stackPopInt64();
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'L':
                 case '[': {
-                    FieldObj *fieldData = fields->getFieldObj(constField);
-                    if(fieldData == NULL) {
-                        JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                        throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                        goto exception_handler;
-                    }
+                    FieldObj *fieldData = clsLoader->getStaticFieldObj(this, constField);
+                    if(fieldData == NULL) goto exception_handler;
                     fieldData->value = stackPopObject();
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 default: {
-                    Field32 *fieldData = fields->getField32(constField);
-                    if(fieldData == NULL) {
-                        JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                        throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                        goto exception_handler;
-                    }
+                    Field32 *fieldData = clsLoader->getStaticField32(this, constField);
+                    if(fieldData == NULL) goto exception_handler;
                     fieldData->value = stackPopInt32();
                     pc += 3;
                     goto *opcodes[code[pc]];
@@ -1662,35 +1628,23 @@ void FExec::exec(void) {
         switch(constField->nameAndType->desc[0]) {
             case 'J':
             case 'D': {
-                Field64 *fieldData = obj->getFields()->getField64(constField);
-                if(fieldData == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                    throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                    goto exception_handler;
-                }
+                Field64 *fieldData = obj->getField64(this, constField);
+                if(fieldData == NULL) goto exception_handler;
                 stackPushInt64(fieldData->value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'L':
             case '[': {
-                FieldObj *fieldData = obj->getFields()->getFieldObj(constField);
-                if(fieldData == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                    throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                    goto exception_handler;
-                }
+                FieldObj *fieldData = obj->getFieldObj(this, constField);
+                if(fieldData == NULL) goto exception_handler;
                 stackPushObject(fieldData->value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             default: {
-                Field32 *fieldData = obj->getFields()->getField32(constField);
-                if(fieldData == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                    throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                    goto exception_handler;
-                }
+                Field32 *fieldData = obj->getField32(this, constField);
+                if(fieldData == NULL) goto exception_handler;
                 stackPushInt32(fieldData->value);
                 pc += 3;
                 goto *opcodes[code[pc]];
@@ -1710,12 +1664,8 @@ void FExec::exec(void) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                Field32 *fieldData = obj->getFields()->getField32(constField);
-                if(fieldData == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                    throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                    goto exception_handler;
-                }
+                Field32 *fieldData = obj->getField32(this, constField);
+                if(fieldData == NULL) goto exception_handler;
                 fieldData->value = (int8_t)value;
                 pc += 3;
                 goto *opcodes[code[pc]];
@@ -1729,12 +1679,8 @@ void FExec::exec(void) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                Field32 *fieldData = obj->getFields()->getField32(constField);
-                if(fieldData == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                    throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                    goto exception_handler;
-                }
+                Field32 *fieldData = obj->getField32(this, constField);
+                if(fieldData == NULL) goto exception_handler;
                 fieldData->value = (int16_t)value;
                 pc += 3;
                 goto *opcodes[code[pc]];
@@ -1748,12 +1694,8 @@ void FExec::exec(void) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                Field64 *fieldData = obj->getFields()->getField64(constField);
-                if(fieldData == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                    throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                    goto exception_handler;
-                }
+                Field64 *fieldData = obj->getField64(this, constField);
+                if(fieldData == NULL) goto exception_handler;
                 fieldData->value = value;
                 pc += 3;
                 goto *opcodes[code[pc]];
@@ -1767,12 +1709,8 @@ void FExec::exec(void) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                FieldObj *fieldData = obj->getFields()->getFieldObj(constField);
-                if(fieldData == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                    throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                    goto exception_handler;
-                }
+                FieldObj *fieldData = obj->getFieldObj(this, constField);
+                if(fieldData == NULL) goto exception_handler;
                 fieldData->value = value;
                 pc += 3;
                 goto *opcodes[code[pc]];
@@ -1785,12 +1723,8 @@ void FExec::exec(void) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                Field32 *fieldData = obj->getFields()->getField32(constField);
-                if(fieldData == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NoSuchFieldError");
-                    throwNew(excpCls, "Could not find the field %s.%s", constField->className, constField->nameAndType->name);
-                    goto exception_handler;
-                }
+                Field32 *fieldData = obj->getField32(this, constField);
+                if(fieldData == NULL) goto exception_handler;
                 fieldData->value = value;
                 pc += 3;
                 goto *opcodes[code[pc]];
