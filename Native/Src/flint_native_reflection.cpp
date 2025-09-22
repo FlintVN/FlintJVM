@@ -3,7 +3,7 @@
 #include "flint_native_reflection.h"
 
 jclass nativeGetCallerClass(FNIEnv *env) {
-    return env->exec->getCurrentClassLoader()->getThisClass(env->exec);
+    return env->exec->getCallerClass();
 }
 
 jint nativeGetClassAccessFlags(FNIEnv *env, jclass cls) {

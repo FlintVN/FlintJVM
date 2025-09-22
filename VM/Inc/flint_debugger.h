@@ -83,10 +83,10 @@ class StackFrame {
 public:
     const uint32_t pc;
     const uint32_t baseSp;
-    MethodInfo &method;
+    MethodInfo * const method;
 
     StackFrame(void);
-    StackFrame(uint32_t pc, uint32_t baseSp, MethodInfo &method);
+    StackFrame(uint32_t pc, uint32_t baseSp, MethodInfo *method);
 private:
     StackFrame(const StackFrame &) = delete;
     void operator=(const StackFrame &) = delete;

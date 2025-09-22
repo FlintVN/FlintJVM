@@ -87,7 +87,7 @@ JObject *FExec::stackPopObject(void) {
 
 bool FExec::getStackTrace(uint32_t index, StackFrame *stackTrace, bool *isEndStack) const {
     if(index == 0) {
-        new (stackTrace)StackFrame(pc, startSp, *method);
+        new (stackTrace)StackFrame(pc, startSp, method);
         if(isEndStack) *isEndStack = (startSp < 4);
         return true;
     }
@@ -100,7 +100,7 @@ bool FExec::getStackTrace(uint32_t index, StackFrame *stackTrace, bool *isEndSta
             if(traceSp < 4) return false;
         }
         uint32_t tracePc = stack[traceSp - 2];
-        MethodInfo &traceMethod = *(MethodInfo *)stack[traceSp - 3];
+        MethodInfo *traceMethod = (MethodInfo *)stack[traceSp - 3];
         traceSp = stack[traceSp];
         new (stackTrace)StackFrame(tracePc, traceSp, traceMethod);
         if(isEndStack) *isEndStack = (traceSp < 4);
@@ -2164,10 +2164,9 @@ bool FExec::run(MethodInfo *method, uint32_t argc, ...) {
     return false;
 }
 
-ClassLoader *FExec::getCurrentClassLoader(void) {
-    if(method != NULL)
-        return method->loader;
-    return NULL;
+JClass *FExec::getCallerClass(void) {
+    if(startSp < 4) return NULL;
+    return ((MethodInfo *)stack[startSp - 3])->loader->getThisClass(this);
 }
 
 void FExec::throwNew(JClass *cls, const char *msg, ...) {

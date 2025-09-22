@@ -14,11 +14,11 @@ BreakPoint::BreakPoint(uint8_t opcode, uint32_t pc, MethodInfo *method) : opcode
 
 }
 
-StackFrame::StackFrame(void) : pc(0), baseSp(0), method(*(MethodInfo *)0) {
+StackFrame::StackFrame(void) : pc(0), baseSp(0), method(NULL) {
 
 }
 
-StackFrame::StackFrame(uint32_t pc, uint32_t baseSp, MethodInfo &method) : pc(pc), baseSp(baseSp), method(method) {
+StackFrame::StackFrame(uint32_t pc, uint32_t baseSp, MethodInfo *method) : pc(pc), baseSp(baseSp), method(method) {
 
 }
 
@@ -192,9 +192,9 @@ void FDbg::responseStackTrace(uint32_t stackIndex) {
         StackFrame stackTrace;
         bool isEndStack = false;
         if(exec->getStackTrace(stackIndex, &stackTrace, &isEndStack)) {
-            const char *clsName = stackTrace.method.loader->getName();
-            const char *name = stackTrace.method.name;
-            const char *desc = stackTrace.method.desc;
+            const char *clsName = stackTrace.method->loader->getName();
+            const char *name = stackTrace.method->name;
+            const char *desc = stackTrace.method->desc;
 
             uint32_t responseSize = 8;
             responseSize += 2 + strlen(clsName) + 1;
@@ -968,14 +968,14 @@ bool FDbg::waitStop(FExec *exec) {
                 bool isStopped = false;
                 if(
                     (tmp & DBG_CONTROL_STEP_IN) &&
-                    (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= oldPc)
+                    (startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= oldPc)
                 ) {
                     isStopped = true;
                 }
                 else if(
                     (tmp & DBG_CONTROL_STEP_OVER) &&
                     (exec->startSp <= startPoint.baseSp) &&
-                    (&startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= oldPc)
+                    (startPoint.method != exec->method || (exec->pc - startPoint.pc) >= stepCodeLength || exec->pc <= oldPc)
                 ) {
                     isStopped = true;
                 }

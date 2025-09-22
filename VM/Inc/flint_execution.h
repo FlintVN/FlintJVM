@@ -68,7 +68,7 @@ private:
 public:
     bool run(MethodInfo *method, uint32_t argc = 0, ...);
 
-    ClassLoader *getCurrentClassLoader(void);
+    JClass *getCallerClass(void);
 
     void throwNew(JClass *cls, const char *msg = NULL, ...);
     void vThrowNew(JClass *cls, const char *msg, va_list args);
