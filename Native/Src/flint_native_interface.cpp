@@ -110,7 +110,8 @@ jdoubleArray FNIEnv::newDoubleArray(uint32_t count) {
 }
 
 jobjectArray FNIEnv::newObjectArray(jclass type, uint32_t count) {
-    jclass cls = Flint::findClassOfArray(exec, cls->getTypeName(), 1);
+    if(type == NULL) return NULL;
+    jclass cls = Flint::findClassOfArray(exec, type->getTypeName(), 1);
     jobjectArray ret = (jobjectArray)Flint::newArray(exec, cls, count);
     if(ret != NULL) ret->clearData();
     return ret;
