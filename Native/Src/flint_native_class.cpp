@@ -89,7 +89,7 @@ jclass nativeGetSuperclass(FNIEnv *env, jclass cls) {
 
 static jobjectArray getEmptyClassArray(FNIEnv *env) {
     jclass clsOfCls = Flint::getClassOfClass(env->exec);
-    FieldObj *field = clsOfCls->getFieldObj(env->exec, "EMPTY_CLASS_ARRAY");
+    FieldObj *field = clsOfCls->getClassLoader()->getStaticFieldObj(env->exec, "EMPTY_CLASS_ARRAY");
     if(field == NULL) return NULL;
     return (jobjectArray)field->value;
 }
