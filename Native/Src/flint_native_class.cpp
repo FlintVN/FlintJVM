@@ -168,8 +168,10 @@ jobjectArray nativeGetNestMembers0(FNIEnv *env, jclass cls) {
         return array;
     }
     jclass nestHost = cls->getNestHost(env->exec);
+    if(nestHost == NULL) return NULL;
     uint16_t membersCount = nestHost->getNestMembersCount();
     array = env->newObjectArray(env->findClass("java/lang/Class"), membersCount + 1);
+    if(array == NULL) return NULL;
     array->getData()[0] = nestHost;
     for(uint16_t i = 0; i < membersCount; i++) {
         jclass clsMember = nestHost->getNestMember(env->exec, i);
