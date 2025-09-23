@@ -79,7 +79,9 @@ jstring nativeInitClassName(FNIEnv *env, jclass cls) {
         name++;
     }
     buff[idx] = 0;
-    return Flint::getConstString(env->exec, buff);
+    jstring str = Flint::getConstString(env->exec, buff);
+    cls->getFieldObj(env->exec, "name")->value = str;
+    return str;
 }
 
 jclass nativeGetSuperclass(FNIEnv *env, jclass cls) {
