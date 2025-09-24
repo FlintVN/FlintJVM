@@ -1,4 +1,9 @@
 # Change Log
+## V2.0.1
+- Fix bug in FNIEnv::newObjectArray.
+- Fix Class.initClassName native method do not assign a value to Class.name.
+- Minor performance optimizations for invoke instructions.
+- Check static initialization before executing invokevirtual and invokeinterface instructions.
 ## V2.0.0
 - There are almost no significant changes or additions in this update, but there are huge changes in the structure and usage of the system's API, making it easier to use and more friendly to developers.
   - FlintConstUtf8 has been removed and only pure string (const char *) is used instead.
