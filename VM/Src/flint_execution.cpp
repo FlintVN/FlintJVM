@@ -335,12 +335,11 @@ void FExec::invokeStatic(ConstMethod *constMethod) {
         methodInfo = Flint::findMethod(this, Flint::findClass(this, constMethod->className), constMethod->nameAndType);
         if(methodInfo == NULL) return;
         constMethod->methodInfo = methodInfo;
+        if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
+            return invokeStaticCtor(methodInfo->loader);
     }
-    ClassLoader *loader = methodInfo->loader;
-    if(loader->hasStaticCtor() && loader->getStaticInitStatus() == UNINITIALIZED)
-        return invokeStaticCtor(loader);
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockClass(loader) ) {
+        if(lockClass(methodInfo->loader) == false) {
             FlintAPI::Thread::yield();
             return;
         }
@@ -356,10 +355,9 @@ void FExec::invokeSpecial(ConstMethod *constMethod) {
         methodInfo = Flint::findMethod(this, Flint::findClass(this, constMethod->className), constMethod->nameAndType);
         if(methodInfo == NULL) return;
         constMethod->methodInfo = methodInfo;
+        if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
+            return invokeStaticCtor(methodInfo->loader);
     }
-    ClassLoader *loader = methodInfo->loader;
-    if(loader->hasStaticCtor() && loader->getStaticInitStatus() == UNINITIALIZED)
-        return invokeStaticCtor(loader);
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
         if(lockObject((JObject *)stack[sp - argc - 1]) == false) {
             FlintAPI::Thread::yield();
@@ -385,10 +383,12 @@ void FExec::invokeVirtual(ConstMethod *constMethod) {
         objType = Flint::getClassOfClass(this);
         if(objType == NULL) return;
     }
-    if(methodInfo == NULL || (methodInfo->loader != objType->getClassLoader())) {
+    if(methodInfo == NULL || methodInfo->loader != objType->getClassLoader()) {
         methodInfo = Flint::findMethod(this, objType, constMethod->nameAndType);
         if(methodInfo == NULL) return;
         constMethod->methodInfo = methodInfo;
+        if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
+            return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
         if(lockObject(obj) == false) {
@@ -415,10 +415,12 @@ void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc)
         objType = Flint::getClassOfClass(this);
         if(objType == NULL) return;
     }
-    if(methodInfo == NULL || (methodInfo->loader != objType->getClassLoader())) {
+    if(methodInfo == NULL || methodInfo->loader != objType->getClassLoader()) {
         methodInfo = Flint::findMethod(this, objType, interfaceMethod->nameAndType);
         if(methodInfo == NULL) return;
         interfaceMethod->methodInfo = methodInfo;
+        if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
+            return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
         if(lockObject(obj) == false) {
@@ -459,7 +461,7 @@ void FExec::exec(void) {
     // TODO - Check execption
     const uint8_t *code = this->code;
 
-    if(method->loader->hasStaticCtor() && method->loader->getStaticInitStatus() == UNINITIALIZED) {
+    if(method->loader->getStaticInitStatus() == UNINITIALIZED) {
         invokeStaticCtor(method->loader);
         if(excp != NULL) goto exception_handler;
         code = this->code;

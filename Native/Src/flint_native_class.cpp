@@ -110,7 +110,7 @@ jobjectArray nativeGetInterfaces0(FNIEnv *env, jclass cls) {
         jclass ifaceCls = env->findClass(loader->getInterface(i));
         if(ifaceCls == NULL) { env->freeObject(clsArr); return NULL; }
     }
-    
+
     return clsArr;
 }
 

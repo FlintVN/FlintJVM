@@ -326,6 +326,8 @@ bool ClassLoader::load(FExec *ctx, FileHandle file) {
         else
             if(!FOffset(ctx, file, length)) return false;
     }
+    if(hasStaticCtor() == false)
+        staticInitialized();
     return true;
 }
 
@@ -744,16 +746,13 @@ FieldObj *ClassLoader::getStaticFieldObjByIndex(uint32_t index) const {
 }
 
 StaticInitStatus ClassLoader::getStaticInitStatus(void) const {
-    if(!(loaderFlags & FLAG_HAS_CLINIT))
+    if(loaderFlags & FLAG_STATIC_INIT)
         return INITIALIZED;
-    if(staticFields == NULL)
-        return UNINITIALIZED;
-    return (loaderFlags & FLAG_STATIC_INIT) ? INITIALIZED : INITIALIZING;
+    return (staticFields == NULL) ? UNINITIALIZED : INITIALIZING;
 }
 
 void ClassLoader::staticInitialized(void) {
-    if(staticFields != NULL)
-        loaderFlags |= FLAG_STATIC_INIT;
+    loaderFlags |= FLAG_STATIC_INIT;
 }
 
 bool ClassLoader::initStaticFields(FExec *ctx) {
