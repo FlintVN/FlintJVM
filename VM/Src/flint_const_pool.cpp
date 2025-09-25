@@ -3,7 +3,7 @@
 #include "flint_std.h"
 #include "flint_const_pool.h"
 
-static uint8_t parseArgc(const char *desc) {
+uint8_t parseArgc(const char *desc) {
     uint8_t argc = 0;
     while(*desc == '(')
         desc++;

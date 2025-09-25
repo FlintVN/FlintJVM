@@ -85,6 +85,14 @@ JObject *FExec::stackPopObject(void) {
     return (JObject *)stack[sp--];
 }
 
+int32_t FExec::getStackTrace(StackFrame *stackTrace, int32_t traceSp) const {
+    if(traceSp < 4) return -1;
+    uint32_t tracePc = stack[traceSp - 2];
+    MethodInfo *traceMethod = (MethodInfo *)stack[traceSp - 3];
+    new (stackTrace)StackFrame(tracePc, stack[traceSp], traceMethod);
+    return stack[traceSp];
+}
+
 bool FExec::getStackTrace(uint32_t index, StackFrame *stackTrace, bool *isEndStack) const {
     if(index == 0) {
         new (stackTrace)StackFrame(pc, startSp, method);
@@ -93,16 +101,12 @@ bool FExec::getStackTrace(uint32_t index, StackFrame *stackTrace, bool *isEndSta
     }
     else {
         int32_t traceSp = startSp;
-        if(traceSp < 4)
-            return false;
-        while(--index) {
-            traceSp = stack[traceSp];
-            if(traceSp < 4) return false;
-        }
-        uint32_t tracePc = stack[traceSp - 2];
-        MethodInfo *traceMethod = (MethodInfo *)stack[traceSp - 3];
-        traceSp = stack[traceSp];
-        new (stackTrace)StackFrame(tracePc, traceSp, traceMethod);
+        do {
+            traceSp = getStackTrace(stackTrace, traceSp);
+            if(traceSp < 0) return false;
+            /* Check if pc == -1 or not to skip exit point */
+            if(stackTrace->pc != 0xFFFFFFFF) index--;
+        } while(stackTrace->pc == 0xFFFFFFFF || index);
         if(isEndStack) *isEndStack = (traceSp < 4);
         return true;
     }
@@ -123,48 +127,34 @@ bool FExec::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t *value)
     return true;
 }
 
-void FExec::initNewContext(MethodInfo *methodInfo, uint16_t argc) {
-    uint16_t maxLocals = methodInfo->getMaxLocals();
-    uint16_t maxStack = methodInfo->getMaxStack();
-    if((sp + maxLocals + maxStack + 4) >= stackLength) {
-        throwNew(Flint::findClass(this, "java.lang.StackOverflowError"));
-        return;
+void FExec::stackPushArgs(uint32_t argc, va_list args) {
+    for(uint32_t i = 0; i < argc; i++) {
+        int32_t val = va_arg(args, int32_t);
+        if(Flint::isObject((void *)val)) stackPushObject((JObject *)val);
+        else stackPushInt32(val);
     }
+}
 
-    /* Save current context */
+void FExec::stackSaveContext(void) {
     stack[++sp] = (int32_t)method;
     stack[++sp] = pc;
     stack[++sp] = lr;
     stack[++sp] = startSp;
     startSp = sp;
-
-    method = methodInfo;
-    code = methodInfo->getCode();
-    if(code == NULL) {
-        throwNew(Flint::findClass(this, "java/lang/LinkageError"), methodInfo->loader->getName(), methodInfo->name);
-        return;
-    }
-    pc = 0;
-    locals = &stack[sp + 1];
-    for(uint32_t i = argc; i < maxLocals; i++) {
-        uint32_t index = sp + i + 1;
-        stack[index] = 0;
-    }
-    sp += maxLocals;
-    return;
-}
-
-void FExec::stackInitExitPoint(uint32_t exitPc) {
-    int32_t argc = sp + 1;
-    for(uint32_t i = 0; i < argc; i++)
-        SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
-    sp -= argc;
-    pc = lr = exitPc;
-    return initNewContext(method, argc);
 }
 
 void FExec::stackRestoreContext(void) {
-    if(method->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
+    sp = startSp;
+    startSp = stackPopInt32();
+    lr = stackPopInt32();
+    pc = stackPopInt32();
+    method = (MethodInfo *)stackPopInt32();
+    code = method->getCode();
+    locals = &stack[startSp + 1];
+}
+
+void FExec::restoreContext(void) {
+    if(method->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT) && pc != 0xFFFFFFFF) {
         if(method->accessFlag & METHOD_STATIC) {
             if(method->accessFlag & METHOD_CLINIT)
                 method->loader->staticInitialized();
@@ -173,13 +163,28 @@ void FExec::stackRestoreContext(void) {
         else
             unlockObject((JObject *)locals[0]);
     }
-    sp = startSp;
-    startSp = stackPopInt32();
-    lr = stackPopInt32();
-    pc = stackPopInt32();
-    method = (MethodInfo *)stackPopInt32();
-    code = method->getCode();
-    locals = &stack[startSp + 1];
+    stackRestoreContext();
+}
+
+void FExec::initNewContext(MethodInfo *methodInfo, uint16_t argc) {
+    uint16_t maxLocals = methodInfo->getMaxLocals();
+    method = methodInfo;
+    code = methodInfo->getCode();
+    if(code == NULL)
+        return throwNew(Flint::findClass(this, "java/lang/LinkageError"), methodInfo->loader->getName(), methodInfo->name);
+    pc = 0;
+    locals = &stack[sp + 1];
+    for(uint32_t i = argc; i < maxLocals; i++) {
+        uint32_t index = sp + i + 1;
+        stack[index] = 0;
+    }
+    sp += maxLocals;
+}
+
+void FExec::initExitPoint(MethodInfo *methodInfo) {
+    this->method = methodInfo;
+    this->pc = -1;
+    this->lr = methodInfo->getCodeLength();  /* OP_EXIT - Initialize exit point */
 }
 
 bool FExec::lockClass(ClassLoader *cls) {
@@ -323,10 +328,16 @@ void FExec::invoke(MethodInfo *methodInfo, uint8_t argc) {
         for(uint32_t i = 0; i < argc; i++)
             SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
         sp -= argc;
-        return initNewContext(methodInfo, argc);
+
+        uint16_t maxLocals = methodInfo->getMaxLocals();
+        if((sp + maxLocals + methodInfo->getMaxStack() + 4) >= stackLength)
+            return throwNew(Flint::findClass(this, "java/lang/StackOverflowError"));
+
+        stackSaveContext();
+        initNewContext(methodInfo, argc);
     }
     else
-        return invokeNativeMethod(methodInfo, argc);
+        invokeNativeMethod(methodInfo, argc);
 }
 
 void FExec::invokeStatic(ConstMethod *constMethod) {
@@ -457,8 +468,6 @@ void FExec::exec(void) {
     FDbg *dbg = Flint::getDebugger();
     opcodes = (const void ** volatile)opcodeLabels;
 
-    stackInitExitPoint(method->getCodeLength());
-    // TODO - Check execption
     const uint8_t *code = this->code;
 
     if(method->loader->getStaticInitStatus() == UNINITIALIZED) {
@@ -1472,7 +1481,7 @@ void FExec::exec(void) {
     op_ireturn:
     op_freturn: {
         int32_t retVal = stackPopInt32();
-        stackRestoreContext();
+        restoreContext();
         code = this->code;
         stackPushInt32(retVal);
         pc = lr;
@@ -1481,7 +1490,7 @@ void FExec::exec(void) {
     op_lreturn:
     op_dreturn: {
         int64_t retVal = stackPopInt64();
-        stackRestoreContext();
+        restoreContext();
         code = this->code;
         stackPushInt64(retVal);
         pc = lr;
@@ -1489,14 +1498,14 @@ void FExec::exec(void) {
     }
     op_areturn: {
         int32_t retVal = (int32_t)stackPopObject();
-        stackRestoreContext();
+        restoreContext();
         code = this->code;
         stackPushObject((JObject *)retVal);
         pc = lr;
         goto *opcodes[code[pc]];
     }
     op_return: {
-        stackRestoreContext();
+        restoreContext();
         code = this->code;
         peakSp = sp;
         pc = lr;
@@ -1843,8 +1852,7 @@ void FExec::exec(void) {
                     else {
                         JClass *catchType = traceMethod->loader->getConstClass(this, exception->catchType);
                         if(catchType == NULL) {
-                            while(startSp > traceStartSp)
-                                stackRestoreContext();
+                            while(startSp > traceStartSp) restoreContext();
                             code = this->code;
                             sp = startSp + traceMethod->getMaxLocals();
                             pc = exception->handlerPc;
@@ -1852,8 +1860,7 @@ void FExec::exec(void) {
                         }
                         isMatch = Flint::isInstanceof(this, obj, catchType);
                         if(isMatch == false && excp != obj) {
-                            while(startSp > traceStartSp)
-                                stackRestoreContext();
+                            while(startSp > traceStartSp) restoreContext();
                             code = this->code;
                             sp = startSp + traceMethod->getMaxLocals();
                             pc = exception->handlerPc;
@@ -1862,8 +1869,7 @@ void FExec::exec(void) {
                     }
                     if(isMatch) {
                         excp = NULL;
-                        while(startSp > traceStartSp)
-                            stackRestoreContext();
+                        while(startSp > traceStartSp) restoreContext();
                         code = this->code;
                         sp = startSp + traceMethod->getMaxLocals();
                         pc = exception->handlerPc;
@@ -2074,8 +2080,7 @@ void FExec::runTask(FExec *exec) {
             Flint::println(msg);
         }
     }
-    while(exec->startSp > 3)
-        exec->stackRestoreContext();
+    while(exec->startSp > 3) exec->restoreContext();
     exec->peakSp = -1;
     Flint::freeExecution(exec);
     FlintAPI::Thread::terminate(0);
@@ -2083,18 +2088,13 @@ void FExec::runTask(FExec *exec) {
 
 bool FExec::run(MethodInfo *method, uint32_t argc, ...) {
     if(!opcodes) {
-        this->method = method;
+        initExitPoint(method);
         if(argc > 0) {
             va_list args;
             va_start(args, argc);
-            for(uint32_t i = 0; i < argc; i++) {
-                int32_t val = va_arg(args, int32_t);
-                if(Flint::isObject((void *)val))
-                    stackPushObject((JObject *)val);
-                else
-                    stackPushInt32(val);
-            }
+            stackPushArgs(argc, args);
         }
+        invoke(method, argc);
         return (FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this) != 0);
     }
     return false;

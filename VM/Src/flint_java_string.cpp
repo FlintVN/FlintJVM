@@ -47,10 +47,14 @@ bool JString::setUtf8(FExec *ctx, const char *utf8) {
 }
 
 bool JString::setAscii(FExec *ctx, const char *format, va_list args) {
-    uint32_t strLen = vsnprintf(NULL, 0, format, args);
+    int32_t strLen = vsnprintf(NULL, 0, format, args);
     JByteArray *value = (JByteArray *)Flint::newArray(ctx, Flint::findClass(ctx, "[B"), strLen);
     if(value == NULL) return false;
-    vsnprintf((char *)value->getData(), strLen, format, args);
+    char *data = (char *)value->getData();
+    /* print starts from data - 1 to workaround losing the last character when buffer size equals the length of the string to print */
+    vsnprintf(data - 1, strLen + 1, format, args);
+    for(int32_t i = strLen - 1; i >= 0; i--) data[i] = data[i - 1];
+    data[-1] = 0;
     setValue(value);
     setCoder(0);
     setHash(0);

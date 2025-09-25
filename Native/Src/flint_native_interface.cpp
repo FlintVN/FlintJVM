@@ -3,6 +3,8 @@
 #include "flint.h"
 #include "flint_native_interface.h"
 
+extern uint8_t parseArgc(const char *desc);
+
 jlong::operator int64_t() const {
     uint64_t ret;
     ((uint32_t *)&ret)[0] = low;
@@ -115,6 +117,122 @@ jobjectArray FNIEnv::newObjectArray(jclass type, uint32_t count) {
     jobjectArray ret = (jobjectArray)Flint::newArray(exec, cls, count);
     if(ret != NULL) ret->clearData();
     return ret;
+}
+
+uint64_t FNIEnv::vCallMethod(jmethodId mtid, va_list args) {
+    if(mtid == NULL) return 0;
+    uint8_t argc = parseArgc(mtid->desc);
+    if(!(mtid->accessFlag & METHOD_STATIC)) argc++;
+
+    if(!(mtid->accessFlag & METHOD_NATIVE)) {
+        exec->stackSaveContext();
+        exec->initExitPoint(mtid);
+    }
+    exec->stackPushArgs(argc, args);
+    if(!(mtid->accessFlag & METHOD_STATIC)) {
+        jobject obj = (jobject)exec->stack[exec->sp - argc + 1];
+        if(obj == NULL) {
+            jclass excpCls = findClass("java/lang/NullPointerException");
+            throwNew(excpCls, "Can not invoke \"%s.%s\" by null object", mtid->loader->getName(), mtid->name);
+            return 0;
+        }
+        jclass cls = mtid->loader->getThisClass(exec);
+        if(cls == NULL) return 0;
+        if(!Flint::isInstanceof(exec, obj, cls)) {
+            jclass excpCls = findClass("java/lang/IncompatibleClassChangeError");
+            throwNew(excpCls, "object type %s cannot be used as the \"this\" parameter for the \"%s.%s\" method", obj->getTypeName(), mtid->loader->getName(), mtid->name);
+            return 0;
+        }
+    }
+    exec->invoke(mtid, argc);
+    if(exec->hasException()) return 0;
+    if(!(mtid->accessFlag & METHOD_NATIVE)) {
+        exec->exec();
+        if(exec->hasException() || exec->hasTerminateRequest()) return 0;
+    }
+    switch(mtid->getReturnType()[0]) {
+        case 'V':
+            exec->stackRestoreContext();
+            return 0;
+        case 'J':
+        case 'D': {
+            uint64_t ret = exec->stackPopInt64();
+            exec->stackRestoreContext();
+            return ret;
+        }
+        case 'L': {
+            JObject *ret = exec->stackPopObject();
+            exec->stackRestoreContext();
+            return (uint64_t)ret;
+        }
+        default: {
+            uint32_t ret = exec->stackPopInt32();
+            exec->stackRestoreContext();
+            return (uint64_t)ret;
+        }
+    }
+}
+
+jvoid FNIEnv::callVoidMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    vCallMethod(mtid, args);
+}
+
+jbool FNIEnv::callBoolMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return !!vCallMethod(mtid, args);
+}
+
+jbyte FNIEnv::callByteMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jbyte)vCallMethod(mtid, args);
+}
+
+jchar FNIEnv::callCharMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jchar)vCallMethod(mtid, args);
+}
+
+jshort FNIEnv::callShortMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jshort)vCallMethod(mtid, args);
+}
+
+jint FNIEnv::callIntMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jint)vCallMethod(mtid, args);
+}
+
+jlong FNIEnv::callLongMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return vCallMethod(mtid, args);
+}
+
+jfloat FNIEnv::callFloatMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    uint32_t ret = (uint32_t)vCallMethod(mtid, args);
+    return *(float *)&ret;
+}
+
+jdouble FNIEnv::callDoubleMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    uint64_t ret = vCallMethod(mtid, args);
+    return *(double *)&ret;
+}
+
+jobject FNIEnv::callObjectMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jobject)vCallMethod(mtid, args);
 }
 
 jvoid FNIEnv::throwNew(jclass cls, const char *msg, ...) {

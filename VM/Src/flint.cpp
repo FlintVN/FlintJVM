@@ -767,7 +767,7 @@ bool Flint::runToMain(const char *cls) {
     if(exec == NULL) return false;
     JClass *mainCls = Flint::findClass(NULL, cls);
     if(mainCls == NULL) return false;
-    return exec->run(mainCls->getClassLoader()->getMainMethodInfo(NULL));
+    return exec->run(mainCls->getClassLoader()->getMainMethodInfo(NULL), 1, NULL);
 }
 
 bool Flint::isRunning(void) {
