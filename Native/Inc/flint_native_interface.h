@@ -2,6 +2,7 @@
 #ifndef __FLINT_NATIVE_INTERFACE_H
 #define __FLINT_NATIVE_INTERFACE_H
 
+#include <cstdarg>
 #include "flint_std.h"
 
 typedef int32_t                     jbool;
@@ -74,6 +75,17 @@ public:
     virtual jdoubleArray newDoubleArray(uint32_t count);
     virtual jobjectArray newObjectArray(jclass type, uint32_t count);
 
+    virtual jvoid callVoidMethod(jmethodId mtid, ...);
+    virtual jbool callBoolMethod(jmethodId mtid, ...);
+    virtual jbyte callByteMethod(jmethodId mtid, ...);
+    virtual jchar callCharMethod(jmethodId mtid, ...);
+    virtual jshort callShortMethod(jmethodId mtid, ...);
+    virtual jint callIntMethod(jmethodId mtid, ...);
+    virtual jlong callLongMethod(jmethodId mtid, ...);
+    virtual jfloat callFloatMethod(jmethodId mtid, ...);
+    virtual jdouble callDoubleMethod(jmethodId mtid, ...);
+    virtual jobject callObjectMethod(jmethodId mtid, ...);
+
     virtual jvoid throwNew(jclass cls, const char *msg = NULL, ...);
 
 public: /* Do not publicize the functions below to users */
@@ -83,6 +95,8 @@ private:
     FNIEnv(class FExec *exec);
     FNIEnv(const FNIEnv &) = delete;
     void operator=(const FNIEnv &) = delete;
+
+    uint64_t vCallMethod(jmethodId mtid, va_list args);
 
     friend class FExec;
 };

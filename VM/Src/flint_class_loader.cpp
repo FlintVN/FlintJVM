@@ -584,6 +584,7 @@ JClass *ClassLoader::getThisClass(FExec *ctx) {
 }
 
 JClass *ClassLoader::getSuperClass(FExec *ctx) {
+    if(superClass == 0) return NULL;
     return getConstClass(ctx, superClass);
 }
 

@@ -3,6 +3,8 @@
 #include "flint.h"
 #include "flint_native_interface.h"
 
+extern uint8_t parseArgc(const char *desc);
+
 jlong::operator int64_t() const {
     uint64_t ret;
     ((uint32_t *)&ret)[0] = low;
@@ -115,6 +117,76 @@ jobjectArray FNIEnv::newObjectArray(jclass type, uint32_t count) {
     jobjectArray ret = (jobjectArray)Flint::newArray(exec, cls, count);
     if(ret != NULL) ret->clearData();
     return ret;
+}
+
+uint64_t FNIEnv::vCallMethod(jmethodId mtid, va_list args) {
+    if(mtid == NULL) return 0;
+    uint8_t argc = parseArgc(mtid->desc);
+    if(!(mtid->accessFlag & METHOD_STATIC)) argc++;
+    exec->stackPushArgs(argc, args);
+    return exec->callMethod(mtid, argc);
+}
+
+jvoid FNIEnv::callVoidMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    vCallMethod(mtid, args);
+}
+
+jbool FNIEnv::callBoolMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return !!vCallMethod(mtid, args);
+}
+
+jbyte FNIEnv::callByteMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jbyte)vCallMethod(mtid, args);
+}
+
+jchar FNIEnv::callCharMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jchar)vCallMethod(mtid, args);
+}
+
+jshort FNIEnv::callShortMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jshort)vCallMethod(mtid, args);
+}
+
+jint FNIEnv::callIntMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jint)vCallMethod(mtid, args);
+}
+
+jlong FNIEnv::callLongMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return vCallMethod(mtid, args);
+}
+
+jfloat FNIEnv::callFloatMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    uint32_t ret = (uint32_t)vCallMethod(mtid, args);
+    return *(float *)&ret;
+}
+
+jdouble FNIEnv::callDoubleMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    uint64_t ret = vCallMethod(mtid, args);
+    return *(double *)&ret;
+}
+
+jobject FNIEnv::callObjectMethod(jmethodId mtid, ...) {
+    va_list args;
+    va_start(args, mtid);
+    return (jobject)vCallMethod(mtid, args);
 }
 
 jvoid FNIEnv::throwNew(jclass cls, const char *msg, ...) {

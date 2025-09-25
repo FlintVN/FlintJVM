@@ -40,15 +40,19 @@ private:
     double stackPopDouble(void);
     JObject *stackPopObject(void);
 
-    void initNewContext(MethodInfo *methodInfo, uint16_t argc);
-    void stackInitExitPoint(uint32_t exitPc);
+    void stackPushArgs(uint32_t argc, va_list args);
+    void stackSaveContext(void);
     void stackRestoreContext(void);
+    void restoreContext(void);
+    void initNewContext(MethodInfo *methodInfo, uint16_t argc);
+    void initExitPoint(MethodInfo *methodInfo);
 
     bool lockClass(ClassLoader *cls);
     void unlockClass(ClassLoader *cls);
     bool lockObject(JObject *obj);
     void unlockObject(JObject *obj);
 
+    uint64_t callMethod(jmethodId mtid, uint8_t argc);
     void invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc);
     void invoke(MethodInfo *methodInfo, uint8_t argc);
     void invokeStatic(ConstMethod *constMethod);
@@ -57,9 +61,10 @@ private:
     void invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc);
     void invokeStaticCtor(ClassLoader *cls);
 
-    void exec(void);
+    void exec(bool initOpcodeLabels);
     void stopRequest(void);
     void terminateRequest(void);
+    int32_t getStackTrace(StackFrame *stackTrace, int32_t traceSp) const;
     bool getStackTrace(uint32_t index, StackFrame *stackTrace, bool *isEndStack) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t *value, bool *isObject) const;
     bool readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t *value) const;
@@ -83,6 +88,7 @@ private:
 
     friend class Flint;
     friend class FDbg;
+    friend class FNIEnv;
 };
 
 #endif /* __FLINT_EXECUTION_H */
