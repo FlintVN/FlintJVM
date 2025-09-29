@@ -29,6 +29,17 @@ typedef enum {
     INITIALIZED = 0x02,
 } StaticInitStatus;
 
+class BootstrapMethod {
+public:
+    const uint16_t bootstrapMethodRefIndex;
+    const uint16_t numBootstrapMethodArgs;
+    const uint16_t args[];
+private:
+    BootstrapMethod(void) = delete;
+    BootstrapMethod(const BootstrapMethod &) = delete;
+    void operator=(const BootstrapMethod &) = delete;
+};
+
 class ClassLoader : public DictNode {
 private:
     uint8_t loaderFlags;
@@ -44,6 +55,7 @@ private:
     uint16_t interfacesCount;
     uint16_t fieldsCount;
     uint16_t methodsCount;
+    uint16_t bootstrapMethodsCount;
     uint16_t nestHost;
     uint16_t nestMembersCount;
 
@@ -57,6 +69,7 @@ private:
     FieldInfo *fields;
     MethodInfo *methods;
     uint16_t *nestMembers;
+    BootstrapMethod **bootstrapMethods;
     FieldsData *staticFields;
 public:
     uint32_t getHashKey(void) const override;
@@ -78,6 +91,9 @@ public:
 
     JString *getConstString(FExec *ctx, uint16_t poolIndex);
     JClass *getConstClass(FExec *ctx, uint16_t poolIndex);
+
+    ConstMethodHandle *getConstMethodHandle(uint16_t poolIndex) const;
+    ConstInvokeDynamic *getConstInvokeDynamic(uint16_t poolIndex) const;
 
     ClassAccessFlag getAccessFlag(void) const;
 
@@ -106,6 +122,8 @@ public:
 
     uint16_t getNestMembersCount(void) const;
     JClass *getNestMember(FExec *ctx, uint16_t index);
+
+    BootstrapMethod *getBootstapMethod(uint16_t index);
 
     Field32 *getStaticField32(class FExec *ctx, ConstField *field) const;
     Field32 *getStaticField32(class FExec *ctx, const char *name) const;

@@ -100,6 +100,7 @@ ClassLoader::ClassLoader(void) : DictNode() {
     interfacesCount = 0;
     fieldsCount = 0;
     methodsCount = 0;
+    bootstrapMethodsCount = 0;
     nestHost = 0;
     nestMembersCount = 0;
     hash = 0;
@@ -110,6 +111,7 @@ ClassLoader::ClassLoader(void) : DictNode() {
     fields = NULL;
     methods = NULL;
     nestMembers = NULL;
+    bootstrapMethods = NULL;
     staticFields = NULL;
 }
 
@@ -197,11 +199,14 @@ bool ClassLoader::load(FExec *ctx, FileHandle file) {
                 *(uint32_t *)&poolTable[i].value = tmp;
                 break;
             }
-            case CONST_METHOD_HANDLE:
-                *(uint8_t *)&poolTable[i].tag |= 0x80;
-                if(!FReadUInt8(ctx, file, ((uint8_t *)&poolTable[i].value)[0])) return false;
-                if(!FReadUInt16(ctx, file, ((uint16_t *)&poolTable[i].value)[1])) return false;
+            case CONST_METHOD_HANDLE: {
+                uint8_t refKind;
+                uint16_t refIndex;
+                if(!FReadUInt8(ctx, file, refKind)) return false;
+                if(!FReadUInt16(ctx, file, refIndex)) return false;
+                new ((ConstMethodHandle *)&poolTable[i])ConstMethodHandle((ConstPoolTag)(tag | 0x80), (RefKind)refKind, refIndex);
                 break;
+            }
             default: {
                 if(ctx != NULL) {
                     JClass *excpCls = Flint::findClass(ctx, "java/lang/ClassFormatError");
@@ -322,6 +327,24 @@ bool ClassLoader::load(FExec *ctx, FileHandle file) {
                 nestMembers = (uint16_t *)Flint::malloc(ctx, nestMembersCount * sizeof(uint16_t));
             for(uint16_t i = 0; i < nestMembersCount; i++)
                 if(!FReadUInt16(ctx, file, nestMembers[i])) return false;
+        }
+        else if(strcmp(attrName, "BootstrapMethods") == 0) {
+            if(!FReadUInt16(ctx, file, bootstrapMethodsCount)) return false;
+            bootstrapMethods = (BootstrapMethod **)Flint::malloc(ctx, sizeof(BootstrapMethod *) * bootstrapMethodsCount);
+            if(bootstrapMethods == NULL) return false;
+            memset(bootstrapMethods, 0, bootstrapMethodsCount * sizeof(BootstrapMethod *));
+            for(uint16_t i = 0; i < bootstrapMethodsCount; i++) {
+                uint16_t bootstrapMethodRef;
+                uint16_t numBootstrapArgs;
+                if(!FReadUInt16(ctx, file, bootstrapMethodRef)) return false;
+                if(!FReadUInt16(ctx, file, numBootstrapArgs)) return false;
+                bootstrapMethods[i] = (BootstrapMethod *)Flint::malloc(ctx, sizeof(BootstrapMethod) + numBootstrapArgs * sizeof(uint16_t));
+                if(bootstrapMethods[i] == NULL) return false;
+                *(uint16_t *)&bootstrapMethods[i]->bootstrapMethodRefIndex = bootstrapMethodRef;
+                *(uint16_t *)&bootstrapMethods[i]->numBootstrapMethodArgs = numBootstrapArgs;
+                for(uint16_t j = 0; j < numBootstrapArgs; j++)
+                    if(!FReadUInt16(ctx, file, *(uint16_t *)&bootstrapMethods[i]->args[j])) return false;
+            }
         }
         else
             if(!FOffset(ctx, file, length)) return false;
@@ -497,7 +520,7 @@ ConstMethod *ClassLoader::getConstMethod(FExec *ctx, uint16_t poolIndex) {
             }
             new (tmp)ConstMethod(getConstClassName(classNameIndex), nameAndType);
             *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_METHOD;
+            *(uint8_t *)&poolTable[poolIndex].tag &= 0x7F;
         }
         Flint::unlock();
     }
@@ -505,30 +528,7 @@ ConstMethod *ClassLoader::getConstMethod(FExec *ctx, uint16_t poolIndex) {
 }
 
 ConstInterfaceMethod *ClassLoader::getConstInterfaceMethod(FExec *ctx, uint16_t poolIndex) {
-    poolIndex--;
-    if(poolTable[poolIndex].tag & 0x80) {
-        Flint::lock();
-        if(poolTable[poolIndex].tag & 0x80) {
-            uint16_t classNameIndex = ((uint16_t *)&poolTable[poolIndex].value)[0];
-            uint16_t nameAndTypeIndex = ((uint16_t *)&poolTable[poolIndex].value)[1];
-            ConstInterfaceMethod *tmp = (ConstInterfaceMethod *)Flint::malloc(ctx, sizeof(ConstInterfaceMethod));
-            if(tmp == NULL) {
-                Flint::unlock();
-                return NULL;
-            }
-            ConstNameAndType *nameAndType = getConstNameAndType(ctx, nameAndTypeIndex);
-            if(nameAndType == NULL) {
-                Flint::unlock();
-                Flint::free(tmp);
-                return NULL;
-            }
-            new (tmp)ConstInterfaceMethod(getConstClassName(classNameIndex), nameAndType);
-            *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
-            *(ConstPoolTag *)&poolTable[poolIndex].tag = CONST_INTERFACE_METHOD;
-        }
-        Flint::unlock();
-    }
-    return (ConstInterfaceMethod *)poolTable[poolIndex].value;
+    return (ConstInterfaceMethod *)getConstMethod(ctx, poolIndex);
 }
 
 JString *ClassLoader::getConstString(FExec *ctx, uint16_t poolIndex) {
@@ -564,6 +564,14 @@ JClass *ClassLoader::getConstClass(FExec *ctx, uint16_t poolIndex) {
         Flint::unlock();
     }
     return constCls->cls;
+}
+
+ConstMethodHandle *ClassLoader::getConstMethodHandle(uint16_t poolIndex) const {
+    return (ConstMethodHandle *)&poolTable[poolIndex - 1];
+}
+
+ConstInvokeDynamic *ClassLoader::getConstInvokeDynamic(uint16_t poolIndex) const {
+    return (ConstInvokeDynamic *)&poolTable[poolIndex - 1];
 }
 
 ClassAccessFlag ClassLoader::getAccessFlag(void) const {
@@ -687,6 +695,10 @@ JClass *ClassLoader::getNestMember(FExec *ctx, uint16_t index) {
     return getConstClass(ctx, nestMembers[index]);
 }
 
+BootstrapMethod *ClassLoader::getBootstapMethod(uint16_t index) {
+    return bootstrapMethods[index];
+}
+
 static void throwNoSuchFieldError(FExec *ctx, const char *clsName, const char *name) {
     JClass *excpCls = Flint::findClass(ctx, "java/lang/NoSuchFieldError");
     ctx->throwNew(excpCls, "Could not find the field %s.%s", clsName, name);
@@ -782,7 +794,6 @@ ClassLoader::~ClassLoader(void) {
                 case CONST_METHOD:
                 case CONST_INTERFACE_METHOD:
                 case CONST_NAME_AND_TYPE:
-                case CONST_INVOKE_DYNAMIC:
                     Flint::free((void *)poolTable[i].value);
                     break;
                 case CONST_LONG:
@@ -811,5 +822,10 @@ ClassLoader::~ClassLoader(void) {
     }
     if(nestMembersCount && nestMembers)
         Flint::free(nestMembers);
+    if(bootstrapMethods) {
+        for(uint16_t i = 0; i < bootstrapMethodsCount; i++)
+            Flint::free(bootstrapMethods[i]);
+        Flint::free(bootstrapMethods);
+    }
     clearStaticFields();
 }

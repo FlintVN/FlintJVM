@@ -58,3 +58,29 @@ className(className), nameAndType(nameAndType), methodInfo(NULL) {
 uint8_t ConstMethod::getArgc(void) const {
     return argc;
 }
+
+bool ConstInvokeDynamic::isLinked(void) const {
+    return (tag & 0x80) ? false : true;
+}
+
+void ConstInvokeDynamic::linkTo(JObject *obj) {
+    *(uint32_t *)&value = (uint32_t)obj;
+    *(ConstPoolTag *)&tag = CONST_INVOKE_DYNAMIC;
+}
+
+JObject *ConstInvokeDynamic::getCallSite(void) const {
+    return (JObject *)value;
+}
+
+uint16_t ConstInvokeDynamic::getBootstrapMethodAttrIndex(void) const {
+    return ((uint16_t *)&value)[0];
+}
+
+uint16_t ConstInvokeDynamic::getNameAndTypeIndex(void) const {
+    return ((uint16_t *)&value)[1];
+}
+
+ConstMethodHandle::ConstMethodHandle(ConstPoolTag tag, RefKind refKind, uint16_t refIndex) :
+tag(tag), refKind(refKind), refIndex(refIndex), value(NULL) {
+
+}

@@ -88,4 +88,44 @@ private:
 
 typedef ConstMethod ConstInterfaceMethod;
 
+class ConstInvokeDynamic : public ConstPool {
+public:
+    bool isLinked(void) const;
+    void linkTo(class JObject *obj);
+
+    class JObject *getCallSite(void) const;
+
+    uint16_t getBootstrapMethodAttrIndex(void) const;
+    uint16_t getNameAndTypeIndex(void) const;
+private:
+    ConstInvokeDynamic(const ConstInvokeDynamic &) = delete;
+    void operator=(const ConstInvokeDynamic &) = delete;
+};
+
+typedef enum : uint8_t {
+    REF_GETFIELD = 1,
+    REF_GETSTATIC = 2,
+    REF_PUTFIELD = 3,
+    REF_PUTSTATIC = 4,
+    REF_INVOKEVIRTUAL = 5,
+    REF_INVOKESTATIC = 6,
+    REF_INVOKESPECIAL = 7,
+    REF_NEWINVOKESPECIAL = 8,
+    REF_INVOKEINTERFACE = 9,
+} RefKind;
+
+class ConstMethodHandle {
+public:
+    const ConstPoolTag tag;
+    const RefKind refKind;
+    const uint16_t refIndex;
+    void * const value;
+private:
+    ConstMethodHandle(ConstPoolTag tag, RefKind refKind, uint16_t refIndex);
+    ConstMethodHandle(const ConstMethodHandle &) = delete;
+    void operator=(const ConstMethodHandle &) = delete;
+
+    friend class ClassLoader;
+};
+
 #endif /* __FLINT_CONST_POOL_H */
