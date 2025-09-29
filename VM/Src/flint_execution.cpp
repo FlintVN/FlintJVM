@@ -235,6 +235,71 @@ void FExec::unlockObject(JObject *obj) {
     Flint::unlock();
 }
 
+static bool checkInvokeArgs(FExec *ctx, JObject *obj, MethodInfo *methodInfo) {
+    if(obj == NULL) {
+        JClass *excpCls = Flint::findClass(ctx, "java/lang/NullPointerException");
+        ctx->throwNew(excpCls, "Can not invoke \"%s.%s\" by null object", methodInfo->loader->getName(), methodInfo->name);
+        return false;
+    }
+    JClass *cls = methodInfo->loader->getThisClass(ctx);
+    if(cls == NULL) return 0;
+    if(!Flint::isInstanceof(ctx, obj, cls)) {
+        JClass *excpCls = Flint::findClass(ctx, "java/lang/IncompatibleClassChangeError");
+        ctx->throwNew(excpCls, "object type %s cannot be used as the \"this\" parameter for the \"%s.%s\" method", obj->getTypeName(), methodInfo->loader->getName(), methodInfo->name);
+        return false;
+    }
+    return true;
+}
+
+uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
+    MethodAccessFlag flag = methodInfo->accessFlag;
+    if(!(flag & METHOD_NATIVE)) {
+        peakSp = sp + 4;
+        sp -= argc;
+        if(peakSp >= stackLength) {
+            throwNew(Flint::findClass(this, "java/lang/StackOverflowError"));
+            return 0;
+        }
+        memmove(&stack[sp + 1 + 4], &stack[sp + 1], argc * sizeof(uint32_t));
+        stackSaveContext();
+        sp += argc;
+        initExitPoint(methodInfo);
+    }
+    if(!(flag & METHOD_STATIC) && !checkInvokeArgs(this, (JObject *)stack[sp - argc + 1], methodInfo)) return 0;
+
+    /* Check and call static constructor if not INITIALIZED */
+    while(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED) {
+        invokeStaticCtor(methodInfo->loader);
+        exec();
+        if(hasException() || hasTerminateRequest()) return 0;
+    }
+
+    /* Lock Class/Object if method is SYNCHRONIZED */
+    if(flag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
+        if(flag & METHOD_NATIVE) while(lockClass(methodInfo->loader) == false)
+            FlintAPI::Thread::yield();
+        else while(lockObject((JObject *)stack[sp - argc - 1]) == false)
+            FlintAPI::Thread::yield();
+    }
+
+    invoke(methodInfo, argc);
+    if(hasException()) return 0;
+    if(!(flag & METHOD_NATIVE)) {
+        exec();
+        if(hasException() || hasTerminateRequest()) return 0;
+    }
+    uint64_t ret = 0;
+    switch(methodInfo->getReturnType()[0]) {
+        case 'V': break;
+        case 'J':
+        case 'D': ret = stackPopInt64(); break;
+        case 'L': ret = (uint64_t)stackPopObject(); break;
+        default: ret = stackPopInt32(); break;
+    }
+    if(!(flag & METHOD_NATIVE)) stackRestoreContext();
+    return ret;
+}
+
 template <typename T>
 static T callToNative(FNIEnv *env, T (*nmtptr)(FNIEnv *, ...), int32_t *args, uint8_t argc) {
     static constexpr const void *callWithArgs[] = {
@@ -325,14 +390,10 @@ void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
 void FExec::invoke(MethodInfo *methodInfo, uint8_t argc) {
     if(!(methodInfo->accessFlag & METHOD_NATIVE)) {
         peakSp = sp + 4;
-        for(uint32_t i = 0; i < argc; i++)
-            SET_STACK_VALUE(sp - i + 4, GET_STACK_VALUE(sp - i));
         sp -= argc;
-
-        uint16_t maxLocals = methodInfo->getMaxLocals();
-        if((sp + maxLocals + methodInfo->getMaxStack() + 4) >= stackLength)
+        if((sp + methodInfo->getMaxLocals() + methodInfo->getMaxStack() + 4) >= stackLength)
             return throwNew(Flint::findClass(this, "java/lang/StackOverflowError"));
-
+        memmove(&stack[sp + 1 + 4], &stack[sp + 1], argc * sizeof(uint32_t));
         stackSaveContext();
         initNewContext(methodInfo, argc);
     }
@@ -441,6 +502,79 @@ void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc)
     }
     lr = pc + 5;
     return invoke(methodInfo, argc);
+}
+
+void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
+    if(!constInvokeDynamic->isLinked()) {
+        ClassLoader *ld = method->loader;
+        BootstrapMethod *bootstapMethod = ld->getBootstapMethod(constInvokeDynamic->getBootstrapMethodAttrIndex());
+        ConstNameAndType *nameAndType = ld->getConstNameAndType(this, constInvokeDynamic->getNameAndTypeIndex());
+        if(nameAndType == NULL) return;
+
+        JString *name = Flint::newString(this, nameAndType->name);
+        if(name == NULL) return;
+    
+        ConstMethodHandle *methodHandle = ld->getConstMethodHandle(bootstapMethod->bootstrapMethodRefIndex);
+        ConstMethod *constMethod = ld->getConstMethod(this, methodHandle->refIndex);
+        if(constMethod == NULL) return;
+
+        MethodInfo *bootstapMethodInfo = constMethod->methodInfo;
+        if(bootstapMethodInfo == NULL) {
+            bootstapMethodInfo = Flint::findMethod(this, Flint::findClass(this, constMethod->className), constMethod->nameAndType);
+            if(bootstapMethodInfo == NULL) return;
+            constMethod->methodInfo = bootstapMethodInfo;
+        }
+
+        JClass *methodHandles = Flint::findClass(this, "java/lang/invoke/MethodHandles");
+        if(methodHandles == NULL) return;
+
+        MethodInfo *lookupMethod = methodHandles->getClassLoader()->getMethodInfo(this, "lookup", "()Ljava/lang/invoke/MethodHandles$Lookup;");
+        if(lookupMethod == NULL) return;
+
+        JObject *lookup = (JObject *)callMethod(lookupMethod, 0);
+        if(lookup == NULL) return;
+
+        stackPushObject(lookup);
+        stackPushObject(name);
+        stackPushObject(NULL); // TODO
+        for(uint8_t i = 0; i < bootstapMethod->numBootstrapMethodArgs; i++) {
+            stackPushObject(NULL); // TODO - Push Arg
+        }
+
+        uint64_t ret;
+        switch(methodHandle->refKind) {
+            case REF_GETFIELD:
+                break;
+            case REF_GETSTATIC:
+                break;
+            case REF_PUTFIELD:
+                break;
+            case REF_PUTSTATIC:
+                break;
+            case REF_INVOKEVIRTUAL:
+                break;
+            case REF_INVOKESTATIC: {
+                ret = callMethod(bootstapMethodInfo, constMethod->argc);
+                break;
+            }
+            case REF_INVOKESPECIAL:
+                break;
+            case REF_NEWINVOKESPECIAL:
+                break;
+            case REF_INVOKEINTERFACE:
+                break;
+        }
+        if(hasException()) return;
+        /* Link CallSite */
+        constInvokeDynamic->linkTo((JObject *)ret);
+    }
+    JObject *callSite = constInvokeDynamic->getCallSite();
+    JObject *target = callSite->getFieldObjByIndex(0)->value;
+    MethodInfo *methodInfo = target->type->getClassLoader()->getMethodInfo(this, "invoke", "([Ljava/lang/Object;)Ljava/lang/Object;");
+    if(methodInfo == NULL) return;
+    stackPushObject(target);    /* this */
+    stackPushObject(NULL);      /* args */
+    invoke(methodInfo, 0);
 }
 
 void FExec::invokeStaticCtor(ClassLoader *loader) {
@@ -1776,11 +1910,10 @@ void FExec::exec(void) {
         goto *opcodes[code[pc]];
     }
     op_invokedynamic: {
-        // TODO
-        // goto *opcodes[code[pc]];
-        JClass *excpCls = Flint::findClass(this, "java/lang/UnsupportedOperationException");
-        throwNew(excpCls, "Invokedynamic instructions are not supported");
-        goto exception_handler;
+        invokeDynamic(method->loader->getConstInvokeDynamic(ARRAY_TO_INT16(&code[pc + 1])));
+        if(excp != NULL) goto exception_handler;
+        code = this->code;
+        goto *opcodes[code[pc]];
     }
     op_new: {
         JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
@@ -1883,9 +2016,11 @@ void FExec::exec(void) {
                     dbg->caughtException(this);
                 return;
             }
-            traceMethod = (MethodInfo *)stack[traceStartSp - 3];
-            tracePc = stack[traceStartSp - 2];
-            traceStartSp = stack[traceStartSp];
+            do {
+                traceMethod = (MethodInfo *)stack[traceStartSp - 3];
+                tracePc = stack[traceStartSp - 2];
+                traceStartSp = stack[traceStartSp];
+            } while(tracePc == 0xFFFFFFFF);
         }
     }
     op_checkcast: {

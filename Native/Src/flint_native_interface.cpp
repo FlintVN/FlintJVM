@@ -123,54 +123,8 @@ uint64_t FNIEnv::vCallMethod(jmethodId mtid, va_list args) {
     if(mtid == NULL) return 0;
     uint8_t argc = parseArgc(mtid->desc);
     if(!(mtid->accessFlag & METHOD_STATIC)) argc++;
-
-    if(!(mtid->accessFlag & METHOD_NATIVE)) {
-        exec->stackSaveContext();
-        exec->initExitPoint(mtid);
-    }
     exec->stackPushArgs(argc, args);
-    if(!(mtid->accessFlag & METHOD_STATIC)) {
-        jobject obj = (jobject)exec->stack[exec->sp - argc + 1];
-        if(obj == NULL) {
-            jclass excpCls = findClass("java/lang/NullPointerException");
-            throwNew(excpCls, "Can not invoke \"%s.%s\" by null object", mtid->loader->getName(), mtid->name);
-            return 0;
-        }
-        jclass cls = mtid->loader->getThisClass(exec);
-        if(cls == NULL) return 0;
-        if(!Flint::isInstanceof(exec, obj, cls)) {
-            jclass excpCls = findClass("java/lang/IncompatibleClassChangeError");
-            throwNew(excpCls, "object type %s cannot be used as the \"this\" parameter for the \"%s.%s\" method", obj->getTypeName(), mtid->loader->getName(), mtid->name);
-            return 0;
-        }
-    }
-    exec->invoke(mtid, argc);
-    if(exec->hasException()) return 0;
-    if(!(mtid->accessFlag & METHOD_NATIVE)) {
-        exec->exec();
-        if(exec->hasException() || exec->hasTerminateRequest()) return 0;
-    }
-    switch(mtid->getReturnType()[0]) {
-        case 'V':
-            exec->stackRestoreContext();
-            return 0;
-        case 'J':
-        case 'D': {
-            uint64_t ret = exec->stackPopInt64();
-            exec->stackRestoreContext();
-            return ret;
-        }
-        case 'L': {
-            JObject *ret = exec->stackPopObject();
-            exec->stackRestoreContext();
-            return (uint64_t)ret;
-        }
-        default: {
-            uint32_t ret = exec->stackPopInt32();
-            exec->stackRestoreContext();
-            return (uint64_t)ret;
-        }
-    }
+    return exec->callMethod(mtid, argc);
 }
 
 jvoid FNIEnv::callVoidMethod(jmethodId mtid, ...) {

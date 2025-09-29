@@ -52,12 +52,14 @@ private:
     bool lockObject(JObject *obj);
     void unlockObject(JObject *obj);
 
+    uint64_t callMethod(jmethodId mtid, uint8_t argc);
     void invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc);
     void invoke(MethodInfo *methodInfo, uint8_t argc);
     void invokeStatic(ConstMethod *constMethod);
     void invokeSpecial(ConstMethod *constMethod);
     void invokeVirtual(ConstMethod *constMethod);
     void invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc);
+    void invokeDynamic(ConstInvokeDynamic *constInvokeDynamic);
     void invokeStaticCtor(ClassLoader *cls);
 
     void exec(void);
