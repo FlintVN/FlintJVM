@@ -62,7 +62,7 @@ private:
     void invokeDynamic(ConstInvokeDynamic *constInvokeDynamic);
     void invokeStaticCtor(ClassLoader *cls);
 
-    void exec(void);
+    void exec(bool initOpcodeLabels);
     void stopRequest(void);
     void terminateRequest(void);
     int32_t getStackTrace(StackFrame *stackTrace, int32_t traceSp) const;

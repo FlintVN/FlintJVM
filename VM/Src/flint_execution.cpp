@@ -267,13 +267,6 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
     }
     if(!(flag & METHOD_STATIC) && !checkInvokeArgs(this, (JObject *)stack[sp - argc + 1], methodInfo)) return 0;
 
-    /* Check and call static constructor if not INITIALIZED */
-    while(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED) {
-        invokeStaticCtor(methodInfo->loader);
-        exec();
-        if(hasException() || hasTerminateRequest()) return 0;
-    }
-
     /* Lock Class/Object if method is SYNCHRONIZED */
     if(flag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
         if(flag & METHOD_NATIVE) while(lockClass(methodInfo->loader) == false)
@@ -283,9 +276,9 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
     }
 
     invoke(methodInfo, argc);
-    if(hasException()) return 0;
+    if(hasException() || hasTerminateRequest()) return 0;
     if(!(flag & METHOD_NATIVE)) {
-        exec();
+        exec(false);
         if(hasException() || hasTerminateRequest()) return 0;
     }
     uint64_t ret = 0;
@@ -540,6 +533,8 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
         for(uint8_t i = 0; i < bootstapMethod->numBootstrapMethodArgs; i++) {
             stackPushObject(NULL); // TODO - Push Arg
         }
+        for(uint8_t i = 3 + bootstapMethod->numBootstrapMethodArgs; i < constMethod->argc; i++)
+            stackPushObject(NULL);
 
         uint64_t ret;
         switch(methodHandle->refKind) {
@@ -564,7 +559,7 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
             case REF_INVOKEINTERFACE:
                 break;
         }
-        if(hasException()) return;
+        if(hasException() || hasTerminateRequest()) return;
         /* Link CallSite */
         constInvokeDynamic->linkTo((JObject *)ret);
     }
@@ -593,14 +588,14 @@ void FExec::invokeStaticCtor(ClassLoader *loader) {
     return invoke(ctorMethod, 0);
 }
 
-void FExec::exec(void) {
+void FExec::exec(bool initOpcodeLabels) {
     #include "flint_instruction_label.h"
 
     ::opcodeLabelsStop = (const void **)opcodeLabelsStop;
     ::opcodeLabelsExit = (const void **)opcodeLabelsExit;
 
     FDbg *dbg = Flint::getDebugger();
-    opcodes = (const void ** volatile)opcodeLabels;
+    if(initOpcodeLabels) opcodes = (const void ** volatile)opcodeLabels;
 
     const uint8_t *code = this->code;
 
@@ -2198,7 +2193,7 @@ void FExec::exec(void) {
 }
 
 void FExec::runTask(FExec *exec) {
-    exec->exec();
+    exec->exec(true);
     if(exec->excp != NULL) {
         if(((uint32_t)exec->excp & 0x01) == 0) { /* Is throwable object */
             JString *str = exec->excp->getDetailMessage();

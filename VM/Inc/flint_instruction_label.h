@@ -83,5 +83,5 @@ static constexpr void *opcodeLabelsStop[256] = {
     &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop,
     &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop,
     &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop,
-    &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop,
+    &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&dbg_stop, &&op_exit,
 };
