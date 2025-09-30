@@ -506,32 +506,69 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
 
         JString *name = Flint::newString(this, nameAndType->name);
         if(name == NULL) return;
-    
+
+        JObject *type = Flint::newMethodType(this, nameAndType->desc);
+        if(type == NULL) { Flint::freeObject(name); return; }
+
         ConstMethodHandle *methodHandle = ld->getConstMethodHandle(bootstapMethod->bootstrapMethodRefIndex);
         ConstMethod *constMethod = ld->getConstMethod(this, methodHandle->refIndex);
-        if(constMethod == NULL) return;
+        if(constMethod == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
 
         MethodInfo *bootstapMethodInfo = constMethod->methodInfo;
         if(bootstapMethodInfo == NULL) {
             bootstapMethodInfo = Flint::findMethod(this, Flint::findClass(this, constMethod->className), constMethod->nameAndType);
-            if(bootstapMethodInfo == NULL) return;
+            if(bootstapMethodInfo == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
             constMethod->methodInfo = bootstapMethodInfo;
         }
 
         JClass *methodHandles = Flint::findClass(this, "java/lang/invoke/MethodHandles");
-        if(methodHandles == NULL) return;
+        if(methodHandles == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
 
         MethodInfo *lookupMethod = methodHandles->getClassLoader()->getMethodInfo(this, "lookup", "()Ljava/lang/invoke/MethodHandles$Lookup;");
-        if(lookupMethod == NULL) return;
+        if(lookupMethod == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
 
-        JObject *lookup = (JObject *)callMethod(lookupMethod, 0);
-        if(lookup == NULL) return;
+        JObject *caller = (JObject *)callMethod(lookupMethod, 0);
+        if(caller == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
 
-        stackPushObject(lookup);
+        stackPushObject(caller);
         stackPushObject(name);
-        stackPushObject(NULL); // TODO
+        stackPushObject(type);
         for(uint8_t i = 0; i < bootstapMethod->numBootstrapMethodArgs; i++) {
-            stackPushObject(NULL); // TODO - Push Arg
+            uint16_t poolIndex = bootstapMethod->args[i];
+            ConstPoolTag tag = ld->getConstPoolTag(poolIndex);
+            switch(tag) {
+                case CONST_INTEGER: stackPushInt32(ld->getConstInteger(poolIndex)); break;
+                case CONST_FLOAT: stackPushFloat(ld->getConstFloat(poolIndex)); break;
+                case CONST_LONG: stackPushInt64(ld->getConstLong(poolIndex)); break;
+                case CONST_DOUBLE: stackPushDouble(ld->getConstDouble(poolIndex)); break;
+                case CONST_CLASS: {
+                    JClass *cls = ld->getConstClass(this, poolIndex);
+                    if(cls == NULL) return;
+                    stackPushObject(cls);
+                    break;
+                }
+                case CONST_STRING: {
+                    JString *str = ld->getConstString(this, poolIndex);
+                    if(str == NULL) return;
+                    stackPushObject(str);
+                    break;
+                }
+                case CONST_METHOD_HANDLE:
+                    // TODO
+                    stackPushObject(NULL);
+                    break;
+                case CONST_METHOD_TYPE: {
+                    JObject *methodType = Flint::newMethodType(this, ld->getConstMethodType(poolIndex));
+                    if(methodType == NULL) return;
+                    stackPushObject(methodType);
+                    break;
+                }
+                default: {
+                    JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
+                    throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", tag, ld->getName());
+                    return;
+                }
+            }
         }
         for(uint8_t i = 3 + bootstapMethod->numBootstrapMethodArgs; i < constMethod->argc; i++)
             stackPushObject(NULL);

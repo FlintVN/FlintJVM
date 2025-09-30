@@ -199,28 +199,8 @@ static jclass getReturnType(FNIEnv *env, const char *mtDesc) {
     return env->findClass(txt, len);
 }
 
-static uint8_t getParameterCount(const char *mtDesc) {
-    uint8_t count = 0;
-    const char *txt = mtDesc;
-    while(*txt == '(') txt++;
-    while(*txt) {
-        if(*txt == ')') return count;
-        else if(*txt == '[') txt++;
-        else {
-            count++;
-            if(*txt++ == 'L') {
-                while(*txt) {
-                    if(*txt == ')') return count;
-                    else if(*txt == ';') { txt++; break; }
-                    txt++;
-                }
-            }
-        }
-    }
-    return count;
-}
-
 static jobjectArray getParameterTypes(FNIEnv *env, const char *mtDesc) {
+    extern uint8_t getParameterCount(const char *mtDesc);
     uint8_t count = getParameterCount(mtDesc);
     if(count == 0) return getEmptyClassArray(env);
     jobjectArray array = env->newObjectArray(Flint::getClassOfClass(env->exec), count);

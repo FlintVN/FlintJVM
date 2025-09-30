@@ -5,25 +5,16 @@
 
 uint8_t parseArgc(const char *desc) {
     uint8_t argc = 0;
-    while(*desc == '(')
-        desc++;
+    while(*desc == '(') desc++;
     while(*desc) {
-        if(*desc == ')')
-            return argc;
-        else if(*desc == '[')
-            desc++;
+        if(*desc == ')') return argc;
+        else if(*desc == '[') desc++;
         else {
             argc += (*desc == 'J' || *desc == 'D') ? 2 : 1;
-            if(*desc++ == 'L') {
-                while(*desc) {
-                    if(*desc == ')')
-                        return argc;
-                    else if(*desc == ';') {
-                        desc++;
-                        break;
-                    }
-                    desc++;
-                }
+            if(*desc++ == 'L') while(*desc) {
+                if(*desc == ')') return argc;
+                else if(*desc == ';') { desc++; break; }
+                desc++;
             }
         }
     }

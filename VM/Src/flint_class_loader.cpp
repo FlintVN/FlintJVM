@@ -566,6 +566,10 @@ JClass *ClassLoader::getConstClass(FExec *ctx, uint16_t poolIndex) {
     return constCls->cls;
 }
 
+const char *ClassLoader::getConstMethodType(uint16_t poolIndex) {
+    return getConstUtf8(poolTable[poolIndex - 1].value);
+}
+
 ConstMethodHandle *ClassLoader::getConstMethodHandle(uint16_t poolIndex) const {
     return (ConstMethodHandle *)&poolTable[poolIndex - 1];
 }

@@ -92,6 +92,7 @@ public:
     JString *getConstString(FExec *ctx, uint16_t poolIndex);
     JClass *getConstClass(FExec *ctx, uint16_t poolIndex);
 
+    const char *getConstMethodType(uint16_t poolIndex);
     ConstMethodHandle *getConstMethodHandle(uint16_t poolIndex) const;
     ConstInvokeDynamic *getConstInvokeDynamic(uint16_t poolIndex) const;
 

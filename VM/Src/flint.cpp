@@ -386,6 +386,94 @@ JString *Flint::newAscii(FExec *ctx, const char *format, va_list args) {
     return str;
 }
 
+uint8_t getParameterCount(const char *mtDesc) {
+    uint8_t count = 0;
+    const char *txt = mtDesc;
+    while(*txt == '(') txt++;
+    while(*txt) {
+        if(*txt == ')') return count;
+        else if(*txt == '[') txt++;
+        else {
+            count++;
+            if(*txt++ == 'L') while(*txt) {
+                if(*txt == ')') return count;
+                else if(*txt == ';') { txt++; break; }
+                txt++;
+            }
+        }
+    }
+    return count;
+}
+
+static JClass *findClassOrPrimitive(FExec *ctx, const char *desc, uint16_t length) {
+    if(length == 1) switch(desc[0]) {
+        case 'Z': return Flint::getPrimitiveClass(ctx, "boolean");
+        case 'C': return Flint::getPrimitiveClass(ctx, "char");
+        case 'F': return Flint::getPrimitiveClass(ctx, "float");
+        case 'D': return Flint::getPrimitiveClass(ctx, "double");
+        case 'B': return Flint::getPrimitiveClass(ctx, "byte");
+        case 'S': return Flint::getPrimitiveClass(ctx, "short");
+        case 'I': return Flint::getPrimitiveClass(ctx, "int");
+        case 'J': return Flint::getPrimitiveClass(ctx, "long");
+        case 'V': return Flint::getPrimitiveClass(ctx, "void");
+        default:
+            if(ctx != NULL)
+                ctx->throwNew(Flint::findClass(ctx, "java/lang/IllegalArgumentException"), "Type name is invalid");
+            return NULL;
+    }
+    if(desc[0] == 'L') {
+        desc++;
+        length--;
+        while(desc[length - 1] == ';') length--;
+    }
+    return Flint::findClass(ctx, desc, length);
+}
+
+JObject *Flint::newMethodType(FExec *ctx, const char *desc) {
+    /* Create ptypes */
+    const uint8_t argc = getParameterCount(desc);
+    JObjectArray *ptypes = (JObjectArray *)newArray(ctx, findClassOfArray(ctx, "java/lang/Class", 1), argc);
+    ptypes->clearArray();
+    while(*desc == '(') desc++;
+    for(uint8_t i = 0; i < argc; i++) {
+        const char *type = desc;
+        while(*desc == '[') desc++;
+        if(*desc++ == 'L') {
+            while(*desc) {
+                if(*desc == ')') break;
+                else if(*desc == ';') { desc++; break; }
+                else desc++;
+            }
+        }
+        uint16_t plen = (uint16_t)(desc - type);
+        JClass *ptype = findClassOrPrimitive(ctx, type, plen);
+        if(ptype == NULL) { freeObject(ptypes); return NULL; }
+        ptypes->getData()[i] = ptype;
+    }
+
+    /* create rtype */
+    while(*desc && *desc != ')') desc++;
+    desc++;
+    JClass *rtype = findClassOrPrimitive(ctx, desc, strlen(desc));
+    if(rtype == NULL) { freeObject(ptypes); return NULL; }
+
+    /* Create MethodType */
+    JObject *methodType = newObject(ctx, findClass(ctx, "java/lang/invoke/MethodType"));
+    if(methodType == NULL) { freeObject(ptypes); return NULL; }
+
+    /* Set value for ptypes */
+    FieldObj *ptypesField = methodType->getFieldObj(ctx, "ptypes");
+    if(ptypesField == NULL) { freeObject(ptypes); freeObject(methodType); return NULL; }
+    ptypesField->value = ptypes;
+
+    /* Set value for rtype */
+    FieldObj *rtypeField = methodType->getFieldObj(ctx, "rtype");
+    if(rtypeField == NULL) { freeObject(ptypes); freeObject(methodType); return NULL; }
+    rtypeField->value = rtype;
+
+    return methodType;
+}
+
 static bool verifyComponentType(FExec *ctx, const char *clsName, uint16_t length) {
     uint16_t start = 0;
     while(start < length && clsName[start] == '[') start++;

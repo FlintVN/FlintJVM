@@ -81,6 +81,8 @@ public:
     static JString *newAscii(FExec *ctx, const char *format, ...);
     static JString *newAscii(FExec *ctx, const char *format, va_list args);
 
+    static JObject *newMethodType(FExec *ctx, const char *desc);
+
     static void clearProtectLevel2(JObject *obj);
     static bool isObject(void *p);
     static void gc(void);
