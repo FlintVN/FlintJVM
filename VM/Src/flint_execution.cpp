@@ -55,7 +55,7 @@ void FExec::stackPushObject(JObject *obj) {
     stack[++sp] = (int32_t)obj;
     peakSp = sp;
     if(obj && (obj->getProtected() & 0x02))
-        obj->clearProtected();
+        Flint::clearProtLv2(obj);
 }
 
 int32_t FExec::stackPopInt32(void) {
@@ -365,7 +365,6 @@ void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
             sp = sp - argc;
             if(excp != NULL) return;
             stackPushObject(val);
-            Flint::clearProtectLevel2(val);
             pc = lr;
             return;
         }

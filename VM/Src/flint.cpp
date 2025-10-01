@@ -483,14 +483,14 @@ JMethodHandle *Flint::newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefK
 
     JMethodHandle *mth = (JMethodHandle *)Flint::malloc(ctx, JMethodHandle::size());
     if(mth == NULL) {
-        Flint::clearProtectLevel2(methodType);
+        Flint::clearProtLv2(methodType);
         Flint::freeObject(methodType);
         return NULL;
     }
     new (mth)JObject(sizeof(FieldsData), cls);
 
     if(mth->initFields(ctx, cls->getClassLoader()) == false) {
-        Flint::clearProtectLevel2(methodType);
+        Flint::clearProtLv2(methodType);
         Flint::freeObject(methodType);
         Flint::free(mth);
         return NULL;
@@ -774,12 +774,34 @@ JString *Flint::getConstString(FExec *ctx, JString *str) {
     return str;
 }
 
-void Flint::clearProtectLevel2(JObject *obj) {
+void Flint::clearProtLv2Recursion(JObject *obj) {
+    obj->setProtected();
+    const char *typeName = obj->getTypeName();
+    if(typeName[0] == '[') {
+        if(typeName[1] == '[' || typeName[1] == 'L') {
+            JObjectArray *array = (JObjectArray *)obj;
+            JObject **data = array->getData();
+            uint32_t count = array->getLength();
+            for(uint32_t i = 0; i < count; i++) {
+                if(data[i] && (data[i]->getProtected() & 0x01) == 0)
+                    clearProtLv2Recursion(data[i]);
+            }
+        }
+    }
+    else {
+        FieldsData *fieldData = (FieldsData *)obj->data;
+        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
+            JObject *tmp = fieldData->fieldsObj[i].value;
+            if(tmp && (tmp->getProtected() & 0x01) == 0)
+                clearProtLv2Recursion(tmp);
+        }
+    }
+    obj->clearProtected();
+}
+
+void Flint::clearProtLv2(JObject *obj) {
     lock();
-    /* This step to ensure all objects are cleared level 2 protection  */
-    markObjectRecursion(obj);
-    /* Final step to clear all the marks */
-    clearMarkRecursion(obj);
+    clearProtLv2Recursion(obj);
     unlock();
 }
 
