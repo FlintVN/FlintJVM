@@ -12,7 +12,7 @@ public:
     DictNode *right;
     uint32_t height;
 protected:
-    DictNode(void) : left(NULL), right(NULL), height(0) {
+    DictNode(void) : left(NULL), right(NULL), height(1) {
 
     }
 public:
@@ -76,7 +76,7 @@ private:
         if(!node)
             return node;
         updateHeight(node);
-        int balanceFactor = getBalance(node);
+        int32_t balanceFactor = getBalance(node);
         if(balanceFactor > 1) {
             if(getBalance(node->left) >= 0) return rotateRight(node);
             node->left = rotateLeft(node->left);
