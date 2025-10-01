@@ -55,7 +55,7 @@ void FExec::stackPushObject(JObject *obj) {
     stack[++sp] = (int32_t)obj;
     peakSp = sp;
     if(obj && (obj->getProtected() & 0x02))
-        obj->clearProtected();
+        Flint::clearProtLv2(obj);
 }
 
 int32_t FExec::stackPopInt32(void) {
@@ -365,7 +365,6 @@ void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
             sp = sp - argc;
             if(excp != NULL) return;
             stackPushObject(val);
-            Flint::clearProtectLevel2(val);
             pc = lr;
             return;
         }
@@ -2052,13 +2051,13 @@ void FExec::exec(bool initOpcodeLabels) {
     op_multianewarray: {
         JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t dimensions = code[pc + 3];
-        sp -= dimensions - 1;
         for(int32_t i = 0; i < dimensions; i++) {
             if(stack[sp + i] < 0)
                 goto negative_array_size_excp;
         }
-        JObject *array = Flint::newMultiArray(this, cls, &stack[sp], dimensions);
+        JObject *array = Flint::newMultiArray(this, cls, &stack[sp - dimensions + 1], dimensions);
         if(array == NULL) goto exception_handler;
+        sp -= dimensions;
         stackPushObject(array);
         pc += 4;
         goto *opcodes[code[pc]];

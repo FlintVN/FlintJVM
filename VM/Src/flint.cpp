@@ -215,7 +215,7 @@ const char *Flint::getArrayClassName(FExec *ctx, const char *clsName, uint8_t di
         if(utf8s.root == NULL) break;
         for(uint8_t i = 0; i < dimensions; i++) hash = Hash("[", 1, hash);
         if(isObjectType) hash = Hash("L", 1, hash);
-        hash = Hash(clsName, 0, hash);
+        hash = Hash(clsName, 0xFFFF, hash);
         if(isObjectType) hash = Hash(";", 1, hash);
         Utf8DictNode *node = (Utf8DictNode *)utf8s.root;
         while(node) {
@@ -340,29 +340,25 @@ JObject *Flint::newArray(FExec *ctx, JClass *type, uint32_t count) {
 JObject *Flint::newMultiArray(FExec *ctx, JClass *type, int32_t *counts, uint8_t depth) {
     JObject *array = newArray(ctx, type, *counts);
     if(array == NULL) return NULL;
+    array->clearData();
     const char *compTypeName = &type->getTypeName()[1];
     depth--;
     if(compTypeName[0] == '[' && depth > 0) {
-        uint32_t i, length = *counts;
+        uint32_t length = *counts;
         JObject **objData = ((JObjectArray *)array)->getData();
         JClass *compType = Flint::findClass(ctx, compTypeName);
         if(compType == NULL) { freeObject(array); return NULL; }
         counts++;
-        for(i = 0; i < length; i++) {
+        for(uint32_t i = 0; i < length; i++) {
             JObject *tmp = newMultiArray(ctx, compType, counts, depth);
             if(tmp == NULL) {
-                while(i > 0) {
-                    i--;
-                    freeObject(objData[i]);
-                }
+                while(i-- > 0) freeObject(objData[i]);
                 freeObject(array);
                 return NULL;
             }
             objData[i] = tmp;
         }
     }
-    else
-        array->clearData();
     return array;
 }
 
@@ -533,7 +529,7 @@ JClass *Flint::findClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensi
         bool isObjectType = !isPrimitiveTypes(clsName) && clsName[0] != '[';
         for(uint8_t i = 0; i < dimensions; i++) hash = Hash("[", 1, hash);
         if(isObjectType) hash = Hash("L", 1, hash);
-        hash = Hash(clsName, 0, hash);
+        hash = Hash(clsName, 0xFFFF, hash);
         if(isObjectType) hash = Hash(";", 1, hash);
         JClassDictNode *node = (JClassDictNode *)classes.root;
         while(node) {
@@ -655,12 +651,34 @@ JString *Flint::getConstString(FExec *ctx, JString *str) {
     return str;
 }
 
-void Flint::clearProtectLevel2(JObject *obj) {
+void Flint::clearProtLv2Recursion(JObject *obj) {
+    obj->setProtected();
+    const char *typeName = obj->getTypeName();
+    if(typeName[0] == '[') {
+        if(typeName[1] == '[' || typeName[1] == 'L') {
+            JObjectArray *array = (JObjectArray *)obj;
+            JObject **data = array->getData();
+            uint32_t count = array->getLength();
+            for(uint32_t i = 0; i < count; i++) {
+                if(data[i] && (data[i]->getProtected() & 0x01) == 0)
+                    clearProtLv2Recursion(data[i]);
+            }
+        }
+    }
+    else {
+        FieldsData *fieldData = (FieldsData *)obj->data;
+        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
+            JObject *tmp = fieldData->fieldsObj[i].value;
+            if(tmp && (tmp->getProtected() & 0x01) == 0)
+                clearProtLv2Recursion(tmp);
+        }
+    }
+    obj->clearProtected();
+}
+
+void Flint::clearProtLv2(JObject *obj) {
     lock();
-    /* This step to ensure all objects are cleared level 2 protection  */
-    markObjectRecursion(obj);
-    /* Final step to clear all the marks */
-    clearMarkRecursion(obj);
+    clearProtLv2Recursion(obj);
     unlock();
 }
 
