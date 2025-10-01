@@ -474,6 +474,37 @@ JObject *Flint::newMethodType(FExec *ctx, const char *desc) {
     return methodType;
 }
 
+JMethodHandle *Flint::newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefKind refKind) {
+    JClass *cls = findClass(ctx, "java/lang/invoke/MethodHandle");
+    if(cls == NULL) return NULL;
+
+    JObject *methodType = Flint::newMethodType(ctx, constMethod->nameAndType->desc);
+    if(methodType == NULL) return NULL;
+
+    JMethodHandle *mth = (JMethodHandle *)Flint::malloc(ctx, JMethodHandle::size());
+    if(mth == NULL) {
+        Flint::clearProtectLevel2(methodType);
+        Flint::freeObject(methodType);
+        return NULL;
+    }
+    new (mth)JObject(sizeof(FieldsData), cls);
+
+    if(mth->initFields(ctx, cls->getClassLoader()) == false) {
+        Flint::clearProtectLevel2(methodType);
+        Flint::freeObject(methodType);
+        Flint::free(mth);
+        return NULL;
+    }
+
+    mth->setMethodType(methodType);
+    mth->setConstMethod(constMethod);
+    mth->setRefKind(refKind);
+
+    objs.add(mth);
+
+    return mth;
+}
+
 static bool verifyComponentType(FExec *ctx, const char *clsName, uint16_t length) {
     uint16_t start = 0;
     while(start < length && clsName[start] == '[') start++;

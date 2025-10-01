@@ -553,10 +553,15 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
                     stackPushObject(str);
                     break;
                 }
-                case CONST_METHOD_HANDLE:
-                    // TODO
-                    stackPushObject(NULL);
+                case CONST_METHOD_HANDLE: {
+                    ConstMethodHandle *constMethodHandle = ld->getConstMethodHandle(poolIndex);
+                    ConstMethod *constMethod = ld->getConstMethod(this, constMethodHandle->refIndex);
+                    if(constMethod == NULL) return;
+                    JMethodHandle *methodHandle = Flint::newMethodHandle(this, constMethod, constMethodHandle->refKind);
+                    if(methodHandle == NULL) return;
+                    stackPushObject(methodHandle);
                     break;
+                }
                 case CONST_METHOD_TYPE: {
                     JObject *methodType = Flint::newMethodType(this, ld->getConstMethodType(poolIndex));
                     if(methodType == NULL) return;

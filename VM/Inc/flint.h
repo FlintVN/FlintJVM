@@ -12,6 +12,7 @@
 #include "flint_java_class.h"
 #include "flint_java_string.h"
 #include "flint_java_throwable.h"
+#include "flint_java_method_handle.h"
 #include "flint_class_loader.h"
 #include "flint_utf8_dict_node.h"
 #include "flint_java_class_dict_node.h"
@@ -82,6 +83,7 @@ public:
     static JString *newAscii(FExec *ctx, const char *format, va_list args);
 
     static JObject *newMethodType(FExec *ctx, const char *desc);
+    static JMethodHandle *newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefKind refKind);
 
     static void clearProtectLevel2(JObject *obj);
     static bool isObject(void *p);
