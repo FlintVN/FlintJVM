@@ -476,34 +476,18 @@ JObject *Flint::newMethodType(FExec *ctx, const char *desc) {
 }
 
 JMethodHandle *Flint::newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefKind refKind) {
-    JClass *cls = findClass(ctx, "java/lang/invoke/MethodHandle");
-    if(cls == NULL) return NULL;
+    JMethodHandle *mth = newMethodHandle(ctx);
+    if(mth == NULL) return NULL;
 
     JObject *methodType = Flint::newMethodType(ctx, constMethod->nameAndType->desc);
-    if(methodType == NULL) return NULL;
-
-    JMethodHandle *mth = (JMethodHandle *)Flint::malloc(ctx, JMethodHandle::size());
-    if(mth == NULL) {
-        Flint::clearProtLv2(methodType);
-        Flint::freeObject(methodType);
-        return NULL;
-    }
-    new (mth)JObject(sizeof(FieldsData), cls);
-
-    if(mth->initFields(ctx, cls->getClassLoader()) == false) {
-        Flint::clearProtLv2(methodType);
-        Flint::freeObject(methodType);
-        Flint::free(mth);
-        return NULL;
-    }
+    if(methodType == NULL) { freeObject(mth); return NULL; };
 
     mth->setMethodType(methodType);
-    mth->setConstMethod(constMethod);
-    mth->setRefKind(refKind);
 
-    lock();
-    objs.add(mth);
-    unlock();
+    const char *clsName = constMethod->className;
+    const char *name = constMethod->nameAndType->name;
+    const char *desc = constMethod->nameAndType->desc;
+    mth->setTarget(clsName, name, desc, refKind);
 
     return mth;
 }
@@ -605,6 +589,26 @@ JClass *Flint::newClassOfClass(FExec *ctx) {
     unlock();
 
     return cls;
+}
+
+JMethodHandle *Flint::newMethodHandle(FExec *ctx) {
+    JClass *cls = findClass(ctx, "java/lang/invoke/MethodHandle");
+    if(cls == NULL) return NULL;
+
+    JMethodHandle *mth = (JMethodHandle *)Flint::malloc(ctx, JMethodHandle::size());
+    if(mth == NULL) return NULL;
+    new (mth)JObject(sizeof(FieldsData), cls);
+
+    if(mth->initFields(ctx, cls->getClassLoader()) == false) {
+        Flint::free(mth);
+        return NULL;
+    }
+
+    lock();
+    objs.add(mth);
+    unlock();
+
+    return mth;
 }
 
 ClassLoader *Flint::findLoader(FExec *ctx, const char *clsName, uint16_t length) {
@@ -744,6 +748,26 @@ MethodInfo *Flint::findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAnd
     }
     if(ctx != NULL && !ctx->hasException())
         ctx->throwNew(Flint::findClass(ctx, "java/lang/NoSuchMethodError"), "%s.%s", cls->getTypeName(), nameAndType->name);
+    return NULL;
+}
+
+MethodInfo *Flint::findMethod(FExec *ctx, JClass *cls, const char *name, const char *desc) {
+    return findMethod(ctx, cls, name, 0xFFFF, desc, 0xFFFF);
+}
+
+MethodInfo *Flint::findMethod(FExec *ctx, JClass *cls, const char *name, uint16_t nameLen, const char *desc, uint16_t descLen) {
+    if(cls == NULL) return NULL;
+    ClassLoader *loader = cls->getClassLoader();
+    while(loader != NULL) {
+        MethodInfo *mtInfo = loader->getMethodInfo(ctx, name, nameLen, desc, descLen);
+        if(mtInfo != NULL) return mtInfo;
+        if(ctx->excp != NULL) return NULL;
+        JClass *super = loader->getSuperClass(ctx);
+        if(super == NULL) break;
+        loader = super->getClassLoader();
+    }
+    if(ctx != NULL && !ctx->hasException())
+        ctx->throwNew(Flint::findClass(ctx, "java/lang/NoSuchMethodError"), "%s.%.*s", cls->getTypeName(), strnlen(name, nameLen), name);
     return NULL;
 }
 

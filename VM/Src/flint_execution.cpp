@@ -322,7 +322,7 @@ static T callToNative(FNIEnv *env, T (*nmtptr)(FNIEnv *, ...), int32_t *args, ui
 
 void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
     JNMPtr nmtptr = (JNMPtr)methodInfo->getCode();
-    if(!nmtptr) {
+    if(nmtptr == NULL) {
         throwNew(Flint::findClass(this, "java/lang/LinkageError"), "%s.%s", methodInfo->loader->getName(), methodInfo->name);
         return;
     }
@@ -497,119 +497,159 @@ void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc)
 }
 
 void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
-    if(!constInvokeDynamic->isLinked()) {
-        ClassLoader *ld = method->loader;
-        BootstrapMethod *bootstapMethod = ld->getBootstapMethod(constInvokeDynamic->getBootstrapMethodAttrIndex());
-        ConstNameAndType *nameAndType = ld->getConstNameAndType(this, constInvokeDynamic->getNameAndTypeIndex());
-        if(nameAndType == NULL) return;
-
-        JString *name = Flint::newString(this, nameAndType->name);
-        if(name == NULL) return;
-
-        JObject *type = Flint::newMethodType(this, nameAndType->desc);
-        if(type == NULL) { Flint::freeObject(name); return; }
-
-        ConstMethodHandle *methodHandle = ld->getConstMethodHandle(bootstapMethod->bootstrapMethodRefIndex);
-        ConstMethod *constMethod = ld->getConstMethod(this, methodHandle->refIndex);
-        if(constMethod == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
-
-        MethodInfo *bootstapMethodInfo = constMethod->methodInfo;
-        if(bootstapMethodInfo == NULL) {
-            bootstapMethodInfo = Flint::findMethod(this, Flint::findClass(this, constMethod->className), constMethod->nameAndType);
-            if(bootstapMethodInfo == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
-            constMethod->methodInfo = bootstapMethodInfo;
-        }
-
-        JClass *methodHandles = Flint::findClass(this, "java/lang/invoke/MethodHandles");
-        if(methodHandles == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
-
-        MethodInfo *lookupMethod = methodHandles->getClassLoader()->getMethodInfo(this, "lookup", "()Ljava/lang/invoke/MethodHandles$Lookup;");
-        if(lookupMethod == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
-
-        JObject *caller = (JObject *)callMethod(lookupMethod, 0);
-        if(caller == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
-
-        stackPushObject(caller);
-        stackPushObject(name);
-        stackPushObject(type);
-        for(uint8_t i = 0; i < bootstapMethod->numBootstrapMethodArgs; i++) {
-            uint16_t poolIndex = bootstapMethod->args[i];
-            ConstPoolTag tag = ld->getConstPoolTag(poolIndex);
-            switch(tag) {
-                case CONST_INTEGER: stackPushInt32(ld->getConstInteger(poolIndex)); break;
-                case CONST_FLOAT: stackPushFloat(ld->getConstFloat(poolIndex)); break;
-                case CONST_LONG: stackPushInt64(ld->getConstLong(poolIndex)); break;
-                case CONST_DOUBLE: stackPushDouble(ld->getConstDouble(poolIndex)); break;
-                case CONST_CLASS: {
-                    JClass *cls = ld->getConstClass(this, poolIndex);
-                    if(cls == NULL) return;
-                    stackPushObject(cls);
-                    break;
-                }
-                case CONST_STRING: {
-                    JString *str = ld->getConstString(this, poolIndex);
-                    if(str == NULL) return;
-                    stackPushObject(str);
-                    break;
-                }
-                case CONST_METHOD_HANDLE: {
-                    ConstMethodHandle *constMethodHandle = ld->getConstMethodHandle(poolIndex);
-                    ConstMethod *constMethod = ld->getConstMethod(this, constMethodHandle->refIndex);
-                    if(constMethod == NULL) return;
-                    JMethodHandle *methodHandle = Flint::newMethodHandle(this, constMethod, constMethodHandle->refKind);
-                    if(methodHandle == NULL) return;
-                    stackPushObject(methodHandle);
-                    break;
-                }
-                case CONST_METHOD_TYPE: {
-                    JObject *methodType = Flint::newMethodType(this, ld->getConstMethodType(poolIndex));
-                    if(methodType == NULL) return;
-                    stackPushObject(methodType);
-                    break;
-                }
-                default: {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
-                    throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", tag, ld->getName());
-                    return;
-                }
-            }
-        }
-        for(uint8_t i = 3 + bootstapMethod->numBootstrapMethodArgs; i < constMethod->argc; i++)
-            stackPushObject(NULL);
-
-        uint64_t ret;
-        switch(methodHandle->refKind) {
-            case REF_GETFIELD:
-                break;
-            case REF_GETSTATIC:
-                break;
-            case REF_PUTFIELD:
-                break;
-            case REF_PUTSTATIC:
-                break;
-            case REF_INVOKEVIRTUAL:
-                break;
-            case REF_INVOKESTATIC: {
-                ret = callMethod(bootstapMethodInfo, constMethod->argc);
-                break;
-            }
-            case REF_INVOKESPECIAL:
-                break;
-            case REF_NEWINVOKESPECIAL:
-                break;
-            case REF_INVOKEINTERFACE:
-                break;
-        }
-        if(hasException() || hasTerminateRequest()) return;
-        /* Link CallSite */
-        constInvokeDynamic->linkTo((JObject *)ret);
-        Flint::makeToGlobal((JObject *)ret);
-    }
+    if(!constInvokeDynamic->isLinked())
+        invokeBootstapMethod(constInvokeDynamic);
     JObject *callSite = constInvokeDynamic->getCallSite();
     JMethodHandle *target = (JMethodHandle *)callSite->getFieldObjByIndex(0)->value;
-    stackPushObject(target);    /* this */
-    stackPushObject(NULL);      /* args */
-    invokeVirtual(target->getConstMethod());
+    switch(target->getRefKind()) {
+        case REF_GETFIELD:
+            // TODO
+            break;
+        case REF_GETSTATIC:
+            // TODO
+            break;
+        case REF_PUTFIELD:
+            // TODO
+            break;
+        case REF_PUTSTATIC:
+            // TODO
+            break;
+        case REF_INVOKEVIRTUAL:
+            // TODO
+            break;
+        case REF_INVOKESTATIC: {
+            MethodInfo *targetMI = target->getTargetMethod();
+            if(targetMI == NULL) {
+                targetMI = Flint::findMethod(this, Flint::findClass(this, target->getClassName()), target->getName(), target->getDesc());
+                if(targetMI == NULL) return;
+                target->setTargetMethod(targetMI);
+            }
+            invoke(targetMI, target->getArgc());
+        }
+        case REF_INVOKESPECIAL:
+            // TODO
+            break;
+        case REF_NEWINVOKESPECIAL:
+            // TODO
+            break;
+        case REF_INVOKEINTERFACE:
+            // TODO
+            break;
+    }
+}
+
+void FExec::invokeBootstapMethod(ConstInvokeDynamic *constInvokeDynamic) {
+    ClassLoader *ld = method->loader;
+    BootstrapMethod *bootstapMethod = ld->getBootstapMethod(constInvokeDynamic->getBootstrapMethodAttrIndex());
+    ConstNameAndType *nameAndType = ld->getConstNameAndType(this, constInvokeDynamic->getNameAndTypeIndex());
+    if(nameAndType == NULL) return;
+
+    JString *name = Flint::newString(this, nameAndType->name);
+    if(name == NULL) return;
+
+    JObject *type = Flint::newMethodType(this, nameAndType->desc);
+    if(type == NULL) { Flint::freeObject(name); return; }
+
+    ConstMethodHandle *bootstapMH = ld->getConstMethodHandle(bootstapMethod->bootstrapMethodRefIndex);
+    ConstMethod *bootstapCM = ld->getConstMethod(this, bootstapMH->refIndex);
+    if(bootstapCM == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
+
+    JClass *methodHandles = Flint::findClass(this, "java/lang/invoke/MethodHandles");
+    if(methodHandles == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
+
+    MethodInfo *lookupMethod = methodHandles->getClassLoader()->getMethodInfo(this, "lookup", "()Ljava/lang/invoke/MethodHandles$Lookup;");
+    if(lookupMethod == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
+
+    JObject *caller = (JObject *)callMethod(lookupMethod, 0);
+    if(caller == NULL) { Flint::freeObject(name); Flint::freeObject(type); return; }
+
+    stackPushObject(caller);
+    stackPushObject(name);
+    stackPushObject(type);
+    for(uint8_t i = 0; i < bootstapMethod->numBootstrapMethodArgs; i++) {
+        uint16_t poolIndex = bootstapMethod->args[i];
+        ConstPoolTag tag = ld->getConstPoolTag(poolIndex);
+        switch(tag) {
+            case CONST_INTEGER: stackPushInt32(ld->getConstInteger(poolIndex)); break;
+            case CONST_FLOAT: stackPushFloat(ld->getConstFloat(poolIndex)); break;
+            case CONST_LONG: stackPushInt64(ld->getConstLong(poolIndex)); break;
+            case CONST_DOUBLE: stackPushDouble(ld->getConstDouble(poolIndex)); break;
+            case CONST_CLASS: {
+                JClass *cls = ld->getConstClass(this, poolIndex);
+                if(cls == NULL) return;
+                stackPushObject(cls);
+                break;
+            }
+            case CONST_STRING: {
+                JString *str = ld->getConstString(this, poolIndex);
+                if(str == NULL) return;
+                stackPushObject(str);
+                break;
+            }
+            case CONST_METHOD_HANDLE: {
+                ConstMethodHandle *cmh = ld->getConstMethodHandle(poolIndex);
+                ConstMethod *cm = ld->getConstMethod(this, cmh->refIndex);
+                if(cm == NULL) return;
+                JMethodHandle *mh = Flint::newMethodHandle(this, cm, cmh->refKind);
+                if(mh == NULL) return;
+                stackPushObject(mh);
+                break;
+            }
+            case CONST_METHOD_TYPE: {
+                JObject *methodType = Flint::newMethodType(this, ld->getConstMethodType(poolIndex));
+                if(methodType == NULL) return;
+                stackPushObject(methodType);
+                break;
+            }
+            default: {
+                JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
+                throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", tag, ld->getName());
+                return;
+            }
+        }
+    }
+    for(uint8_t i = 3 + bootstapMethod->numBootstrapMethodArgs; i < bootstapCM->argc; i++)
+        stackPushObject(NULL);
+
+    uint64_t ret;
+    switch(bootstapMH->refKind) {
+        case REF_GETFIELD:
+            // TODO
+            break;
+        case REF_GETSTATIC:
+            // TODO
+            break;
+        case REF_PUTFIELD:
+            // TODO
+            break;
+        case REF_PUTSTATIC:
+            // TODO
+            break;
+        case REF_INVOKEVIRTUAL:
+            // TODO
+            break;
+        case REF_INVOKESTATIC: {
+            if(bootstapCM->methodInfo == NULL) {
+                bootstapCM->methodInfo = Flint::findMethod(this, Flint::findClass(this, bootstapCM->className), bootstapCM->nameAndType);
+                if(bootstapCM->methodInfo == NULL) return;
+            }
+            ret = callMethod(bootstapCM->methodInfo, bootstapCM->argc);
+            break;
+        }
+        case REF_INVOKESPECIAL:
+            // TODO
+            break;
+        case REF_NEWINVOKESPECIAL:
+            // TODO
+            break;
+        case REF_INVOKEINTERFACE:
+            // TODO
+            break;
+    }
+    if(hasException() || hasTerminateRequest()) return;
+    /* Link CallSite */
+    constInvokeDynamic->linkTo((JObject *)ret);
+    Flint::makeToGlobal((JObject *)ret);
 }
 
 void FExec::invokeStaticCtor(ClassLoader *loader) {

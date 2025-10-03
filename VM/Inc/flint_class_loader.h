@@ -114,6 +114,7 @@ public:
     MethodInfo *getMethodInfo(FExec *ctx, uint8_t methodIndex);
     MethodInfo *getMethodInfo(FExec *ctx, ConstNameAndType *nameAndType);
     MethodInfo *getMethodInfo(FExec *ctx, const char *name, const char *desc);
+    MethodInfo *getMethodInfo(FExec *ctx, const char *name, uint16_t nameLen, const char *desc, uint16_t descLen);
     MethodInfo *getMainMethodInfo(FExec *ctx);
     MethodInfo *getStaticCtor(FExec *ctx);
 

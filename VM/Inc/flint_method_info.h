@@ -55,7 +55,7 @@ typedef enum : uint16_t {
 
 class MethodInfo {
 public:
-    MethodAccessFlag accessFlag;
+    const MethodAccessFlag accessFlag;
     class ClassLoader * const loader;
     const char * const name;
     const char * const desc;

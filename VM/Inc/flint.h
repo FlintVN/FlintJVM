@@ -67,6 +67,8 @@ public:
     static JClass *getPrimitiveClass(FExec *ctx, const char *name, uint16_t length = 0xFFFF);
     static JClass *getClassOfClass(FExec *ctx);
     static MethodInfo *findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAndType);
+    static MethodInfo *findMethod(FExec *ctx, JClass *cls, const char *name, const char *desc);
+    static MethodInfo *findMethod(FExec *ctx, JClass *cls, const char *name, uint16_t nameLen, const char *desc, uint16_t descLen);
     static JString *getConstString(FExec *ctx, const char *utf8);
     static JString *getConstString(FExec *ctx, JString *str);
 
@@ -114,6 +116,7 @@ private:
     static JClass *newClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, uint8_t flag = 0x00);
     static JClass *newClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
     static JClass *newClassOfClass(FExec *ctx);
+    static JMethodHandle *newMethodHandle(FExec *ctx);
 private:
     Flint(void) = delete;
     Flint(const Flint &) = delete;

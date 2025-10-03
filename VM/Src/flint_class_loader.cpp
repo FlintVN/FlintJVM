@@ -636,7 +636,7 @@ MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, uint8_t methodIndex) {
             if(FClose(ctx, file) == false) { Flint::free(attrCode); Flint::unlock(); return NULL; }
 
             method->code = attrCode;
-            method->accessFlag = (MethodAccessFlag)(method->accessFlag & ~METHOD_UNLOADED);
+            *(MethodAccessFlag *)&method->accessFlag = (MethodAccessFlag)(method->accessFlag & ~METHOD_UNLOADED);
         }
         Flint::unlock();
     }
@@ -657,12 +657,16 @@ MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, ConstNameAndType *nameAndType
 }
 
 MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, const char *name, const char *desc) {
-    uint32_t hash = (Hash(name) & 0xFFFF) | (Hash(desc) << 16);
+    return getMethodInfo(ctx, name, 0xFFFF, desc, 0xFFFF);
+}
+
+MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, const char *name, uint16_t nameLen, const char *desc, uint16_t descLen) {
+    uint32_t hash = (Hash(name, nameLen) & 0xFFFF) | (Hash(desc, descLen) << 16);
     for(uint16_t i = 0; i < methodsCount; i++) {
         if(
             hash == methods[i].hash &&
-            strcmp(name, methods[i].name) == 0 &&
-            strcmp(desc, methods[i].desc) == 0
+            strncmp(name, methods[i].name, nameLen) == 0 &&
+            strncmp(desc, methods[i].desc, descLen) == 0
         ) {
             return getMethodInfo(ctx, i);
         }

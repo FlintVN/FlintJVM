@@ -60,6 +60,7 @@ private:
     void invokeVirtual(ConstMethod *constMethod);
     void invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc);
     void invokeDynamic(ConstInvokeDynamic *constInvokeDynamic);
+    void invokeBootstapMethod(ConstInvokeDynamic *constInvokeDynamic);
     void invokeStaticCtor(ClassLoader *cls);
 
     void exec(bool initOpcodeLabels);
