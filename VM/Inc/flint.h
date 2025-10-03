@@ -28,6 +28,7 @@ private:
     static FDict<JStringDictNode> constStr;
     static FList<FExec> execs;
     static FList<JObject> objs;
+    static FList<JObject> globalObjs;
 
     static JClass *classOfClass;
 
@@ -85,6 +86,7 @@ public:
     static JObject *newMethodType(FExec *ctx, const char *desc);
     static JMethodHandle *newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefKind refKind);
 
+    static void makeToGlobal(JObject *obj);
     static void clearProtLv2(JObject *obj);
     static bool isObject(void *p);
     static void gc(void);

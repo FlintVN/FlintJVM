@@ -14,6 +14,7 @@ FDict<Utf8DictNode> Flint::utf8s;
 FDict<JStringDictNode> Flint::constStr;
 FList<FExec> Flint::execs;
 FList<JObject> Flint::objs;
+FList<JObject> Flint::globalObjs;
 
 JClass *Flint::classOfClass = NULL;
 
@@ -297,10 +298,10 @@ FExec *Flint::newExecution(FExec *ctx, JThread *onwer, uint32_t stackSize) {
 }
 
 void Flint::freeExecution(FExec *exec) {
-    Flint::lock();
+    lock();
     execs.remove(exec);
     Flint::free(exec);
-    Flint::unlock();
+    unlock();
 }
 
 JObject *Flint::newObject(FExec *ctx, JClass *type) {
@@ -311,9 +312,9 @@ JObject *Flint::newObject(FExec *ctx, JClass *type) {
 
     if(newObj->initFields(ctx, type->getClassLoader()) == false) { Flint::free(newObj); return NULL; }
 
-    Flint::lock();
+    lock();
     objs.add(newObj);
-    Flint::unlock();
+    unlock();
 
     return newObj;
 }
@@ -330,9 +331,9 @@ JObject *Flint::newArray(FExec *ctx, JClass *type, uint32_t count) {
     if(newObj == NULL) return NULL;
     new (newObj)JObject(compSz * count, type);
 
-    Flint::lock();
+    lock();
     objs.add(newObj);
-    Flint::unlock();
+    unlock();
 
     return newObj;
 }
@@ -500,7 +501,9 @@ JMethodHandle *Flint::newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefK
     mth->setConstMethod(constMethod);
     mth->setRefKind(refKind);
 
+    lock();
     objs.add(mth);
+    unlock();
 
     return mth;
 }
@@ -574,7 +577,9 @@ JClass *Flint::newClass(FExec *ctx, const char *clsName, uint16_t length, uint8_
 
     if(cls->initFields(ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
 
-    objs.add(cls);
+    lock();
+    globalObjs.add(cls);
+    unlock();
 
     return cls;
 }
@@ -595,7 +600,9 @@ JClass *Flint::newClassOfClass(FExec *ctx) {
 
     if(cls->initFields(ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
 
-    objs.add(cls);
+    lock();
+    globalObjs.add(cls);
+    unlock();
 
     return cls;
 }
@@ -752,6 +759,8 @@ JString *Flint::getConstString(FExec *ctx, const char *utf8) {
     strNode = (JStringDictNode *)Flint::malloc(ctx, sizeof(JStringDictNode));
     if(strNode == NULL) { unlock(); freeObject(newStr); return NULL; }
     new (strNode)JStringDictNode(newStr);
+
+    globalObjs.add(newStr);
     constStr.add(strNode);
 
     unlock();
@@ -797,6 +806,12 @@ void Flint::clearProtLv2Recursion(JObject *obj) {
         }
     }
     obj->clearProtected();
+}
+
+void Flint::makeToGlobal(JObject *obj) {
+    lock();
+    globalObjs.add(obj);
+    unlock();
 }
 
 void Flint::clearProtLv2(JObject *obj) {
@@ -854,26 +869,17 @@ void Flint::markObjectRecursion(JObject *obj) {
 }
 
 bool Flint::isObject(void *p) {
-    if(!isHeapPointer(p) || objs.root == NULL) return false;
+    if(!isHeapPointer(p)) return false;
     JObject *obj = (JObject *)p;
-    if(obj->onwerList != (void *)&objs) return false;
-    if(obj->prev == NULL) return p == objs.root;
-    if(!isHeapPointer(obj->prev)) return false;
-    if(obj->prev->next != p) return false;
-    if(obj->next != NULL) {
-        if(!isHeapPointer(obj->next)) return false;
-        return obj->next->prev == p;
-    }
-    return true;
+    return objs.isContain(obj) || globalObjs.isContain(obj);
 }
 
 void Flint::gc(void) {
-    Flint::lock();
+    lock();
     objectCountToGc = 0;
-    constStr.forEach([](JStringDictNode *item) {
-        JString *str = item->getString();
-        if((str->getProtected() & 0x01) == 0)
-            markObjectRecursion(str);
+    globalObjs.forEach([](JObject *obj) {
+        if((obj->getProtected() & 0x01) == 0)
+            markObjectRecursion(obj);
     });
     execs.forEach([](FExec *exec) {
         if(exec->onwerThread && (exec->onwerThread->getProtected() & 0x01) == 0)
@@ -884,8 +890,8 @@ void Flint::gc(void) {
         int32_t endSp = (exec->sp > exec->peakSp) ? exec->sp : exec->peakSp;
         while(startSp >= 3) {
             for(int32_t i = startSp; i <= endSp; i++) {
-                if(isObject((void *)exec->stack[i])) {
-                    JObject *obj = (JObject *)exec->stack[i];
+                JObject *obj = (JObject *)exec->stack[i];
+                if(isHeapPointer(obj) && objs.isContain(obj)) {
                     if(obj && (obj->getProtected() & 0x01) == 0)
                         markObjectRecursion(obj);
                 }
@@ -896,11 +902,11 @@ void Flint::gc(void) {
     });
     objs.forEach([](JObject *obj) {
         uint8_t prot = obj->getProtected();
-        /* Free object if it is not marked and not a JClass */
-        if(prot == 0 && obj->type != NULL) freeObject(obj);
+        /* Free object if it is not marked */
+        if(prot == 0) freeObject(obj);
         else if(!(prot & 0x02)) obj->clearProtected();
     });
-    Flint::unlock();
+    unlock();
 }
 
 bool Flint::runToMain(const char *cls) {
@@ -916,19 +922,19 @@ bool Flint::isRunning(void) {
 }
 
 void Flint::stopRequest(void) {
-    Flint::lock();
+    lock();
     execs.forEach([](FExec *exec) {
         exec->stopRequest();
     });
-    Flint::unlock();
+    unlock();
 }
 
 void Flint::terminateRequest(void) {
-    Flint::lock();
+    lock();
     execs.forEach([](FExec *exec) {
         exec->terminateRequest();
     });
-    Flint::unlock();
+    unlock();
 }
 
 void Flint::terminate(void) {
@@ -938,21 +944,26 @@ void Flint::terminate(void) {
 }
 
 void Flint::freeObject(JObject *obj) {
-    objs.remove(obj);
+    lock();
+    if(objs.isContain(obj)) objs.remove(obj);
+    else globalObjs.remove(obj);
+    unlock();
     obj->~JObject();
     Flint::free(obj);
 }
 
 void Flint::freeAllObject(void) {
-    Flint::lock();
+    lock();
     classes.forEach([](JClassDictNode *item) { Flint::free(item); });
     classes.clear();
     constStr.forEach([](JStringDictNode *item) { Flint::free(item); });
     constStr.clear();
-    objs.forEach([](JObject *obj) { obj->~JObject(); Flint::free(obj); });
+    objs.forEach([](JObject *obj) { obj->onwerList = NULL; obj->~JObject(); Flint::free(obj); });
     objs.clear();
+    globalObjs.forEach([](JObject *obj) { obj->onwerList = NULL; obj->~JObject(); Flint::free(obj); });
+    globalObjs.clear();
     objectCountToGc = 0;
-    Flint::unlock();
+    unlock();
 }
 
 void Flint::clearAllStaticFields(void) {
@@ -963,31 +974,31 @@ void Flint::clearAllStaticFields(void) {
 }
 
 void Flint::freeAllExecution(void) {
-    Flint::lock();
+    lock();
     execs.forEach([](FExec *exec) {
         execs.remove(exec);
         Flint::free(exec);
     });
     execs.clear();
-    Flint::unlock();
+    unlock();
 }
 
 void Flint::freeAllClassLoader(void) {
-    Flint::lock();
+    lock();
     loaders.forEach([](ClassLoader *item) {
         item->~ClassLoader();
         Flint::free(item);
     });
     loaders.clear();
     classOfClass = NULL;
-    Flint::unlock();
+    unlock();
 }
 
 void Flint::freeAllConstUtf8(void) {
-    Flint::lock();
+    lock();
     utf8s.forEach([](Utf8DictNode *item) { Flint::free(item); });
     utf8s.clear();
-    Flint::unlock();
+    unlock();
 }
 
 void Flint::freeAll(void) {

@@ -603,14 +603,13 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
         if(hasException() || hasTerminateRequest()) return;
         /* Link CallSite */
         constInvokeDynamic->linkTo((JObject *)ret);
+        Flint::makeToGlobal((JObject *)ret);
     }
     JObject *callSite = constInvokeDynamic->getCallSite();
-    JObject *target = callSite->getFieldObjByIndex(0)->value;
-    MethodInfo *methodInfo = target->type->getClassLoader()->getMethodInfo(this, "invoke", "([Ljava/lang/Object;)Ljava/lang/Object;");
-    if(methodInfo == NULL) return;
+    JMethodHandle *target = (JMethodHandle *)callSite->getFieldObjByIndex(0)->value;
     stackPushObject(target);    /* this */
     stackPushObject(NULL);      /* args */
-    invoke(methodInfo, 0);
+    invokeVirtual(target->getConstMethod());
 }
 
 void FExec::invokeStaticCtor(ClassLoader *loader) {
@@ -2052,11 +2051,10 @@ void FExec::exec(bool initOpcodeLabels) {
                     dbg->caughtException(this);
                 return;
             }
-            do {
-                traceMethod = (MethodInfo *)stack[traceStartSp - 3];
-                tracePc = stack[traceStartSp - 2];
-                traceStartSp = stack[traceStartSp];
-            } while(tracePc == 0xFFFFFFFF);
+            traceMethod = (MethodInfo *)stack[traceStartSp - 3];
+            tracePc = stack[traceStartSp - 2];
+            traceStartSp = stack[traceStartSp];
+            if(tracePc == 0xFFFFFFFF) return;
         }
     }
     op_checkcast: {

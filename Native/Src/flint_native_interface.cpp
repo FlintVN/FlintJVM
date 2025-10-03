@@ -198,7 +198,5 @@ jvoid FNIEnv::throwNew(jclass cls, const char *msg, ...) {
 jvoid FNIEnv::freeObject(jobject obj) {
     /* Do not free if obj is an instance of jclass */
     if(obj == NULL || obj->type == NULL) return;
-    Flint::lock();
     Flint::freeObject(obj);
-    Flint::unlock();
 }
