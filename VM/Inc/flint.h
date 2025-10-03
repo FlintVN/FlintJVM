@@ -27,6 +27,7 @@ private:
     static FDict<JStringDictNode> constStr;
     static FList<FExec> execs;
     static FList<JObject> objs;
+    static FList<JObject> globalObjs;
 
     static JClass *classOfClass;
 
@@ -81,6 +82,7 @@ public:
     static JString *newAscii(FExec *ctx, const char *format, ...);
     static JString *newAscii(FExec *ctx, const char *format, va_list args);
 
+    static void makeToGlobal(JObject *obj);
     static void clearProtLv2(JObject *obj);
     static bool isObject(void *p);
     static void gc(void);

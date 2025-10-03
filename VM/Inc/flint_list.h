@@ -29,6 +29,8 @@ public:
     }
 
     void add(T *node) {
+        if(node->onwerList != NULL)
+            ((FList<T> *)node->onwerList)->remove(node);
         node->onwerList = (void *)this;
         node->prev = NULL;
         node->next = root;
@@ -51,6 +53,10 @@ public:
         node->onwerList = NULL;
         node->prev = NULL;
         node->next = NULL;
+    }
+
+    bool isContain(T *node) {
+        return (node->onwerList == (void *)this) && (root != NULL);
     }
 
     void forEach(void (*func)(T *item)) {
