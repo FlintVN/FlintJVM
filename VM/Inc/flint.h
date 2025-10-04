@@ -86,6 +86,7 @@ public:
     static JString *newAscii(FExec *ctx, const char *format, va_list args);
 
     static JObject *newMethodType(FExec *ctx, const char *desc);
+    static JMethodHandle *newMethodHandle(FExec *ctx, MethodInfo *methodInfo);
     static JMethodHandle *newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefKind refKind);
 
     static void makeToGlobal(JObject *obj);

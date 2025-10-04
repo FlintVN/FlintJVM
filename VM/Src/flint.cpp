@@ -475,6 +475,24 @@ JObject *Flint::newMethodType(FExec *ctx, const char *desc) {
     return methodType;
 }
 
+JMethodHandle *Flint::newMethodHandle(FExec *ctx, MethodInfo *methodInfo) {
+    JMethodHandle *mth = newMethodHandle(ctx);
+    if(mth == NULL) return NULL;
+
+    JObject *methodType = Flint::newMethodType(ctx, methodInfo->desc);
+    if(methodType == NULL) { freeObject(mth); return NULL; };
+
+    mth->setMethodType(methodType);
+
+    const char *clsName = methodInfo->loader->getName();
+    const char *name = methodInfo->name;
+    const char *desc = methodInfo->desc;
+    RefKind refKind = (methodInfo->accessFlag & METHOD_STATIC) ? REF_INVOKESTATIC : REF_INVOKEVIRTUAL;
+    mth->setTarget(clsName, name, desc, refKind);
+
+    return mth;
+}
+
 JMethodHandle *Flint::newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefKind refKind) {
     JMethodHandle *mth = newMethodHandle(ctx);
     if(mth == NULL) return NULL;

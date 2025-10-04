@@ -59,6 +59,9 @@ public:
     virtual jvoid print(jstring str) const;
 
     virtual jclass findClass(const char *name, uint16_t length = 0xFFFF);
+    virtual jmethodId findConstructor(jclass cls, const char *desc, uint16_t length = 0xFFFF);
+    virtual jmethodId findMethod(jclass cls, const char *name, const char *desc);
+    virtual jmethodId findMethod(jclass cls, const char *name, uint16_t nameLen, const char *desc, uint16_t descLen);
 
     virtual jbool isInstanceof(jobject obj, jclass type);
     virtual jbool isAssignableFrom(jclass fromType, jclass toType);

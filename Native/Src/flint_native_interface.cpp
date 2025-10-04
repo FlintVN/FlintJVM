@@ -3,8 +3,6 @@
 #include "flint.h"
 #include "flint_native_interface.h"
 
-extern uint8_t parseArgc(const char *desc);
-
 jlong::operator int64_t() const {
     uint64_t ret;
     ((uint32_t *)&ret)[0] = low;
@@ -43,6 +41,18 @@ jvoid FNIEnv::print(jstring str) const {
 
 jclass FNIEnv::findClass(const char *name, uint16_t length) {
     return Flint::findClass(exec, name, length, true);
+}
+
+jmethodId FNIEnv::findConstructor(jclass cls, const char *desc, uint16_t length) {
+    return Flint::findMethod(exec, cls, "<init>", 6, desc, length);
+}
+
+jmethodId FNIEnv::findMethod(jclass cls, const char *name, const char *desc) {
+    return Flint::findMethod(exec, cls, name, 0xFFFF, desc, 0xFFFF);
+}
+
+jmethodId FNIEnv::findMethod(jclass cls, const char *name, uint16_t nameLen, const char *desc, uint16_t descLen) {
+    return Flint::findMethod(exec, cls, name, nameLen, desc, descLen);
 }
 
 jbool FNIEnv::isInstanceof(jobject obj, jclass type) {
@@ -120,6 +130,7 @@ jobjectArray FNIEnv::newObjectArray(jclass type, uint32_t count) {
 }
 
 uint64_t FNIEnv::vCallMethod(jmethodId mtid, va_list args) {
+    extern uint8_t parseArgc(const char *desc);
     if(mtid == NULL) return 0;
     uint8_t argc = parseArgc(mtid->desc);
     if(!(mtid->accessFlag & METHOD_STATIC)) argc++;
