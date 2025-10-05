@@ -61,9 +61,9 @@ typedef enum : uint8_t {
     OP_DALOAD = 0x31,
     OP_AALOAD = 0x32,
     OP_BALOAD = 0x33,
-
     OP_CALOAD = 0x34,
     OP_SALOAD = 0x35,
+
     OP_ISTORE = 0x36,
     OP_LSTORE = 0x37,
     OP_FSTORE = 0x38,

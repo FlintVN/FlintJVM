@@ -10,11 +10,11 @@ public:
     JObject *getMethodType(void) const;
 
     MethodInfo *getTargetMethod(void) const;
-    const char *getClassName(void) const;
-    const char *getName(void) const;
-    const char *getDesc(void) const;
-    uint8_t getArgc(void) const;
-    RefKind getRefKind(void) const;
+    const char *getTargetClassName(void) const;
+    const char *getTargetName(void) const;
+    const char *getTargetDesc(void) const;
+    uint8_t getTargetArgc(void) const;
+    RefKind getTargetRefKind(void) const;
 
     void setTargetMethod(MethodInfo *methodInfo);
 private:

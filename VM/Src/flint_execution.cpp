@@ -501,7 +501,7 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
         invokeBootstapMethod(constInvokeDynamic);
     JObject *callSite = constInvokeDynamic->getCallSite();
     JMethodHandle *target = (JMethodHandle *)callSite->getFieldObjByIndex(0)->value;
-    switch(target->getRefKind()) {
+    switch(target->getTargetRefKind()) {
         case REF_GETFIELD:
             // TODO
             break;
@@ -520,11 +520,12 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
         case REF_INVOKESTATIC: {
             MethodInfo *targetMI = target->getTargetMethod();
             if(targetMI == NULL) {
-                targetMI = Flint::findMethod(this, Flint::findClass(this, target->getClassName()), target->getName(), target->getDesc());
+                targetMI = Flint::findMethod(this, Flint::findClass(this, target->getTargetClassName()), target->getTargetName(), target->getTargetDesc());
                 if(targetMI == NULL) return;
                 target->setTargetMethod(targetMI);
             }
-            invoke(targetMI, target->getArgc());
+            lr = pc + 5;
+            invoke(targetMI, target->getTargetArgc());
         }
         case REF_INVOKESPECIAL:
             // TODO

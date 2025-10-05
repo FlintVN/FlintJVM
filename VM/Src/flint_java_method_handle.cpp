@@ -23,23 +23,23 @@ MethodInfo *JMethodHandle::getTargetMethod(void) const {
     return ((InternalData *)data)->methodInfo;
 }
 
-const char *JMethodHandle::getClassName(void) const {
+const char *JMethodHandle::getTargetClassName(void) const {
     return ((InternalData *)data)->clsName;
 }
 
-const char *JMethodHandle::getName(void) const {
+const char *JMethodHandle::getTargetName(void) const {
     return ((InternalData *)data)->name;
 }
 
-const char *JMethodHandle::getDesc(void) const {
+const char *JMethodHandle::getTargetDesc(void) const {
     return ((InternalData *)data)->desc;
 }
 
-uint8_t JMethodHandle::getArgc(void) const {
+uint8_t JMethodHandle::getTargetArgc(void) const {
     return ((InternalData *)data)->argc;
 }
 
-RefKind JMethodHandle::getRefKind(void) const {
+RefKind JMethodHandle::getTargetRefKind(void) const {
     return ((InternalData *)data)->refKind;
 }
 
