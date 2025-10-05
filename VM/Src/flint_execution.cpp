@@ -403,13 +403,11 @@ void FExec::invokeStatic(ConstMethod *constMethod) {
             return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockClass(methodInfo->loader) == false) {
-            FlintAPI::Thread::yield();
-            return;
-        }
+        if(lockClass(methodInfo->loader) == false)
+            return FlintAPI::Thread::yield();
     }
     lr = pc + 3;
-    return invoke(methodInfo, constMethod->getArgc());
+    invoke(methodInfo, constMethod->getArgc());
 }
 
 void FExec::invokeSpecial(ConstMethod *constMethod) {
@@ -423,13 +421,11 @@ void FExec::invokeSpecial(ConstMethod *constMethod) {
             return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockObject((JObject *)stack[sp - argc - 1]) == false) {
-            FlintAPI::Thread::yield();
-            return;
-        }
+        if(lockObject((JObject *)stack[sp - argc - 1]) == false)
+            return FlintAPI::Thread::yield();
     }
     lr = pc + 3;
-    return invoke(methodInfo, argc);
+    invoke(methodInfo, argc);
 }
 
 void FExec::invokeVirtual(ConstMethod *constMethod) {
@@ -440,29 +436,33 @@ void FExec::invokeVirtual(ConstMethod *constMethod) {
         throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", constMethod->className, constMethod->nameAndType->name);
         return;
     }
-    MethodInfo *methodInfo = constMethod->methodInfo;
-    JClass *objType;
-    if(obj->type != NULL) objType = obj->type;
+    if(constMethod->isMethodHandleInvoke())
+        invokeMethodHandle((JMethodHandle *)obj, argc, pc + 3);
     else {
-        objType = Flint::getClassOfClass(this);
-        if(objType == NULL) return;
-    }
-    if(methodInfo == NULL || methodInfo->loader != objType->getClassLoader()) {
-        methodInfo = Flint::findMethod(this, objType, constMethod->nameAndType);
-        if(methodInfo == NULL) return;
-        constMethod->methodInfo = methodInfo;
-        if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
-            return invokeStaticCtor(methodInfo->loader);
-    }
-    if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockObject(obj) == false) {
-            FlintAPI::Thread::yield();
-            return;
+        MethodInfo *methodInfo = constMethod->methodInfo;
+        JClass *objType;
+        if(obj->type != NULL) objType = obj->type;
+        else {
+            objType = Flint::getClassOfClass(this);
+            if(objType == NULL) return;
         }
+        if(methodInfo == NULL || methodInfo->loader != objType->getClassLoader()) {
+            methodInfo = Flint::findMethod(this, objType, constMethod->nameAndType);
+            if(methodInfo == NULL) return;
+            constMethod->methodInfo = methodInfo;
+            if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
+                return invokeStaticCtor(methodInfo->loader);
+        }
+        if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
+            if(lockObject(obj) == false) {
+                FlintAPI::Thread::yield();
+                return;
+            }
+        }
+        argc++;
+        lr = pc + 3;
+        invoke(methodInfo, argc);
     }
-    argc++;
-    lr = pc + 3;
-    return invoke(methodInfo, argc);
 }
 
 void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc) {
@@ -487,13 +487,11 @@ void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc)
             return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockObject(obj) == false) {
-            FlintAPI::Thread::yield();
-            return;
-        }
+        if(lockObject(obj) == false)
+            return FlintAPI::Thread::yield();
     }
     lr = pc + 5;
-    return invoke(methodInfo, argc);
+    invoke(methodInfo, argc);
 }
 
 void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
@@ -501,42 +499,7 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
         invokeBootstapMethod(constInvokeDynamic);
     JObject *callSite = constInvokeDynamic->getCallSite();
     JMethodHandle *target = (JMethodHandle *)callSite->getFieldObjByIndex(0)->value;
-    switch(target->getTargetRefKind()) {
-        case REF_GETFIELD:
-            // TODO
-            break;
-        case REF_GETSTATIC:
-            // TODO
-            break;
-        case REF_PUTFIELD:
-            // TODO
-            break;
-        case REF_PUTSTATIC:
-            // TODO
-            break;
-        case REF_INVOKEVIRTUAL:
-            // TODO
-            break;
-        case REF_INVOKESTATIC: {
-            MethodInfo *targetMI = target->getTargetMethod();
-            if(targetMI == NULL) {
-                targetMI = Flint::findMethod(this, Flint::findClass(this, target->getTargetClassName()), target->getTargetName(), target->getTargetDesc());
-                if(targetMI == NULL) return;
-                target->setTargetMethod(targetMI);
-            }
-            lr = pc + 5;
-            invoke(targetMI, target->getTargetArgc());
-        }
-        case REF_INVOKESPECIAL:
-            // TODO
-            break;
-        case REF_NEWINVOKESPECIAL:
-            // TODO
-            break;
-        case REF_INVOKEINTERFACE:
-            // TODO
-            break;
-    }
+    invokeMethodHandle(target, target->getTargetArgc(), pc + 5);
 }
 
 void FExec::invokeBootstapMethod(ConstInvokeDynamic *constInvokeDynamic) {
@@ -651,6 +614,61 @@ void FExec::invokeBootstapMethod(ConstInvokeDynamic *constInvokeDynamic) {
     /* Link CallSite */
     constInvokeDynamic->linkTo((JObject *)ret);
     Flint::makeToGlobal((JObject *)ret);
+}
+
+void FExec::invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc) {
+    switch(mth->getTargetRefKind()) {
+        case REF_GETFIELD:
+            // TODO
+            return;
+        case REF_GETSTATIC:
+            // TODO
+            return;
+        case REF_PUTFIELD:
+            // TODO
+            return;
+        case REF_PUTSTATIC:
+            // TODO
+            return;
+        case REF_INVOKEVIRTUAL: {
+            JObject *obj = (JObject *)stack[sp - argc + 1];
+            JClass *objType;
+            if(obj->type != NULL) objType = obj->type;
+            else {
+                objType = Flint::getClassOfClass(this);
+                if(objType == NULL) return;
+            }
+            MethodInfo *targetMI = mth->getTargetMethod(this, objType);
+            if(targetMI == NULL) return;
+            if(targetMI->loader->getStaticInitStatus() == UNINITIALIZED)
+                return invokeStaticCtor(targetMI->loader);
+            if(targetMI->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
+                if(lockObject(obj) == false)
+                    return FlintAPI::Thread::yield();
+            }
+            lr = retPc;
+            return invoke(targetMI, argc);
+        }
+        case REF_INVOKESTATIC:
+        case REF_INVOKESPECIAL: {
+            MethodInfo *targetMI = mth->getTargetMethod(this);
+            if(targetMI == NULL) return;
+            if(targetMI->loader->getStaticInitStatus() == UNINITIALIZED)
+                return invokeStaticCtor(targetMI->loader);
+            if(targetMI->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
+                if(lockClass(targetMI->loader) == false)
+                    return FlintAPI::Thread::yield();
+            }
+            lr = retPc;
+            return invoke(targetMI, mth->getTargetArgc());
+        }
+        case REF_NEWINVOKESPECIAL:
+            // TODO
+            return;
+        case REF_INVOKEINTERFACE:
+            // TODO
+            return;
+    }
 }
 
 void FExec::invokeStaticCtor(ClassLoader *loader) {

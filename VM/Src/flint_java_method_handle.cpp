@@ -1,4 +1,6 @@
 
+#include "flint.h"
+#include "flint_execution.h"
 #include "flint_java_method_handle.h"
 
 typedef struct {
@@ -19,20 +21,23 @@ void JMethodHandle::setMethodType(JObject *methodType) {
     getFieldObjByIndex(0)->value = methodType;
 }
 
-MethodInfo *JMethodHandle::getTargetMethod(void) const {
-    return ((InternalData *)data)->methodInfo;
-}
-
-const char *JMethodHandle::getTargetClassName(void) const {
-    return ((InternalData *)data)->clsName;
-}
-
-const char *JMethodHandle::getTargetName(void) const {
-    return ((InternalData *)data)->name;
-}
-
-const char *JMethodHandle::getTargetDesc(void) const {
-    return ((InternalData *)data)->desc;
+MethodInfo *JMethodHandle::getTargetMethod(FExec *ctx, JClass *caller) const {
+    InternalData *internalData = (InternalData *)data;
+    MethodInfo *methodInfo = internalData->methodInfo;
+    if(caller != NULL && internalData->refKind == REF_INVOKEVIRTUAL) {
+        if(methodInfo == NULL || methodInfo->loader != caller->getClassLoader()) {
+            methodInfo = Flint::findMethod(ctx, caller, internalData->name, internalData->desc);
+            if(methodInfo == NULL) return NULL;
+            ((InternalData *)data)->methodInfo = methodInfo;
+        }
+    }
+    else if(methodInfo == NULL) {
+        JClass *targetCls = Flint::findClass(ctx, internalData->clsName);
+        methodInfo = Flint::findMethod(ctx, targetCls, internalData->name, internalData->desc);
+        if(methodInfo == NULL) return NULL;
+        ((InternalData *)data)->methodInfo = methodInfo;
+    }
+    return methodInfo;
 }
 
 uint8_t JMethodHandle::getTargetArgc(void) const {
@@ -41,10 +46,6 @@ uint8_t JMethodHandle::getTargetArgc(void) const {
 
 RefKind JMethodHandle::getTargetRefKind(void) const {
     return ((InternalData *)data)->refKind;
-}
-
-void JMethodHandle::setTargetMethod(MethodInfo *methodInfo) {
-    ((InternalData *)data)->methodInfo = methodInfo;
 }
 
 void JMethodHandle::setTarget(const char *clsName, const char *name, const char *desc, RefKind refKind) {

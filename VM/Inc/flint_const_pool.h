@@ -74,10 +74,12 @@ public:
 private:
     class MethodInfo *methodInfo;
     uint8_t argc;
+    uint8_t flags;
 public:
     uint8_t getArgc(void) const;
+    bool isMethodHandleInvoke(void) const;
 private:
-    ConstMethod(const char *className, ConstNameAndType *nameAndType);
+    ConstMethod(const char *className, ConstNameAndType *nameAndType, uint8_t flags);
     ConstMethod(const ConstMethod &) = delete;
     void operator=(const ConstMethod &) = delete;
 

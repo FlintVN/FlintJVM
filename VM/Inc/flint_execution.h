@@ -10,6 +10,7 @@
 #include "flint_method_info.h"
 #include "flint_java_thread.h"
 #include "flint_java_throwable.h"
+#include "flint_java_method_handle.h"
 #include "flint_default_conf.h"
 
 class FExec : public ListNode {
@@ -61,6 +62,7 @@ private:
     void invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc);
     void invokeDynamic(ConstInvokeDynamic *constInvokeDynamic);
     void invokeBootstapMethod(ConstInvokeDynamic *constInvokeDynamic);
+    void invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc);
     void invokeStaticCtor(ClassLoader *cls);
 
     void exec(bool initOpcodeLabels);

@@ -9,14 +9,9 @@ class JMethodHandle : public JObject {
 public:
     JObject *getMethodType(void) const;
 
-    MethodInfo *getTargetMethod(void) const;
-    const char *getTargetClassName(void) const;
-    const char *getTargetName(void) const;
-    const char *getTargetDesc(void) const;
+    MethodInfo *getTargetMethod(class FExec *ctx, JClass *caller = NULL) const;
     uint8_t getTargetArgc(void) const;
     RefKind getTargetRefKind(void) const;
-
-    void setTargetMethod(MethodInfo *methodInfo);
 private:
     JMethodHandle(void) = delete;
     JMethodHandle(const JMethodHandle &) = delete;

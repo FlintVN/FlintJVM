@@ -487,7 +487,13 @@ JMethodHandle *Flint::newMethodHandle(FExec *ctx, MethodInfo *methodInfo) {
     const char *clsName = methodInfo->loader->getName();
     const char *name = methodInfo->name;
     const char *desc = methodInfo->desc;
-    RefKind refKind = (methodInfo->accessFlag & METHOD_STATIC) ? REF_INVOKESTATIC : REF_INVOKEVIRTUAL;
+    RefKind refKind;
+    if(methodInfo->accessFlag & METHOD_STATIC)
+        refKind = REF_INVOKESTATIC;
+    else if(methodInfo->accessFlag & (METHOD_PRIVATE | METHOD_FINAL))
+        refKind = REF_INVOKESPECIAL;
+    else
+        refKind = REF_INVOKEVIRTUAL;
     mth->setTarget(clsName, name, desc, refKind);
 
     return mth;

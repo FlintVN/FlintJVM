@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include "flint_std.h"
+#include "flint_common.h"
 #include "flint_const_pool.h"
 
 uint8_t parseArgc(const char *desc) {
@@ -41,13 +42,18 @@ className(className), loader(NULL), nameAndType(nameAndType), fieldIndex(0) {
 
 }
 
-ConstMethod::ConstMethod(const char *className, ConstNameAndType *nameAndType) :
+ConstMethod::ConstMethod(const char *className, ConstNameAndType *nameAndType, uint8_t flags) :
 className(className), nameAndType(nameAndType), methodInfo(NULL) {
-    argc = parseArgc(nameAndType->desc);
+    this->argc = parseArgc(nameAndType->desc);
+    this->flags = flags;
 }
 
 uint8_t ConstMethod::getArgc(void) const {
     return argc;
+}
+
+bool ConstMethod::isMethodHandleInvoke(void) const {
+    return flags & 0x01;
 }
 
 bool ConstInvokeDynamic::isLinked(void) const {

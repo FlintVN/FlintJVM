@@ -518,7 +518,20 @@ ConstMethod *ClassLoader::getConstMethod(FExec *ctx, uint16_t poolIndex) {
                 Flint::free(tmp);
                 return NULL;
             }
-            new (tmp)ConstMethod(getConstClassName(classNameIndex), nameAndType);
+            static constexpr uint32_t methodHandleHash = Hash("java/lang/invoke/MethodHandle");
+            static constexpr uint32_t invokeHash = Hash("invoke") & 0xFFFF;
+            static constexpr uint32_t invokeExactHash = Hash("invokeExact") & 0xFFFF;
+            const char *clsName = getConstClassName(classNameIndex);
+            uint32_t clsNameHash = *(uint32_t *)(clsName - 4);
+            uint8_t flags = 0x00;
+            if(clsNameHash == methodHandleHash && strcmp(clsName, "java/lang/invoke/MethodHandle") == 0) {
+                uint32_t nameHash = nameAndType->hash & 0xFFFF;
+                if(nameHash == invokeHash && strcmp(nameAndType->name, "invoke") == 0)
+                    flags |= 0x01;
+                else if(nameHash == invokeExactHash && strcmp(nameAndType->name, "invokeExact") == 0)
+                    flags |= 0x01;
+            }
+            new (tmp)ConstMethod(clsName, nameAndType, flags);
             *(uint32_t *)&poolTable[poolIndex].value = (uint32_t)tmp;
             *(uint8_t *)&poolTable[poolIndex].tag &= 0x7F;
         }
