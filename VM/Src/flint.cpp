@@ -488,7 +488,9 @@ JMethodHandle *Flint::newMethodHandle(FExec *ctx, MethodInfo *methodInfo) {
     const char *name = methodInfo->name;
     const char *desc = methodInfo->desc;
     RefKind refKind;
-    if(methodInfo->accessFlag & METHOD_STATIC)
+    if(methodInfo->accessFlag & METHOD_INIT)
+        refKind = REF_NEWINVOKESPECIAL;
+    else if(methodInfo->accessFlag & METHOD_STATIC)
         refKind = REF_INVOKESTATIC;
     else if(methodInfo->accessFlag & (METHOD_PRIVATE | METHOD_FINAL))
         refKind = REF_INVOKESPECIAL;

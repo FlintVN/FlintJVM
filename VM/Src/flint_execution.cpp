@@ -617,6 +617,11 @@ void FExec::invokeBootstapMethod(ConstInvokeDynamic *constInvokeDynamic) {
 }
 
 void FExec::invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc) {
+    static constexpr uint32_t boundMethodHandleHash = Hash("java/lang/invoke/BoundMethodHandle");
+    uint32_t mthTypeNameHash = *(uint32_t *)(mth->type->getTypeName() - 4);
+    if(mthTypeNameHash == boundMethodHandleHash) {
+        // TODO
+    }
     switch(mth->getTargetRefKind()) {
         case REF_GETFIELD:
             // TODO
@@ -630,7 +635,8 @@ void FExec::invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc)
         case REF_PUTSTATIC:
             // TODO
             return;
-        case REF_INVOKEVIRTUAL: {
+        case REF_INVOKEVIRTUAL:
+        case REF_INVOKEINTERFACE: {
             JObject *obj = (JObject *)stack[sp - argc + 1];
             JClass *objType;
             if(obj->type != NULL) objType = obj->type;
@@ -662,12 +668,26 @@ void FExec::invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc)
             lr = retPc;
             return invoke(targetMI, mth->getTargetArgc());
         }
-        case REF_NEWINVOKESPECIAL:
-            // TODO
-            return;
-        case REF_INVOKEINTERFACE:
-            // TODO
-            return;
+        case REF_NEWINVOKESPECIAL: {
+            MethodInfo *targetMI = mth->getTargetMethod(this);
+            if(targetMI == NULL) return;
+            if(targetMI->loader->getStaticInitStatus() == UNINITIALIZED)
+                return invokeStaticCtor(targetMI->loader);
+            if(targetMI->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
+                if(lockClass(targetMI->loader) == false)
+                    return FlintAPI::Thread::yield();
+            }
+            JObject *obj = Flint::newObject(this, targetMI->loader->getThisClass(this));
+            if(obj == NULL) return;
+            memmove(&stack[sp - argc + 1 + 2], &stack[sp - argc + 1], argc * sizeof(uint32_t));
+            stack[sp - argc + 1] = (int32_t)obj;
+            stack[sp - argc + 2] = (int32_t)obj; /* dup - this parameter to call the constructor */
+            sp += 2;
+            argc++;
+            Flint::clearProtLv2(obj);
+            lr = retPc;
+            return invoke(targetMI, argc);
+        }
     }
 }
 
