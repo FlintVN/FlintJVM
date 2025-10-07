@@ -40,6 +40,18 @@ MethodInfo *JMethodHandle::getTargetMethod(FExec *ctx, JClass *caller) const {
     return methodInfo;
 }
 
+const char *JMethodHandle::getTargetClassName(void) const {
+    return ((InternalData *)data)->clsName;
+}
+
+const char *JMethodHandle::getTargetName(void) const {
+    return ((InternalData *)data)->name;
+}
+
+const char *JMethodHandle::getTargetDesc(void) const {
+    return ((InternalData *)data)->desc;
+}
+
 uint8_t JMethodHandle::getTargetArgc(void) const {
     return ((InternalData *)data)->argc;
 }
@@ -48,13 +60,23 @@ RefKind JMethodHandle::getTargetRefKind(void) const {
     return ((InternalData *)data)->refKind;
 }
 
+void JMethodHandle::setTarget(JMethodHandle *methodHandle) {
+    InternalData *src = (InternalData *)methodHandle->data;
+    InternalData *desc = (InternalData *)data;
+    desc->methodInfo = NULL;
+    desc->clsName = src->clsName;
+    desc->name = src->name;
+    desc->desc = src->desc;
+    desc->argc = src->argc;
+    desc->refKind = src->refKind;
+}
+
 void JMethodHandle::setTarget(const char *clsName, const char *name, const char *desc, RefKind refKind) {
-    extern uint8_t parseArgc(const char *desc);
     ((InternalData *)data)->methodInfo = NULL;
     ((InternalData *)data)->clsName = clsName;
     ((InternalData *)data)->name = name;
     ((InternalData *)data)->desc = desc;
-    ((InternalData *)data)->argc = parseArgc(desc);
+    ((InternalData *)data)->argc = getArgSlotCount(desc);
     ((InternalData *)data)->refKind = refKind;
 }
 

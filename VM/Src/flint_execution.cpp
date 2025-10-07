@@ -618,11 +618,41 @@ void FExec::invokeBootstapMethod(ConstInvokeDynamic *constInvokeDynamic) {
 
 void FExec::invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc) {
     static constexpr uint32_t boundMethodHandleHash = Hash("java/lang/invoke/BoundMethodHandle");
-    uint32_t mthTypeNameHash = *(uint32_t *)(mth->type->getTypeName() - 4);
+    uint32_t mthTypeNameHash = *(uint32_t *)(mth->getTypeName() - 4);
+    RefKind refKind = mth->getTargetRefKind();
     if(mthTypeNameHash == boundMethodHandleHash) {
-        // TODO
+        uint8_t index = 0;
+        uint32_t spIndex = sp - argc + 1;
+        JObjectArray *fixedArgs = (JObjectArray *)mth->getFieldObj(this, "argc")->value;
+        uint8_t fixedArgc = (uint8_t)fixedArgs->getLength();
+        JObject **fixedArgsData = fixedArgs->getData();
+        memmove(&stack[spIndex + fixedArgc], &stack[spIndex], argc * sizeof(uint32_t));
+        switch(refKind) {
+            case REF_INVOKEVIRTUAL:
+            case REF_INVOKEINTERFACE:
+            case REF_INVOKESPECIAL:
+            case REF_NEWINVOKESPECIAL:
+                SET_STACK_VALUE(++spIndex, (int32_t)fixedArgsData[0]);
+                index++;
+                break;
+            default:
+                break;
+        }
+        const char *desc = mth->getTargetDesc();
+        for(uint8_t i = index; i < fixedArgc; i++) {
+            desc = getNextArgName(desc);
+            if(desc[0] == 'L')
+                SET_STACK_VALUE(++spIndex, (int32_t)fixedArgsData[i]);
+            else if(desc[0] == 'J' || desc[0] == 'D') {
+                int64_t val = fixedArgsData[i]->getField64ByIndex(0)->value;
+                SET_STACK_VALUE(++spIndex, ((int32_t *)&val)[0]);
+                SET_STACK_VALUE(++spIndex, ((int32_t *)&val)[1]);
+            }
+            else
+                SET_STACK_VALUE(++spIndex, fixedArgsData[i]->getField32ByIndex(0)->value);
+        }
     }
-    switch(mth->getTargetRefKind()) {
+    switch(refKind) {
         case REF_GETFIELD:
             // TODO
             return;

@@ -86,7 +86,9 @@ public:
     static JString *newAscii(FExec *ctx, const char *format, va_list args);
 
     static JObject *newMethodType(FExec *ctx, const char *desc);
+    static JObject *newMethodType(FExec *ctx, JClass *rtype, JObjectArray *ptypes);
     static JMethodHandle *newMethodHandle(FExec *ctx, MethodInfo *methodInfo);
+    static JMethodHandle *newMethodHandle(FExec *ctx, JMethodHandle *mth, JObjectArray *args);
     static JMethodHandle *newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefKind refKind);
 
     static void makeToGlobal(JObject *obj);
@@ -117,7 +119,7 @@ private:
     static JClass *newClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, uint8_t flag = 0x00);
     static JClass *newClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
     static JClass *newClassOfClass(FExec *ctx);
-    static JMethodHandle *newMethodHandle(FExec *ctx);
+    static JMethodHandle *newMethodHandle(FExec *ctx, uint8_t type);
 private:
     Flint(void) = delete;
     Flint(const Flint &) = delete;

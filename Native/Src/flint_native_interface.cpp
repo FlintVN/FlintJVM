@@ -130,9 +130,8 @@ jobjectArray FNIEnv::newObjectArray(jclass type, uint32_t count) {
 }
 
 uint64_t FNIEnv::vCallMethod(jmethodId mtid, va_list args) {
-    extern uint8_t parseArgc(const char *desc);
     if(mtid == NULL) return 0;
-    uint8_t argc = parseArgc(mtid->desc);
+    uint8_t argc = getArgSlotCount(mtid->desc);
     if(!(mtid->accessFlag & METHOD_STATIC)) argc++;
     exec->stackPushArgs(argc, args);
     return exec->callMethod(mtid, argc);

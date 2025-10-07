@@ -23,6 +23,13 @@ uint32_t Flint::objectCountToGc = 0;
 void *Flint::heapStart = (void *)0xFFFFFFFF;
 void *Flint::headEnd = (void *)0x00;
 
+typedef enum : uint8_t {
+    NATIVE_METHODHANDLE,
+    DIRECT_METHODHANDLE,
+    DELEGATING_METHODHANDLE,
+    BOUND_METHODHANDLE
+} MethodHandleType;
+
 alignas(4) static const char outOfMemoryErrorTypeName[] = "java/lang/OutOfMemoryError";
 
 static uint32_t getDimensions(const char *typeName) {
@@ -387,25 +394,6 @@ JString *Flint::newAscii(FExec *ctx, const char *format, va_list args) {
     return str;
 }
 
-uint8_t getParameterCount(const char *mtDesc) {
-    uint8_t count = 0;
-    const char *txt = mtDesc;
-    while(*txt == '(') txt++;
-    while(*txt) {
-        if(*txt == ')') return count;
-        else if(*txt == '[') txt++;
-        else {
-            count++;
-            if(*txt++ == 'L') while(*txt) {
-                if(*txt == ')') return count;
-                else if(*txt == ';') { txt++; break; }
-                txt++;
-            }
-        }
-    }
-    return count;
-}
-
 static JClass *findClassOrPrimitive(FExec *ctx, const char *desc, uint16_t length) {
     if(length == 1) switch(desc[0]) {
         case 'Z': return Flint::getPrimitiveClass(ctx, "boolean");
@@ -432,24 +420,18 @@ static JClass *findClassOrPrimitive(FExec *ctx, const char *desc, uint16_t lengt
 
 JObject *Flint::newMethodType(FExec *ctx, const char *desc) {
     /* Create ptypes */
-    const uint8_t argc = getParameterCount(desc);
+    const uint8_t argc = getArgCount(desc);
     JObjectArray *ptypes = (JObjectArray *)newArray(ctx, findClassOfArray(ctx, "java/lang/Class", 1), argc);
     ptypes->clearArray();
-    while(*desc == '(') desc++;
-    for(uint8_t i = 0; i < argc; i++) {
-        const char *type = desc;
-        while(*desc == '[') desc++;
-        if(*desc++ == 'L') {
-            while(*desc) {
-                if(*desc == ')') break;
-                else if(*desc == ';') { desc++; break; }
-                else desc++;
-            }
+    if(argc > 0) {
+        desc = getNextArgName(desc);
+        for(uint8_t i = 0; i < argc; i++) {
+            uint16_t plen = getArgNameLength(desc);
+            JClass *ptype = findClassOrPrimitive(ctx, desc, plen);
+            if(ptype == NULL) { freeObject(ptypes); return NULL; }
+            ptypes->getData()[i] = ptype;
+            desc += plen;
         }
-        uint16_t plen = (uint16_t)(desc - type);
-        JClass *ptype = findClassOrPrimitive(ctx, type, plen);
-        if(ptype == NULL) { freeObject(ptypes); return NULL; }
-        ptypes->getData()[i] = ptype;
     }
 
     /* create rtype */
@@ -458,25 +440,31 @@ JObject *Flint::newMethodType(FExec *ctx, const char *desc) {
     JClass *rtype = findClassOrPrimitive(ctx, desc, strlen(desc));
     if(rtype == NULL) { freeObject(ptypes); return NULL; }
 
+    JObject *methodType = newMethodType(ctx, rtype, ptypes);
+    if(methodType == NULL) { freeObject(ptypes); return NULL; }
+    return methodType;
+}
+
+JObject *Flint::newMethodType(FExec *ctx, JClass *rtype, JObjectArray *ptypes) {
     /* Create MethodType */
     JObject *methodType = newObject(ctx, findClass(ctx, "java/lang/invoke/MethodType"));
-    if(methodType == NULL) { freeObject(ptypes); return NULL; }
+    if(methodType == NULL) return NULL;
 
     /* Set value for ptypes */
     FieldObj *ptypesField = methodType->getFieldObj(ctx, "ptypes");
-    if(ptypesField == NULL) { freeObject(ptypes); freeObject(methodType); return NULL; }
+    if(ptypesField == NULL) { freeObject(methodType); return NULL; }
     ptypesField->value = ptypes;
 
     /* Set value for rtype */
     FieldObj *rtypeField = methodType->getFieldObj(ctx, "rtype");
-    if(rtypeField == NULL) { freeObject(ptypes); freeObject(methodType); return NULL; }
+    if(rtypeField == NULL) { freeObject(methodType); return NULL; }
     rtypeField->value = rtype;
 
     return methodType;
 }
 
 JMethodHandle *Flint::newMethodHandle(FExec *ctx, MethodInfo *methodInfo) {
-    JMethodHandle *mth = newMethodHandle(ctx);
+    JMethodHandle *mth = newMethodHandle(ctx, DIRECT_METHODHANDLE);
     if(mth == NULL) return NULL;
 
     JObject *methodType = Flint::newMethodType(ctx, methodInfo->desc);
@@ -501,8 +489,55 @@ JMethodHandle *Flint::newMethodHandle(FExec *ctx, MethodInfo *methodInfo) {
     return mth;
 }
 
+JMethodHandle *Flint::newMethodHandle(FExec *ctx, JMethodHandle *mth, JObjectArray *args) {
+    static constexpr uint32_t boundMethodHandleHash = Hash("java/lang/invoke/BoundMethodHandle");
+
+    uint32_t typeNameHash = *(uint32_t *)mth->getTypeName() - 4;
+    if(typeNameHash == boundMethodHandleHash) {
+        JObjectArray *argsOrg = (JObjectArray *)mth->getFieldObj(ctx, "args")->value;
+        uint32_t argcOrg = (argsOrg == NULL) ? 0 : argsOrg->getLength();
+        JObjectArray *tmp = (JObjectArray *)newArray(ctx, findClassOfArray(ctx, "java/lang/Object", 1), argcOrg + args->getLength());
+        if(tmp == NULL) return NULL;
+        tmp->clearArray();
+        for(uint32_t i = 0; i < argcOrg; i++)
+            tmp->getData()[i] = argsOrg->getData()[i];
+        for(uint32_t i = 0; i < args->getLength(); i++)
+            tmp->getData()[i + argcOrg] = args->getData()[i];
+        args = tmp;
+    }
+
+    /* Get type (MethodType) from mth */
+    JObject *type = mth->getFieldObjByIndex(0)->value;
+    /* Get rtype (Class) from type */
+    JClass *rtype = (JClass *)type->getFieldObjByIndex(0)->value;
+    /* Get ptypes (Class[]) from type */
+    JObjectArray *ptypes = (JObjectArray *)type->getFieldObjByIndex(1)->value;
+    /* Create ptypes (Class[]) for BoundMethodHandle */
+    JObjectArray *newPtypes = (JObjectArray *)newArray(ctx, findClassOfArray(ctx, "java/lang/Object", 1), ptypes->getLength() - args->getLength());
+    if(newPtypes == NULL) return NULL;
+    for(uint32_t i = 0; i < newPtypes->getLength(); i++)
+        newPtypes->getData()[i] = ptypes->getData()[i + args->getLength()];
+
+    JObject *methodType = newMethodType(ctx, rtype, newPtypes);
+    if(methodType == NULL) { freeObject(newPtypes); return NULL; }
+
+    JMethodHandle *bmth = newMethodHandle(ctx, BOUND_METHODHANDLE);
+    if(bmth == NULL) {
+        freeObject(newPtypes);
+        if(typeNameHash == boundMethodHandleHash)
+            freeObject(args);
+        return NULL;
+    }
+
+    bmth->setMethodType(methodType);
+    bmth->setTarget(mth);
+    bmth->getFieldObj(ctx, "args")->value = args;
+
+    return bmth;
+}
+
 JMethodHandle *Flint::newMethodHandle(FExec *ctx, ConstMethod *constMethod, RefKind refKind) {
-    JMethodHandle *mth = newMethodHandle(ctx);
+    JMethodHandle *mth = newMethodHandle(ctx, DIRECT_METHODHANDLE);
     if(mth == NULL) return NULL;
 
     JObject *methodType = Flint::newMethodType(ctx, constMethod->nameAndType->desc);
@@ -617,8 +652,24 @@ JClass *Flint::newClassOfClass(FExec *ctx) {
     return cls;
 }
 
-JMethodHandle *Flint::newMethodHandle(FExec *ctx) {
-    JClass *cls = findClass(ctx, "java/lang/invoke/MethodHandle");
+JMethodHandle *Flint::newMethodHandle(FExec *ctx, uint8_t mthType) {
+    const char *clsName;
+    switch(mthType) {
+        case NATIVE_METHODHANDLE:
+            clsName = "java/lang/invoke/NativeMethodHandle";
+            break;
+        case DELEGATING_METHODHANDLE:
+            clsName = "java/lang/invoke/DelegatingMethodHandle";
+            break;
+        case BOUND_METHODHANDLE:
+            clsName = "java/lang/invoke/BoundMethodHandl";
+            break;
+        default:
+            clsName = "java/lang/invoke/DirectMethodHandle";
+            break;
+    }
+
+    JClass *cls = findClass(ctx, clsName);
     if(cls == NULL) return NULL;
 
     JMethodHandle *mth = (JMethodHandle *)Flint::malloc(ctx, JMethodHandle::size());

@@ -114,8 +114,8 @@ jobjectArray nativeGetInterfaces0(FNIEnv *env, jclass cls) {
     return clsArr;
 }
 
-static jclass getPrimitiveClass(FNIEnv *env, char typeDesc) {
-    switch(typeDesc) {
+static jclass findClassOrPrimitive(FNIEnv *env, const char *desc, uint16_t length) {
+    if(length == 1) switch(desc[0]) {
         case 'Z': return Flint::getPrimitiveClass(env->exec, "boolean");
         case 'C': return Flint::getPrimitiveClass(env->exec, "char");
         case 'F': return Flint::getPrimitiveClass(env->exec, "float");
@@ -129,19 +129,19 @@ static jclass getPrimitiveClass(FNIEnv *env, char typeDesc) {
             env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "Type name is invalid");
             return NULL;
     }
+    if(desc[0] == 'L') {
+        desc++;
+        length--;
+        while(desc[length - 1] == ';') length--;
+    }
+    return env->findClass(desc, length);
 }
 
 jclass nativeGetComponentType(FNIEnv *env, jclass cls) {
     if(cls->isArray()) {
         const char *typeName = cls->getTypeName();
-        if(typeName[1] == '[') return env->findClass(&typeName[1]);
-        if(typeName[1] == 'L') {
-            uint16_t len = 0;
-            while(typeName[len + 2] != ';') len++;
-            return env->findClass(&typeName[2], len);
-        }
-        if(typeName[1] == 0) return getPrimitiveClass(env, typeName[0]);
-        env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "Type name is invalid");
+        uint16_t len = getArgNameLength(typeName);
+        return findClassOrPrimitive(env, typeName, len);
     }
     return NULL;
 }
@@ -191,45 +191,19 @@ jbool nativeIsHidden(FNIEnv *env) {
 static jclass getReturnType(FNIEnv *env, const char *mtDesc) {
     const char *txt = mtDesc;
     while(*txt++ != ')');
-    if(txt[1] == 0) return getPrimitiveClass(env, txt[0]);
-    if(txt[0] == 'L') txt++;
-    uint16_t len = 0;
-    while(txt[len] && txt[len] != ';') len++;
-    return env->findClass(txt, len);
+    return findClassOrPrimitive(env, txt, getArgNameLength(txt));
 }
 
 static jobjectArray getParameterTypes(FNIEnv *env, const char *mtDesc) {
-    extern uint8_t getParameterCount(const char *mtDesc);
-    uint8_t count = getParameterCount(mtDesc);
+    uint8_t count = getArgCount(mtDesc);
     if(count == 0) return getEmptyClassArray(env);
     jobjectArray array = env->newObjectArray(Flint::getClassOfClass(env->exec), count);
     if(array == NULL) return NULL;
-    jobject *data = array->getData();
-    count = 0;
-    const char *txt = mtDesc;
-    while(*txt == '(') txt++;
-    while(*txt) {
-        if(*txt == ')') break;
-        const char *start = txt;
-        while(*txt == '[') txt++;
-        if(*txt == 'L') {
-            while(*txt) {
-                if(*txt == ')') break;
-                else if(*txt == ';') { txt++; break; }
-                txt++;
-            }
-        }
-        else txt++;
-        uint16_t len = txt - start;
-        jclass cls;
-        if(len == 1) cls = getPrimitiveClass(env, start[0]);
-        else {
-            if(start[0] == 'L') { start++; len -= 2; }
-            cls = env->findClass(start, len);
-        }
-        if(cls == NULL) { env->freeObject(array); return NULL; }
-        data[count] = cls;
-        count++;
+    mtDesc = getNextArgName(mtDesc);
+    for(uint8_t i = 0; i < count; i++) {
+        uint16_t len = getArgNameLength(mtDesc);
+        array->getData()[i] = findClassOrPrimitive(env, mtDesc, len);
+        mtDesc += len;
     }
     return array;
 }
