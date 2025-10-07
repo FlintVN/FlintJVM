@@ -85,3 +85,42 @@ int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_
     ret -= 62135683200ULL; /* 00:00:00 - 1/1/1970 */
     return ret;
 }
+
+const char *getNextArgName(const char *desc) {
+    while(*desc == '[') desc++;
+    if(*desc == 'L')
+        while(*desc++ != ';');
+    else
+        desc++;
+    if(*desc == ')' || *desc == 0) return NULL;
+    return desc;
+}
+
+uint16_t getArgNameLength(const char *desc) {
+    const char *tmp = desc;
+    while(*tmp == '[') tmp++;
+    if(*tmp == 'L')
+        while(*tmp && *tmp++ != ';');
+    else
+        tmp++;
+    return tmp - desc;
+}
+
+uint8_t getArgCount(const char *desc) {
+    uint8_t argc = 0;
+    while(desc) {
+        desc = getNextArgName(desc);
+        if(desc != NULL) argc++;
+    }
+    return argc;
+}
+
+uint8_t getArgSlotCount(const char *desc) {
+    uint8_t argc = 0;
+    while(desc) {
+        desc = getNextArgName(desc);
+        if(desc != NULL)
+            argc += (desc[0] == 'J' || desc[0] == 'D') ? 2 : 1;
+    }
+    return argc;
+}

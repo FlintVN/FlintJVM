@@ -322,7 +322,7 @@ static T callToNative(FNIEnv *env, T (*nmtptr)(FNIEnv *, ...), int32_t *args, ui
 
 void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
     JNMPtr nmtptr = (JNMPtr)methodInfo->getCode();
-    if(!nmtptr) {
+    if(nmtptr == NULL) {
         throwNew(Flint::findClass(this, "java/lang/LinkageError"), "%s.%s", methodInfo->loader->getName(), methodInfo->name);
         return;
     }
@@ -403,13 +403,11 @@ void FExec::invokeStatic(ConstMethod *constMethod) {
             return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockClass(methodInfo->loader) == false) {
-            FlintAPI::Thread::yield();
-            return;
-        }
+        if(lockClass(methodInfo->loader) == false)
+            return FlintAPI::Thread::yield();
     }
     lr = pc + 3;
-    return invoke(methodInfo, constMethod->getArgc());
+    invoke(methodInfo, constMethod->getArgc());
 }
 
 void FExec::invokeSpecial(ConstMethod *constMethod) {
@@ -423,13 +421,11 @@ void FExec::invokeSpecial(ConstMethod *constMethod) {
             return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockObject((JObject *)stack[sp - argc - 1]) == false) {
-            FlintAPI::Thread::yield();
-            return;
-        }
+        if(lockObject((JObject *)stack[sp - argc - 1]) == false)
+            return FlintAPI::Thread::yield();
     }
     lr = pc + 3;
-    return invoke(methodInfo, argc);
+    invoke(methodInfo, argc);
 }
 
 void FExec::invokeVirtual(ConstMethod *constMethod) {
@@ -437,8 +433,7 @@ void FExec::invokeVirtual(ConstMethod *constMethod) {
     JObject *obj = (JObject *)stack[sp - argc];
     if(obj == NULL) {
         JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
-        throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", constMethod->className, constMethod->nameAndType->name);
-        return;
+        return throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", constMethod->className, constMethod->nameAndType->name);
     }
     MethodInfo *methodInfo = constMethod->methodInfo;
     JClass *objType;
@@ -455,22 +450,19 @@ void FExec::invokeVirtual(ConstMethod *constMethod) {
             return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockObject(obj) == false) {
-            FlintAPI::Thread::yield();
-            return;
-        }
+        if(lockObject(obj) == false)
+            return FlintAPI::Thread::yield();
     }
     argc++;
     lr = pc + 3;
-    return invoke(methodInfo, argc);
+    invoke(methodInfo, argc);
 }
 
 void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc) {
     JObject *obj = (JObject *)stack[sp - argc + 1];
     if(obj == NULL) {
         JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
-        throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", interfaceMethod->className, interfaceMethod->nameAndType->name);
-        return;
+        return throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", interfaceMethod->className, interfaceMethod->nameAndType->name);
     }
     MethodInfo *methodInfo = interfaceMethod->methodInfo;
     JClass *objType;
@@ -487,13 +479,11 @@ void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc)
             return invokeStaticCtor(methodInfo->loader);
     }
     if(methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(lockObject(obj) == false) {
-            FlintAPI::Thread::yield();
-            return;
-        }
+        if(lockObject(obj) == false)
+            return FlintAPI::Thread::yield();
     }
     lr = pc + 5;
-    return invoke(methodInfo, argc);
+    invoke(methodInfo, argc);
 }
 
 void FExec::invokeStaticCtor(ClassLoader *loader) {
@@ -503,13 +493,12 @@ void FExec::invokeStaticCtor(ClassLoader *loader) {
     MethodInfo *ctorMethod = loader->getStaticCtor(this);
     if(ctorMethod == NULL) {
         if(excp == NULL) throwNew(Flint::findClass(this, "java/lang/LinkageError"), "<clinit>()");
-        unlockClass(loader);
-        return;
+        return unlockClass(loader);
     }
     if(code[pc] == OP_BREAKPOINT)
         ((uint8_t *)code)[pc] = OP_BREAKPOINT_DUMMY;
     lr = pc;
-    return invoke(ctorMethod, 0);
+    invoke(ctorMethod, 0);
 }
 
 void FExec::exec(bool initOpcodeLabels) {

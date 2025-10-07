@@ -3,33 +3,6 @@
 #include "flint_std.h"
 #include "flint_const_pool.h"
 
-uint8_t parseArgc(const char *desc) {
-    uint8_t argc = 0;
-    while(*desc == '(')
-        desc++;
-    while(*desc) {
-        if(*desc == ')')
-            return argc;
-        else if(*desc == '[')
-            desc++;
-        else {
-            argc += (*desc == 'J' || *desc == 'D') ? 2 : 1;
-            if(*desc++ == 'L') {
-                while(*desc) {
-                    if(*desc == ')')
-                        return argc;
-                    else if(*desc == ';') {
-                        desc++;
-                        break;
-                    }
-                    desc++;
-                }
-            }
-        }
-    }
-    return argc;
-}
-
 bool ConstNameAndType::operator==(ConstNameAndType &another) const {
     if(
         hash == another.hash &&
@@ -52,7 +25,7 @@ className(className), loader(NULL), nameAndType(nameAndType), fieldIndex(0) {
 
 ConstMethod::ConstMethod(const char *className, ConstNameAndType *nameAndType) :
 className(className), nameAndType(nameAndType), methodInfo(NULL) {
-    argc = parseArgc(nameAndType->desc);
+    argc = getArgSlotCount(nameAndType->desc);
 }
 
 uint8_t ConstMethod::getArgc(void) const {
