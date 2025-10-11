@@ -725,58 +725,22 @@ static void throwNoSuchFieldError(FExec *ctx, const char *clsName, const char *n
     ctx->throwNew(excpCls, "Could not find the field %s.%s", clsName, name);
 }
 
-Field32 *ClassLoader::getStaticField32(FExec *ctx, ConstField *field) const {
-    Field32 *ret = staticFields->getField32(field);
+FieldValue *ClassLoader::getStaticField(FExec *ctx, ConstField *field) const {
+    FieldValue *ret = staticFields->getField(field);
     if(ret == NULL && ctx != NULL)
         throwNoSuchFieldError(ctx, field->className, field->nameAndType->name);
     return ret;
 }
 
-Field32 *ClassLoader::getStaticField32(FExec *ctx, const char *name) const {
-    Field32 *ret = staticFields->getField32(name);
+FieldValue *ClassLoader::getStaticField(FExec *ctx, const char *name) const {
+    FieldValue *ret = staticFields->getField(name);
     if(ret == NULL && ctx != NULL)
         throwNoSuchFieldError(ctx, getName(), name);
     return ret;
 }
 
-Field32 *ClassLoader::getStaticField32ByIndex(uint32_t index) const {
-    return staticFields->getField32ByIndex(index);
-}
-
-Field64 *ClassLoader::getStaticField64(FExec *ctx, ConstField *field) const {
-    Field64 *ret = staticFields->getField64(field);
-    if(ret == NULL && ctx != NULL)
-        throwNoSuchFieldError(ctx, field->className, field->nameAndType->name);
-    return ret;
-}
-
-Field64 *ClassLoader::getStaticField64(FExec *ctx, const char *name) const {
-    Field64 *ret = staticFields->getField64(name);
-    if(ret == NULL && ctx != NULL)
-        throwNoSuchFieldError(ctx, getName(), name);
-    return ret;
-}
-
-Field64 *ClassLoader::getStaticField64ByIndex(uint32_t index) const {
-    return staticFields->getField64ByIndex(index);
-}
-
-FieldObj *ClassLoader::getStaticFieldObj(FExec *ctx, ConstField *field) const {
-    FieldObj *ret = staticFields->getFieldObj(field);
-    if(ret == NULL && ctx != NULL)
-        throwNoSuchFieldError(ctx, field->className, field->nameAndType->name);
-    return ret;
-}
-
-FieldObj *ClassLoader::getStaticFieldObj(FExec *ctx, const char *name) const {
-    FieldObj *ret = staticFields->getFieldObj(name);
-    if(ret == NULL && ctx != NULL)
-        throwNoSuchFieldError(ctx, getName(), name);
-    return ret;
-}
-
-FieldObj *ClassLoader::getStaticFieldObjByIndex(uint32_t index) const {
-    return staticFields->getFieldObjByIndex(index);
+FieldValue *ClassLoader::getStaticFieldByIndex(uint32_t index) const {
+    return staticFields->getFieldByIndex(index);
 }
 
 StaticInitStatus ClassLoader::getStaticInitStatus(void) const {

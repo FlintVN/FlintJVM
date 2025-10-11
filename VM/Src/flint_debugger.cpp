@@ -306,29 +306,31 @@ void FDbg::responseField(JObject *obj, const char *fieldName) {
             sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
             return;
         }
-        if(Field32 *field = obj->getField32(NULL, fieldName); field != NULL) {
-            initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8);
-            if(!dataFrameAppend((uint32_t)4)) return;
-            if(!dataFrameAppend((uint32_t)field->value)) return;
-        }
-        else if(Field64 *field = obj->getField64(NULL, fieldName); field != NULL) {
-             initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 12);
+        FieldValue *field = obj->getField(NULL, fieldName);
+        char c = field->getFieldInfo()->desc[0];
+        if(c == 'J' || c == 'D') {
+            initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 12);
             if(!dataFrameAppend((uint32_t)8)) return;
-            if(!dataFrameAppend((uint64_t)field->value)) return;
+            if(!dataFrameAppend((uint64_t)field->getInt64())) return;
         }
-        else if(FieldObj *field = obj->getFieldObj(NULL, fieldName); field != NULL) {
-            JObject *subObj = field->value;
+        else if(c == 'L') {
+            JObject *subObj = field->getObj();
             if(subObj != NULL) {
                 const char *type = subObj->getTypeName();
                 initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8 + (2 + strlen(type) + 1));
                 if(!dataFrameAppend((uint32_t)subObj->size)) return;
-                if(!dataFrameAppend((uint32_t)field->value)) return;
+                if(!dataFrameAppend((uint32_t)subObj)) return;
                 if(!dataFrameAppend(type)) return;
             }
             else {
                 initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 4);
                 if(!dataFrameAppend((uint32_t)0)) return;
             }
+        }
+        else {
+            initDataFrame(DBG_CMD_READ_FIELD, DBG_RESP_OK, 8);
+            if(!dataFrameAppend((uint32_t)4)) return;
+            if(!dataFrameAppend((uint32_t)field->getInt32())) return;
         }
         dataFrameFinish();
     }

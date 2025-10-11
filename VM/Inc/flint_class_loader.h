@@ -127,17 +127,9 @@ public:
 
     BootstrapMethod *getBootstapMethod(uint16_t index);
 
-    Field32 *getStaticField32(class FExec *ctx, ConstField *field) const;
-    Field32 *getStaticField32(class FExec *ctx, const char *name) const;
-    Field32 *getStaticField32ByIndex(uint32_t index) const;
-
-    Field64 *getStaticField64(class FExec *ctx, ConstField *field) const;
-    Field64 *getStaticField64(class FExec *ctx, const char *name) const;
-    Field64 *getStaticField64ByIndex(uint32_t index) const;
-
-    FieldObj *getStaticFieldObj(class FExec *ctx, ConstField *field) const;
-    FieldObj *getStaticFieldObj(class FExec *ctx, const char *name) const;
-    FieldObj *getStaticFieldObjByIndex(uint32_t index) const;
+    FieldValue *getStaticField(class FExec *ctx, ConstField *field) const;
+    FieldValue *getStaticField(class FExec *ctx, const char *name) const;
+    FieldValue *getStaticFieldByIndex(uint32_t index) const;
 
     StaticInitStatus getStaticInitStatus(void) const;
     void staticInitialized(void);

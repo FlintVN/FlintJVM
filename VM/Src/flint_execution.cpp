@@ -498,7 +498,7 @@ void FExec::invokeDynamic(ConstInvokeDynamic *constInvokeDynamic) {
     if(!constInvokeDynamic->isLinked())
         invokeBootstapMethod(constInvokeDynamic);
     JObject *callSite = constInvokeDynamic->getCallSite();
-    JMethodHandle *target = (JMethodHandle *)callSite->getFieldObjByIndex(0)->value;
+    JMethodHandle *target = (JMethodHandle *)callSite->getFieldByIndex(0)->getObj();
     invokeMethodHandle(target, target->getTargetArgc(), pc + 5);
 }
 
@@ -623,7 +623,7 @@ void FExec::invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc)
     if(mthTypeNameHash == boundMethodHandleHash) {
         uint8_t index = 0;
         uint32_t spIndex = sp - argc + 1;
-        JObjectArray *fixedArgs = (JObjectArray *)mth->getFieldObj(this, "argc")->value;
+        JObjectArray *fixedArgs = (JObjectArray *)mth->getField(this, "argc")->getObj();
         uint8_t fixedArgc = (uint8_t)fixedArgs->getLength();
         JObject **fixedArgsData = fixedArgs->getData();
         memmove(&stack[spIndex + fixedArgc], &stack[spIndex], argc * sizeof(uint32_t));
@@ -644,12 +644,12 @@ void FExec::invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc)
             if(desc[0] == 'L')
                 SET_STACK_VALUE(++spIndex, (int32_t)fixedArgsData[i]);
             else if(desc[0] == 'J' || desc[0] == 'D') {
-                int64_t val = fixedArgsData[i]->getField64ByIndex(0)->value;
+                int64_t val = fixedArgsData[i]->getFieldByIndex(0)->getInt64();
                 SET_STACK_VALUE(++spIndex, ((int32_t *)&val)[0]);
                 SET_STACK_VALUE(++spIndex, ((int32_t *)&val)[1]);
             }
             else
-                SET_STACK_VALUE(++spIndex, fixedArgsData[i]->getField32ByIndex(0)->value);
+                SET_STACK_VALUE(++spIndex, fixedArgsData[i]->getFieldByIndex(0)->getInt32());
         }
     }
     switch(refKind) {
@@ -1800,27 +1800,23 @@ void FExec::exec(bool initOpcodeLabels) {
         }
         StaticInitStatus initStatus = clsLoader->getStaticInitStatus();
         if(initStatus == INITIALIZED || (initStatus == INITIALIZING && clsLoader->monitorOwnId == (uint32_t)this)) {
+            FieldValue *fieldValue = clsLoader->getStaticField(this, constField);
+            if(fieldValue == NULL) goto exception_handler;
             switch(constField->nameAndType->desc[0]) {
                 case 'J':
                 case 'D': {
-                    Field64 *fieldData = clsLoader->getStaticField64(this, constField);
-                    if(fieldData == NULL) goto exception_handler;
-                    stackPushInt64(fieldData->value);
+                    stackPushInt64(fieldValue->getInt64());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'L':
                 case '[': {
-                    FieldObj *fieldData = clsLoader->getStaticFieldObj(this, constField);
-                    if(fieldData == NULL) goto exception_handler;
-                    stackPushObject(fieldData->value);
+                    stackPushObject(fieldValue->getObj());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 default: {
-                    Field32 *fieldData = clsLoader->getStaticField32(this, constField);
-                    if(fieldData == NULL) goto exception_handler;
-                    stackPushInt32(fieldData->value);
+                    stackPushInt32(fieldValue->getInt32());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
@@ -1850,43 +1846,35 @@ void FExec::exec(bool initOpcodeLabels) {
         }
         StaticInitStatus initStatus = clsLoader->getStaticInitStatus();
         if(initStatus == INITIALIZED || (initStatus == INITIALIZING && clsLoader->monitorOwnId == (uint32_t)this)) {
+            FieldValue *fieldValue = clsLoader->getStaticField(this, constField);
+            if(fieldValue == NULL) goto exception_handler;
             switch(constField->nameAndType->desc[0]) {
                 case 'Z':
                 case 'B': {
-                    Field32 *fieldData = clsLoader->getStaticField32(this, constField);
-                    if(fieldData == NULL) goto exception_handler;
-                    fieldData->value = (int8_t)stackPopInt32();
+                    fieldValue->setInt32((int8_t)stackPopInt32());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'C':
                 case 'S': {
-                    Field32 *fieldData = clsLoader->getStaticField32(this, constField);
-                    if(fieldData == NULL) goto exception_handler;
-                    fieldData->value = (int16_t)stackPopInt32();
+                    fieldValue->setInt32((int16_t)stackPopInt32());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'J':
                 case 'D': {
-                    Field64 *fieldData = clsLoader->getStaticField64(this, constField);
-                    if(fieldData == NULL) goto exception_handler;
-                    fieldData->value = stackPopInt64();
+                    fieldValue->setInt64(stackPopInt64());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'L':
                 case '[': {
-                    FieldObj *fieldData = clsLoader->getStaticFieldObj(this, constField);
-                    if(fieldData == NULL) goto exception_handler;
-                    fieldData->value = stackPopObject();
+                    fieldValue->setObj(stackPopObject());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 default: {
-                    Field32 *fieldData = clsLoader->getStaticField32(this, constField);
-                    if(fieldData == NULL) goto exception_handler;
-                    fieldData->value = stackPopInt32();
+                    fieldValue->setInt32(stackPopInt32());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
@@ -1914,27 +1902,23 @@ void FExec::exec(bool initOpcodeLabels) {
             throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
             goto exception_handler;
         }
+        FieldValue *fieldValue = obj->getField(this, constField);
+        if(fieldValue == NULL) goto exception_handler;
         switch(constField->nameAndType->desc[0]) {
             case 'J':
             case 'D': {
-                Field64 *fieldData = obj->getField64(this, constField);
-                if(fieldData == NULL) goto exception_handler;
-                stackPushInt64(fieldData->value);
+                stackPushInt64(fieldValue->getInt64());
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'L':
             case '[': {
-                FieldObj *fieldData = obj->getFieldObj(this, constField);
-                if(fieldData == NULL) goto exception_handler;
-                stackPushObject(fieldData->value);
+                stackPushObject(fieldValue->getObj());
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             default: {
-                Field32 *fieldData = obj->getField32(this, constField);
-                if(fieldData == NULL) goto exception_handler;
-                stackPushInt32(fieldData->value);
+                stackPushInt32(fieldValue->getInt32());
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -1953,9 +1937,9 @@ void FExec::exec(bool initOpcodeLabels) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                Field32 *fieldData = obj->getField32(this, constField);
-                if(fieldData == NULL) goto exception_handler;
-                fieldData->value = (int8_t)value;
+                FieldValue *fieldValue = obj->getField(this, constField);
+                if(fieldValue == NULL) goto exception_handler;
+                fieldValue->setInt32((int8_t)value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -1968,9 +1952,9 @@ void FExec::exec(bool initOpcodeLabels) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                Field32 *fieldData = obj->getField32(this, constField);
-                if(fieldData == NULL) goto exception_handler;
-                fieldData->value = (int16_t)value;
+                FieldValue *fieldValue = obj->getField(this, constField);
+                if(fieldValue == NULL) goto exception_handler;
+                fieldValue->setInt32((int16_t)value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -1983,9 +1967,9 @@ void FExec::exec(bool initOpcodeLabels) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                Field64 *fieldData = obj->getField64(this, constField);
-                if(fieldData == NULL) goto exception_handler;
-                fieldData->value = value;
+                FieldValue *fieldValue = obj->getField(this, constField);
+                if(fieldValue == NULL) goto exception_handler;
+                fieldValue->setInt64(value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -1998,9 +1982,9 @@ void FExec::exec(bool initOpcodeLabels) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                FieldObj *fieldData = obj->getFieldObj(this, constField);
-                if(fieldData == NULL) goto exception_handler;
-                fieldData->value = value;
+                FieldValue *fieldValue = obj->getField(this, constField);
+                if(fieldValue == NULL) goto exception_handler;
+                fieldValue->setObj(value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -2012,9 +1996,9 @@ void FExec::exec(bool initOpcodeLabels) {
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
-                Field32 *fieldData = obj->getField32(this, constField);
-                if(fieldData == NULL) goto exception_handler;
-                fieldData->value = value;
+                FieldValue *fieldValue = obj->getField(this, constField);
+                if(fieldValue == NULL) goto exception_handler;
+                fieldValue->setInt32(value);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }

@@ -106,49 +106,51 @@ jobject nativeArrayGet(FNIEnv *env, jobject obj, jint index) {
             case 'B': { /* byte */
                 jobject val = env->newObject(env->findClass("java/lang/Byte"));
                 if(val == NULL) return NULL;
-                val->getField32ByIndex(0)->value = ((jbyteArray)obj)->getData()[index];
+                val->getFieldByIndex(0)->setInt32(((jbyteArray)obj)->getData()[index]);
                 return val;
             }
             case 'Z': { /* boolean */
                 jobject val = env->newObject(env->findClass("java/lang/Boolean"));
                 if(val == NULL) return NULL;
-                val->getField32ByIndex(0)->value = ((jboolArray)obj)->getData()[index];
+                val->getFieldByIndex(0)->setInt32(((jboolArray)obj)->getData()[index]);
                 return val;
             }
             case 'C': { /* char */
                 jobject val = env->newObject(env->findClass("java/lang/Character"));
                 if(val == NULL) return NULL;
-                val->getField32ByIndex(0)->value = ((jcharArray)obj)->getData()[index];
+                val->getFieldByIndex(0)->setInt32(((jcharArray)obj)->getData()[index]);
                 return val;
             }
             case 'S': { /* short */
                 jobject val = env->newObject(env->findClass("java/lang/Short"));
                 if(val == NULL) return NULL;
-                val->getField32ByIndex(0)->value = ((jshortArray)obj)->getData()[index];
+                val->getFieldByIndex(0)->setInt32(((jshortArray)obj)->getData()[index]);
                 return val;
             }
             case 'I': { /* integer */
                 jobject val = env->newObject(env->findClass("java/lang/Integer"));
                 if(val == NULL) return NULL;
-                val->getField32ByIndex(0)->value = ((jintArray)obj)->getData()[index];
+                val->getFieldByIndex(0)->setInt32(((jintArray)obj)->getData()[index]);
                 return val;
             }
             case 'F': { /* float */
                 jobject val = env->newObject(env->findClass("java/lang/Float"));
                 if(val == NULL) return NULL;
-                val->getField32ByIndex(0)->value = ((jfloatArray)obj)->getData()[index];
+                float tmp = ((jfloatArray)obj)->getData()[index];
+                val->getFieldByIndex(0)->setInt32(*(int32_t *)&tmp);
                 return val;
             }
             case 'D': { /* double */
                 jobject val = env->newObject(env->findClass("java/lang/Double"));
                 if(val == NULL) return NULL;
-                val->getField32ByIndex(0)->value = ((jdoubleArray)obj)->getData()[index];
+                double tmp = ((jdoubleArray)obj)->getData()[index];
+                val->getFieldByIndex(0)->setInt64(*(int64_t *)&tmp);
                 return val;
             }
             default: { /* long */
                 jobject val = env->newObject(env->findClass("java/lang/Long"));
                 if(val == NULL) return NULL;
-                val->getField32ByIndex(0)->value = ((jlongArray)obj)->getData()[index];
+                val->getFieldByIndex(0)->setInt64(((jlongArray)obj)->getData()[index]);
                 return val;
             }
         }
@@ -324,63 +326,87 @@ jvoid nativeArraySet(FNIEnv *env, jobject obj, jint index, jobject v) {
         char vc = parseWrapperClass(obj);
         switch(c) {
             case 'Z': { /* boolean */
-                if(vc == 'Z') ((jboolArray)obj)->getData()[index] = (jbool)v->getField32ByIndex(0)->value;
+                if(vc == 'Z') ((jboolArray)obj)->getData()[index] = (jbool)v->getFieldByIndex(0)->getInt32();
                 else return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
                 return;
             }
             case 'B': { /* byte */
-                if(vc == 'B') ((jbyteArray)obj)->getData()[index] = (jbyte)v->getField32ByIndex(0)->value;
+                if(vc == 'B') ((jbyteArray)obj)->getData()[index] = (jbyte)v->getFieldByIndex(0)->getInt32();
                 else return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
                 return;
             }
             case 'C': { /* char */
-                if(vc == 'C') ((jcharArray)obj)->getData()[index] = (jchar)v->getField32ByIndex(0)->value;
+                if(vc == 'C') ((jcharArray)obj)->getData()[index] = (jchar)v->getFieldByIndex(0)->getInt32();
                 else return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
                 return;
             }
             case 'S': { /* short */
-                if(vc == 'B') ((jshortArray)obj)->getData()[index] = (jshort)v->getField32ByIndex(0)->value;
-                else if(vc == 'S') ((jshortArray)obj)->getData()[index] = (jshort)v->getField32ByIndex(0)->value;
-                else return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
-                return;
+                if(vc == 'B' || vc == 'S') {
+                    ((jshortArray)obj)->getData()[index] = (jshort)v->getFieldByIndex(0)->getInt32();
+                    return;
+                }
+                else
+                    return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
             }
             case 'I': { /* integer */
-                if(vc == 'B') ((jintArray)obj)->getData()[index] = (jint)v->getField32ByIndex(0)->value;
-                else if(vc == 'C') ((jintArray)obj)->getData()[index] = (jint)v->getField32ByIndex(0)->value;
-                else if(vc == 'S') ((jintArray)obj)->getData()[index] = (jint)v->getField32ByIndex(0)->value;
-                else if(vc == 'I') ((jintArray)obj)->getData()[index] = (jint)v->getField32ByIndex(0)->value;
-                else return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
-                return;
+                if(vc == 'B' || vc == 'C' || vc == 'S' || vc == 'I') {
+                    ((jintArray)obj)->getData()[index] = (jint)v->getFieldByIndex(0)->getInt32();
+                    return;
+                }
+                else
+                    return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
             }
             case 'F': { /* float */
-                if(vc == 'B') ((jfloatArray)obj)->getData()[index] = (jfloat)v->getField32ByIndex(0)->value;
-                else if(vc == 'C') ((jfloatArray)obj)->getData()[index] = (jfloat)v->getField32ByIndex(0)->value;
-                else if(vc == 'S') ((jfloatArray)obj)->getData()[index] = (jfloat)v->getField32ByIndex(0)->value;
-                else if(vc == 'I') ((jfloatArray)obj)->getData()[index] = (jfloat)v->getField32ByIndex(0)->value;
-                else if(vc == 'F') ((jfloatArray)obj)->getData()[index] = *(jfloat *)&v->getField32ByIndex(0)->value;
-                else if(vc == 'J') ((jfloatArray)obj)->getData()[index] = (jfloat)*(jdouble *)&v->getField64ByIndex(0)->value;
-                else return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
-                return;
+                if(vc == 'B' || vc == 'C' || vc == 'S' || vc == 'I') {
+                    ((jfloatArray)obj)->getData()[index] = (jfloat)v->getFieldByIndex(0)->getInt32();
+                    return;
+                }
+                else if(vc == 'F') {
+                    int32_t tmp = v->getFieldByIndex(0)->getInt32();
+                    ((jfloatArray)obj)->getData()[index] = *(jfloat *)&tmp;
+                    return;
+                }
+                else if(vc == 'J') {
+                    int64_t tmp = v->getFieldByIndex(0)->getInt64();
+                    ((jfloatArray)obj)->getData()[index] = (jfloat)*(jdouble *)&tmp;
+                    return;
+                }
+                else
+                    return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
             }
             case 'D': { /* double */
-                if(vc == 'B') ((jdoubleArray)obj)->getData()[index] = (jdouble)v->getField32ByIndex(0)->value;
-                else if(vc == 'C') ((jdoubleArray)obj)->getData()[index] = (jdouble)v->getField32ByIndex(0)->value;
-                else if(vc == 'S') ((jdoubleArray)obj)->getData()[index] = (jdouble)v->getField32ByIndex(0)->value;
-                else if(vc == 'I') ((jdoubleArray)obj)->getData()[index] = (jdouble)v->getField32ByIndex(0)->value;
-                else if(vc == 'F') ((jdoubleArray)obj)->getData()[index] = (jdouble)*(jfloat *)&v->getField32ByIndex(0)->value;
-                else if(vc == 'J') ((jdoubleArray)obj)->getData()[index] = (jdouble)v->getField64ByIndex(0)->value;
-                else if(vc == 'D') ((jdoubleArray)obj)->getData()[index] = *(jdouble *)&v->getField64ByIndex(0)->value;
-                else return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
-                return;
+                if(vc == 'B' || vc == 'C' || vc == 'S' || vc == 'I') {
+                    ((jdoubleArray)obj)->getData()[index] = (jdouble)v->getFieldByIndex(0)->getInt32();
+                    return;
+                }
+                else if(vc == 'F') {
+                    int32_t tmp = v->getFieldByIndex(0)->getInt32();
+                    ((jdoubleArray)obj)->getData()[index] = (jdouble)*(jfloat *)&tmp;
+                    return;
+                }
+                else if(vc == 'J') {
+                    ((jdoubleArray)obj)->getData()[index] = (jdouble)v->getFieldByIndex(0)->getInt64();
+                    return;
+                }
+                else if(vc == 'D') {
+                    int64_t tmp = v->getFieldByIndex(0)->getInt64();
+                    ((jdoubleArray)obj)->getData()[index] = *(jdouble *)&tmp;
+                    return;
+                }
+                else
+                    return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
             }
             default: { /* long */
-                if(vc == 'B') ((jlongArray)obj)->getData()[index] = (jlong)v->getField32ByIndex(0)->value;
-                else if(vc == 'C') ((jlongArray)obj)->getData()[index] = (jlong)v->getField32ByIndex(0)->value;
-                else if(vc == 'S') ((jlongArray)obj)->getData()[index] = (jlong)v->getField32ByIndex(0)->value;
-                else if(vc == 'I') ((jlongArray)obj)->getData()[index] = (jlong)v->getField32ByIndex(0)->value;
-                else if(vc == 'J') ((jlongArray)obj)->getData()[index] = (jlong)v->getField64ByIndex(0)->value;
-                else return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
-                return;
+                if(vc == 'B' || vc == 'C' || vc == 'S' || vc == 'I') {
+                    ((jlongArray)obj)->getData()[index] = (jlong)v->getFieldByIndex(0)->getInt32();
+                    return;
+                }
+                else if(vc == 'J') {
+                    ((jlongArray)obj)->getData()[index] = (jlong)v->getFieldByIndex(0)->getInt64();
+                    return;
+                }
+                else
+                    return env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "argument type mismatch");
             }
         }
     }

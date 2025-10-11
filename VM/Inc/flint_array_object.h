@@ -17,18 +17,6 @@ private:
     JArray(const JArray &) = delete;
     void operator=(const JArray &) = delete;
 
-    Field32 *getField32(ConstField *field) = delete;
-    Field32 *getField32(const char *name) = delete;
-    Field32 *getField32ByIndex(uint32_t index) = delete;
-
-    Field64 *getField64(ConstField *field) = delete;
-    Field64 *getField64(const char *name) = delete;
-    Field64 *getField64ByIndex(uint32_t index) = delete;
-
-    FieldObj *getFieldObj(ConstField *field) = delete;
-    FieldObj *getFieldObj(const char *name) = delete;
-    FieldObj *getFieldObjByIndex(uint32_t index) = delete;
-
     bool initFields(class FExec *ctx, class ClassLoader *loader) = delete;
 };
 

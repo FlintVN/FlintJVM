@@ -80,7 +80,7 @@ jstring nativeInitClassName(FNIEnv *env, jclass cls) {
     }
     buff[idx] = 0;
     jstring str = Flint::getConstString(env->exec, buff);
-    cls->getFieldObj(env->exec, "name")->value = str;
+    cls->getField(env->exec, "name")->setObj(str);
     return str;
 }
 
@@ -91,9 +91,9 @@ jclass nativeGetSuperclass(FNIEnv *env, jclass cls) {
 
 static jobjectArray getEmptyClassArray(FNIEnv *env) {
     jclass clsOfCls = Flint::getClassOfClass(env->exec);
-    FieldObj *field = clsOfCls->getClassLoader()->getStaticFieldObj(env->exec, "EMPTY_CLASS_ARRAY");
+    FieldValue *field = clsOfCls->getClassLoader()->getStaticField(env->exec, "EMPTY_CLASS_ARRAY");
     if(field == NULL) return NULL;
-    return (jobjectArray)field->value;
+    return (jobjectArray)field->getObj();
 }
 
 jobjectArray nativeGetInterfaces0(FNIEnv *env, jclass cls) {
@@ -249,20 +249,20 @@ jobjectArray nativeGetDeclaredFields0(FNIEnv *env, jclass cls) {
         array->getData()[i] = field;
 
         /* clazz */
-        field->getFieldObj(env->exec, "clazz")->value = cls;
+        field->getField(env->exec, "clazz")->setObj(cls);
 
         /* name */
         jstring name = Flint::getConstString(env->exec, fieldInfo->name);
         if(name == NULL) { supportFreeObjArray(env, array, i + 1); return NULL; }
-        field->getFieldObj(env->exec, "name")->value = name;
+        field->getField(env->exec, "name")->setObj(name);
 
         /* type */
         jclass type = env->findClass(fieldInfo->desc);
         if(type == NULL) { supportFreeObjArray(env, array, i + 1); return NULL; }
-        field->getFieldObj(env->exec, "type")->value = type;
+        field->getField(env->exec, "type")->setObj(type);
 
         /* modifiers */
-        field->getField32(env->exec, "modifiers")->value = (int32_t)fieldInfo->accessFlag & 0x1FFF;
+        field->getField(env->exec, "modifiers")->setInt32((int32_t)fieldInfo->accessFlag & 0x1FFF);
     }
     return array;
 }
@@ -290,32 +290,32 @@ jobjectArray nativeGetDeclaredMethods0(FNIEnv *env, jclass cls) {
         array->getData()[aidx++] = method;
 
         /* clazz */
-        method->getFieldObj(env->exec, "clazz")->value = cls;
+        method->getField(env->exec, "clazz")->setObj(cls);
 
         /* name */
         jstring name = Flint::getConstString(env->exec, methodInfo->name);
         if(name == NULL) { supportFreeObjArray(env, array, aidx); return NULL; }
-        method->getFieldObj(env->exec, "name")->value = name;
+        method->getField(env->exec, "name")->setObj(name);
 
         /* returnType */
         jclass retType = getReturnType(env, methodInfo->desc);
         if(retType == NULL) { supportFreeObjArray(env, array, aidx); return NULL; }
-        method->getFieldObj(env->exec, "returnType")->value = retType;
+        method->getField(env->exec, "returnType")->setObj(retType);
 
         /* parameterTypes */
         jobjectArray types = getParameterTypes(env, methodInfo->desc);
         if(types == NULL) { supportFreeObjArray(env, array, aidx); return NULL; }
-        method->getFieldObj(env->exec, "parameterTypes")->value = types;
+        method->getField(env->exec, "parameterTypes")->setObj(types);
         types->clearProtected();
 
         /* exceptionTypes */
         types = getExceptionTypes(env, methodInfo);
         if(types == NULL) { supportFreeObjArray(env, array, aidx); return NULL; }
-        method->getFieldObj(env->exec, "exceptionTypes")->value = types;
+        method->getField(env->exec, "exceptionTypes")->setObj(types);
         types->clearProtected();
 
         /* modifiers */
-        method->getField32(env->exec, "modifiers")->value = (int32_t)methodInfo->accessFlag & 0x1FFF;
+        method->getField(env->exec, "modifiers")->setInt32((int32_t)methodInfo->accessFlag & 0x1FFF);
     }
     return array;
 }
@@ -343,22 +343,22 @@ jobjectArray nativeGetDeclaredConstructors0(FNIEnv *env, jclass cls) {
         array->getData()[aidx++] = ctor;
 
         /* clazz */
-        ctor->getFieldObj(env->exec, "clazz")->value = cls;
+        ctor->getField(env->exec, "clazz")->setObj(cls);
 
         /* parameterTypes */
         jobjectArray types = getParameterTypes(env, methodInfo->desc);
         if(types == NULL) { supportFreeObjArray(env, array, aidx); return NULL; }
-        ctor->getFieldObj(env->exec, "parameterTypes")->value = types;
+        ctor->getField(env->exec, "parameterTypes")->setObj(types);
         types->clearProtected();
 
         /* exceptionTypes */
         types = getExceptionTypes(env, methodInfo);
         if(types == NULL) { supportFreeObjArray(env, array, aidx); return NULL; }
-        ctor->getFieldObj(env->exec, "exceptionTypes")->value = types;
+        ctor->getField(env->exec, "exceptionTypes")->setObj(types);
         types->clearProtected();
 
         /* modifiers */
-        ctor->getField32(env->exec, "modifiers")->value = (int32_t)methodInfo->accessFlag & 0x1FFF;
+        ctor->getField(env->exec, "modifiers")->setInt32((int32_t)methodInfo->accessFlag & 0x1FFF);
     }
     return array;
 }

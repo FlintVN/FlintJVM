@@ -451,14 +451,14 @@ JObject *Flint::newMethodType(FExec *ctx, JClass *rtype, JObjectArray *ptypes) {
     if(methodType == NULL) return NULL;
 
     /* Set value for ptypes */
-    FieldObj *ptypesField = methodType->getFieldObj(ctx, "ptypes");
+    FieldValue *ptypesField = methodType->getField(ctx, "ptypes");
     if(ptypesField == NULL) { freeObject(methodType); return NULL; }
-    ptypesField->value = ptypes;
+    ptypesField->setObj(ptypes);
 
     /* Set value for rtype */
-    FieldObj *rtypeField = methodType->getFieldObj(ctx, "rtype");
+    FieldValue *rtypeField = methodType->getField(ctx, "rtype");
     if(rtypeField == NULL) { freeObject(methodType); return NULL; }
-    rtypeField->value = rtype;
+    rtypeField->setObj(rtype);
 
     return methodType;
 }
@@ -494,7 +494,7 @@ JMethodHandle *Flint::newMethodHandle(FExec *ctx, JMethodHandle *mth, JObjectArr
 
     uint32_t typeNameHash = *(uint32_t *)mth->getTypeName() - 4;
     if(typeNameHash == boundMethodHandleHash) {
-        JObjectArray *argsOrg = (JObjectArray *)mth->getFieldObj(ctx, "args")->value;
+        JObjectArray *argsOrg = (JObjectArray *)mth->getField(ctx, "args")->getObj();
         uint32_t argcOrg = (argsOrg == NULL) ? 0 : argsOrg->getLength();
         JObjectArray *tmp = (JObjectArray *)newArray(ctx, findClassOfArray(ctx, "java/lang/Object", 1), argcOrg + args->getLength());
         if(tmp == NULL) return NULL;
@@ -507,11 +507,11 @@ JMethodHandle *Flint::newMethodHandle(FExec *ctx, JMethodHandle *mth, JObjectArr
     }
 
     /* Get type (MethodType) from mth */
-    JObject *type = mth->getFieldObjByIndex(0)->value;
+    JObject *type = mth->getFieldByIndex(0)->getObj();
     /* Get rtype (Class) from type */
-    JClass *rtype = (JClass *)type->getFieldObjByIndex(0)->value;
+    JClass *rtype = (JClass *)type->getFieldByIndex(0)->getObj();
     /* Get ptypes (Class[]) from type */
-    JObjectArray *ptypes = (JObjectArray *)type->getFieldObjByIndex(1)->value;
+    JObjectArray *ptypes = (JObjectArray *)type->getFieldByIndex(1)->getObj();
     /* Create ptypes (Class[]) for BoundMethodHandle */
     JObjectArray *newPtypes = (JObjectArray *)newArray(ctx, findClassOfArray(ctx, "java/lang/Object", 1), ptypes->getLength() - args->getLength());
     if(newPtypes == NULL) return NULL;
@@ -531,7 +531,7 @@ JMethodHandle *Flint::newMethodHandle(FExec *ctx, JMethodHandle *mth, JObjectArr
 
     bmth->setMethodType(methodType);
     bmth->setTarget(mth);
-    bmth->getFieldObj(ctx, "args")->value = args;
+    bmth->getField(ctx, "args")->setObj(args);
 
     return bmth;
 }
@@ -900,10 +900,16 @@ void Flint::clearProtLv2Recursion(JObject *obj) {
     }
     else {
         FieldsData *fieldData = (FieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
-            JObject *tmp = fieldData->fieldsObj[i].value;
-            if(tmp && (tmp->getProtected() & 0x01) == 0)
-                clearProtLv2Recursion(tmp);
+        if(fieldData->hasObjField()) {
+            for(uint16_t i = 0; i < fieldData->count; i++) {
+                FieldValue *fieldValue = &fieldData->fields[i];
+                const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
+                if(fieldInfo != NULL && fieldInfo->desc[0] == 'L') {
+                    JObject *tmp = fieldValue->getObj();
+                    if(tmp && (tmp->getProtected() & 0x01) == 0)
+                        clearProtLv2Recursion(tmp);
+                }
+            }
         }
     }
     obj->clearProtected();
@@ -937,10 +943,15 @@ void Flint::clearMarkRecursion(JObject *obj) {
     }
     else {
         FieldsData *fieldData = (FieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
-            JObject *tmp = fieldData->fieldsObj[i].value;
-            if(tmp && (tmp->getProtected() & 0x01))
-                clearMarkRecursion(tmp);
+        if(!fieldData->hasObjField()) return;
+        for(uint16_t i = 0; i < fieldData->count; i++) {
+            FieldValue *fieldValue = &fieldData->fields[i];
+            const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
+            if(fieldInfo != NULL && fieldInfo->desc[0] == 'L') {
+                JObject *tmp = fieldValue->getObj();
+                if(tmp && (tmp->getProtected() & 0x01))
+                    clearMarkRecursion(tmp);
+            }
         }
     }
 }
@@ -961,10 +972,16 @@ void Flint::markObjectRecursion(JObject *obj) {
     }
     else {
         FieldsData *fieldData = (FieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
-            JObject *tmp = fieldData->fieldsObj[i].value;
-            if(tmp && (tmp->getProtected() & 0x01) == 0)
-                markObjectRecursion(tmp);
+        if(fieldData->hasObjField()) {
+            for(uint16_t i = 0; i < fieldData->count; i++) {
+                FieldValue *fieldValue = &fieldData->fields[i];
+                const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
+                if(fieldInfo != NULL && fieldInfo->desc[0] == 'L') {
+                    JObject *tmp = fieldValue->getObj();
+                    if(tmp && (tmp->getProtected() & 0x01) == 0)
+                        markObjectRecursion(tmp);
+                }
+            }
         }
     }
 }

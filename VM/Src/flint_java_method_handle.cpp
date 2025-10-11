@@ -14,11 +14,11 @@ typedef struct {
 } InternalData;
 
 JObject *JMethodHandle::getMethodType(void) const {
-    return getFieldObjByIndex(0)->value;
+    return getFieldByIndex(0)->getObj();
 }
 
 void JMethodHandle::setMethodType(JObject *methodType) {
-    getFieldObjByIndex(0)->value = methodType;
+    getFieldByIndex(0)->setObj(methodType);
 }
 
 MethodInfo *JMethodHandle::getTargetMethod(FExec *ctx, JClass *caller) const {

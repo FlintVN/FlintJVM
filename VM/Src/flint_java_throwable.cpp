@@ -3,17 +3,17 @@
 #include "flint_java_throwable.h"
 
 JString *JThrowable::getDetailMessage(void) const {
-    return (JString *)getFieldObjByIndex(0)->value;
+    return (JString *)getFieldByIndex(0)->getObj();
 }
 
 void JThrowable::setDetailMessage(JString *strObj) {
-    getFieldObjByIndex(0)->value = strObj;
+    getFieldByIndex(0)->setObj(strObj);
 }
 
 JThrowable *JThrowable::getCause(void) const {
-    return (JThrowable *)getFieldObjByIndex(1)->value;
+    return (JThrowable *)getFieldByIndex(1)->getObj();
 }
 
 void JThrowable::setCause(JThrowable *cause) {
-    getFieldObjByIndex(1)->value = cause;
+    getFieldByIndex(1)->setObj(cause);
 }

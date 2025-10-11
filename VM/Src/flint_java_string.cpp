@@ -63,7 +63,7 @@ bool JString::setAscii(FExec *ctx, const char *format, va_list args) {
 }
 
 JByteArray *JString::getValue(void) const {
-    return (JByteArray *)getFieldObjByIndex(0)->value;
+    return (JByteArray *)getFieldByIndex(0)->getObj();
 }
 
 const char *JString::getAscii(void) const {
@@ -71,7 +71,7 @@ const char *JString::getAscii(void) const {
 }
 
 void JString::setValue(JByteArray *value) {
-    getFieldObjByIndex(0)->value = value;
+    getFieldByIndex(0)->setObj(value);
 }
 
 uint32_t JString::getLength(void) const {
@@ -83,11 +83,11 @@ uint32_t JString::getLength(void) const {
 }
 
 uint8_t JString::getCoder(void) const {
-    return getField32ByIndex(0)->value;
+    return getFieldByIndex(1)->getInt32();
 }
 
 void JString::setCoder(uint8_t coder) {
-    getField32ByIndex(0)->value = coder;
+    getFieldByIndex(1)->setInt32(coder);
 }
 
 uint32_t JString::getHashCode(void) {
@@ -149,17 +149,17 @@ int32_t JString::compareTo(const char *utf8, uint16_t length) const {
 }
 
 uint32_t JString::getHash(void) const {
-    return getField32ByIndex(1)->value;
+    return getFieldByIndex(2)->getInt32();
 }
 
 void JString::setHash(uint32_t hash) {
-    getField32ByIndex(1)->value = hash;
+    getFieldByIndex(2)->setInt32(hash);
 }
 
 bool JString::getHashIsZero(void) const {
-    return getField32ByIndex(2)->value;
+    return getFieldByIndex(3)->getInt32();
 }
 
 void JString::setHashIsZero(bool value) {
-    getField32ByIndex(2)->value = value ? 1 : 0;
+    getFieldByIndex(3)->setInt32(value ? 1 : 0);
 }
