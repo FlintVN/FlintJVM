@@ -29,58 +29,22 @@ static void throwNoSuchFieldError(FExec *ctx, const char *clsName, const char *n
     ctx->throwNew(excpCls, "Could not find the field %s.%s", clsName, name);
 }
 
-Field32 *JObject::getField32(FExec *ctx, ConstField *field) const {
-    Field32 *ret = ((FieldsData *)data)->getField32(field);
+FieldValue *JObject::getField(FExec *ctx, ConstField *field) const {
+    FieldValue *ret = ((FieldsData *)data)->getField(field);
     if(ret == NULL && ctx != NULL)
         throwNoSuchFieldError(ctx, field->className, field->nameAndType->name);
     return ret;
 }
 
-Field32 *JObject::getField32(FExec *ctx, const char *name) const {
-    Field32 *ret = ((FieldsData *)data)->getField32(name);
+FieldValue *JObject::getField(FExec *ctx, const char *name) const {
+    FieldValue *ret = ((FieldsData *)data)->getField(name);
     if(ret == NULL && ctx != NULL)
         throwNoSuchFieldError(ctx, getTypeName(), name);
     return ret;
 }
 
-Field32 *JObject::getField32ByIndex(uint32_t index) const {
-    return ((FieldsData *)data)->getField32ByIndex(index);
-}
-
-Field64 *JObject::getField64(FExec *ctx, ConstField *field) const {
-    Field64 *ret = ((FieldsData *)data)->getField64(field);
-    if(ret == NULL && ctx != NULL)
-        throwNoSuchFieldError(ctx, field->className, field->nameAndType->name);
-    return ret;
-}
-
-Field64 *JObject::getField64(FExec *ctx, const char *name) const {
-    Field64 *ret = ((FieldsData *)data)->getField64(name);
-    if(ret == NULL && ctx != NULL)
-        throwNoSuchFieldError(ctx, getTypeName(), name);
-    return ret;
-}
-
-Field64 *JObject::getField64ByIndex(uint32_t index) const {
-    return ((FieldsData *)data)->getField64ByIndex(index);
-}
-
-FieldObj *JObject::getFieldObj(FExec *ctx, ConstField *field) const {
-    FieldObj *ret = ((FieldsData *)data)->getFieldObj(field);
-    if(ret == NULL && ctx != NULL)
-        throwNoSuchFieldError(ctx, field->className, field->nameAndType->name);
-    return ret;
-}
-
-FieldObj *JObject::getFieldObj(FExec *ctx, const char *name) const {
-    FieldObj *ret = ((FieldsData *)data)->getFieldObj(name);
-    if(ret == NULL && ctx != NULL)
-        throwNoSuchFieldError(ctx, getTypeName(), name);
-    return ret;
-}
-
-FieldObj *JObject::getFieldObjByIndex(uint32_t index) const {
-    return ((FieldsData *)data)->getFieldObjByIndex(index);
+FieldValue *JObject::getFieldByIndex(uint32_t index) const {
+    return ((FieldsData *)data)->getFieldByIndex(index);
 }
 
 void JObject::clearData(void) {

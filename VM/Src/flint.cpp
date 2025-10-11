@@ -674,10 +674,16 @@ void Flint::clearProtLv2Recursion(JObject *obj) {
     }
     else {
         FieldsData *fieldData = (FieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
-            JObject *tmp = fieldData->fieldsObj[i].value;
-            if(tmp && (tmp->getProtected() & 0x01) == 0)
-                clearProtLv2Recursion(tmp);
+        if(fieldData->hasObjField()) {
+            for(uint16_t i = 0; i < fieldData->count; i++) {
+                FieldValue *fieldValue = &fieldData->fields[i];
+                const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
+                if(fieldInfo != NULL && fieldInfo->desc[0] == 'L') {
+                    JObject *tmp = fieldValue->getObj();
+                    if(tmp && (tmp->getProtected() & 0x01) == 0)
+                        clearProtLv2Recursion(tmp);
+                }
+            }
         }
     }
     obj->clearProtected();
@@ -711,10 +717,15 @@ void Flint::clearMarkRecursion(JObject *obj) {
     }
     else {
         FieldsData *fieldData = (FieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
-            JObject *tmp = fieldData->fieldsObj[i].value;
-            if(tmp && (tmp->getProtected() & 0x01))
-                clearMarkRecursion(tmp);
+        if(!fieldData->hasObjField()) return;
+        for(uint16_t i = 0; i < fieldData->count; i++) {
+            FieldValue *fieldValue = &fieldData->fields[i];
+            const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
+            if(fieldInfo != NULL && fieldInfo->desc[0] == 'L') {
+                JObject *tmp = fieldValue->getObj();
+                if(tmp && (tmp->getProtected() & 0x01))
+                    clearMarkRecursion(tmp);
+            }
         }
     }
 }
@@ -735,10 +746,16 @@ void Flint::markObjectRecursion(JObject *obj) {
     }
     else {
         FieldsData *fieldData = (FieldsData *)obj->data;
-        for(uint16_t i = 0; i < fieldData->fieldsObjCount; i++) {
-            JObject *tmp = fieldData->fieldsObj[i].value;
-            if(tmp && (tmp->getProtected() & 0x01) == 0)
-                markObjectRecursion(tmp);
+        if(fieldData->hasObjField()) {
+            for(uint16_t i = 0; i < fieldData->count; i++) {
+                FieldValue *fieldValue = &fieldData->fields[i];
+                const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
+                if(fieldInfo != NULL && fieldInfo->desc[0] == 'L') {
+                    JObject *tmp = fieldValue->getObj();
+                    if(tmp && (tmp->getProtected() & 0x01) == 0)
+                        markObjectRecursion(tmp);
+                }
+            }
         }
     }
 }
