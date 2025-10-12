@@ -185,7 +185,6 @@ jobjectArray nativeGetNestMembers0(FNIEnv *env, jclass cls) {
 
 jbool nativeIsHidden(FNIEnv *env) {
     // TODO
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "isHidden is not implemented in VM");
     return false;
 }
 
