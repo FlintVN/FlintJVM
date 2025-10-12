@@ -1,4 +1,9 @@
 # Change Log
+## V2.1.0
+- Support call to java method in native interface.
+- Fix bug where existing values ​​could not be found in FDict.
+- Fix memory leak.
+- Class.isHidden return false instead of throwing exception.
 ## V2.0.1
 - Fix bug in FNIEnv::newObjectArray.
 - Fix Class.initClassName native method do not assign a value to Class.name.

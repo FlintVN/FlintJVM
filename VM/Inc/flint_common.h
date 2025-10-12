@@ -5,8 +5,8 @@
 #include "flint_std.h"
 
 #define FLINT_VERSION_MAJOR         2
-#define FLINT_VERSION_MINOR         0
-#define FLINT_VERSION_PATCH         1
+#define FLINT_VERSION_MINOR         1
+#define FLINT_VERSION_PATCH         0
 
 #define LENGTH(_array)              (sizeof(_array) / sizeof(_array[0]))
 
