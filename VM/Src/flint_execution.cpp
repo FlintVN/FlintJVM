@@ -616,40 +616,39 @@ void FExec::invokeBootstapMethod(ConstInvokeDynamic *constInvokeDynamic) {
     Flint::makeToGlobal((JObject *)ret);
 }
 
+static void arrayInsert(int32_t *arr, uint8_t *n, uint8_t pos, int32_t value) {
+    memmove(&arr[pos + 1], &arr[pos], (*n - pos) * sizeof(int32_t));
+    arr[pos] = value;
+    (*n)++;
+}
+
+static void arrayInsert(int32_t *arr, uint8_t *n, uint8_t pos, int64_t value) {
+    memmove(&arr[pos + 2], &arr[pos], (*n - pos) * sizeof(int32_t));
+    arr[pos + 0] = (int32_t)((uint64_t)value >> 32);
+    arr[pos + 1] = (int32_t)value;
+    (*n) += 2;
+}
+
 void FExec::invokeMethodHandle(JMethodHandle *mth, uint8_t argc, uint32_t retPc) {
     static constexpr uint32_t boundMethodHandleHash = Hash("java/lang/invoke/BoundMethodHandle");
     uint32_t mthTypeNameHash = *(uint32_t *)(mth->getTypeName() - 4);
     RefKind refKind = mth->getTargetRefKind();
     if(mthTypeNameHash == boundMethodHandleHash) {
-        uint8_t index = 0;
-        uint32_t spIndex = sp - argc + 1;
-        JObjectArray *fixedArgs = (JObjectArray *)mth->getField(this, "argc")->getObj();
-        uint8_t fixedArgc = (uint8_t)fixedArgs->getLength();
-        JObject **fixedArgsData = fixedArgs->getData();
-        memmove(&stack[spIndex + fixedArgc], &stack[spIndex], argc * sizeof(uint32_t));
-        switch(refKind) {
-            case REF_INVOKEVIRTUAL:
-            case REF_INVOKEINTERFACE:
-            case REF_INVOKESPECIAL:
-            case REF_NEWINVOKESPECIAL:
-                SET_STACK_VALUE(++spIndex, (int32_t)fixedArgsData[0]);
-                index++;
-                break;
-            default:
-                break;
-        }
-        const char *desc = mth->getTargetDesc();
-        for(uint8_t i = index; i < fixedArgc; i++) {
-            desc = getNextArgName(desc);
-            if(desc[0] == 'L')
-                SET_STACK_VALUE(++spIndex, (int32_t)fixedArgsData[i]);
-            else if(desc[0] == 'J' || desc[0] == 'D') {
-                int64_t val = fixedArgsData[i]->getFieldByIndex(0)->getInt64();
-                SET_STACK_VALUE(++spIndex, ((int32_t *)&val)[0]);
-                SET_STACK_VALUE(++spIndex, ((int32_t *)&val)[1]);
+        JByteArray *posArray = (JByteArray *)mth->getFieldByIndex(0)->getObj();
+        JObjectArray *values = (JObjectArray *)mth->getFieldByIndex(1)->getObj();
+        int32_t *buff = &stack[sp - argc + 1];
+        for(uint8_t i = 0; i < values->getLength(); i++) {
+            uint8_t pos = posArray->getData()[i];
+            if((pos & 0x80) != 0x00) {
+                FieldValue *field = values->getData()[i]->getFieldByIndex(0);
+                char c = field->getFieldInfo()->desc[0];
+                if(c == 'J' || c == 'D')
+                    arrayInsert(buff, &argc, pos & 0x7F, field->getInt64());
+                else
+                    arrayInsert(buff, &argc, pos & 0x7F, field->getInt32());
             }
             else
-                SET_STACK_VALUE(++spIndex, fixedArgsData[i]->getFieldByIndex(0)->getInt32());
+                arrayInsert(buff, &argc, pos, (int32_t)values->getData()[i]);
         }
     }
     switch(refKind) {
