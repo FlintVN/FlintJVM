@@ -4,20 +4,23 @@
 #include "flint_execution.h"
 #include "flint_java_class.h"
 
+typedef struct {
+    FieldsData fields;
+    const char *typeName;
+    ClassLoader *classLoader;
+} InternalData;
+
 JClass::JClass(const char *typeName, ClassLoader *loader) : JObject(sizeof(FieldsData), NULL) {
-    void **internalData = (void **)&((FieldsData *)data)[1];
-    internalData[0] = (void *)typeName;
-    internalData[1] = (void *)loader;
+    ((InternalData *)data)->typeName = typeName;
+    ((InternalData *)data)->classLoader = loader;
 }
 
 const char *JClass::getTypeName(void) const {
-    void **internalData = (void **)&((FieldsData *)data)[1];
-    return (char *)internalData[0];
+    return ((InternalData *)data)->typeName;
 }
 
 ClassLoader *JClass::getClassLoader(void) const {
-    void **internalData = (void **)&((FieldsData *)data)[1];
-    return (ClassLoader *)internalData[1];
+    return ((InternalData *)data)->classLoader;
 }
 
 char JClass::isPrimitive(const char *typeName, uint16_t length) {
@@ -77,5 +80,5 @@ uint8_t JClass::componentSize() const {
 }
 
 uint32_t JClass::size(void) {
-    return sizeof(JClass) + sizeof(FieldsData) + sizeof(void *) * 2;
+    return sizeof(JClass) + sizeof(InternalData);
 }
