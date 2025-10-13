@@ -25,7 +25,7 @@ FExec::FExec(JThread *onwer, uint32_t stackSize) : ListNode(), stackLength(stack
     this->sp = -1;
     this->startSp = sp;
     this->peakSp = sp;
-    this->onwerThread = onwerThread;
+    this->onwerThread = onwer;
     this->excp = NULL;
 }
 
