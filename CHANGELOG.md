@@ -1,4 +1,6 @@
 # Change Log
+## V2.1.1
+- Fix stuck in FMutex::lock with 1 core chips.
 ## V2.1.0
 - Support call to java method in native interface.
 - Fix bug where existing values ​​could not be found in FDict.
