@@ -112,12 +112,12 @@ static int32_t findIndex(const uint16_t *letterList, uint16_t c) {
     return -1;
 }
 
-jint nativeToLower(FNIEnv *env, jchar c) {
+jint nativeToLowerCase(FNIEnv *env, jchar c) {
     int32_t index = findIndex(letterUpper, c);
     return (index >= 0) ? letterLower[index] : c;
 }
 
-jint nativeToUpper(FNIEnv *env, jchar c) {
+jint nativeToUpperCase(FNIEnv *env, jchar c) {
     int32_t index = findIndex(letterLower, c);
     return (index >= 0) ? letterUpper[index] : c;
 }

@@ -4,12 +4,12 @@
 
 #include "flint_native.h"
 
-jint nativeToLower(FNIEnv *env, jchar c);
-jint nativeToUpper(FNIEnv *env, jchar c);
+jint nativeToLowerCase(FNIEnv *env, jchar c);
+jint nativeToUpperCase(FNIEnv *env, jchar c);
 
 static constexpr NativeMethod characterMethods[] = {
-    NATIVE_METHOD("toLower", "(C)C", nativeToLower),
-    NATIVE_METHOD("toUpper", "(C)C", nativeToUpper),
+    NATIVE_METHOD("toLowerCase", "(C)C", nativeToLowerCase),
+    NATIVE_METHOD("toUpperCase", "(C)C", nativeToUpperCase),
 };
 
 #endif /* __FLINT_NATIVE_CHARACTER_H */
