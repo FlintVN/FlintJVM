@@ -3,7 +3,9 @@
 
 #include "flint_system_api.h"
 
-FileResult FlintAPI::IO::finfo(const char *fileName, uint32_t *size, int64_t *time) {
+using namespace FlintAPI::IO;
+
+FileResult FlintAPI::IO::finfo(const char *fileName, FileInfo *fileInfo) {
     #error "FlintAPI::IO::finfo is not implemented in VM";
 }
 
@@ -39,7 +41,7 @@ DirHandle FlintAPI::IO::opendir(const char *dirName) {
     #error "FlintAPI::Directory::open is not implemented in VM";
 }
 
-FileResult FlintAPI::IO::readdir(DirHandle handle, uint8_t *attribute, char *nameBuff, uint32_t buffSize, uint32_t *size, int64_t *time) {
+FileResult FlintAPI::IO::readdir(DirHandle handle, FileInfo *fileInfo) {
     #error "FlintAPI::Directory::read is not implemented in VM";
 }
 

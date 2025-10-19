@@ -15,7 +15,7 @@ typedef struct {
     JClass *cls;
 } ConstClass;
 
-static FileHandle FOpen(FExec *ctx, const char *fileName, uint8_t length = 0xFF) {
+static FlintAPI::IO::FileHandle FOpen(FExec *ctx, const char *fileName, uint8_t length = 0xFF) {
     char buff[FILE_NAME_BUFF_SIZE];
     char *tmp = buff;
     uint8_t index = 0;
@@ -23,16 +23,16 @@ static FileHandle FOpen(FExec *ctx, const char *fileName, uint8_t length = 0xFF)
     fileName = ".class";
     while(*fileName) *tmp++ = *fileName++;
     *tmp = 0;
-    FileHandle handle = FlintAPI::IO::fopen(buff, FLINT_FILE_READ);
+    FlintAPI::IO::FileHandle handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FileMode::FILE_MODE_READ);
     if(ctx != NULL && handle == NULL)
         ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fopen failed for '%s'", buff);
     return handle;
 }
 
-static bool FRead(FExec *ctx, FileHandle file, void *buff, uint32_t size) {
+static bool FRead(FExec *ctx, FlintAPI::IO::FileHandle file, void *buff, uint32_t size) {
     uint32_t temp;
-    FileResult ret = FlintAPI::IO::fread(file, buff, size, &temp);
-    if((ret != FILE_RESULT_OK) || (temp != size)) {
+    FlintAPI::IO::FileResult ret = FlintAPI::IO::fread(file, buff, size, &temp);
+    if((ret != FlintAPI::IO::FILE_RESULT_OK) || (temp != size)) {
         if(ctx != NULL)
             ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fread failed");
         return false;
@@ -40,30 +40,30 @@ static bool FRead(FExec *ctx, FileHandle file, void *buff, uint32_t size) {
     return true;
 }
 
-static bool FReadUInt8(FExec *ctx, FileHandle file, uint8_t &value) {
+static bool FReadUInt8(FExec *ctx, FlintAPI::IO::FileHandle file, uint8_t &value) {
     return FRead(ctx, file, &value, sizeof(uint8_t));
 }
 
-static bool FReadUInt16(FExec *ctx, FileHandle file, uint16_t &value) {
+static bool FReadUInt16(FExec *ctx, FlintAPI::IO::FileHandle file, uint16_t &value) {
     if(!FRead(ctx, file, &value, sizeof(uint16_t))) return false;
     value = Swap16(value);
     return true;
 }
 
-static bool FReadUInt32(FExec *ctx, FileHandle file, uint32_t &value) {
+static bool FReadUInt32(FExec *ctx, FlintAPI::IO::FileHandle file, uint32_t &value) {
     if(!FRead(ctx, file, &value, sizeof(uint32_t))) return false;
     value = Swap32(value);
     return true;
 }
 
-static bool FReadUInt64(FExec *ctx, FileHandle file, uint64_t &value) {
+static bool FReadUInt64(FExec *ctx, FlintAPI::IO::FileHandle file, uint64_t &value) {
     if(!FRead(ctx, file, &value, sizeof(uint64_t))) return false;
     value = Swap64(value);
     return true;
 }
 
-static bool Fseek(FExec *ctx, FileHandle file, int32_t offset) {
-    if(FlintAPI::IO::fseek(file, offset) != FILE_RESULT_OK) {
+static bool Fseek(FExec *ctx, FlintAPI::IO::FileHandle file, int32_t offset) {
+    if(FlintAPI::IO::fseek(file, offset) != FlintAPI::IO::FILE_RESULT_OK) {
         if(ctx != NULL)
             ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fseek failed");
         return false;
@@ -71,12 +71,12 @@ static bool Fseek(FExec *ctx, FileHandle file, int32_t offset) {
     return true;
 }
 
-static bool FOffset(FExec *ctx, FileHandle file, int32_t offset) {
+static bool FOffset(FExec *ctx, FlintAPI::IO::FileHandle file, int32_t offset) {
     return Fseek(ctx, file, FlintAPI::IO::ftell(file) + offset);
 }
 
-static bool FClose(FExec *ctx, FileHandle handle) {
-    if(FlintAPI::IO::fclose(handle) != FILE_RESULT_OK) {
+static bool FClose(FExec *ctx, FlintAPI::IO::FileHandle handle) {
+    if(FlintAPI::IO::fclose(handle) != FlintAPI::IO::FILE_RESULT_OK) {
         if(ctx != NULL)
             ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fclose failed");
         return false;
@@ -125,7 +125,7 @@ int32_t ClassLoader::compareKey(DictNode *other) const {
     return strcmp(this->getName(), ((ClassLoader *)other)->getName());
 }
 
-bool ClassLoader::load(FExec *ctx, FileHandle file) {
+bool ClassLoader::load(FExec *ctx, FlintAPI::IO::FileHandle file) {
     char buff[FILE_NAME_BUFF_SIZE];
     char *utf8Buff = buff;
     uint16_t utf8Length = sizeof(buff);
@@ -336,7 +336,7 @@ ClassLoader *ClassLoader::load(FExec *ctx, const char *clsName, uint16_t length)
     if(loader == NULL)
         return NULL;
     new (loader)ClassLoader();
-    FileHandle file = FOpen(ctx, clsName, length);
+    FlintAPI::IO::FileHandle file = FOpen(ctx, clsName, length);
     if(file == NULL)
         return NULL;
     if(loader->load(ctx, file) == false) {

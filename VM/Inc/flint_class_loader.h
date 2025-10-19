@@ -120,7 +120,7 @@ private:
     ClassLoader(const ClassLoader &) = delete;
     void operator=(const ClassLoader &) = delete;
 
-    bool load(class FExec *ctx, FileHandle file);
+    bool load(class FExec *ctx, FlintAPI::IO::FileHandle file);
     static CodeAttribute *readAttributeCode(class FExec *ctx, void *file);
 public:
     static ClassLoader *load(class FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);

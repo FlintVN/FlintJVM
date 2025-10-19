@@ -138,7 +138,7 @@ private:
     void responseField(JObject *obj, const char *fieldName);
     void responseArray(JObject *array, uint32_t index, uint32_t length);
     void responseObjSizeAndType(JObject *obj);
-    void responseOpenFile(char *fileName, FileMode mode);
+    void responseOpenFile(char *fileName, FlintAPI::IO::FileMode mode);
     void responseReadFile(uint32_t size);
     void responseWriteFile(uint8_t *data, uint32_t size);
     void responseSeekFile(uint32_t offset);
