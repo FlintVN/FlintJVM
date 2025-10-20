@@ -62,6 +62,7 @@ namespace FlintAPI {
         FileResult fseek(FileHandle handle, uint32_t offset);
         FileResult fclose(FileHandle handle);
         FileResult fremove(const char *fileName);
+        FileResult frename(const char *oldName, const char *newName);
 
         DirHandle opendir(const char *dirName);
         FileResult readdir(DirHandle handle, FileInfo *fileInfo);

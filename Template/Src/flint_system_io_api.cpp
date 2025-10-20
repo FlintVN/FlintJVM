@@ -37,6 +37,10 @@ FileResult FlintAPI::IO::fremove(const char *fileName) {
     #error "FlintAPI::IO::fremove is not implemented in VM";
 }
 
+FileResult FlintAPI::IO::frename(const char *oldName, const char *newName) {
+    #error "FlintAPI::IO::frename is not implemented in VM";
+}
+
 DirHandle FlintAPI::IO::opendir(const char *dirName) {
     #error "FlintAPI::Directory::open is not implemented in VM";
 }
