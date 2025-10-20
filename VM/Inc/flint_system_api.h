@@ -27,7 +27,8 @@ namespace FlintAPI {
             FILE_MODE_WRITE = 0x02,
             FILE_MODE_CREATE_NEW = 0x04,
             FILE_MODE_CREATE_ALWAYS = 0x08,
-            FILE_MODE_OPEN_ALWAYS = 0x10
+            FILE_MODE_OPEN_ALWAYS = 0x10,
+            FILE_MODE_APPEND = 0x30
         } FileMode;
 
         typedef enum : uint8_t {

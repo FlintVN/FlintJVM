@@ -21,6 +21,7 @@ class Flint {
 private:
     static FMutex flintLock;
     static FDbg *dbg;
+    static const char *cwd;
     static FDict<ClassLoader> loaders;
     static FDict<JClassDictNode> classes;
     static FDict<Utf8DictNode> utf8s;
@@ -58,6 +59,9 @@ public:
     static void println(int64_t num);
     static void println(const char *ascii);
     static void println(JString *str);
+
+    static const char *getCwd(void);
+    static void setCwd(const char *path);
 
     static const char *getUtf8(FExec *ctx, const char *utf8, uint16_t length = 0xFFFF);
     static ClassLoader *findLoader(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);

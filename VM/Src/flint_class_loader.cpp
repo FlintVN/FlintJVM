@@ -3,6 +3,7 @@
 #include <string.h>
 #include "flint.h"
 #include "flint_opcodes.h"
+#include "flint_common.h"
 #include "flint_default_conf.h"
 #include "flint_class_loader.h"
 
@@ -17,16 +18,17 @@ typedef struct {
 
 static FlintAPI::IO::FileHandle FOpen(FExec *ctx, const char *fileName, uint8_t length = 0xFF) {
     char buff[FILE_NAME_BUFF_SIZE];
-    char *tmp = buff;
-    uint8_t index = 0;
-    while(fileName[index] && index < length) *tmp++ = fileName[index++];
-    fileName = ".class";
-    while(*fileName) *tmp++ = *fileName++;
-    *tmp = 0;
-    FlintAPI::IO::FileHandle handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FileMode::FILE_MODE_READ);
-    if(ctx != NULL && handle == NULL)
-        ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fopen failed for '%s'", buff);
-    return handle;
+    uint16_t index = resolvePath(fileName, length, buff, sizeof(buff));
+    if(index > 0) {
+        if((index + sizeof(".class")) <= sizeof(buff)) {
+            memcpy(&buff[index], ".class", sizeof(".class"));
+            FlintAPI::IO::FileHandle handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
+            if(handle != NULL) return handle;
+        }
+    }
+    if(ctx != NULL)
+        ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "'%.*s' loading failed", length, fileName);
+    return NULL;
 }
 
 static bool FRead(FExec *ctx, FlintAPI::IO::FileHandle file, void *buff, uint32_t size) {

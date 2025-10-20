@@ -2152,6 +2152,7 @@ void FExec::vThrowNew(JClass *cls, const char *msg, va_list args) {
         if(str == NULL) {
             alignas(4) static const char err[] = "Cannot create java/lang/String object";
             excp = (JThrowable *)((uint32_t)err | 0x01);
+            Flint::freeObject(obj);
             return;
         }
         obj->setDetailMessage(str);

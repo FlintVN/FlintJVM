@@ -399,8 +399,8 @@ void FDbg::responseOpenFile(char *fileName, FlintAPI::IO::FileMode mode) {
         for(uint16_t i = 0; fileName[i]; i++) {
             if((fileName[i] == '/') || (fileName[i] == '\\')) {
                 fileName[i] = 0;
-                if(FlintAPI::IO::finfo(fileName, NULL) != FlintAPI::IO::FileResult::FILE_RESULT_OK) {
-                    if(FlintAPI::IO::mkdir(fileName) != FlintAPI::IO::FileResult::FILE_RESULT_OK) {
+                if(FlintAPI::IO::finfo(fileName, NULL) != FlintAPI::IO::FILE_RESULT_OK) {
+                    if(FlintAPI::IO::mkdir(fileName) != FlintAPI::IO::FILE_RESULT_OK) {
                         sendRespCode(DBG_CMD_OPEN_FILE, DBG_RESP_FAIL);
                         return;
                     }
@@ -424,7 +424,7 @@ void FDbg::responseReadFile(uint32_t size) {
             uint32_t br = 0;
             uint8_t fileBuff[256];
             size = (size < sizeof(fileBuff)) ? size : sizeof(fileBuff);
-            if(FlintAPI::IO::fread(fileHandle, fileBuff, size, &br) == FlintAPI::IO::FileResult::FILE_RESULT_OK) {
+            if(FlintAPI::IO::fread(fileHandle, fileBuff, size, &br) == FlintAPI::IO::FILE_RESULT_OK) {
                 initDataFrame(DBG_CMD_READ_FILE, DBG_RESP_OK, br + sizeof(uint32_t));
                 if(!dataFrameAppend((uint32_t)br)) return;
                 if(!dataFrameAppend(fileBuff, size)) return;
@@ -444,7 +444,7 @@ void FDbg::responseWriteFile(uint8_t *data, uint32_t size) {
         if(
             size > 0 &&
             fileHandle &&
-            FlintAPI::IO::fwrite(fileHandle, data, size, &bw) == FlintAPI::IO::FileResult::FILE_RESULT_OK
+            FlintAPI::IO::fwrite(fileHandle, data, size, &bw) == FlintAPI::IO::FILE_RESULT_OK
         ) {
             sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_OK);
         }
@@ -457,7 +457,7 @@ void FDbg::responseWriteFile(uint8_t *data, uint32_t size) {
 
 void FDbg::responseSeekFile(uint32_t offset) {
     if(csr & DBG_STATUS_RESET) {
-        if(fileHandle && FlintAPI::IO::fseek(fileHandle, offset) == FlintAPI::IO::FileResult::FILE_RESULT_OK)
+        if(fileHandle && FlintAPI::IO::fseek(fileHandle, offset) == FlintAPI::IO::FILE_RESULT_OK)
             sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_OK);
         else
             sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_FAIL);
@@ -470,7 +470,7 @@ void FDbg::responseCloseFile(void) {
     if(csr & DBG_STATUS_RESET) {
         if(
             fileHandle &&
-            FlintAPI::IO::fclose(fileHandle) == FlintAPI::IO::FileResult::FILE_RESULT_OK
+            FlintAPI::IO::fclose(fileHandle) == FlintAPI::IO::FILE_RESULT_OK
         ) {
             fileHandle = NULL;
             sendRespCode(DBG_CMD_CLOSE_FILE, DBG_RESP_OK);
@@ -485,7 +485,7 @@ void FDbg::responseCloseFile(void) {
 void FDbg::responseFileInfo(const char *fileName) {
     if(csr & DBG_STATUS_RESET) {
         FlintAPI::IO::FileInfo fileInfo;
-        if(FlintAPI::IO::finfo(fileName, &fileInfo) != FlintAPI::IO::FileResult::FILE_RESULT_OK)
+        if(FlintAPI::IO::finfo(fileName, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
             sendRespCode(DBG_CMD_FILE_INFO, DBG_RESP_FAIL);
         else {
             initDataFrame(DBG_CMD_FILE_INFO, DBG_RESP_OK, sizeof(fileInfo.attribute) + sizeof(fileInfo.size) + sizeof(fileInfo.time));
@@ -502,7 +502,7 @@ void FDbg::responseFileInfo(const char *fileName) {
 void FDbg::responseCreateDelete(DbgCmd cmd, const char *path) {
     if(csr & DBG_STATUS_RESET) {
         FlintAPI::IO::FileResult ret = (cmd == DBG_CMD_DELETE_FILE) ? FlintAPI::IO::fremove(path) : FlintAPI::IO::mkdir(path);
-        sendRespCode(cmd, (ret == FlintAPI::IO::FileResult::FILE_RESULT_OK) ? DBG_RESP_OK : DBG_RESP_FAIL);
+        sendRespCode(cmd, (ret == FlintAPI::IO::FILE_RESULT_OK) ? DBG_RESP_OK : DBG_RESP_FAIL);
     }
     else
         sendRespCode(cmd, DBG_RESP_BUSY);
@@ -521,9 +521,9 @@ void FDbg::responseOpenDir(const char *path) {
 
 void FDbg::responseReadDir(void) {
     if(csr & DBG_STATUS_RESET) {
-        if(dirHandle) {
-            FlintAPI::IO::FileInfo fileInfo;
-            if(FlintAPI::IO::readdir(dirHandle, &fileInfo) == FlintAPI::IO::FileResult::FILE_RESULT_OK) {
+        FlintAPI::IO::FileInfo fileInfo;
+        if(dirHandle && FlintAPI::IO::readdir(dirHandle, &fileInfo) == FlintAPI::IO::FILE_RESULT_OK) {
+            if(fileInfo.name[0] != 0) {
                 uint16_t nameLen = strlen(fileInfo.name);
                 uint32_t respLen = (2 + nameLen + 1) + sizeof(fileInfo.attribute) + sizeof(fileInfo.size) + sizeof(fileInfo.time);
                 initDataFrame(DBG_CMD_READ_DIR, DBG_RESP_OK, respLen);
@@ -538,6 +538,8 @@ void FDbg::responseReadDir(void) {
             else
                 sendRespCode(DBG_CMD_READ_DIR, DBG_RESP_OK);
         }
+        else
+            sendRespCode(DBG_CMD_READ_DIR, DBG_RESP_FAIL);
     }
     else
         sendRespCode(DBG_CMD_READ_DIR, DBG_RESP_BUSY);
@@ -547,7 +549,7 @@ void FDbg::responseCloseDir(void) {
     if(csr & DBG_STATUS_RESET) {
         if(
             dirHandle &&
-            FlintAPI::IO::closedir(fileHandle) == FlintAPI::IO::FileResult::FILE_RESULT_OK
+            FlintAPI::IO::closedir(fileHandle) == FlintAPI::IO::FILE_RESULT_OK
         ) {
             dirHandle = NULL;
             sendRespCode(DBG_CMD_CLOSE_DIR, DBG_RESP_OK);

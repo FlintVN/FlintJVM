@@ -8,6 +8,7 @@
 
 FMutex Flint::flintLock;
 FDbg *Flint::dbg = NULL;
+const char *Flint::cwd = NULL;
 FDict<ClassLoader> Flint::loaders;
 FDict<JClassDictNode> Flint::classes;
 FDict<Utf8DictNode> Flint::utf8s;
@@ -187,6 +188,14 @@ void Flint::println(const char *ascii) {
 void Flint::println(JString *str) {
     print(str->getAscii(), str->getLength(), str->getCoder());
     print("\n", 1, 0);
+}
+
+const char *Flint::getCwd(void) {
+    return cwd;
+}
+
+void Flint::setCwd(const char *path) {
+    cwd = path;
 }
 
 const char *Flint::getUtf8(FExec *ctx, const char *utf8, uint16_t length) {

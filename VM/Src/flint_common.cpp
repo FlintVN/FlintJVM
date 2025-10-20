@@ -1,4 +1,5 @@
 
+#include "flint.h"
 #include "flint_common.h"
 
 static const uint16_t crc16Table[] = {
@@ -84,6 +85,50 @@ int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_
     ret += second;
     ret -= 62135683200ULL; /* 00:00:00 - 1/1/1970 */
     return ret;
+}
+
+char getPathSeparatorChar(void) {
+#ifdef _WIN32
+    return '\\';
+#else
+    return '/';
+#endif
+}
+
+uint16_t isAbsolutePath(const char *path, uint16_t length) {
+#ifdef _WIN32
+    if(length < 3) return 0;
+    if(!(('a' <= path[0] && path[0] <= 'z') || ('A' <= path[0] && path[0] <= 'Z'))) return 0;
+    if(path[1] != ':') return 0;
+    if(path[2] != getPathSeparatorChar()) return 0;
+    return 3;
+#else
+    return ((length > 0) && (path[0] == getPathSeparatorChar())) ? 1 : 0;
+#endif
+}
+
+uint16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize) {
+    uint16_t count = 0;
+    if(!isAbsolutePath(path, length)) {
+        const char *cwd = Flint::getCwd();
+        if(cwd != NULL) {
+            while(*cwd) {
+                buff[count++] = *cwd++;
+                if(count >= buffSize) return 0;
+            }
+            char separatorChar = getPathSeparatorChar();
+            if(buff[count - 1] != separatorChar) {
+                buff[count++] = separatorChar;
+                if(count >= buffSize) return 0;
+            }
+        }
+    }
+    while(*path && length--) {
+        buff[count++] = *path++;
+        if(count >= buffSize) return 0;
+    }
+    buff[count] = 0;
+    return count;
 }
 
 const char *getNextArgName(const char *desc) {
