@@ -313,7 +313,7 @@ void FDbg::responseField(JObject *obj, const char *fieldName) {
             if(!dataFrameAppend((uint32_t)8)) return;
             if(!dataFrameAppend((uint64_t)field->getInt64())) return;
         }
-        else if(c == 'L') {
+        else if(c == 'L' || c == '[') {
             JObject *subObj = field->getObj();
             if(subObj != NULL) {
                 const char *type = subObj->getTypeName();
