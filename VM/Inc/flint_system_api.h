@@ -59,6 +59,7 @@ namespace FlintAPI {
         FileHandle fopen(const char *fileName, FileMode mode);
         FileResult fread(FileHandle handle, void *buff, uint32_t btr, uint32_t *br);
         FileResult fwrite(FileHandle handle, void *buff, uint32_t btw, uint32_t *bw);
+        uint32_t fsize(FileHandle handle);
         uint32_t ftell(FileHandle handle);
         FileResult fseek(FileHandle handle, uint32_t offset);
         FileResult fclose(FileHandle handle);

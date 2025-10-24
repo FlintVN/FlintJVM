@@ -21,6 +21,10 @@ FileResult FlintAPI::IO::fwrite(FileHandle handle, void *buff, uint32_t btw, uin
     #error "FlintAPI::IO::fwrite is not implemented in VM";
 }
 
+uint32_t FlintAPI::IO::fsize(FileHandle handle) {
+    #error "FlintAPI::IO::fsize is not implemented in VM";
+}
+
 uint32_t FlintAPI::IO::ftell(FileHandle handle) {
     #error "FlintAPI::IO::ftell is not implemented in VM";
 }
