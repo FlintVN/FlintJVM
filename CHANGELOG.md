@@ -1,4 +1,8 @@
 # Change Log
+## V2.2.0
+- Rename Character.toLower to Character.toLowerCase and Character.toUpper to Charactor.toUpperCase.
+- Fix issue for DBG_CMD_READ_FIELD in debugger when field is array.
+- Support for java.io.File, java.io.FileOutputStream and java.io.FileImputStream classes.
 ## V2.1.1
 - Fix stuck in FMutex::lock with 1 core chips.
 ## V2.1.0
