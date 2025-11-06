@@ -34,37 +34,24 @@ FDbg::FDbg(void) : dbgMutex() {
     txDataLength = 0;
 }
 
-void FDbg::print(const char *text, uint32_t length, uint8_t coder) {
+void FDbg::consoleWrite(uint8_t *utf8, uint32_t length) {
     lock();
-    if(coder == 0) {
-        while(length) {
-            consolePut((uint8_t)*text);
-            text++;
-            length--;
-        }
-    }
-    else {
-        while(length) {
-            consolePut(*(uint16_t *)text);
-            text += 2;
-            length--;
-        }
+    while(length) {
+        consolePut((uint8_t)*utf8);
+        utf8++;
+        length--;
     }
     unlock();
 }
 
-void FDbg::consolePut(uint16_t ch) {
-    char buff[3];
-    uint8_t count = Utf8EncodeOneChar(ch, buff);
-    for(uint8_t i = 0; i < count; i++) {
-        uint32_t nextOffset = (consoleOffset + 1) % sizeof(consoleBuff);
-        if(consoleLength == sizeof(consoleBuff))
-            consoleLength -= Utf8EncodeSize(consoleBuff[nextOffset]);
-        consoleBuff[consoleOffset] = buff[i];
-        consoleOffset = nextOffset;
-        if(consoleLength < sizeof(consoleBuff))
-            consoleLength++;
-    }
+void FDbg::consolePut(uint8_t ch) {
+    uint32_t nextOffset = (consoleOffset + 1) % sizeof(consoleBuff);
+    if(consoleLength == sizeof(consoleBuff))
+        consoleLength -= Utf8EncodeSize(consoleBuff[nextOffset]);
+    consoleBuff[consoleOffset] = ch;
+    consoleOffset = nextOffset;
+    if(consoleLength < sizeof(consoleBuff))
+        consoleLength++;
 }
 
 void FDbg::consoleClear(void) {

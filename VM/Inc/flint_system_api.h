@@ -12,7 +12,7 @@ namespace FlintAPI {
         void *malloc(uint32_t size);
         void *realloc(void *p, uint32_t size);
         void free(void *p);
-        void print(const char *text, uint32_t length, uint8_t coder);
+        void consoleWrite(uint8_t *utf8, uint32_t length);
         uint64_t getNanoTime(void);
         JNMPtr findNativeMethod(MethodInfo *methodInfo);
     };

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "flint.h"
+#include "flint_utf8.h"
 #include "flint_system_api.h"
 #include "flint_fields_data.h"
 
@@ -147,15 +148,15 @@ void Flint::setDebugger(FDbg *dbg) {
     Flint::dbg = dbg;
 }
 
-void Flint::print(const char *buff, uint32_t length, uint8_t coder) {
+void Flint::consoleWrite(uint8_t *utf8, uint32_t length) {
     if(dbg)
-        dbg->print(buff, length, coder);
+        dbg->consoleWrite(utf8, length);
     else
-        FlintAPI::System::print(buff, length, coder);
+        FlintAPI::System::consoleWrite(utf8, length);
 }
 
 void Flint::print(int64_t num) {
-    char buff[22] = {0};
+    uint8_t buff[22] = {0};
     int8_t index = sizeof(buff) - 1;
     bool isNagative = num < 0;
     do {
@@ -164,30 +165,46 @@ void Flint::print(int64_t num) {
     } while(num);
     if(isNagative)
         buff[--index] = '-';
-    print(&buff[index], sizeof(buff) - index - 1, 0);
+    consoleWrite(&buff[index], sizeof(buff) - index - 1);
 }
 
 void Flint::print(const char *ascii) {
-    print(ascii, strlen(ascii), 0);
+    consoleWrite((uint8_t *)ascii, strlen(ascii));
 }
 
 void Flint::print(JString *str) {
-    print(str->getAscii(), str->getLength(), str->getCoder());
+    char buff[16];
+    uint32_t length = str->getLength();
+    uint32_t count = 0;
+    for(uint32_t i = 0; i < length; i++) {
+        uint16_t c = str->getCharAt(i);
+        if((count + Utf8EncodeSize(c)) > sizeof(buff)) {
+            consoleWrite((uint8_t *)buff, count);
+            count = 0;
+        }
+        count += Utf8EncodeOneChar(c, &buff[count]);
+    }
+    if(count)
+        consoleWrite((uint8_t *)buff, count);
+}
+
+void Flint::println(void) {
+    consoleWrite((uint8_t *)"\n", 1);
 }
 
 void Flint::println(int64_t num) {
     print(num);
-    print("\n", 1, 0);
+    println();
 }
 
 void Flint::println(const char *ascii) {
-    print(ascii, strlen(ascii), 0);
-    print("\n", 1, 0);
+    print(ascii);
+    println();
 }
 
 void Flint::println(JString *str) {
-    print(str->getAscii(), str->getLength(), str->getCoder());
-    print("\n", 1, 0);
+    print(str);
+    println();
 }
 
 const char *Flint::getCwd(void) {

@@ -20,8 +20,8 @@ void FlintAPI::System::free(void *p) {
     #error "FlintAPI::System::free is not implemented in VM"
 }
 
-void FlintAPI::System::print(const char *text, uint16_t length, uint8_t coder) {
-    #error "FlintAPI::System::print is not implemented in VM"
+void FlintAPI::System::consoleWrite(uint8_t *utf8, uint16_t length) {
+    #error "FlintAPI::System::consoleWrite is not implemented in VM"
 }
 
 uint64_t FlintAPI::System::getNanoTime(void) {

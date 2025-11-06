@@ -50,12 +50,12 @@ public:
 
     static FDbg *getDebugger(void);
     static void setDebugger(FDbg *dbg);
-private:
-    static void print(const char *buff, uint32_t length, uint8_t coder);
 public:
+    static void consoleWrite(uint8_t *utf8, uint32_t length);
     static void print(int64_t num);
     static void print(const char *ascii);
     static void print(JString *str);
+    static void println(void);
     static void println(int64_t num);
     static void println(const char *ascii);
     static void println(JString *str);

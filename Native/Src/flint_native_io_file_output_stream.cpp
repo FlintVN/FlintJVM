@@ -35,7 +35,8 @@ jvoid nativeIoFileOutputStreamWrite(FNIEnv *env, jobject obj, jint b) {
 
     }
     else if(fd == 1) {  /* out */
-
+        uint8_t buff = (uint8_t)b;
+        Flint::consoleWrite(&buff, 1);
     }
     else if(fd == 2) {  /* err */
 
@@ -69,9 +70,8 @@ jvoid nativeIoFileOutputStreamWriteBytes(FNIEnv *env, jobject obj, jbyteArray b,
     else if(fd == 0) {  /* in */
 
     }
-    else if(fd == 1) {  /* out */
-
-    }
+    else if(fd == 1)    /* out */
+        Flint::consoleWrite((uint8_t *)b->getData(), b->getLength());
     else if(fd == 2) {  /* err */
 
     }

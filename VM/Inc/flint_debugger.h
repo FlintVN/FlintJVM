@@ -114,9 +114,9 @@ public:
 
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
 
-    void print(const char *text, uint32_t length, uint8_t coder);
+    void consoleWrite(uint8_t *utf8, uint32_t length);
 private:
-    void consolePut(uint16_t ch);
+    void consolePut(uint8_t ch);
     void consoleClear(void);
 
     void clearTxBuffer(void);
