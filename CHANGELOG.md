@@ -1,4 +1,8 @@
 # Change Log
+## V2.3.0
+- This update is for compatibility with [FlintJDK V1.0.0](https://github.com/FlintVN/FlintJDK/releases/tag/V1.0.0).
+- Support FileOutputStream.write with FileDescriptor.out.
+- Add support for System.setOut0 native method.
 ## V2.2.0
 - Rename Character.toLower to Character.toLowerCase and Character.toUpper to Charactor.toUpperCase.
 - Fix issue for DBG_CMD_READ_FIELD in debugger when field is array.
