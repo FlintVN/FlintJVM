@@ -1,8 +1,17 @@
 
 #include <string.h>
+#include "flint_java_class.h"
 #include "flint_system_api.h"
 #include "flint_array_object.h"
 #include "flint_native_system.h"
+
+jvoid nativesetOut0(FNIEnv *env, jobject out) {
+    jclass sysCls = env->findClass("java/lang/System");
+    if(sysCls == NULL) return;
+    FieldValue *outField = sysCls->getClassLoader()->getStaticField(env->exec, "out");
+    if(outField == NULL) return;
+    outField->setObj(out);
+}
 
 jlong nativeCurrentTimeMillis(FNIEnv *env) {
     (void)env;
