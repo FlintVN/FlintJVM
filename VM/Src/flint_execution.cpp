@@ -2157,7 +2157,7 @@ void FExec::vThrowNew(JClass *cls, const char *msg, va_list args) {
         }
         obj->setDetailMessage(str);
     }
-    if(excp != NULL) obj->setCause(excp);
+    obj->setCause(excp != NULL ? excp : obj);
     excp = obj;
 }
 
