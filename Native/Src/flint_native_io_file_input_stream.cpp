@@ -15,7 +15,7 @@ jvoid nativeIoFileInputStreamOpen(FNIEnv *env, jobject obj, jstring name) {
     char buff[FILE_NAME_BUFF_SIZE];
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
-    if(resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == 0) return;
+    if(resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
     Flint::lock();
     if(fd != -1)
         env->throwNew(env->findClass("java/io/IOException"), "File has been opened");

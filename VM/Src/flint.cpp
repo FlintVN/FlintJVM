@@ -10,6 +10,7 @@
 FMutex Flint::flintLock;
 FDbg *Flint::dbg = NULL;
 const char *Flint::cwd = NULL;
+const char *Flint::classPaths = NULL;
 FDict<ClassLoader> Flint::loaders;
 FDict<JClassDictNode> Flint::classes;
 FDict<Utf8DictNode> Flint::utf8s;
@@ -213,6 +214,14 @@ const char *Flint::getCwd(void) {
 
 void Flint::setCwd(const char *path) {
     cwd = path;
+}
+
+const char *Flint::getClassPaths(void) {
+    return classPaths;
+}
+
+void Flint::setClassPaths(const char *paths) {
+    classPaths = paths;
 }
 
 const char *Flint::getUtf8(FExec *ctx, const char *utf8, uint16_t length) {

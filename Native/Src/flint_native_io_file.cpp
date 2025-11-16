@@ -8,7 +8,7 @@ static const char *resolvePath(FNIEnv *env, jobject file, char *buff, uint32_t b
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *ptxt = path->getAscii();
     uint32_t len = path->getLength();
-    if(resolvePath(ptxt, len, buff, buffSize) == 0) {
+    if(resolvePath(ptxt, len, buff, buffSize) == -1) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "Class name cannot exceed %d characters", buffSize - 1);
         return NULL;

@@ -22,6 +22,7 @@ private:
     static FMutex flintLock;
     static FDbg *dbg;
     static const char *cwd;
+    static const char *classPaths;
     static FDict<ClassLoader> loaders;
     static FDict<JClassDictNode> classes;
     static FDict<Utf8DictNode> utf8s;
@@ -62,6 +63,8 @@ public:
 
     static const char *getCwd(void);
     static void setCwd(const char *path);
+    static const char *getClassPaths(void);
+    static void setClassPaths(const char *paths);
 
     static const char *getUtf8(FExec *ctx, const char *utf8, uint16_t length = 0xFFFF);
     static ClassLoader *findLoader(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);

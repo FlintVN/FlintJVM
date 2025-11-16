@@ -107,28 +107,30 @@ uint16_t isAbsolutePath(const char *path, uint16_t length) {
 #endif
 }
 
-uint16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize) {
-    uint16_t count = 0;
+static int16_t append(char *buff, int32_t index, uint16_t buffSize, const char *str, uint16_t len = 0xFFFF) {
+    if(index >= buffSize) return -1;
+    while(*str && len--) {
+        buff[index++] = *str++;
+        if(index >= buffSize) return -1;
+    }
+    buff[index] = 0;
+    return index;
+}
+
+int16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize) {
+    int16_t index = 0;
     if(!isAbsolutePath(path, length)) {
         const char *cwd = Flint::getCwd();
         if(cwd != NULL) {
-            while(*cwd) {
-                buff[count++] = *cwd++;
-                if(count >= buffSize) return 0;
-            }
+            if(index = append(buff, index, buffSize, cwd); index == -1) return -1;
             char separatorChar = getPathSeparatorChar();
-            if(buff[count - 1] != separatorChar) {
-                buff[count++] = separatorChar;
-                if(count >= buffSize) return 0;
+            if(buff[index - 1] != separatorChar) {
+                if(index >= buffSize) return -1;
+                buff[index++] = separatorChar;
             }
         }
     }
-    while(*path && length--) {
-        buff[count++] = *path++;
-        if(count >= buffSize) return 0;
-    }
-    buff[count] = 0;
-    return count;
+    return append(buff, index, buffSize, path, length);
 }
 
 const char *getNextArgName(const char *desc) {

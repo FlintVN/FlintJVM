@@ -30,7 +30,7 @@ int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_
 
 char getPathSeparatorChar(void);
 uint16_t isAbsolutePath(const char *path, uint16_t length);
-uint16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize);
+int16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize);
 
 const char *getNextArgName(const char *desc);
 uint16_t getArgNameLength(const char *desc);

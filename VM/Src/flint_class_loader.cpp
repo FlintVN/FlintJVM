@@ -16,18 +16,48 @@ typedef struct {
     JClass *cls;
 } ConstClass;
 
-static FlintAPI::IO::FileHandle FOpen(FExec *ctx, const char *fileName, uint8_t length = 0xFF) {
+static int16_t append(char *buff, int32_t index, const char *str, uint16_t len = 0xFFFF) {
+    if(index >= FILE_NAME_BUFF_SIZE) return -1;
+    while(*str && len--) {
+        buff[index++] = *str++;
+        if(index >= FILE_NAME_BUFF_SIZE) return -1;
+    }
+    buff[index] = 0;
+    return index;
+}
+
+static int16_t combinePath(char *buff, const char *folder, uint16_t folderLen, const char *clsName, uint16_t clsLen) {
+    int32_t index = 0;
+    if(index = append(buff, index, folder, folderLen); index == -1) return -1;
+    char separatorChar = getPathSeparatorChar();
+    if(buff[index - 1] != separatorChar) {
+        if(index >= FILE_NAME_BUFF_SIZE) return -1;
+        buff[index++] = separatorChar;
+    }
+    if(index = append(buff, index, clsName, clsLen); index == -1) return -1;
+    return append(buff, index, ".class");
+}
+
+static FlintAPI::IO::FileHandle FOpen(const char *fileName, uint16_t length = 0xFFFF) {
+    int16_t index;
     char buff[FILE_NAME_BUFF_SIZE];
-    uint16_t index = resolvePath(fileName, length, buff, sizeof(buff));
-    if(index > 0) {
-        if((index + sizeof(".class")) <= sizeof(buff)) {
-            memcpy(&buff[index], ".class", sizeof(".class"));
-            FlintAPI::IO::FileHandle handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
+    if(index = resolvePath(fileName, length, buff, sizeof(buff)); index == -1) return NULL;
+    if(index = append(buff, index, ".class"); index == -1) return NULL;
+    FlintAPI::IO::FileHandle handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
+    if(handle != NULL) return handle;
+
+    const char *jdks = Flint::getClassPaths();
+    if(jdks) {
+        while(1) {
+            uint32_t len = 0;
+            while(jdks[len] != 0 && jdks[len] != ';') len++;
+            if(combinePath(buff, jdks, len, fileName, length) == -1) return NULL;
+            handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
             if(handle != NULL) return handle;
+            if(jdks[len] == 0) return NULL;
+            jdks += len + 1;
         }
     }
-    if(ctx != NULL)
-        ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "'%.*s' loading failed", length, fileName);
     return NULL;
 }
 
@@ -338,9 +368,12 @@ ClassLoader *ClassLoader::load(FExec *ctx, const char *clsName, uint16_t length)
     if(loader == NULL)
         return NULL;
     new (loader)ClassLoader();
-    FlintAPI::IO::FileHandle file = FOpen(ctx, clsName, length);
-    if(file == NULL)
+    FlintAPI::IO::FileHandle file = FOpen(clsName, length);
+    if(file == NULL) {
+        if(ctx != NULL)
+            ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "'%.*s' loading failed", length, clsName);
         return NULL;
+    }
     if(loader->load(ctx, file) == false) {
         loader->~ClassLoader();
         Flint::free(loader);
@@ -615,8 +648,13 @@ MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, uint8_t methodIndex) {
     if(method->accessFlag & METHOD_UNLOADED) {
         Flint::lock();
         if(method->accessFlag & METHOD_UNLOADED) {
-            void *file = FOpen(ctx, getName());
-            if(file == NULL) { Flint::unlock(); return NULL; }
+            void *file = FOpen(getName());
+            if(file == NULL) {
+                Flint::unlock();
+                if(ctx != NULL)
+                    ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "'%s' loading failed", getName());
+                return NULL;
+            }
 
             if(!Fseek(ctx, file, (uint32_t)method->code)) { FClose(NULL, file); Flint::unlock(); return NULL; }
 
