@@ -903,10 +903,7 @@ void Flint::clearAllStaticFields(void) {
 
 void Flint::freeAllExecution(void) {
     lock();
-    execs.forEach([](FExec *exec) {
-        execs.remove(exec);
-        Flint::free(exec);
-    });
+    execs.forEach([](FExec *exec) { execs.remove(exec); Flint::free(exec); });
     execs.clear();
     unlock();
 }

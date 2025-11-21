@@ -43,8 +43,8 @@ static FlintAPI::IO::FileHandle FOpen(const char *fileName, uint16_t length = 0x
     char buff[FILE_NAME_BUFF_SIZE];
     if(index = resolvePath(fileName, length, buff, sizeof(buff)); index == -1) return NULL;
     if(index = append(buff, index, ".class"); index == -1) return NULL;
-    FlintAPI::IO::FileHandle handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
-    if(handle != NULL) return handle;
+    if(FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK)
+        return FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
 
     const char *jdks = Flint::getClassPaths();
     if(jdks) {
@@ -52,8 +52,8 @@ static FlintAPI::IO::FileHandle FOpen(const char *fileName, uint16_t length = 0x
             uint32_t len = 0;
             while(jdks[len] != 0 && jdks[len] != ';') len++;
             if(combinePath(buff, jdks, len, fileName, length) == -1) return NULL;
-            handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
-            if(handle != NULL) return handle;
+            if(FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK)
+                return FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
             if(jdks[len] == 0) return NULL;
             jdks += len + 1;
         }
@@ -168,8 +168,7 @@ bool ClassLoader::load(FExec *ctx, FlintAPI::IO::FileHandle file) {
     if(!FReadUInt16(ctx, file, poolCount)) return false;
     poolCount--;
     poolTable = (ConstPool *)Flint::malloc(ctx, poolCount * sizeof(ConstPool));
-    if(poolTable == NULL)
-        return false;
+    if(poolTable == NULL) return false;
     for(uint32_t i = 0; i < poolCount; i++) {
         uint8_t tag;
         if(!FReadUInt8(ctx, file, tag)) return false;
@@ -180,15 +179,13 @@ bool ClassLoader::load(FExec *ctx, FlintAPI::IO::FileHandle file) {
                 if(!FReadUInt16(ctx, file, length)) return false;
                 if(length > utf8Length) {
                     utf8Buff = (char *)((utf8Buff == buff) ? Flint::malloc(ctx, length) : Flint::realloc(ctx, utf8Buff, length));
-                    if(utf8Buff == NULL)
-                        return false;
+                    if(utf8Buff == NULL) return false;
                     utf8Length = length;
                 }
                 if(!FRead(ctx, file, utf8Buff, length)) return false;
                 utf8Buff[length] = 0;
                 const char *utf8 = Flint::getUtf8(ctx, utf8Buff);
-                if(utf8 == NULL)
-                    return false;
+                if(utf8 == NULL) return false;
                 *(uint32_t *)&poolTable[i].value = (uint32_t)utf8;
                 break;
             }
@@ -243,8 +240,7 @@ bool ClassLoader::load(FExec *ctx, FlintAPI::IO::FileHandle file) {
             }
         }
     }
-    if(utf8Buff != buff)
-        Flint::free(utf8Buff);
+    if(utf8Buff != buff) Flint::free(utf8Buff);
 
     if(!FReadUInt16(ctx, file, accessFlags)) return false;
 
@@ -364,16 +360,15 @@ bool ClassLoader::load(FExec *ctx, FlintAPI::IO::FileHandle file) {
 }
 
 ClassLoader *ClassLoader::load(FExec *ctx, const char *clsName, uint16_t length) {
-    ClassLoader *loader = (ClassLoader *)Flint::malloc(ctx, sizeof(ClassLoader));
-    if(loader == NULL)
-        return NULL;
-    new (loader)ClassLoader();
     FlintAPI::IO::FileHandle file = FOpen(clsName, length);
     if(file == NULL) {
         if(ctx != NULL)
             ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "'%.*s' loading failed", length, clsName);
         return NULL;
     }
+    ClassLoader *loader = (ClassLoader *)Flint::malloc(ctx, sizeof(ClassLoader));
+    if(loader == NULL) return NULL;
+    new (loader)ClassLoader();
     if(loader->load(ctx, file) == false) {
         loader->~ClassLoader();
         Flint::free(loader);
