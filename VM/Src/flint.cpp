@@ -687,6 +687,8 @@ JString *Flint::getConstString(FExec *ctx, JString *str) {
     strNode = (JStringDictNode *)Flint::malloc(ctx, sizeof(JStringDictNode));
     if(strNode == NULL) { unlock(); return NULL; }
     new (strNode)JStringDictNode(str);
+
+    globalObjs.add(str);
     constStr.add(strNode);
 
     unlock();
@@ -781,15 +783,15 @@ void Flint::markObjectRecursion(JObject *obj) {
     }
     else {
         FieldsData *fieldData = (FieldsData *)obj->data;
-        if(fieldData->hasObjField()) {
-            for(uint16_t i = 0; i < fieldData->count; i++) {
-                FieldValue *fieldValue = &fieldData->fields[i];
-                const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
-                if(fieldInfo != NULL && fieldInfo->desc[0] == 'L') {
-                    JObject *tmp = fieldValue->getObj();
-                    if(tmp && (tmp->getProtected() & 0x01) == 0)
-                        markObjectRecursion(tmp);
-                }
+        uint16_t objCount = fieldData->hasObjField();
+        for(uint16_t i = 0; objCount > 0; i++) {
+            FieldValue *fieldValue = &fieldData->fields[i];
+            const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
+            if(fieldInfo != NULL && (fieldInfo->desc[0] == 'L' || fieldInfo->desc[0] == '[')) {
+                JObject *tmp = fieldValue->getObj();
+                objCount--;
+                if(tmp && (tmp->getProtected() & 0x01) == 0)
+                    markObjectRecursion(tmp);
             }
         }
     }
@@ -805,8 +807,7 @@ void Flint::gc(void) {
     lock();
     objectCountToGc = 0;
     globalObjs.forEach([](JObject *obj) {
-        if((obj->getProtected() & 0x01) == 0)
-            markObjectRecursion(obj);
+        markObjectRecursion(obj);
     });
     execs.forEach([](FExec *exec) {
         if(exec->onwerThread && (exec->onwerThread->getProtected() & 0x01) == 0)

@@ -158,8 +158,8 @@ bool FieldsData::initNonStatic(FExec *ctx, ClassLoader *loader) {
     return true;
 }
 
-bool FieldsData::hasObjField(void) const {
-    return objCount ? true : false;
+uint16_t FieldsData::hasObjField(void) const {
+    return objCount;
 }
 
 FieldValue *FieldsData::getField(ConstField *field) const {

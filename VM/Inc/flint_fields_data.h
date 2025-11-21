@@ -33,7 +33,7 @@ private:
 public:
     FieldsData(void);
 
-    bool hasObjField(void) const;
+    uint16_t hasObjField(void) const;
 
     FieldValue *getField(ConstField *field) const;
     FieldValue *getField(const char *name) const;
