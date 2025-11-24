@@ -243,7 +243,7 @@ void FDbg::responseExceptionInfo(void) {
                 for(uint8_t j = 0; j < encodeSize; j++)
                     if(!dataFrameAppend((uint8_t)utf8Buff[j])) return;
             }
-            if(!dataFrameAppend((uint8_t)0)) return;
+            if(msg) if(!dataFrameAppend((uint8_t)0)) return;
             dataFrameFinish();
         }
         else
