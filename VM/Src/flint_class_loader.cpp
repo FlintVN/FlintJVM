@@ -727,6 +727,11 @@ static void throwNoSuchFieldError(FExec *ctx, const char *clsName, const char *n
     ctx->throwNew(excpCls, "Could not find the field %s.%s", clsName, name);
 }
 
+uint16_t ClassLoader::hasStaticObjField(void) const {
+    if(staticFields == NULL) return 0;
+    return staticFields->hasObjField();
+}
+
 FieldValue *ClassLoader::getStaticField(FExec *ctx, ConstField *field) const {
     FieldValue *ret = staticFields->getField(field);
     if(ret == NULL && ctx != NULL)

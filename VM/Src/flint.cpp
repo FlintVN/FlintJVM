@@ -715,7 +715,7 @@ void Flint::clearProtLv2Recursion(JObject *obj) {
             for(uint16_t i = 0; i < fieldData->count; i++) {
                 FieldValue *fieldValue = &fieldData->fields[i];
                 const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
-                if(fieldInfo != NULL && fieldInfo->desc[0] == 'L') {
+                if(fieldInfo != NULL && (fieldInfo->desc[0] == '[' || fieldInfo->desc[0] == 'L')) {
                     JObject *tmp = fieldValue->getObj();
                     if(tmp && (tmp->getProtected() & 0x01) == 0)
                         clearProtLv2Recursion(tmp);
@@ -808,6 +808,19 @@ void Flint::gc(void) {
     objectCountToGc = 0;
     globalObjs.forEach([](JObject *obj) {
         markObjectRecursion(obj);
+    });
+    loaders.forEach([](ClassLoader *ld) {
+        uint16_t objCount = ld->hasStaticObjField();
+        for(uint16_t i = 0; objCount > 0; i++) {
+            FieldValue *fieldValue = ld->getStaticFieldByIndex(i);
+            const FieldInfo *fieldInfo = fieldValue->getFieldInfo();
+            if(fieldInfo != NULL && (fieldInfo->desc[0] == 'L' || fieldInfo->desc[0] == '[')) {
+                JObject *obj = fieldValue->getObj();
+                objCount--;
+                if(obj && (obj->getProtected() & 0x01) == 0)
+                    markObjectRecursion(obj);
+            }
+        }
     });
     execs.forEach([](FExec *exec) {
         if(exec->onwerThread && (exec->onwerThread->getProtected() & 0x01) == 0)

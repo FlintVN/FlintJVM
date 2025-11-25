@@ -1894,12 +1894,12 @@ void FExec::exec(bool initOpcodeLabels) {
                         }
                     }
                     if(isMatch) {
-                        excp = NULL;
                         while(startSp > traceStartSp) restoreContext();
                         code = this->code;
                         sp = startSp + traceMethod->getMaxLocals();
                         pc = exception->handlerPc;
                         stackPushObject(obj);
+                        excp = NULL;
                         goto *opcodes[code[pc]];
                     }
                 }
