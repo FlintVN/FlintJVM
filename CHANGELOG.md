@@ -1,4 +1,9 @@
 # Change Log
+## V2.3.1
+- Support for specifying class path.
+- Fixed a critical bug related to Garbage Collection, objects that are still in use are deleted and objects that are no longer in use are not deleted.
+- Fix memory leak in ClassLoader class.
+- Fix the READ_EXCP_INFO command in the debugger, which returns an incorrect format when the exception message is null.
 ## V2.3.0
 - This update is for compatibility with [FlintJDK V1.0.0](https://github.com/FlintVN/FlintJDK/releases/tag/V1.0.0).
 - Support FileOutputStream.write with FileDescriptor.out.
