@@ -1,4 +1,7 @@
 # Change Log
+## V2.3.2
+- Terminate all when any thread encounters an unhandled exception.
+- Fixed critical bug related to thread synchronization, monitorenter instruction corrupts the stack frame in case the lock object fails.
 ## V2.3.1
 - Support for specifying class path.
 - Fixed a critical bug related to Garbage Collection, objects that are still in use are deleted and objects that are no longer in use are not deleted.

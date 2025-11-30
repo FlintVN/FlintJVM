@@ -6,7 +6,7 @@
 
 #define FLINT_VERSION_MAJOR         2
 #define FLINT_VERSION_MINOR         3
-#define FLINT_VERSION_PATCH         1
+#define FLINT_VERSION_PATCH         2
 
 #define LENGTH(_array)              (sizeof(_array) / sizeof(_array[0]))
 
