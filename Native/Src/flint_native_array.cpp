@@ -299,19 +299,19 @@ static char parseWrapperClass(jobject obj) {
         case Hash("java/lang/Byte"):
             return (strcmp(typeName, "java/lang/Byte") == 0) ? 'B' : 0;
         case Hash("java/lang/Short"):
-            return (strcmp(typeName, "java/lang/Short") == 0) ? 'S' : 0; 
+            return (strcmp(typeName, "java/lang/Short") == 0) ? 'S' : 0;
         case Hash("java/lang/Integer"):
-            return (strcmp(typeName, "java/lang/Integer") == 0) ? 'I' : 0; 
+            return (strcmp(typeName, "java/lang/Integer") == 0) ? 'I' : 0;
         case Hash("java/lang/Long"):
-            return (strcmp(typeName, "java/lang/Long") == 0) ? 'J' : 0; 
+            return (strcmp(typeName, "java/lang/Long") == 0) ? 'J' : 0;
         case Hash("java/lang/Float"):
-            return (strcmp(typeName, "java/lang/Float") == 0) ? 'F' : 0; 
+            return (strcmp(typeName, "java/lang/Float") == 0) ? 'F' : 0;
         case Hash("java/lang/Double"):
-            return (strcmp(typeName, "java/lang/Double") == 0) ? 'D' : 0; 
+            return (strcmp(typeName, "java/lang/Double") == 0) ? 'D' : 0;
         case Hash("java/lang/Character"):
-            return (strcmp(typeName, "java/lang/Character") == 0) ? 'C' : 0; 
+            return (strcmp(typeName, "java/lang/Character") == 0) ? 'C' : 0;
         case Hash("java/lang/Boolean"):
-            return (strcmp(typeName, "java/lang/Boolean") == 0) ? 'Z' : 0; 
+            return (strcmp(typeName, "java/lang/Boolean") == 0) ? 'Z' : 0;
         default:
             return 0;
     }

@@ -773,7 +773,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_faload: {
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -788,7 +788,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_daload: {
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int64_t))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -802,7 +802,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_aaload: {
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -816,7 +816,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_baload: {
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int8_t))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -831,7 +831,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_saload: {
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int16_t))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -936,7 +936,7 @@ void FExec::exec(bool initOpcodeLabels) {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int32_t)))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -952,7 +952,7 @@ void FExec::exec(bool initOpcodeLabels) {
         int64_t value = stackPopInt64();
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int64_t)))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -967,7 +967,7 @@ void FExec::exec(bool initOpcodeLabels) {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int8_t)))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -983,7 +983,7 @@ void FExec::exec(bool initOpcodeLabels) {
         int32_t value = stackPopInt32();
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
-        if(obj == 0)
+        if(obj == NULL)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int16_t)))) {
             JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
@@ -1661,7 +1661,7 @@ void FExec::exec(bool initOpcodeLabels) {
         ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&code[pc + 1]));
         if(constField == NULL) goto exception_handler;
         JObject *obj = stackPopObject();
-        if(obj == 0) {
+        if(obj == NULL) {
             JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
             throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
             goto exception_handler;
@@ -1696,7 +1696,7 @@ void FExec::exec(bool initOpcodeLabels) {
             case 'B': {
                 int32_t value = stackPopInt32();
                 JObject *obj = stackPopObject();
-                if(obj == 0) {
+                if(obj == NULL) {
                     JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
@@ -1711,7 +1711,7 @@ void FExec::exec(bool initOpcodeLabels) {
             case 'S': {
                 int32_t value = stackPopInt32();
                 JObject *obj = stackPopObject();
-                if(obj == 0) {
+                if(obj == NULL) {
                     JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
@@ -1726,7 +1726,7 @@ void FExec::exec(bool initOpcodeLabels) {
             case 'D': {
                 int64_t value = stackPopInt64();
                 JObject *obj = stackPopObject();
-                if(obj == 0) {
+                if(obj == NULL) {
                     JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
@@ -1741,7 +1741,7 @@ void FExec::exec(bool initOpcodeLabels) {
             case '[': {
                 JObject *value = stackPopObject();
                 JObject *obj = stackPopObject();
-                if(obj == 0) {
+                if(obj == NULL) {
                     JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
@@ -1755,7 +1755,7 @@ void FExec::exec(bool initOpcodeLabels) {
             default: {
                 int32_t value = stackPopInt32();
                 JObject *obj = stackPopObject();
-                if(obj == 0) {
+                if(obj == NULL) {
                     JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
@@ -1845,7 +1845,7 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     op_arraylength: {
         JObject *obj = stackPopObject();
-        if(obj == 0) {
+        if(obj == NULL) {
             throwNew(Flint::findClass(this, "java/lang/NullPointerException"), "Cannot read the array length from null object");
             goto exception_handler;
         }
@@ -1946,7 +1946,7 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     op_monitorenter: {
         JObject *obj = stackPopObject();
-        if(obj == 0) {
+        if(obj == NULL) {
             throwNew(Flint::findClass(this, "java/lang/NullPointerException"), "Cannot enter synchronized block by null object");
             goto exception_handler;
         }
@@ -2106,6 +2106,7 @@ void FExec::runTask(FExec *exec) {
             const char *msg = (char *)((uint32_t)exec->excp & 0xFFFFFFFC);
             Flint::println(msg);
         }
+        Flint::terminateRequest();
     }
     while(exec->startSp > 3) exec->restoreContext();
     exec->peakSp = -1;

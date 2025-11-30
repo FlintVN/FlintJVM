@@ -20,7 +20,7 @@ void FlintAPI::System::free(void *p) {
     #error "FlintAPI::System::free is not implemented in VM"
 }
 
-void FlintAPI::System::consoleWrite(uint8_t *utf8, uint16_t length) {
+void FlintAPI::System::consoleWrite(uint8_t *utf8, uint32_t length) {
     #error "FlintAPI::System::consoleWrite is not implemented in VM"
 }
 
