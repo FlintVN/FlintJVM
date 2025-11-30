@@ -1945,7 +1945,7 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodes[code[pc]];
     }
     op_monitorenter: {
-        JObject *obj = stackPopObject();
+        JObject *obj = (JObject *)GET_STACK_VALUE(sp);
         if(obj == NULL) {
             throwNew(Flint::findClass(this, "java/lang/NullPointerException"), "Cannot enter synchronized block by null object");
             goto exception_handler;
@@ -1955,6 +1955,7 @@ void FExec::exec(bool initOpcodeLabels) {
             FlintAPI::Thread::yield();
             goto *opcodes[code[pc]];
         }
+        stackPopObject();
         pc++;
         goto *opcodes[code[pc]];
     }
