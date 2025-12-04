@@ -97,7 +97,7 @@ static constexpr uint16_t letterUpper[] = {
     65334, 65335, 65336, 65337, 65338,
 };
 
-static int32_t findIndex(const uint16_t *letterList, uint16_t c) {
+static int32_t FindIndex(const uint16_t *letterList, uint16_t c) {
     int32_t r = LENGTH(letterLower) - 1;
     int32_t l = 0;
     while(r >= l) {
@@ -112,12 +112,12 @@ static int32_t findIndex(const uint16_t *letterList, uint16_t c) {
     return -1;
 }
 
-jint nativeToLowerCase(FNIEnv *env, jchar c) {
-    int32_t index = findIndex(letterUpper, c);
+jint NativeCharacter_ToLowerCase(FNIEnv *env, jchar c) {
+    int32_t index = FindIndex(letterUpper, c);
     return (index >= 0) ? letterLower[index] : c;
 }
 
-jint nativeToUpperCase(FNIEnv *env, jchar c) {
-    int32_t index = findIndex(letterLower, c);
+jint NativeCharacter_ToUpperCase(FNIEnv *env, jchar c) {
+    int32_t index = FindIndex(letterLower, c);
     return (index >= 0) ? letterUpper[index] : c;
 }

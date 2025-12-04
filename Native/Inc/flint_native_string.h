@@ -4,10 +4,10 @@
 
 #include "flint_native.h"
 
-jstring nativeIntern(FNIEnv *env, jstring str);
+jstring NativeString_Intern(FNIEnv *env, jstring str);
 
 static constexpr NativeMethod stringMethods[] = {
-    NATIVE_METHOD("intern", "()Ljava/lang/String;", nativeIntern),
+    NATIVE_METHOD("intern", "()Ljava/lang/String;", NativeString_Intern),
 };
 
 #endif /* __FLINT_NATIVE_STRING_H */

@@ -5,7 +5,7 @@
 #include "flint_java_string.h"
 #include "flint_native_class.h"
 
-jclass nativeGetPrimitiveClass(FNIEnv *env, jstring name) {
+jclass NativeClass_GetPrimitiveClass(FNIEnv *env, jstring name) {
     if(name->getCoder() != 0) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "primitive type name is invalid");
@@ -14,7 +14,7 @@ jclass nativeGetPrimitiveClass(FNIEnv *env, jstring name) {
     return Flint::getPrimitiveClass(env->exec, name->getAscii(), name->getLength());
 }
 
-jclass nativeForName(FNIEnv *env, jstring name) {
+jclass NativeClass_ForName(FNIEnv *env, jstring name) {
     if(name == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return NULL;
@@ -41,12 +41,12 @@ jclass nativeForName(FNIEnv *env, jstring name) {
     return env->findClass(buff);
 }
 
-jbool nativeIsInstance(FNIEnv *env, jclass cls, jobject obj) {
+jbool NativeClass_IsInstance(FNIEnv *env, jclass cls, jobject obj) {
     if(obj == NULL) return false;
     return env->isInstanceof(obj, cls);
 }
 
-jbool nativeIsAssignableFrom(FNIEnv *env, jclass thisCls, jclass cls) {
+jbool NativeClass_IsAssignableFrom(FNIEnv *env, jclass thisCls, jclass cls) {
     if(cls == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return false;
@@ -54,23 +54,23 @@ jbool nativeIsAssignableFrom(FNIEnv *env, jclass thisCls, jclass cls) {
     return env->isAssignableFrom(cls, thisCls);
 }
 
-jbool nativeIsInterface(FNIEnv *env, jclass cls) {
+jbool NativeClass_IsInterface(FNIEnv *env, jclass cls) {
     (void)env;
     if(cls->isArray() || cls->isPrimitive()) return false;
     return (cls->getClassLoader()->getAccessFlag() & CLASS_INTERFACE) ? true : false;
 }
 
-jbool nativeIsArray(FNIEnv *env, jclass cls) {
+jbool NativeClass_IsArray(FNIEnv *env, jclass cls) {
     (void)env;
     return cls->isArray();
 }
 
-jbool nativeIsPrimitive(FNIEnv *env, jclass cls) {
+jbool NativeClass_IsPrimitive(FNIEnv *env, jclass cls) {
     (void)env;
     return cls->isPrimitive();
 }
 
-jstring nativeInitClassName(FNIEnv *env, jclass cls) {
+jstring NativeClass_InitClassName(FNIEnv *env, jclass cls) {
     char buff[FILE_NAME_BUFF_SIZE];
     uint16_t idx = 0;
     const char *name = cls->getTypeName();
@@ -84,7 +84,7 @@ jstring nativeInitClassName(FNIEnv *env, jclass cls) {
     return str;
 }
 
-jclass nativeGetSuperclass(FNIEnv *env, jclass cls) {
+jclass NativeClass_GetSuperclass(FNIEnv *env, jclass cls) {
     if(cls->isArray() || cls->isPrimitive()) return NULL;
     return cls->getClassLoader()->getSuperClass(env->exec);
 }
@@ -96,7 +96,7 @@ static jobjectArray getEmptyClassArray(FNIEnv *env) {
     return (jobjectArray)field->getObj();
 }
 
-jobjectArray nativeGetInterfaces0(FNIEnv *env, jclass cls) {
+jobjectArray NativeClass_GetInterfaces0(FNIEnv *env, jclass cls) {
     if(cls->isArray() || cls->isPrimitive()) return getEmptyClassArray(env);
 
     ClassLoader *loader = cls->getClassLoader();
@@ -137,16 +137,16 @@ static jclass findClassOrPrimitive(FNIEnv *env, const char *desc, uint16_t lengt
     return env->findClass(desc, length);
 }
 
-jclass nativeGetComponentType(FNIEnv *env, jclass cls) {
+jclass NativeClass_GetComponentType(FNIEnv *env, jclass cls) {
     if(cls->isArray()) {
         const char *typeName = cls->getTypeName();
-        uint16_t len = getArgNameLength(typeName);
+        uint16_t len = GetArgNameLength(typeName);
         return findClassOrPrimitive(env, typeName, len);
     }
     return NULL;
 }
 
-jint nativeGetModifiers(FNIEnv *env, jclass cls) {
+jint NativeClass_GetModifiers(FNIEnv *env, jclass cls) {
     (void)env;
     if(cls->isArray() || cls->isPrimitive())
         return (CLASS_PUBLIC | CLASS_FINAL | CLASS_ABSTRACT);
@@ -157,11 +157,11 @@ jint nativeGetModifiers(FNIEnv *env, jclass cls) {
     }
 }
 
-jclass nativeGetNestHost0(FNIEnv *env, jclass cls) {
+jclass NativeClass_GetNestHost0(FNIEnv *env, jclass cls) {
     return cls->getNestHost(env->exec);
 }
 
-jobjectArray nativeGetNestMembers0(FNIEnv *env, jclass cls) {
+jobjectArray NativeClass_GetNestMembers0(FNIEnv *env, jclass cls) {
     jobjectArray array;
     if(cls->isArray() || cls->isPrimitive()) {
         array = env->newObjectArray(env->findClass("java/lang/Class"), 1);
@@ -183,7 +183,7 @@ jobjectArray nativeGetNestMembers0(FNIEnv *env, jclass cls) {
     return array;
 }
 
-jbool nativeIsHidden(FNIEnv *env) {
+jbool NativeClass_IsHidden(FNIEnv *env) {
     // TODO
     return false;
 }
@@ -191,17 +191,17 @@ jbool nativeIsHidden(FNIEnv *env) {
 static jclass getReturnType(FNIEnv *env, const char *mtDesc) {
     const char *txt = mtDesc;
     while(*txt++ != ')');
-    return findClassOrPrimitive(env, txt, getArgNameLength(txt));
+    return findClassOrPrimitive(env, txt, GetArgNameLength(txt));
 }
 
 static jobjectArray getParameterTypes(FNIEnv *env, const char *mtDesc) {
-    uint8_t count = getArgCount(mtDesc);
+    uint8_t count = GetArgCount(mtDesc);
     if(count == 0) return getEmptyClassArray(env);
     jobjectArray array = env->newObjectArray(Flint::getClassOfClass(env->exec), count);
     if(array == NULL) return NULL;
-    mtDesc = getNextArgName(mtDesc);
+    mtDesc = GetNextArgName(mtDesc);
     for(uint8_t i = 0; i < count; i++) {
-        uint16_t len = getArgNameLength(mtDesc);
+        uint16_t len = GetArgNameLength(mtDesc);
         array->getData()[i] = findClassOrPrimitive(env, mtDesc, len);
         mtDesc += len;
     }
@@ -233,7 +233,7 @@ static void supportFreeObjArray(FNIEnv *env, jobjectArray array, uint32_t count)
     env->freeObject(array);
 }
 
-jobjectArray nativeGetDeclaredFields0(FNIEnv *env, jclass cls) {
+jobjectArray NativeClass_GetDeclaredFields0(FNIEnv *env, jclass cls) {
     jclass fieldCls = env->findClass("java/lang/reflect/Field");
     if(cls->isArray() || cls->isPrimitive()) return env->newObjectArray(fieldCls, 0);
 
@@ -267,7 +267,7 @@ jobjectArray nativeGetDeclaredFields0(FNIEnv *env, jclass cls) {
     return array;
 }
 
-jobjectArray nativeGetDeclaredMethods0(FNIEnv *env, jclass cls) {
+jobjectArray NativeClass_GetDeclaredMethods0(FNIEnv *env, jclass cls) {
     jclass methodCls = env->findClass("java/lang/reflect/Method");
     if(cls->isPrimitive()) return env->newObjectArray(methodCls, 0);
 
@@ -320,7 +320,7 @@ jobjectArray nativeGetDeclaredMethods0(FNIEnv *env, jclass cls) {
     return array;
 }
 
-jobjectArray nativeGetDeclaredConstructors0(FNIEnv *env, jclass cls) {
+jobjectArray NativeClass_GetDeclaredConstructors0(FNIEnv *env, jclass cls) {
     jclass ctorCls = env->findClass("java/lang/reflect/Constructor");
     if(cls->isArray() || cls->isPrimitive()) return env->newObjectArray(ctorCls, 0);
 
@@ -363,7 +363,7 @@ jobjectArray nativeGetDeclaredConstructors0(FNIEnv *env, jclass cls) {
     return array;
 }
 
-jclass nativeGetDeclaringClass0(FNIEnv *env, jclass cls) {
+jclass NativeClass_GetDeclaringClass0(FNIEnv *env, jclass cls) {
     if(cls->isArray() || cls->isPrimitive()) return NULL;
     const char *clsName = cls->getTypeName();
     uint16_t len = strlen(clsName);

@@ -4,12 +4,12 @@
 
 #include "flint_native.h"
 
-jlong nativeDoubleToRawLongBits(FNIEnv *env, jdouble value);
-jdouble nativeLongBitsToDouble(FNIEnv *env, jlong bits);
+jlong NativeDouble_DoubleToRawLongBits(FNIEnv *env, jdouble value);
+jdouble NativeDouble_LongBitsToDouble(FNIEnv *env, jlong bits);
 
 static constexpr NativeMethod doubleMethods[] = {
-    NATIVE_METHOD("doubleToRawLongBits", "(D)J", nativeDoubleToRawLongBits),
-    NATIVE_METHOD("longBitsToDouble",    "(J)D", nativeLongBitsToDouble),
+    NATIVE_METHOD("doubleToRawLongBits", "(D)J", NativeDouble_DoubleToRawLongBits),
+    NATIVE_METHOD("longBitsToDouble",    "(J)D", NativeDouble_LongBitsToDouble),
 };
 
 #endif /* __FLINT_NATIVE_DOUBLE_H */

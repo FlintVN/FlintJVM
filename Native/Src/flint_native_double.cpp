@@ -1,12 +1,12 @@
 
 #include "flint_native_double.h"
 
-jlong nativeDoubleToRawLongBits(FNIEnv *env, jdouble value) {
+jlong NativeDouble_DoubleToRawLongBits(FNIEnv *env, jdouble value) {
     (void)env;
     return *(jlong *)&value;
 }
 
-jdouble nativeLongBitsToDouble(FNIEnv *env, jlong bits) {
+jdouble NativeDouble_LongBitsToDouble(FNIEnv *env, jlong bits) {
     (void)env;
     return *(jdouble *)&bits;
 }

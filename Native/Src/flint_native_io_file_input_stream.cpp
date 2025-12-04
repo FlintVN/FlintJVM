@@ -3,7 +3,7 @@
 #include "flint_common.h"
 #include "flint_native_io_file_input_stream.h"
 
-static jint getFd(FNIEnv *env, jobject obj) {
+static jint GetFd(FNIEnv *env, jobject obj) {
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
     if(fd == -1)
@@ -11,11 +11,11 @@ static jint getFd(FNIEnv *env, jobject obj) {
     return fd;
 }
 
-jvoid nativeIoFileInputStreamOpen(FNIEnv *env, jobject obj, jstring name) {
+jvoid NativeFileInputStream_Open(FNIEnv *env, jobject obj, jstring name) {
     char buff[FILE_NAME_BUFF_SIZE];
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
-    if(resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
+    if(ResolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
     Flint::lock();
     if(fd != -1)
         env->throwNew(env->findClass("java/io/IOException"), "File has been opened");
@@ -29,8 +29,8 @@ jvoid nativeIoFileInputStreamOpen(FNIEnv *env, jobject obj, jstring name) {
     Flint::unlock();
 }
 
-jint nativeIoFileInputStreamRead(FNIEnv *env, jobject obj) {
-    jint fd = getFd(env, obj);
+jint NativeFileInputStream_Read(FNIEnv *env, jobject obj) {
+    jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
     else if(fd == 0) {  /* in */
         return -1;
@@ -51,7 +51,7 @@ jint nativeIoFileInputStreamRead(FNIEnv *env, jobject obj) {
     }
 }
 
-jint nativeIoFileInputStreamReadBytes(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
+jint NativeFileInputStream_ReadBytes(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
     if(b == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return 0;
@@ -64,7 +64,7 @@ jint nativeIoFileInputStreamReadBytes(FNIEnv *env, jobject obj, jbyteArray b, ji
             env->throwNew(excpCls, "Last index %d out of bounds for byte[%d]", off + len - 1, b->getLength());
         return 0;
     }
-    jint fd = getFd(env, obj);
+    jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
     else if(fd == 0) {  /* in */
         return 0;
@@ -85,20 +85,20 @@ jint nativeIoFileInputStreamReadBytes(FNIEnv *env, jobject obj, jbyteArray b, ji
     }
 }
 
-jlong nativeIoFileInputStreamLength(FNIEnv *env, jobject obj) {
-    jint fd = getFd(env, obj);
+jlong NativeFileInputStream_Length(FNIEnv *env, jobject obj) {
+    jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
     return FlintAPI::IO::fsize((FlintAPI::IO::FileHandle)fd);
 }
 
-jlong nativeIoFileInputStreamPosition(FNIEnv *env, jobject obj) {
-    jint fd = getFd(env, obj);
+jlong NativeFileInputStream_Position(FNIEnv *env, jobject obj) {
+    jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
     return FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd);
 }
 
-jlong nativeIoFileInputStreamSkip(FNIEnv *env, jobject obj, jlong n) {
-    jint fd = getFd(env, obj);
+jlong NativeFileInputStream_Skip(FNIEnv *env, jobject obj, jlong n) {
+    jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
     if(n > 0xFFFFFFFF) n = 0xFFFFFFFF;
     jint oldPos = FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd);
@@ -107,14 +107,14 @@ jlong nativeIoFileInputStreamSkip(FNIEnv *env, jobject obj, jlong n) {
     return oldPos - FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd);
 }
 
-jint nativeIoFileInputStreamAvailable(FNIEnv *env, jobject obj) {
-    jint fd = getFd(env, obj);
+jint NativeFileInputStream_Available(FNIEnv *env, jobject obj) {
+    jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
     auto h = (FlintAPI::IO::FileHandle)fd;
     return FlintAPI::IO::fsize(h) - FlintAPI::IO::ftell(h);
 }
 
-jvoid nativeIoFileInputStreamClose(FNIEnv *env, jobject obj) {
+jvoid NativeFileInputStream_Close(FNIEnv *env, jobject obj) {
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
     Flint::lock();

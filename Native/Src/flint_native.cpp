@@ -31,8 +31,8 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/lang/Thread",                threadMethods),
     NATIVE_CLASS("java/lang/Character",             characterMethods),
     NATIVE_CLASS("java/io/File",                    ioFileMethods),
-    NATIVE_CLASS("java/io/FileInputStream",         ioFileInputStreamMethods),
-    NATIVE_CLASS("java/io/FileOutputStream",        ioFileOutputStreamMethods),
+    NATIVE_CLASS("java/io/FileInputStream",         fileInputStreamMethods),
+    NATIVE_CLASS("java/io/FileOutputStream",        fileOutputStreamMethods),
     NATIVE_CLASS("jdk/internal/reflect/Reflection", reflectionMethods),
 };
 

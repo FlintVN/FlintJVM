@@ -5,7 +5,7 @@
 #include "flint_system_api.h"
 #include "flint_native_thread.h"
 
-jvoid nativeStart0(FNIEnv *env, jthread thread) {
+jvoid NativeThread_Start0(FNIEnv *env, jthread thread) {
     static constexpr ConstNameAndType runName("run", "()V");
     jobject task = thread->getTask();
     FExec *exec = Flint::newExecution(env->exec, thread);
@@ -25,24 +25,24 @@ jvoid nativeStart0(FNIEnv *env, jthread thread) {
     }
 }
 
-jvoid nativeYield0(FNIEnv *env) {
+jvoid NativeThread_Yield0(FNIEnv *env) {
     (void)env;
     FlintAPI::Thread::yield();
 }
 
-jvoid nativeInterrupt0(FNIEnv *env, jthread thread) {
+jvoid NativeThread_Interrupt0(FNIEnv *env, jthread thread) {
     // TODO
     (void)env;
     (void)thread;
     env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "interrupt0 is not implemented in VM");
 }
 
-jthread nativeCurrentThread(FNIEnv *env) {
+jthread NativeThread_CurrentThread(FNIEnv *env) {
     (void)env;
     return env->exec->getOnwerThread();
 }
 
-jvoid nativeSleep0(FNIEnv *env, jlong millis) {
+jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis) {
     uint64_t startTime = FlintAPI::System::getNanoTime() / 1000000;
     while((int64_t)((FlintAPI::System::getNanoTime() / 1000000) - startTime) < (millis - 10)) {
         FlintAPI::Thread::sleep(10);

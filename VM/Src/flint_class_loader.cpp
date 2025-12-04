@@ -16,7 +16,7 @@ typedef struct {
     JClass *cls;
 } ConstClass;
 
-static int16_t append(char *buff, int32_t index, const char *str, uint16_t len = 0xFFFF) {
+static int16_t Append(char *buff, int32_t index, const char *str, uint16_t len = 0xFFFF) {
     if(index >= FILE_NAME_BUFF_SIZE) return -1;
     while(*str && len--) {
         buff[index++] = *str++;
@@ -26,23 +26,23 @@ static int16_t append(char *buff, int32_t index, const char *str, uint16_t len =
     return index;
 }
 
-static int16_t combinePath(char *buff, const char *folder, uint16_t folderLen, const char *clsName, uint16_t clsLen) {
+static int16_t CombinePath(char *buff, const char *folder, uint16_t folderLen, const char *clsName, uint16_t clsLen) {
     int32_t index = 0;
-    if(index = append(buff, index, folder, folderLen); index == -1) return -1;
-    char separatorChar = getPathSeparatorChar();
+    if(index = Append(buff, index, folder, folderLen); index == -1) return -1;
+    char separatorChar = GetPathSeparatorChar();
     if(buff[index - 1] != separatorChar) {
         if(index >= FILE_NAME_BUFF_SIZE) return -1;
         buff[index++] = separatorChar;
     }
-    if(index = append(buff, index, clsName, clsLen); index == -1) return -1;
-    return append(buff, index, ".class");
+    if(index = Append(buff, index, clsName, clsLen); index == -1) return -1;
+    return Append(buff, index, ".class");
 }
 
 static FlintAPI::IO::FileHandle FOpen(const char *fileName, uint16_t length = 0xFFFF) {
     int16_t index;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(index = resolvePath(fileName, length, buff, sizeof(buff)); index == -1) return NULL;
-    if(index = append(buff, index, ".class"); index == -1) return NULL;
+    if(index = ResolvePath(fileName, length, buff, sizeof(buff)); index == -1) return NULL;
+    if(index = Append(buff, index, ".class"); index == -1) return NULL;
     if(FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK)
         return FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
 
@@ -51,7 +51,7 @@ static FlintAPI::IO::FileHandle FOpen(const char *fileName, uint16_t length = 0x
         while(1) {
             uint32_t len = 0;
             while(jdks[len] != 0 && jdks[len] != ';') len++;
-            if(combinePath(buff, jdks, len, fileName, length) == -1) return NULL;
+            if(CombinePath(buff, jdks, len, fileName, length) == -1) return NULL;
             if(FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK)
                 return FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
             if(jdks[len] == 0) return NULL;

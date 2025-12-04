@@ -87,7 +87,7 @@ int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_
     return ret;
 }
 
-char getPathSeparatorChar(void) {
+char GetPathSeparatorChar(void) {
 #ifdef _WIN32
     return '\\';
 #else
@@ -95,19 +95,19 @@ char getPathSeparatorChar(void) {
 #endif
 }
 
-uint16_t isAbsolutePath(const char *path, uint16_t length) {
+uint16_t IsAbsolutePath(const char *path, uint16_t length) {
 #ifdef _WIN32
     if(length < 3) return 0;
     if(!(('a' <= path[0] && path[0] <= 'z') || ('A' <= path[0] && path[0] <= 'Z'))) return 0;
     if(path[1] != ':') return 0;
-    if(path[2] != getPathSeparatorChar()) return 0;
+    if(path[2] != GetPathSeparatorChar()) return 0;
     return 3;
 #else
-    return ((length > 0) && (path[0] == getPathSeparatorChar())) ? 1 : 0;
+    return ((length > 0) && (path[0] == GetPathSeparatorChar())) ? 1 : 0;
 #endif
 }
 
-static int16_t append(char *buff, int32_t index, uint16_t buffSize, const char *str, uint16_t len = 0xFFFF) {
+static int16_t Append(char *buff, int32_t index, uint16_t buffSize, const char *str, uint16_t len = 0xFFFF) {
     if(index >= buffSize) return -1;
     while(*str && len--) {
         buff[index++] = *str++;
@@ -117,23 +117,23 @@ static int16_t append(char *buff, int32_t index, uint16_t buffSize, const char *
     return index;
 }
 
-int16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize) {
+int16_t ResolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize) {
     int16_t index = 0;
-    if(!isAbsolutePath(path, length)) {
+    if(!IsAbsolutePath(path, length)) {
         const char *cwd = Flint::getCwd();
         if(cwd != NULL) {
-            if(index = append(buff, index, buffSize, cwd); index == -1) return -1;
-            char separatorChar = getPathSeparatorChar();
+            if(index = Append(buff, index, buffSize, cwd); index == -1) return -1;
+            char separatorChar = GetPathSeparatorChar();
             if(buff[index - 1] != separatorChar) {
                 if(index >= buffSize) return -1;
                 buff[index++] = separatorChar;
             }
         }
     }
-    return append(buff, index, buffSize, path, length);
+    return Append(buff, index, buffSize, path, length);
 }
 
-const char *getNextArgName(const char *desc) {
+const char *GetNextArgName(const char *desc) {
     while(*desc == '[') desc++;
     if(*desc == 'L')
         while(*desc++ != ';');
@@ -143,7 +143,7 @@ const char *getNextArgName(const char *desc) {
     return desc;
 }
 
-uint16_t getArgNameLength(const char *desc) {
+uint16_t GetArgNameLength(const char *desc) {
     const char *tmp = desc;
     while(*tmp == '[') tmp++;
     if(*tmp == 'L')
@@ -153,19 +153,19 @@ uint16_t getArgNameLength(const char *desc) {
     return tmp - desc;
 }
 
-uint8_t getArgCount(const char *desc) {
+uint8_t GetArgCount(const char *desc) {
     uint8_t argc = 0;
     while(desc) {
-        desc = getNextArgName(desc);
+        desc = GetNextArgName(desc);
         if(desc != NULL) argc++;
     }
     return argc;
 }
 
-uint8_t getArgSlotCount(const char *desc) {
+uint8_t GetArgSlotCount(const char *desc) {
     uint8_t argc = 0;
     while(desc) {
-        desc = getNextArgName(desc);
+        desc = GetNextArgName(desc);
         if(desc != NULL)
             argc += (desc[0] == 'J' || desc[0] == 'D') ? 2 : 1;
     }

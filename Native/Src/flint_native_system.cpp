@@ -5,7 +5,7 @@
 #include "flint_array_object.h"
 #include "flint_native_system.h"
 
-jvoid nativesetOut0(FNIEnv *env, jobject out) {
+jvoid NativeSystem_setOut0(FNIEnv *env, jobject out) {
     jclass sysCls = env->findClass("java/lang/System");
     if(sysCls == NULL) return;
     FieldValue *outField = sysCls->getClassLoader()->getStaticField(env->exec, "out");
@@ -13,12 +13,12 @@ jvoid nativesetOut0(FNIEnv *env, jobject out) {
     outField->setObj(out);
 }
 
-jlong nativeCurrentTimeMillis(FNIEnv *env) {
+jlong NativeSystem_CurrentTimeMillis(FNIEnv *env) {
     (void)env;
     return FlintAPI::System::getNanoTime() / 1000000;
 }
 
-jlong nativeNanoTime(FNIEnv *env) {
+jlong NativeSystem_NanoTime(FNIEnv *env) {
     (void)env;
     return FlintAPI::System::getNanoTime();
 }
@@ -79,7 +79,7 @@ static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint
     return true;
 }
 
-jvoid nativeArraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length) {
+jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length) {
     if(checkParam(env, src, srcPos, dest, destPos, length) == false) return;
     void *srcVal = ((jarray)src)->getData();
     void *dstVal = ((jarray)dest)->getData();
@@ -103,7 +103,7 @@ jvoid nativeArraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint 
     }
 }
 
-jint nativeIdentityHashCode(FNIEnv *env, jobject obj) {
+jint NativeSystem_IdentityHashCode(FNIEnv *env, jobject obj) {
     (void)env;
     return (int32_t)obj;
 }

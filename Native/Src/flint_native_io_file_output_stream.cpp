@@ -3,11 +3,11 @@
 #include "flint_common.h"
 #include "flint_native_io_file_output_stream.h"
 
-jvoid nativeIoFileOutputStreamOpen(FNIEnv *env, jobject obj, jstring name, jbool append) {
+jvoid NativeFileOutputStream_Open(FNIEnv *env, jobject obj, jstring name, jbool append) {
     char buff[FILE_NAME_BUFF_SIZE];
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
-    if(resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
+    if(ResolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
     Flint::lock();
     if(fd != -1)
         env->throwNew(env->findClass("java/io/IOException"), "File has been opened");
@@ -26,7 +26,7 @@ jvoid nativeIoFileOutputStreamOpen(FNIEnv *env, jobject obj, jstring name, jbool
     Flint::unlock();
 }
 
-jvoid nativeIoFileOutputStreamWrite(FNIEnv *env, jobject obj, jint b) {
+jvoid NativeFileOutputStream_Write(FNIEnv *env, jobject obj, jint b) {
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
     if(fd == -1)
@@ -50,7 +50,7 @@ jvoid nativeIoFileOutputStreamWrite(FNIEnv *env, jobject obj, jint b) {
     }
 }
 
-jvoid nativeIoFileOutputStreamWriteBytes(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
+jvoid NativeFileOutputStream_WriteBytes(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
     if(b == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return;
@@ -84,7 +84,7 @@ jvoid nativeIoFileOutputStreamWriteBytes(FNIEnv *env, jobject obj, jbyteArray b,
     }
 }
 
-jvoid nativeIoFileOutputStreamClose(FNIEnv *env, jobject obj) {
+jvoid NativeFileOutputStream_Close(FNIEnv *env, jobject obj) {
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
     Flint::lock();
