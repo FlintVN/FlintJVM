@@ -75,7 +75,6 @@ float FExec::stackPopFloat(void) {
 
 double FExec::stackPopDouble(void) {
     uint64_t ret;
-    sp -= 2;
     ((uint32_t *)&ret)[1] = stack[sp--];
     ((uint32_t *)&ret)[0] = stack[sp--];
     return *(double *)&ret;
