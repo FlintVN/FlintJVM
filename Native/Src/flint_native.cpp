@@ -16,6 +16,7 @@
 #include "flint_native_io_file.h"
 #include "flint_native_character.h"
 #include "flint_native_reflection.h"
+#include "flint_native_io_file_descriptor.h"
 #include "flint_native_io_file_input_stream.h"
 #include "flint_native_io_file_output_stream.h"
 
@@ -31,6 +32,7 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/lang/Thread",                threadMethods),
     NATIVE_CLASS("java/lang/Character",             characterMethods),
     NATIVE_CLASS("java/io/File",                    ioFileMethods),
+    NATIVE_CLASS("java/io/FileDescriptor",          fileDescriptorMethods),
     NATIVE_CLASS("java/io/FileInputStream",         fileInputStreamMethods),
     NATIVE_CLASS("java/io/FileOutputStream",        fileOutputStreamMethods),
     NATIVE_CLASS("jdk/internal/reflect/Reflection", reflectionMethods),
