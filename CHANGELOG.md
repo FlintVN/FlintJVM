@@ -1,4 +1,8 @@
 # Change Log
+## V2.3.3
+- Fixed critical bug, stackPopDouble corrupted java stack frame.
+- Fixed bug in java.io.FileOutputStream.write method with FileDescriptor.out (Big impact on System.out.print).
+- Support FileDescriptor.sync native method.
 ## V2.3.2
 - Terminate all when any thread encounters an unhandled exception.
 - Fixed critical bug related to thread synchronization, monitorenter instruction corrupts the stack frame in case the lock object fails.
