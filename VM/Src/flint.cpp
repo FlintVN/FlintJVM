@@ -287,6 +287,8 @@ bool Flint::isInstanceof(FExec *ctx, JObject *obj, JClass *type) {
 }
 
 bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
+    if(fromType == toType) return true;
+
     const char *typeName1 = fromType->getTypeName();
     const char *typeName2 = toType->getTypeName();
     uint8_t dim1 = getDimensions(typeName1);
