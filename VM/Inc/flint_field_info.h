@@ -21,9 +21,14 @@ typedef enum : uint16_t {
 class FieldInfo {
 public:
     const FieldAccessFlag accessFlag;
-    const char * const name;
-    const char * const desc;
-    const uint32_t hash;
+    union {
+        struct {
+            const char * const name;
+            const char * const desc;
+            const uint32_t hash;
+        };
+        ConstNameAndType nameAndType;
+    };
 
     void free(FieldInfo *fieldInfo);
 private:

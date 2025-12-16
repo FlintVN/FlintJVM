@@ -57,9 +57,14 @@ class MethodInfo {
 public:
     MethodAccessFlag accessFlag;
     class ClassLoader * const loader;
-    const char * const name;
-    const char * const desc;
-    const uint32_t hash;
+    union {
+        struct {
+            const char * const name;
+            const char * const desc;
+            const uint32_t hash;
+        };
+        ConstNameAndType nameAndType;
+    };
 private:
     const char * retType;
     uint8_t *code;

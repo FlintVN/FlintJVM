@@ -64,6 +64,7 @@ public:
     virtual jbool isAssignableFrom(jclass fromType, jclass toType);
 
     virtual jobject newObject(jclass type);
+    virtual jobject newObject(jclass type, jmethodId ctor, ...);
     virtual jstring newString(const char *format, ...);
     virtual jboolArray newBoolArray(uint32_t count);
     virtual jbyteArray newByteArray(uint32_t count);
@@ -74,6 +75,9 @@ public:
     virtual jfloatArray newFloatArray(uint32_t count);
     virtual jdoubleArray newDoubleArray(uint32_t count);
     virtual jobjectArray newObjectArray(jclass type, uint32_t count);
+
+    virtual jmethodId getMethodId(jclass cls, const char *name, const char *sig);
+    virtual jmethodId getConstructorId(jclass cls, const char *sig);
 
     virtual jvoid callVoidMethod(jmethodId mtid, ...);
     virtual jbool callBoolMethod(jmethodId mtid, ...);

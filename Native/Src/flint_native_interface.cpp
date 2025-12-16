@@ -57,6 +57,23 @@ jobject FNIEnv::newObject(jclass type) {
     return Flint::newObject(exec, type);
 }
 
+jobject FNIEnv::newObject(jclass type, jmethodId ctor, ...) {
+    if(ctor == NULL) return NULL;
+    jobject obj = newObject(type);
+    if(obj == NULL) return NULL;
+    va_list args;
+    va_start(args, ctor);
+    uint8_t argc = GetArgSlotCount(ctor->desc);
+    exec->stackPushObject(obj);
+    exec->stackPushArgs(argc, args);
+    exec->callMethod(ctor, argc + 1);
+    if(exec->hasException() || exec->hasTerminateRequest()) {
+        Flint::freeObject(obj);
+        return NULL;
+    }
+    return obj;
+}
+
 jstring FNIEnv::newString(const char *format, ...) {
     va_list args;
     va_start(args, format);
@@ -117,6 +134,16 @@ jobjectArray FNIEnv::newObjectArray(jclass type, uint32_t count) {
     jobjectArray ret = (jobjectArray)Flint::newArray(exec, cls, count);
     if(ret != NULL) ret->clearData();
     return ret;
+}
+
+jmethodId FNIEnv::getMethodId(jclass cls, const char *name, const char *sig) {
+    ConstNameAndType nameAndType(name, sig);
+    return Flint::findMethod(exec, cls, &nameAndType);
+}
+
+jmethodId FNIEnv::getConstructorId(jclass cls, const char *sig) {
+    ConstNameAndType nameAndType("<init>", sig);
+    return Flint::findMethod(exec, cls, &nameAndType);
 }
 
 uint64_t FNIEnv::vCallMethod(jmethodId mtid, va_list args) {

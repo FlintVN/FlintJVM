@@ -4,6 +4,7 @@
 
 #include "flint_std.h"
 #include "flint_common.h"
+#include "flint_const_pool.h"
 #include "flint_native_interface.h"
 
 #define NATIVE_CLASS(name, methods)         NativeClass(name, methods, LENGTH(methods))
@@ -13,9 +14,14 @@ typedef void (*JNMPtr)(FNIEnv *env, ...);
 
 class NativeMethod {
 public:
-    const char * const name;
-    const char * const desc;
-    const uint32_t hash;
+    union {
+        struct {
+            const char * const name;
+            const char * const desc;
+            const uint32_t hash;
+        };
+        ConstNameAndType nameAndType;
+    };
     const uint32_t methodPtr;
 
     constexpr NativeMethod(const char *name, const char *desc, uint32_t method) :

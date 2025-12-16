@@ -89,6 +89,9 @@ private:
     friend class Flint;
     friend class FDbg;
     friend class FNIEnv;
+
+    friend jobject NativeMethod_Invoke0(FNIEnv *, jobject, jobject, jobjectArray);
+    friend jobject NativeConstructor_NewInstance0(FNIEnv *, jobject, jobjectArray);
 };
 
 #endif /* __FLINT_EXECUTION_H */
