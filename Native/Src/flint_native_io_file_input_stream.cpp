@@ -128,9 +128,9 @@ jlong NativeFileInputStream_Skip(FNIEnv *env, jobject obj, jlong n) {
     if(fd == -1) return 0;
     if(n > 0xFFFFFFFF) n = 0xFFFFFFFF;
     jint oldPos = FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd);
-    if(FlintAPI::IO::fseek((FlintAPI::IO::FileHandle)fd, (uint32_t)n) != FlintAPI::IO::FILE_RESULT_OK)
+    if(FlintAPI::IO::fseek((FlintAPI::IO::FileHandle)fd, (uint32_t)(n + oldPos)) != FlintAPI::IO::FILE_RESULT_OK)
         return 0;
-    return oldPos - FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd);
+    return FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd) - oldPos;
 }
 
 jint NativeFileInputStream_Available(FNIEnv *env, jobject obj) {
