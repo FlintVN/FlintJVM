@@ -1,4 +1,6 @@
 # Change Log
+## V2.3.4
+- Implement java.lang.reflect.Method.invoke0 and java.lang.reflect.Constructor.newInstance0 native methods.
 ## V2.3.3
 - Fixed critical bug, stackPopDouble corrupted java stack frame.
 - Fixed bug in java.io.FileOutputStream.write method with FileDescriptor.out (Big impact on System.out.print).
