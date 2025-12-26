@@ -489,15 +489,21 @@ void FExec::invokeStaticCtor(ClassLoader *loader) {
     if(lockClass(loader) == false) { FlintAPI::Thread::yield(); return; }
     if(loader->getStaticInitStatus() != UNINITIALIZED) { unlockClass(loader); return; }
     if(loader->initStaticFields(this) == false) { unlockClass(loader); return; }
-    MethodInfo *ctorMethod = loader->getStaticCtor(this);
-    if(ctorMethod == NULL) {
-        if(excp == NULL) throwNew(Flint::findClass(this, "java/lang/LinkageError"), "<clinit>()");
-        return unlockClass(loader);
+    if(loader->hasStaticCtor()) {
+        MethodInfo *ctorMethod = loader->getStaticCtor(this);
+        if(ctorMethod == NULL) {
+            if(excp == NULL) throwNew(Flint::findClass(this, "java/lang/LinkageError"), "<clinit>()");
+            return unlockClass(loader);
+        }
+        if(code[pc] == OP_BREAKPOINT)
+            ((uint8_t *)code)[pc] = OP_BREAKPOINT_DUMMY;
+        lr = pc;
+        invoke(ctorMethod, 0);
     }
-    if(code[pc] == OP_BREAKPOINT)
-        ((uint8_t *)code)[pc] = OP_BREAKPOINT_DUMMY;
-    lr = pc;
-    invoke(ctorMethod, 0);
+    else {
+        loader->staticInitialized();
+        unlockClass(loader);
+    }
 }
 
 void FExec::exec(bool initOpcodeLabels) {

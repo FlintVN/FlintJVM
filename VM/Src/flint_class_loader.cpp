@@ -7,8 +7,9 @@
 #include "flint_default_conf.h"
 #include "flint_class_loader.h"
 
-#define FLAG_HAS_CLINIT         0x01
-#define FLAG_STATIC_INIT        0x02
+#define FLAG_HAS_STATIC_FIELD   0x01
+#define FLAG_HAS_CLINIT         0x02
+#define FLAG_STATIC_INIT        0x08
 
 typedef struct {
     ConstPoolTag tag;
@@ -286,6 +287,8 @@ bool ClassLoader::load(FExec *ctx, FlintAPI::IO::FileHandle file) {
                 const char *fieldDesc = getConstUtf8(fieldsDescIndex);
                 new (&fields[loadedCount])FieldInfo((FieldAccessFlag)flag, fieldName, fieldDesc);
                 loadedCount++;
+                if(flag & FIELD_STATIC)
+                    loaderFlags |= FLAG_HAS_STATIC_FIELD;
             }
         }
         if(loadedCount == 0) {
@@ -354,7 +357,7 @@ bool ClassLoader::load(FExec *ctx, FlintAPI::IO::FileHandle file) {
         else
             if(!FOffset(ctx, file, length)) return false;
     }
-    if(hasStaticCtor() == false)
+    if(hasStaticCtor() == false && hasStaticField() == false)
         staticInitialized();
     return true;
 }
@@ -701,6 +704,10 @@ MethodInfo *ClassLoader::getMainMethodInfo(FExec *ctx) {
 MethodInfo *ClassLoader::getStaticCtor(FExec *ctx) {
     static constexpr ConstNameAndType clinitName("<clinit>", "()V");
     return getMethodInfo(ctx, (ConstNameAndType *)&clinitName);
+}
+
+bool ClassLoader::hasStaticField(void) const {
+    return (loaderFlags & FLAG_HAS_STATIC_FIELD) ? true : false;
 }
 
 bool ClassLoader::hasStaticCtor(void) const {

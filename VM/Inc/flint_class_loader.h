@@ -100,6 +100,7 @@ public:
     MethodInfo *getMainMethodInfo(FExec *ctx);
     MethodInfo *getStaticCtor(FExec *ctx);
 
+    bool hasStaticField(void) const;
     bool hasStaticCtor(void) const;
 
     JClass *getNestHost(FExec *ctx);
