@@ -6,7 +6,7 @@
 
 jvoid NativeFileDescriptor_Sync(FNIEnv *env, jobject obj);
 
-static constexpr NativeMethod fileDescriptorMethods[] = {
+inline constexpr NativeMethod fileDescriptorMethods[] = {
     NATIVE_METHOD("sync", "()V", NativeFileDescriptor_Sync),
 };
 

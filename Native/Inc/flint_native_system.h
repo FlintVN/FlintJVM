@@ -10,7 +10,7 @@ jlong NativeSystem_NanoTime(FNIEnv *env);
 jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length);
 jint NativeSystem_IdentityHashCode(FNIEnv *env, jobject obj);
 
-static constexpr NativeMethod systemMethods[] = {
+inline constexpr NativeMethod systemMethods[] = {
     NATIVE_METHOD("setOut0",           "(Ljava/io/PrintStream;)V",                   NativeSystem_setOut0),
     NATIVE_METHOD("currentTimeMillis", "()J",                                        NativeSystem_CurrentTimeMillis),
     NATIVE_METHOD("nanoTime",          "()J",                                        NativeSystem_NanoTime),

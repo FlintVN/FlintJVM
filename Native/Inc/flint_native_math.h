@@ -20,7 +20,7 @@ jdouble NativeMath_Sinh(FNIEnv *env, jdouble x);
 jdouble NativeMath_Cosh(FNIEnv *env, jdouble x);
 jdouble NativeMath_Tanh(FNIEnv *env, jdouble x);
 
-static constexpr NativeMethod mathMethods[] = {
+inline constexpr NativeMethod mathMethods[] = {
     NATIVE_METHOD("sin",   "(D)D",  NativeMath_Sin),
     NATIVE_METHOD("cos",   "(D)D",  NativeMath_Cos),
     NATIVE_METHOD("tan",   "(D)D",  NativeMath_Tan),

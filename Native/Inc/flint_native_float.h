@@ -7,7 +7,7 @@
 jint NativeFloat_FloatToRawIntBits(FNIEnv *env, jfloat value);
 jfloat NativeFloat_IntBitsToFloat(FNIEnv *env, jint bits);
 
-static constexpr NativeMethod floatMethods[] = {
+inline constexpr NativeMethod floatMethods[] = {
     NATIVE_METHOD("floatToRawIntBits", "(F)I", NativeFloat_FloatToRawIntBits),
     NATIVE_METHOD("intBitsToFloat",    "(I)F", NativeFloat_IntBitsToFloat),
 };

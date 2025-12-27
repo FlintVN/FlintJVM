@@ -26,7 +26,7 @@ jvoid NativeArray_SetDouble(FNIEnv *env, jobject obj, jint index, jdouble v);
 jobject NativeArray_NewArray(FNIEnv *env, jclass componentType, jint length);
 jobject NativeArray_MultiNewArray(FNIEnv *env, jclass componentType, jintArray dimensions);
 
-static constexpr NativeMethod arrayMethods[] = {
+inline constexpr NativeMethod arrayMethods[] = {
     NATIVE_METHOD("getLength",     "(Ljava/lang/Object;)I",                    NativeArray_GetLength),
     NATIVE_METHOD("get",           "(Ljava/lang/Object;I)Ljava/lang/Object;",  NativeArray_Get),
     NATIVE_METHOD("getBoolean",    "(Ljava/lang/Object;I)Z",                   NativeArray_GetBoolean),

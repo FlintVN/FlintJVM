@@ -9,7 +9,7 @@ jvoid NativeFileOutputStream_Write(FNIEnv *env, jobject obj, jint b);
 jvoid NativeFileOutputStream_WriteBytes(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len);
 jvoid NativeFileOutputStream_Close(FNIEnv *env, jobject obj);
 
-static constexpr NativeMethod fileOutputStreamMethods[] = {
+inline constexpr NativeMethod fileOutputStreamMethods[] = {
     NATIVE_METHOD("open",       "(Ljava/lang/String;Z)V", NativeFileOutputStream_Open),
     NATIVE_METHOD("write",      "(I)V",                   NativeFileOutputStream_Write),
     NATIVE_METHOD("writeBytes", "([BII)V",                NativeFileOutputStream_WriteBytes),

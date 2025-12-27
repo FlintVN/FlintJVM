@@ -24,7 +24,7 @@ jobjectArray NativeClass_GetDeclaredMethods0(FNIEnv *env, jclass cls);
 jobjectArray NativeClass_GetDeclaredConstructors0(FNIEnv *env, jclass cls);
 jclass NativeClass_GetDeclaringClass0(FNIEnv *env, jclass cls);
 
-static constexpr NativeMethod classMethods[] = {
+inline constexpr NativeMethod classMethods[] = {
     NATIVE_METHOD("getPrimitiveClass",        "(Ljava/lang/String;)Ljava/lang/Class;", NativeClass_GetPrimitiveClass),
     NATIVE_METHOD("forName",                  "(Ljava/lang/String;)Ljava/lang/Class;", NativeClass_ForName),
     NATIVE_METHOD("isInstance",               "(Ljava/lang/Object;)Z",                 NativeClass_IsInstance),

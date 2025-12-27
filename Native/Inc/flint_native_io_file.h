@@ -24,7 +24,7 @@ jobjectArray NativeIoFile_List(FNIEnv *env, jobject file);
 jstring NativeIoFile_GetCanonicalPath(FNIEnv *env, jobject file, jstring path);
 jbool NativeIoFile_CreateNewFile(FNIEnv *env, jobject file);
 
-static constexpr NativeMethod ioFileMethods[] = {
+inline constexpr NativeMethod ioFileMethods[] = {
     NATIVE_METHOD("getSeparatorChar0",     "()C",                   NativeIoFile_GetSeparatorChar0),
     NATIVE_METHOD("getPathSeparatorChar0", "()C",                   NativeIoFile_GetPathSeparatorChar0),
     NATIVE_METHOD("isAbsolute",            "()Z",                   NativeIoFile_IsAbsolute),

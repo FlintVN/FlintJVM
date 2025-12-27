@@ -10,7 +10,7 @@ jvoid NativeThread_Interrupt0(FNIEnv *env, jthread thread);
 jthread NativeThread_CurrentThread(FNIEnv *env);
 jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis);
 
-static constexpr NativeMethod threadMethods[] = {
+inline constexpr NativeMethod threadMethods[] = {
     NATIVE_METHOD("start0",        "()V",                  NativeThread_Start0),
     NATIVE_METHOD("yield0",        "()V",                  NativeThread_Yield0),
     NATIVE_METHOD("interrupt0",    "()V",                  NativeThread_Interrupt0),
