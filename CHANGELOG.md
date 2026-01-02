@@ -1,4 +1,7 @@
 # Change Log
+## V2.3.5
+- Fixes bug static fields not being initialized when the class lacks a static init block.
+- Correct the behavior of STEP_IN and STEP_OVER commands in the debugger.
 ## V2.3.4
 - Implement java.lang.reflect.Method.invoke0 and java.lang.reflect.Constructor.newInstance0 native methods.
 - Fix FileInputStream.skip that is not working correctly.
