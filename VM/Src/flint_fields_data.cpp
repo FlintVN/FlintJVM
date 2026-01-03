@@ -26,6 +26,10 @@ int64_t FieldValue::getInt64(void) const {
     return ((uint64_t)this[1].value << 32) | this[0].value;
 }
 
+bool FieldValue::getBool(void) const {
+    return value != 0;
+}
+
 void FieldValue::setInt32(int32_t val) {
     value = (uint32_t)val;
 }
