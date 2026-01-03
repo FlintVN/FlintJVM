@@ -43,6 +43,10 @@ void FieldValue::setInt64(int64_t val) {
     this[1].value = (uint64_t)val >> 32;
 }
 
+void FieldValue::setBool(bool val) {
+    value = val ? 1 : 0;
+}
+
 FieldsData::FieldsData(void) : count(0), objCount(0), fields(NULL) {
 
 }
