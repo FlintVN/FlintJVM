@@ -13,9 +13,11 @@ public:
     int32_t getInt32(void) const;
     class JObject *getObj(void) const;
     int64_t getInt64(void) const;
+    bool getBool(void) const;
     void setInt32(int32_t val);
     void setObj(class JObject *obj);
     void setInt64(int64_t val);
+    void setBool(bool val);
 private:
     FieldValue(const FieldInfo *fieldInfo);
     FieldValue(const FieldValue &) = delete;
