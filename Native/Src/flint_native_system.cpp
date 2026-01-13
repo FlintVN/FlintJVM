@@ -81,26 +81,10 @@ static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint
 
 jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length) {
     if(checkParam(env, src, srcPos, dest, destPos, length) == false) return;
-    void *srcVal = ((jarray)src)->getData();
-    void *dstVal = ((jarray)dest)->getData();
-    switch(((jarray)src)->componentSize()) {
-        case 1:
-            for(uint32_t i = 0; i < length; i++)
-                ((uint8_t *)dstVal)[i + destPos] = ((uint8_t *)srcVal)[i + srcPos];
-            break;
-        case 2:
-            for(uint32_t i = 0; i < length; i++)
-                ((uint16_t *)dstVal)[i + destPos] = ((uint16_t *)srcVal)[i + srcPos];
-            break;
-        case 4:
-            for(uint32_t i = 0; i < length; i++)
-                ((uint32_t *)dstVal)[i + destPos] = ((uint32_t *)srcVal)[i + srcPos];
-            break;
-        case 8:
-            for(uint32_t i = 0; i < length; i++)
-                ((uint64_t *)dstVal)[i + destPos] = ((uint64_t *)srcVal)[i + srcPos];
-            break;
-    }
+    uint8_t *srcVal = (uint8_t *)((jarray)src)->getData();
+    uint8_t *dstVal = (uint8_t *)((jarray)dest)->getData();
+    uint8_t compSz = ((jarray)src)->componentSize();
+    memcpy(dstVal + destPos * compSz, srcVal + srcPos * compSz, length * compSz);
 }
 
 jint NativeSystem_IdentityHashCode(FNIEnv *env, jobject obj) {
