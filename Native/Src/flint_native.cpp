@@ -4,6 +4,7 @@
 #include "flint_system_api.h"
 #include "flint_class_loader.h"
 #include "flint_native.h"
+#include "flint_native_dsp.h"
 #include "flint_native_math.h"
 #include "flint_native_class.h"
 #include "flint_native_array.h"
@@ -40,6 +41,7 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/io/FileInputStream",         fileInputStreamMethods),
     NATIVE_CLASS("java/io/FileOutputStream",        fileOutputStreamMethods),
     NATIVE_CLASS("jdk/internal/reflect/Reflection", reflectionMethods),
+    NATIVE_CLASS("flint/math/Dsp",                  dspMethods),
 };
 
 JNMPtr NativeClass::findNativeMethod(MethodInfo *methodInfo) {
