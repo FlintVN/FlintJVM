@@ -144,64 +144,124 @@ static bool NativeDsp_Fft(FNIEnv *env, float *reals, float *imags, uint32_t N) {
     return true;
 }
 
-template <typename T>
-static bool NativeDsp_Dct(FNIEnv *env, T *input, float *output, uint32_t N) {
-    if(((N - 1) & N) == 0) {
-        uint32_t Nx2 = N * 2;
-        float *re = (float *)Flint::malloc(env->exec, Nx2 * sizeof(float));
-        float *im = (float *)Flint::malloc(env->exec, Nx2 * sizeof(float));
-        if(re == NULL || im == NULL) {
-            if(re != NULL) Flint::free(re);
-            if(im != NULL) Flint::free(im);
-            return false;
-        }
-
-        for(uint32_t i = 0; i < N; i++) {
-            re[i] = input[i];
-            im[i] = 0;
-
-            re[Nx2 - 1 - i] = input[i];
-            im[Nx2 - 1 - i] = 0;
-        }
-
-        NativeDsp_FftRadix2(re, im, Nx2);
-
-        output[0] = sqrtf(1.0f / N) * re[0] / 2.0f;
-
-        float alpha = sqrtf(2.0f / N);
-        for(uint32_t k = 1; k < N; k++) {
-            float angle = PI * k / Nx2;
-            output[k] = alpha * (re[k] * cosf(angle) + im[k] * sinf(angle)) / 2.0f;
-        }
-
-        Flint::free(re);
-        Flint::free(im);
+static bool NativeDsp_DctFftRadix2(FNIEnv *env, float *values, uint32_t N) {
+    uint32_t N2 = N * 2;
+    float *re = (float *)Flint::malloc(env->exec, N2 * sizeof(float));
+    float *im = (float *)Flint::malloc(env->exec, N2 * sizeof(float));
+    if(re == NULL || im == NULL) {
+        if(re != NULL) Flint::free(re);
+        if(im != NULL) Flint::free(im);
+        return false;
     }
+
+    for(uint32_t i = 0; i < N; i++) {
+        re[i] = values[i];
+        im[i] = 0;
+
+        re[N2 - 1 - i] = values[i];
+        im[N2 - 1 - i] = 0;
+    }
+
+    NativeDsp_FftRadix2(re, im, N2);
+
+    values[0] = sqrtf(1.0f / N) * re[0] / 2.0f;
+    float alpha = sqrtf(2.0f / N);
+    for(uint32_t k = 1; k < N; k++) {
+        float angle = PI * k / N2;
+        values[k] = alpha * (re[k] * cosf(angle) + im[k] * sinf(angle)) / 2.0f;
+    }
+
+    Flint::free(re);
+    Flint::free(im);
+    return true;
+}
+
+static bool NativeDsp_Dct(FNIEnv *env, float *values, uint32_t N) {
+    if(((N - 1) & N) == 0)
+        return NativeDsp_DctFftRadix2(env, values, N);
     else {
+        float *buff = (float *)Flint::malloc(env->exec, N * sizeof(float));
+        if(buff == NULL) return false;
+        memcpy(buff, values, N * sizeof(float));
+
         float alpha1 = sqrtf(1.0f / N);
         float alpha2 = sqrtf(2.0f / N);
         for(uint32_t k = 0; k < N; k++) {
             float sum = 0.0f;
             float alpha = (k == 0) ? alpha1 : alpha2;
             for(uint32_t n = 0; n < N; n++)
-                sum += cosf(PI * (0.5f + n) * k / N) * input[n];
-            output[k] = alpha * sum;
+                sum += cosf(PI * (0.5f + n) * k / N) * buff[n];
+            values[k] = alpha * sum;
         }
+
+        Flint::free(buff);
+        return true;
     }
+}
+
+static bool NativeDsp_IdctFftRadix2(FNIEnv *env, float *values, uint32_t N) {
+    uint32_t N2 = N * 2;
+    float *re = (float *)Flint::malloc(env->exec, N2 * sizeof(float));
+    float *im = (float *)Flint::malloc(env->exec, N2 * sizeof(float));
+    if(re == NULL || im == NULL) {
+        if(re != NULL) Flint::free(re);
+        if(im != NULL) Flint::free(im);
+        return false;
+    }
+
+    re[0] = values[0];
+    im[0] = 0;
+    for(uint32_t k = 1; k < N; k++) {
+        float phase = PI * k / N2;
+        re[k] = values[k] * cosf(phase);
+        im[k] = -values[k] * sinf(phase);
+        re[N2 - k] = re[k];
+        im[N2 - k] = -im[k];
+    }
+    re[N] = 0;
+    im[N] = 0;
+
+    NativeDsp_FftRadix2(re, im, N2);
+
+    // values[0] = sqrtf(1.0f / N) * re[0];
+    // float alpha = sqrtf(2.0f / N);
+    // for(uint32_t i = 1; i < N; i++)
+    //     values[i] = alpha * re[i];
+
+    float prev = re[0];
+    values[0] = prev;
+
+    for(uint32_t i = 1; i < N; i++) {
+        float cur = re[i];
+        values[i] = 0.5f * (prev + cur);
+        prev = cur;
+    }
+
+    Flint::free(re);
+    Flint::free(im);
     return true;
 }
 
-template <typename T>
-static bool NativeDsp_Idct(FNIEnv *env, T *input, float *output, uint32_t N) {
-    float alpha1 = sqrtf(1.0f / N);
-    float alpha2 = sqrtf(2.0f / N);
-    for(uint32_t n = 0; n < N; n++) {
-        float sum = alpha1 * input[0];
-        for(uint32_t k = 1; k < N; k++)
-            sum += alpha2 * input[k] * cosf(PI * (n + 0.5f) * k / N);
-        output[n] = sum;
+static bool NativeDsp_Idct(FNIEnv *env, float *values, uint32_t N) {
+    if(((N - 1) & N) == 0)
+        return NativeDsp_IdctFftRadix2(env, values, N);
+    else {
+        float *buff = (float *)Flint::malloc(env->exec, N * sizeof(float));
+        if(buff == NULL) return false;
+        memcpy(buff, values, N * sizeof(float));
+
+        float alpha1 = sqrtf(1.0f / N);
+        float alpha2 = sqrtf(2.0f / N);
+        for(uint32_t n = 0; n < N; n++) {
+            float sum = alpha1 * buff[0];
+            for(uint32_t k = 1; k < N; k++)
+                sum += alpha2 * buff[k] * cosf(PI * (n + 0.5f) * k / N);
+            values[n] = sum;
+        }
+
+        Flint::free(buff);
+        return true;
     }
-    return true;
 }
 
 jfloatArray NativeDsp_ToFloatArray(FNIEnv *env, jintArray values) {
@@ -255,14 +315,12 @@ jvoid NativeDsp_ApplyWindowInPlace(FNIEnv *env, jfloatArray values, jobject type
 }
 
 jvoid NativeDsp_FftInPlace(FNIEnv *env, jfloatArray reals, jfloatArray imags) {
-    if(!NativeDsp_CheckFftInput(env, reals, imags))
-        return;
+    if(!NativeDsp_CheckFftInput(env, reals, imags)) return;
     NativeDsp_Fft(env, reals->getData(), imags->getData(), reals->getLength());
 }
 
 jvoid NativeDsp_IfftInPlace(FNIEnv *env, jfloatArray reals, jfloatArray imags) {
-    if(!NativeDsp_CheckFftInput(env, reals, imags))
-        return;
+    if(!NativeDsp_CheckFftInput(env, reals, imags)) return;
 
     uint32_t N = reals->getLength();
     float *rdata = reals->getData();
@@ -271,8 +329,7 @@ jvoid NativeDsp_IfftInPlace(FNIEnv *env, jfloatArray reals, jfloatArray imags) {
     for(uint32_t i = 0; i < N; i++)
         idata[i] = -idata[i];
 
-    if(!NativeDsp_Fft(env, rdata, idata, N))
-        return;
+    if(!NativeDsp_Fft(env, rdata, idata, N)) return;
 
     for(uint32_t i = 0; i < N; i++) {
         rdata[i] /= N;
@@ -280,62 +337,12 @@ jvoid NativeDsp_IfftInPlace(FNIEnv *env, jfloatArray reals, jfloatArray imags) {
     }
 }
 
-jfloatArray NativeDsp_Dct1(FNIEnv *env, jintArray values) {
-    if(!NativeDsp_CheckDctInput(env, values)) return NULL;
-
-    uint32_t N = values->getLength();
-    jfloatArray ret = env->newFloatArray(N);
-    if(ret == NULL) return NULL;
-
-    if(!NativeDsp_Dct(env, values->getData(), ret->getData(), N)) {
-        env->freeObject(ret);
-        return NULL;
-    }
-
-    return ret;
+jvoid NativeDsp_DctInPlace(FNIEnv *env, jfloatArray values) {
+    if(!NativeDsp_CheckDctInput(env, values)) return;
+    NativeDsp_Dct(env, values->getData(), values->getLength());
 }
 
-jfloatArray NativeDsp_Dct2(FNIEnv *env, jfloatArray values) {
-    if(!NativeDsp_CheckDctInput(env, values)) return NULL;
-
-    uint32_t N = values->getLength();
-    jfloatArray ret = env->newFloatArray(N);
-    if(ret == NULL) return NULL;
-
-    if(!NativeDsp_Dct(env, values->getData(), ret->getData(), N)) {
-        env->freeObject(ret);
-        return NULL;
-    }
-
-    return ret;
-}
-
-jfloatArray NativeDsp_Idct1(FNIEnv *env, jintArray values) {
-    if(!NativeDsp_CheckDctInput(env, values)) return NULL;
-    
-    uint32_t N = values->getLength();
-    jfloatArray ret = env->newFloatArray(N);
-    if(ret == NULL) return NULL;
-
-    if(!NativeDsp_Idct(env, values->getData(), ret->getData(), N)) {
-        env->freeObject(ret);
-        return NULL;
-    }
-
-    return ret;
-}
-
-jfloatArray NativeDsp_Idct2(FNIEnv *env, jfloatArray values) {
-    if(!NativeDsp_CheckDctInput(env, values)) return NULL;
-    
-    uint32_t N = values->getLength();
-    jfloatArray ret = env->newFloatArray(N);
-    if(ret == NULL) return NULL;
-
-    if(!NativeDsp_Idct(env, values->getData(), ret->getData(), N)) {
-        env->freeObject(ret);
-        return NULL;
-    }
-
-    return ret;
+jvoid NativeDsp_IdctInPlace(FNIEnv *env, jfloatArray values) {
+    if(!NativeDsp_CheckDctInput(env, values)) return;
+    NativeDsp_Idct(env, values->getData(), values->getLength());
 }
