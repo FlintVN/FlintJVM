@@ -43,11 +43,11 @@ jthread NativeThread_CurrentThread(FNIEnv *env) {
 }
 
 jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis) {
-    uint64_t startTime = FlintAPI::System::getNanoTime() / 1000000;
-    while((int64_t)((FlintAPI::System::getNanoTime() / 1000000) - startTime) < (millis - 10)) {
+    uint64_t startTime = FlintAPI::System::getTimeMillis();
+    while((int64_t)(FlintAPI::System::getTimeMillis() - startTime) < (millis - 10)) {
         FlintAPI::Thread::sleep(10);
         if(env->exec->hasTerminateRequest()) return;
     }
-    int64_t remaining = millis - ((FlintAPI::System::getNanoTime() / 1000000) - startTime);
+    int64_t remaining = millis - (FlintAPI::System::getTimeMillis() - startTime);
     if(remaining > 0) FlintAPI::Thread::sleep((uint32_t)remaining);
 }

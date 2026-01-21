@@ -24,8 +24,12 @@ void FlintAPI::System::consoleWrite(uint8_t *utf8, uint32_t length) {
     #error "FlintAPI::System::consoleWrite is not implemented in VM"
 }
 
-uint64_t FlintAPI::System::getNanoTime(void) {
-    #error "FlintAPI::System::getNanoTime is not implemented in VM"
+int64_t FlintAPI::System::getTimeNanos(void) {
+    #error "FlintAPI::System::getTimeNanos is not implemented in VM"
+}
+
+int64_t FlintAPI::System::getTimeMillis(void) {
+    #error "FlintAPI::System::getTimeMillis is not implemented in VM"
 }
 
 JNMPtr FlintAPI::System::findNativeMethod(MethodInfo *methodInfo) {

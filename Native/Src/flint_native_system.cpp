@@ -15,12 +15,12 @@ jvoid NativeSystem_setOut0(FNIEnv *env, jobject out) {
 
 jlong NativeSystem_CurrentTimeMillis(FNIEnv *env) {
     (void)env;
-    return FlintAPI::System::getNanoTime() / 1000000;
+    return FlintAPI::System::getTimeMillis();
 }
 
 jlong NativeSystem_NanoTime(FNIEnv *env) {
     (void)env;
-    return FlintAPI::System::getNanoTime();
+    return FlintAPI::System::getTimeNanos();
 }
 
 static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length) {
