@@ -26,6 +26,10 @@ int64_t FieldValue::getInt64(void) const {
     return ((uint64_t)this[1].value << 32) | this[0].value;
 }
 
+bool FieldValue::getBool(void) const {
+    return value != 0;
+}
+
 void FieldValue::setInt32(int32_t val) {
     value = (uint32_t)val;
 }
@@ -37,6 +41,10 @@ void FieldValue::setObj(JObject *obj) {
 void FieldValue::setInt64(int64_t val) {
     this[0].value = (uint32_t)val;
     this[1].value = (uint64_t)val >> 32;
+}
+
+void FieldValue::setBool(bool val) {
+    value = val ? 1 : 0;
 }
 
 FieldsData::FieldsData(void) : count(0), objCount(0), fields(NULL) {
