@@ -1,3 +1,4 @@
+
 #ifndef __FLINT_CLASS_LOADER_H
 #define __FLINT_CLASS_LOADER_H
 
@@ -10,6 +11,7 @@
 #include "flint_system_api.h"
 #include "flint_java_class.h"
 #include "flint_java_string.h"
+#include "flint_file_reader.h"
 
 typedef enum : uint16_t {
     CLASS_PUBLIC = 0x0001,
@@ -58,6 +60,7 @@ private:
     MethodInfo *methods;
     uint16_t *nestMembers;
     FieldsData *staticFields;
+    const char *filePath;
 public:
     uint32_t getHashKey(void) const override;
     int32_t compareKey(const char *key, uint16_t length) const override;
@@ -122,8 +125,8 @@ private:
     ClassLoader(const ClassLoader &) = delete;
     void operator=(const ClassLoader &) = delete;
 
-    bool load(class FExec *ctx, FlintAPI::IO::FileHandle file);
-    static CodeAttribute *readAttributeCode(class FExec *ctx, FlintAPI::IO::FileHandle file);
+    bool load(FileReader *reader);
+    static CodeAttribute *readAttributeCode(FileReader *reader);
 public:
     static ClassLoader *load(class FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
 

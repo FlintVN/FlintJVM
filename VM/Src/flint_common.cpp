@@ -37,32 +37,6 @@ static const uint16_t crc16Table[] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-uint16_t Swap16(uint16_t value) {
-    return ((value) << 8) | ((value) >> 8);
-}
-
-uint32_t Swap32(uint32_t value) {
-    uint32_t ret;
-    ((uint8_t *)&ret)[0] = ((uint8_t *)&value)[3];
-    ((uint8_t *)&ret)[1] = ((uint8_t *)&value)[2];
-    ((uint8_t *)&ret)[2] = ((uint8_t *)&value)[1];
-    ((uint8_t *)&ret)[3] = ((uint8_t *)&value)[0];
-    return ret;
-}
-
-uint64_t Swap64(uint64_t value) {
-    uint64_t ret;
-    ((uint8_t *)&ret)[0] = ((uint8_t *)&value)[7];
-    ((uint8_t *)&ret)[1] = ((uint8_t *)&value)[6];
-    ((uint8_t *)&ret)[2] = ((uint8_t *)&value)[5];
-    ((uint8_t *)&ret)[3] = ((uint8_t *)&value)[4];
-    ((uint8_t *)&ret)[4] = ((uint8_t *)&value)[3];
-    ((uint8_t *)&ret)[5] = ((uint8_t *)&value)[2];
-    ((uint8_t *)&ret)[6] = ((uint8_t *)&value)[1];
-    ((uint8_t *)&ret)[7] = ((uint8_t *)&value)[0];
-    return ret;
-}
-
 uint16_t Crc(const uint8_t *data, uint32_t length) {
     uint16_t crc = 0xFFFF;
     for(uint32_t i = 0; i < length; i++)
