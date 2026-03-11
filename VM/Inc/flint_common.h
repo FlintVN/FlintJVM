@@ -28,10 +28,6 @@ uint16_t Crc(const uint8_t *data, uint32_t length);
 
 int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
 
-char GetPathSeparatorChar(void);
-uint16_t IsAbsolutePath(const char *path, uint16_t length);
-int16_t ResolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize);
-
 const char *GetNextArgName(const char *desc);
 uint16_t GetArgNameLength(const char *desc);
 uint8_t GetArgCount(const char *desc);

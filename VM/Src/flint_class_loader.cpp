@@ -30,7 +30,7 @@ static int16_t Append(char *buff, int32_t index, const char *str, uint16_t len =
 static int16_t CombinePath(char *buff, const char *folder, uint16_t folderLen, const char *clsName, uint16_t clsLen) {
     int32_t index = 0;
     if(index = Append(buff, index, folder, folderLen); index == -1) return -1;
-    char separatorChar = GetPathSeparatorChar();
+    char separatorChar = Flint::getPathSeparator();
     if(buff[index - 1] != separatorChar) {
         if(index >= FILE_NAME_BUFF_SIZE) return -1;
         buff[index++] = separatorChar;
@@ -42,7 +42,7 @@ static int16_t CombinePath(char *buff, const char *folder, uint16_t folderLen, c
 static FlintAPI::IO::FileHandle FOpen(const char *fileName, uint16_t length = 0xFFFF) {
     int16_t index;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(index = ResolvePath(fileName, length, buff, sizeof(buff)); index == -1) return NULL;
+    if(index = Flint::resolvePath(fileName, length, buff, sizeof(buff)); index == -1) return NULL;
     if(index = Append(buff, index, ".class"); index == -1) return NULL;
     if(FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK)
         return FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);

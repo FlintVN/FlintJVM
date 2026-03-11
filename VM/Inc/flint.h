@@ -66,6 +66,10 @@ public:
     static const char *getClassPaths(void);
     static void setClassPaths(const char *paths);
 
+    static char getPathSeparator(void);
+    static uint16_t isAbsolutePath(const char *path, uint16_t length);
+    static int16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize);
+
     static const char *getUtf8(FExec *ctx, const char *utf8, uint16_t length = 0xFFFF);
     static ClassLoader *findLoader(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
     static JClass *findClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, bool verify = false);

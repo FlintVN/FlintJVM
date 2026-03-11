@@ -8,7 +8,7 @@ static const char *ResolvePath(FNIEnv *env, jobject file, char *buff, uint32_t b
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *ptxt = path->getAscii();
     uint32_t len = path->getLength();
-    if(ResolvePath(ptxt, len, buff, buffSize) == -1) {
+    if(Flint::resolvePath(ptxt, len, buff, buffSize) == -1) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "Class name cannot exceed %d characters", buffSize - 1);
         return NULL;
@@ -24,7 +24,7 @@ static FlintAPI::IO::DirHandle OpenDir(FNIEnv *env, jobject file) {
 
 jchar NativeIoFile_GetSeparatorChar0(FNIEnv *env) {
     (void)env;
-    return GetPathSeparatorChar();
+    return Flint::getPathSeparator();
 }
 
 jchar NativeIoFile_GetPathSeparatorChar0(FNIEnv *env) {
@@ -37,14 +37,14 @@ jbool NativeIoFile_IsAbsolute(FNIEnv *env, jobject file) {
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *txt = path->getAscii();
     uint32_t len = path->getLength();
-    return IsAbsolutePath(txt, len) ? true : false;
+    return Flint::isAbsolutePath(txt, len) ? true : false;
 }
 
 jstring NativeIoFile_GetAbsolutePath(FNIEnv *env, jobject file) {
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *txt = path->getAscii();
     uint32_t len = path->getLength();
-    if(IsAbsolutePath(txt, len))
+    if(Flint::isAbsolutePath(txt, len))
         return path;
     else {
         char buff[FILE_NAME_BUFF_SIZE];
@@ -195,7 +195,7 @@ jobjectArray NativeIoFile_List(FNIEnv *env, jobject file) {
 jstring NativeIoFile_GetCanonicalPath(FNIEnv *env, jobject file, jstring path) {
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
-    char sep = GetPathSeparatorChar();
+    char sep = Flint::getPathSeparator();
     char *src = buff;
     char *dst = buff;
     while(*src) {

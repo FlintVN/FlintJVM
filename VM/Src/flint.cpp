@@ -224,6 +224,52 @@ void Flint::setClassPaths(const char *paths) {
     classPaths = paths;
 }
 
+char Flint::getPathSeparator(void) {
+#ifdef _WIN32
+    return '\\';
+#else
+    return '/';
+#endif
+}
+
+uint16_t Flint::isAbsolutePath(const char *path, uint16_t length) {
+#ifdef _WIN32
+    if(length < 3) return 0;
+    if(!(('a' <= path[0] && path[0] <= 'z') || ('A' <= path[0] && path[0] <= 'Z'))) return 0;
+    if(path[1] != ':') return 0;
+    if(path[2] != getPathSeparator()) return 0;
+    return 3;
+#else
+    return ((length > 0) && (path[0] == getPathSeparator())) ? 1 : 0;
+#endif
+}
+
+static int16_t append(char *buff, int32_t index, uint16_t buffSize, const char *str, uint16_t len = 0xFFFF) {
+    if(index >= buffSize) return -1;
+    while(*str && len--) {
+        buff[index++] = *str++;
+        if(index >= buffSize) return -1;
+    }
+    buff[index] = 0;
+    return index;
+}
+
+int16_t Flint::resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize) {
+    int16_t index = 0;
+    if(!isAbsolutePath(path, length)) {
+        const char *cwd = Flint::getCwd();
+        if(cwd != NULL) {
+            if(index = append(buff, index, buffSize, cwd); index == -1) return -1;
+            char separatorChar = getPathSeparator();
+            if(buff[index - 1] != separatorChar) {
+                if(index >= buffSize) return -1;
+                buff[index++] = separatorChar;
+            }
+        }
+    }
+    return append(buff, index, buffSize, path, length);
+}
+
 const char *Flint::getUtf8(FExec *ctx, const char *utf8, uint16_t length) {
     lock();
 
