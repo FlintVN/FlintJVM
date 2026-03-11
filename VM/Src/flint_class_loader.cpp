@@ -117,7 +117,7 @@ static bool FClose(FExec *ctx, FlintAPI::IO::FileHandle handle) {
     return true;
 }
 
-static bool dumpAttribute(FExec *ctx, void *file) {
+static bool dumpAttribute(FExec *ctx, FlintAPI::IO::FileHandle file) {
     if(!FOffset(ctx, file, 2)) return false; /* nameIndex */
     uint32_t length;
     if(!FReadUInt32(ctx, file, length)) return false;
@@ -387,7 +387,7 @@ ClassLoader *ClassLoader::load(FExec *ctx, const char *clsName, uint16_t length)
     return loader;
 }
 
-CodeAttribute *ClassLoader::readAttributeCode(FExec *ctx, void *file) {
+CodeAttribute *ClassLoader::readAttributeCode(FExec *ctx, FlintAPI::IO::FileHandle file) {
     uint16_t maxStack, maxLocals;
     uint32_t codeLength;
     if(!FReadUInt16(ctx, file, maxStack)) return NULL;

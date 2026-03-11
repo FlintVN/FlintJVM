@@ -1,5 +1,4 @@
 
-
 #ifndef __FLINT_DICTIONARY_H
 #define __FLINT_DICTIONARY_H
 
