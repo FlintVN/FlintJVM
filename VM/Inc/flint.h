@@ -22,7 +22,7 @@ private:
     static FMutex flintLock;
     static FDbg *dbg;
     static const char *cwd;
-    static const char *classPaths;
+    static const char *program;
     static FDict<ClassLoader> loaders;
     static FDict<JClassDictNode> classes;
     static FDict<Utf8DictNode> utf8s;
@@ -63,8 +63,8 @@ public:
 
     static const char *getCwd(void);
     static void setCwd(const char *path);
-    static const char *getClassPaths(void);
-    static void setClassPaths(const char *paths);
+    static const char *getClassPath(uint32_t index);
+    static const char *getProgram(void);
 
     static char getPathSeparator(void);
     static uint16_t isAbsolutePath(const char *path, uint16_t length);
@@ -98,7 +98,8 @@ public:
     static bool isObject(void *p);
     static void gc(void);
 
-    static bool runToMain(const char *cls);
+    static bool runToClass(const char *cls);
+    static bool runJarFile(const char *jarPath);
 
     static bool isRunning(void);
     static void stopRequest(void);

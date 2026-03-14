@@ -10,13 +10,13 @@ protected:
     class FExec *ctx;
     const char *filePath;
 public:
-    FileReader(class FExec *ctx);
+    FileReader(void);
     FileReader(class FExec *ctx, const char *filePath);
 
     bool open(void);
     bool close(void);
 
-    bool read(void *buff, uint32_t size);
+    int32_t read(void *buff, uint32_t size);
 
     bool readUInt8(uint8_t &value);
     bool readUInt16(uint16_t &value);
@@ -26,6 +26,8 @@ public:
     bool readSwapUInt16(uint16_t &value);
     bool readSwapUInt32(uint32_t &value);
     bool readSwapUInt64(uint64_t &value);
+
+    int32_t readLine(char *buff, uint32_t size);
 
     uint32_t tell(void);
     bool seek(int32_t offset);

@@ -6,6 +6,7 @@
 #include "flint_common.h"
 #include "flint_default_conf.h"
 #include "flint_class_loader.h"
+#include "flint_zip_file_reader.h"
 
 #define FLAG_HAS_STATIC_FIELD   0x01
 #define FLAG_HAS_CLINIT         0x02
@@ -17,55 +18,25 @@ typedef struct {
     JClass *cls;
 } ConstClass;
 
-static int16_t Append(char *buff, int32_t index, const char *str, uint16_t len = 0xFFFF) {
-    if(index >= FILE_NAME_BUFF_SIZE) return -1;
-    while(*str && len--) {
-        buff[index++] = *str++;
-        if(index >= FILE_NAME_BUFF_SIZE) return -1;
-    }
-    buff[index] = 0;
-    return index;
-}
+static bool FindInZip(FExec *ctx, const char *clsName, uint16_t length, ZipFileReader *zip) {
+    uint32_t index = 0;
 
-static int16_t CombinePath(char *buff, const char *folder, uint16_t folderLen, const char *clsName, uint16_t clsLen) {
-    int32_t index = 0;
-    if(index = Append(buff, index, folder, folderLen); index == -1) return -1;
-    char separatorChar = Flint::getPathSeparator();
-    if(buff[index - 1] != separatorChar) {
-        if(index >= FILE_NAME_BUFF_SIZE) return -1;
-        buff[index++] = separatorChar;
-    }
-    if(index = Append(buff, index, clsName, clsLen); index == -1) return -1;
-    return Append(buff, index, ".class");
-}
-
-static bool FindClassReader(const char *clsName, uint16_t length, FileReader *reader) {
-    int16_t index;
-    FExec *ctx = reader->getContext();
-    char buff[FILE_NAME_BUFF_SIZE];
-    if(index = Flint::resolvePath(clsName, length, buff, sizeof(buff)); index == -1) return false;
-    if(index = Append(buff, index, ".class"); index == -1) return false;
-    if(FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK) {
-        const char *filePath = Flint::getUtf8(ctx, buff);
-        new (reader)FileReader(ctx, filePath);
-        return true;
-    }
-
-    const char *jdks = Flint::getClassPaths();
-    if(jdks) {
-        while(1) {
-            uint32_t len = 0;
-            while(jdks[len] != 0 && jdks[len] != ';') len++;
-            if(CombinePath(buff, jdks, len, clsName, length) == -1) return false;
-            if(FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK) {
-                const char *filePath = Flint::getUtf8(ctx, buff);
-                new (reader)FileReader(ctx, filePath);
-                return true;
-            }
-            if(jdks[len] == 0) return false;
-            jdks += len + 1;
+    const char *jar = Flint::getProgram();
+    if(jar != NULL) {
+        new (zip)ZipFileReader(ctx, jar);
+        if(zip->open()) {
+            if(zip->gotoClassFile(clsName, length)) return true;
+            zip->close();
         }
     }
+    while((jar = Flint::getClassPath(index++)) != NULL) {
+        new (zip)ZipFileReader(ctx, jar);
+        if(zip->open()) {
+            if(zip->gotoClassFile(clsName, length)) return true;
+            zip->close();
+        }
+    }
+
     return false;
 }
 
@@ -138,7 +109,7 @@ bool ClassLoader::load(FileReader *reader) {
                     if(utf8Buff == NULL) return false;
                     utf8Length = length;
                 }
-                if(!reader->read(utf8Buff, length)) return false;
+                if(reader->read(utf8Buff, length) != length) return false;
                 utf8Buff[length] = 0;
                 const char *utf8 = Flint::getUtf8(ctx, utf8Buff);
                 if(utf8 == NULL) return false;
@@ -318,20 +289,24 @@ bool ClassLoader::load(FileReader *reader) {
 }
 
 ClassLoader *ClassLoader::load(FExec *ctx, const char *clsName, uint16_t length) {
-    FileReader reader(ctx);
-    if(!FindClassReader(clsName, length, &reader))
+    FileReader *reader;
+    ZipFileReader zip;
+
+    if(FindInZip(ctx, clsName, length, &zip))
+        reader = &zip;
+    else
         return NULL;
-    if(!reader.open())
+    if(!reader->open())
         return NULL;
     ClassLoader *loader = (ClassLoader *)Flint::malloc(ctx, sizeof(ClassLoader));
     if(loader == NULL) return NULL;
     new (loader)ClassLoader();
-    if(loader->load(&reader) == false) {
+    if(loader->load(reader) == false) {
         loader->~ClassLoader();
         Flint::free(loader);
         return NULL;
     }
-    if(reader.close() == false) {
+    if(reader->close() == false) {
         loader->~ClassLoader();
         Flint::free(loader);
         return NULL;
@@ -378,7 +353,7 @@ CodeAttribute *ClassLoader::readAttributeCode(FileReader *reader) {
 
     if(!reader->seek(codePos)) { Flint::free(codeAttr); return NULL; }
     uint8_t *code = (uint8_t *)&((ExceptionTable *)codeAttr->data)[exceptionTableLength];
-    if(!reader->read(code, codeLength)) { Flint::free(codeAttr); return NULL; }
+    if(reader->read(code, codeLength) != codeLength) { Flint::free(codeAttr); return NULL; }
     code[codeLength] = OP_EXIT;
 
     return codeAttr;

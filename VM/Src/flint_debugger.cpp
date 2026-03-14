@@ -649,7 +649,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             return true;
         }
         case DBG_CMD_RESTART: {
-            const char *mainClass = (char *)&data[4 + 2];
+            const char *program = (char *)&data[4 + 2];
             lock();
             csr &= DBG_CONTROL_EXCP_EN;
             exec = NULL;
@@ -660,7 +660,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             Flint::freeAllExecution();
             Flint::gc();
             Flint::reset();
-            if(Flint::runToMain(mainClass) == true)
+            if(Flint::runJarFile(program) == true)
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
             else
                 sendRespCode(DBG_CMD_RESTART, DBG_RESP_FAIL);

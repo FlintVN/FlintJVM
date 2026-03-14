@@ -40,7 +40,7 @@ static const char *GetName(const char *filePath) {
     return name;
 }
 
-FileReader::FileReader(FExec *ctx) : handle(NULL), ctx(ctx), filePath(NULL) {
+FileReader::FileReader(void) : handle(NULL), ctx(NULL), filePath(NULL) {
 
 }
 
@@ -69,52 +69,68 @@ bool FileReader::close(void) {
     return true;
 }
 
-bool FileReader::read(void *buff, uint32_t size) {
+int32_t FileReader::read(void *buff, uint32_t size) {
     uint32_t temp;
     FlintAPI::IO::FileResult ret = FlintAPI::IO::fread(handle, buff, size, &temp);
-    if((ret != FlintAPI::IO::FILE_RESULT_OK) || (temp != size)) {
+    if(ret != FlintAPI::IO::FILE_RESULT_OK) {
         if(ctx != NULL)
             ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fread failed");
-        return false;
+        return -1;
     }
-    return true;
+    return temp;
 }
 
 bool FileReader::readUInt8(uint8_t &value) {
-    return read(&value, sizeof(uint8_t));
+    return read(&value, 1) == 1;
 }
 
 bool FileReader::readUInt16(uint16_t &value) {
-    if(!read(&value, sizeof(uint16_t))) return false;
-    return true;
+    return read(&value, 2) == 2;
 }
 
 bool FileReader::readUInt32(uint32_t &value) {
-    if(!read(&value, sizeof(uint32_t))) return false;
-    return true;
+    return read(&value, 4) == 4;
 }
 
 bool FileReader::readUInt64(uint64_t &value) {
-    if(!read(&value, sizeof(uint64_t))) return false;
-    return true;
+    return read(&value, 8) == 8;
 }
 
 bool FileReader::readSwapUInt16(uint16_t &value) {
-    if(!read(&value, sizeof(uint16_t))) return false;
+    if(read(&value, 2) != 2) return false;
     value = Swap16(value);
     return true;
 }
 
 bool FileReader::readSwapUInt32(uint32_t &value) {
-    if(!read(&value, sizeof(uint32_t))) return false;
+    if(read(&value, 4) != 4) return false;
     value = Swap32(value);
     return true;
 }
 
 bool FileReader::readSwapUInt64(uint64_t &value) {
-    if(!read(&value, sizeof(uint64_t))) return false;
+    if(read(&value, 8) != 8) return false;
     value = Swap64(value);
     return true;
+}
+
+int32_t FileReader::readLine(char *buff, uint32_t size) {
+    uint32_t index = 0;
+    char c;
+    while(true) {
+        int32_t br = read(&c, 1);
+        if(br == -1) return -1;
+        if(br == 0) {
+            if(index < size) buff[index] = 0;
+            return index;
+        }
+        if(c == '\r') continue;
+        if(c == '\n') {
+            if(index < size) buff[index] = 0;
+            return index;
+        }
+        if(index < size) buff[index++] = c;
+    }
 }
 
 uint32_t FileReader::tell(void) {
