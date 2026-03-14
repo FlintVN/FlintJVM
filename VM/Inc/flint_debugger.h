@@ -22,8 +22,8 @@
 #define DBG_CONTROL_EXCP_EN         0x1000
 
 typedef enum : uint8_t {
-    DBG_CMD_ENTER_DEBUG,
     DBG_CMD_READ_VM_INFO,
+    DBG_CMD_START_DEBUG_SESSION,
     DBG_CMD_READ_STATUS,
     DBG_CMD_READ_STACK_TRACE,
     DBG_CMD_ADD_BKP,
@@ -64,6 +64,7 @@ typedef enum : uint8_t {
     DBG_RESP_FAIL = 2,
     DBG_RESP_CRC_FAIL = 3,
     DBG_RESP_LENGTH_INVAILD = 4,
+    DBG_RESP_INVALID_FORMAT = 5,
     DBG_RESP_UNKNOW = 0xFF,
 } DbgRespCode;
 

@@ -580,12 +580,28 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
     }
     switch(cmd) {
         case DBG_CMD_READ_VM_INFO: {
+            if(length != 4) {
+                sendRespCode(cmd, DBG_RESP_INVALID_FORMAT);
+                return true;
+            }
             responseInfo();
             return true;
         }
-        case DBG_CMD_ENTER_DEBUG: {
+        case DBG_CMD_START_DEBUG_SESSION: {
+            uint16_t strLen = data[4] | (data[5] << 8);
+            if(length < 8 || strLen != (length - 9)) {
+                sendRespCode(cmd, DBG_RESP_INVALID_FORMAT);
+                return true;
+            }
+            const char *program = (char *)&data[4 + 2];
             Flint::setDebugger(this);
-            sendRespCode(DBG_CMD_ENTER_DEBUG, DBG_RESP_OK);
+            Flint::terminate();
+            Flint::freeAll();
+            Flint::reset();
+            if(Flint::setProgram(program, strLen))
+                sendRespCode(cmd, DBG_RESP_OK);
+            else
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_READ_STATUS: {
@@ -620,15 +636,13 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             index += sizeof(descLen);
 
             const char *desc = (char *)&data[index];
-            if(cmd == DBG_CMD_ADD_BKP)
-                sendRespCode(DBG_CMD_ADD_BKP, addBreakPoint(pc, clsName, name, desc) ? DBG_RESP_OK : DBG_RESP_FAIL);
-            else
-                sendRespCode(DBG_CMD_REMOVE_BKP, removeBreakPoint(pc, clsName, name, desc) ? DBG_RESP_OK : DBG_RESP_FAIL);
+            bool ret = (cmd == DBG_CMD_ADD_BKP) ? addBreakPoint(pc, clsName, name, desc) : removeBreakPoint(pc, clsName, name, desc);
+            sendRespCode(cmd, ret ? DBG_RESP_OK : DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_REMOVE_ALL_BKP: {
             breakPointCount = 0;
-            sendRespCode(DBG_CMD_REMOVE_ALL_BKP, DBG_RESP_OK);
+            sendRespCode(cmd, DBG_RESP_OK);
             return true;
         }
         case DBG_CMD_RUN: {
@@ -636,7 +650,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
             exec = NULL;
             unlock();
-            sendRespCode(DBG_CMD_RUN, DBG_RESP_OK);
+            sendRespCode(cmd, DBG_RESP_OK);
             return true;
         }
         case DBG_CMD_STOP: {
@@ -645,11 +659,10 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             exec = NULL;
             unlock();
             Flint::stopRequest();
-            sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
+            sendRespCode(cmd, DBG_RESP_OK);
             return true;
         }
         case DBG_CMD_RESTART: {
-            const char *mainClass = (char *)&data[4 + 2];
             lock();
             csr &= DBG_CONTROL_EXCP_EN;
             exec = NULL;
@@ -660,10 +673,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             Flint::freeAllExecution();
             Flint::gc();
             Flint::reset();
-            if(Flint::runToMain(mainClass) == true)
-                sendRespCode(DBG_CMD_RESTART, DBG_RESP_OK);
-            else
-                sendRespCode(DBG_CMD_RESTART, DBG_RESP_FAIL);
+            sendRespCode(cmd, Flint::start() ? DBG_RESP_OK : DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_TERMINATE: {
@@ -674,7 +684,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             Flint::terminate();
             Flint::freeAll();
             Flint::reset();
-            sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
+            sendRespCode(cmd, DBG_RESP_OK);
             return !endDbg;
         }
         case DBG_CMD_STEP_IN:
@@ -703,13 +713,13 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                     lock();
                     csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER)) | DBG_CONTROL_STEP_OUT;
                     unlock();
-                    sendRespCode(DBG_CMD_STEP_OUT, DBG_RESP_OK);
+                    sendRespCode(cmd, DBG_RESP_OK);
                 }
                 else
-                    sendRespCode(DBG_CMD_STEP_OUT, DBG_RESP_FAIL);
+                    sendRespCode(cmd, DBG_RESP_FAIL);
             }
             else
-                sendRespCode(DBG_CMD_STEP_OUT, DBG_RESP_BUSY);
+                sendRespCode(cmd, DBG_RESP_BUSY);
             return true;
         }
         case DBG_CMD_SET_EXCP_MODE: {
@@ -719,7 +729,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
             else
                 csr &= ~DBG_CONTROL_EXCP_EN;
             unlock();
-            sendRespCode(DBG_CMD_SET_EXCP_MODE, DBG_RESP_OK);
+            sendRespCode(cmd, DBG_RESP_OK);
             return true;
         }
         case DBG_CMD_READ_EXCP_INFO: {
@@ -734,7 +744,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                 responseLocalVariable(stackIndex, localIndex, variableType);
             }
             else
-                sendRespCode(DBG_CMD_READ_LOCAL, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_WRITE_LOCAL: {
@@ -759,7 +769,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                 responseArray(array, index, length);
             }
             else
-                sendRespCode(DBG_CMD_READ_ARRAY, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_READ_SIZE_AND_TYPE: {
@@ -768,7 +778,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                 responseObjSizeAndType(obj);
             }
             else
-                sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_OPEN_FILE: {
@@ -783,14 +793,14 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                 responseReadFile(size);
             }
             else
-                sendRespCode(DBG_CMD_READ_FILE, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_WRITE_FILE: {
             if(length > 6)
                 responseWriteFile(&data[4], length - 6);
             else
-                sendRespCode(DBG_CMD_WRITE_FILE, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_SEEK_FILE: {
@@ -799,7 +809,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                 responseSeekFile(offset);
             }
             else
-                sendRespCode(DBG_CMD_SEEK_FILE, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_CLOSE_FILE: {
@@ -812,7 +822,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                 responseFileInfo(path);
             }
             else
-                sendRespCode(DBG_CMD_CREATE_DIR, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_DELETE_FILE:
@@ -822,7 +832,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                 responseCreateDelete(cmd, path);
             }
             else
-                sendRespCode(DBG_CMD_CREATE_DIR, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_OPEN_DIR: {
@@ -831,7 +841,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
                 responseOpenDir(path);
             }
             else
-                sendRespCode(DBG_CMD_OPEN_DIR, DBG_RESP_FAIL);
+                sendRespCode(cmd, DBG_RESP_FAIL);
             return true;
         }
         case DBG_CMD_READ_DIR: {

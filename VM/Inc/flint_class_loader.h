@@ -112,8 +112,8 @@ public:
     JClass *getNestMember(FExec *ctx, uint16_t index);
 
     uint16_t hasStaticObjField(void) const;
-    FieldValue *getStaticField(class FExec *ctx, ConstField *field) const;
-    FieldValue *getStaticField(class FExec *ctx, const char *name) const;
+    FieldValue *getStaticField(FExec *ctx, ConstField *field) const;
+    FieldValue *getStaticField(FExec *ctx, const char *name) const;
     FieldValue *getStaticFieldByIndex(uint32_t index) const;
 
     StaticInitStatus getStaticInitStatus(void) const;
@@ -128,7 +128,7 @@ private:
     bool load(FileReader *reader);
     static CodeAttribute *readAttributeCode(FileReader *reader);
 public:
-    static ClassLoader *load(class FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
+    static ClassLoader *load(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
 
     ~ClassLoader(void);
 };

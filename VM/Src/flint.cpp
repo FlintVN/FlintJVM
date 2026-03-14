@@ -6,11 +6,12 @@
 #include "flint_utf8.h"
 #include "flint_system_api.h"
 #include "flint_fields_data.h"
+#include "flint_zip_file_reader.h"
 
 FMutex Flint::flintLock;
 FDbg *Flint::dbg = NULL;
 const char *Flint::cwd = NULL;
-const char *Flint::classPaths = NULL;
+const char *Flint::program = NULL;
 FDict<ClassLoader> Flint::loaders;
 FDict<JClassDictNode> Flint::classes;
 FDict<Utf8DictNode> Flint::utf8s;
@@ -216,12 +217,19 @@ void Flint::setCwd(const char *path) {
     cwd = path;
 }
 
-const char *Flint::getClassPaths(void) {
-    return classPaths;
+const char *Flint::getClassPath(uint32_t index) {
+    return FlintAPI::System::getClassPath(index);
 }
 
-void Flint::setClassPaths(const char *paths) {
-    classPaths = paths;
+bool Flint::setProgram(const char *jarPath, uint16_t length) {
+    if(jarPath == NULL) return false;
+    if(Flint::isRunning()) return false;
+    program = Flint::getUtf8(NULL, jarPath, length);
+    return program != NULL;
+}
+
+const char *Flint::getProgram(void) {
+    return program;
 }
 
 char Flint::getPathSeparator(void) {
@@ -898,12 +906,50 @@ void Flint::gc(void) {
     unlock();
 }
 
-bool Flint::runToMain(const char *cls) {
+typedef struct {
+    const char *mainCls;
+} Manifest;
+
+static bool ReadManifest(const char *jarPath, Manifest *manifest) {
+    bool ret = false;
+    char buff[FILE_NAME_BUFF_SIZE];
+    ZipFileReader zip(NULL, jarPath);
+    if(!zip.open()) return false;
+    if(!zip.gotoFile("META-INF/MANIFEST.MF")) goto exit;
+    while(true) {
+        int32_t br = zip.readLine(buff, sizeof(buff));
+        if(br == -1) goto exit;
+        if(br < 2) break;
+        if(strncmp(buff, "Main-Class:", 11) == 0) {
+            uint32_t idx = 11;
+            while(buff[idx] == ' ' && idx < sizeof(buff)) idx++;
+            for(uint32_t i = idx; buff[i] && (i < sizeof(buff)); i++) {
+                if(buff[i] == '.')
+                    buff[i] = '/';
+            }
+            uint32_t len = strnlen(&buff[idx], sizeof(buff) - idx);
+            manifest->mainCls = Flint::getUtf8(NULL, &buff[idx], len);
+        }
+    }
+    ret = true;
+exit:
+    zip.close();
+    return ret;
+}
+
+bool Flint::start(void) {
+    Manifest manifest = {};
+    if(program == NULL) return false;
+    if(!ReadManifest(program, &manifest)) return false;
+    if(manifest.mainCls == NULL) manifest.mainCls = "Main";
+
     FExec *exec = Flint::newExecution(NULL);
     if(exec == NULL) return false;
-    JClass *mainCls = Flint::findClass(NULL, cls);
+    JClass *mainCls = Flint::findClass(NULL, manifest.mainCls);
     if(mainCls == NULL) return false;
-    return exec->run(mainCls->getClassLoader()->getMainMethodInfo(NULL), 1, NULL);
+    MethodInfo *mt = mainCls->getClassLoader()->getMainMethodInfo(NULL);
+    if(mt == NULL) return false;
+    return exec->run(mt, 1, NULL);
 }
 
 bool Flint::isRunning(void) {
