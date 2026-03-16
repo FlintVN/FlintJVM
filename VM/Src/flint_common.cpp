@@ -37,8 +37,8 @@ static const uint16_t crc16Table[] = {
     0x8201, 0x42C0, 0x4380, 0x8341, 0x4100, 0x81C1, 0x8081, 0x4040
 };
 
-uint16_t Crc(const uint8_t *data, uint32_t length) {
-    uint16_t crc = 0xFFFF;
+uint16_t Crc(const uint8_t *data, uint32_t length, uint16_t initValue) {
+    uint16_t crc = initValue;
     for(uint32_t i = 0; i < length; i++)
         crc = crc16Table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
     return ~crc;

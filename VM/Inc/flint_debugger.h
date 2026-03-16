@@ -60,7 +60,7 @@ typedef enum : uint8_t {
 
 typedef enum : uint8_t {
     DBG_RESP_OK = 0,
-    DBG_RESP_BUSY = 1,
+    DBG_RESP_VM_RUNNING = 1,
     DBG_RESP_FAIL = 2,
     DBG_RESP_CRC_FAIL = 3,
     DBG_RESP_LENGTH_INVAILD = 4,
@@ -131,25 +131,38 @@ private:
     bool dataFrameFinish(void);
     bool sendRespCode(DbgCmd cmd, DbgRespCode responseCode);
 
-    void responseInfo(void);
-    void responseStatus(void);
-    void responseStackTrace(uint32_t stackIndex);
-    void responseExceptionInfo(void);
-    void responseLocalVariable(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType);
-    void responseField(JObject *obj, const char *fieldName);
-    void responseArray(JObject *array, uint32_t index, uint32_t length);
-    void responseObjSizeAndType(JObject *obj);
-    void responseOpenFile(char *fileName, FlintAPI::IO::FileMode mode);
-    void responseReadFile(uint32_t size);
-    void responseWriteFile(uint8_t *data, uint32_t size);
-    void responseSeekFile(uint32_t offset);
-    void responseCloseFile(void);
-    void responseFileInfo(const char *fileName);
-    void responseCreateDelete(DbgCmd cmd, const char *path);
-    void responseOpenDir(const char *path);
-    void responseReadDir(void);
-    void responseCloseDir(void);
-    void responseConsoleBuffer(void);
+    void readInfoRequest(void);
+    void startDebugSessionRequest(const char *jarPath, uint16_t length);
+    void readStatusRequest(void);
+    void readStackTraceRequest(uint32_t stackIndex);
+    void addBkpRequest(uint8_t *data, uint16_t length);
+    void removeBkpRequest(uint8_t *data, uint16_t length);
+    void removeAllBkpRequest(void);
+    void runRequest(void);
+    void stopRequest(void);
+    void restartRequest(void);
+    void terminateRequest(void);
+    void stepInRequest(uint32_t stepLength);
+    void stepOverRequest(uint32_t stepLength);
+    void stepOutRequest(void);
+    void setExcpModeRequest(bool enabled);
+    void readExceptionInfoRequest(void);
+    void readLocalVariableRequest(uint32_t stackIndex, uint32_t localIndex, uint8_t variableType);
+    void readFieldRequest(JObject *obj, const char *fieldName);
+    void readArrayRequest(JObject *array, uint32_t index, uint32_t length);
+    void readObjSizeAndTypeRequest(JObject *obj);
+    void openFileRequest(char *fileName, FlintAPI::IO::FileMode mode);
+    void readFileRequest(uint32_t size);
+    void writeFileRequest(uint8_t *data, uint32_t size);
+    void seekFileRequest(uint32_t offset);
+    void closeFileRequest(void);
+    void readFileInfoRequest(const char *fileName);
+    void createDirRequest(const char *path);
+    void deleteFileRequest(const char *path);
+    void openDirRequest(const char *path);
+    void readDirRequest(void);
+    void closeDirRequest(void);
+    void readConsoleBufferRequest(void);
 public:
     bool receivedDataHandler(uint8_t *data, uint32_t length);
     bool exceptionIsEnabled(void);

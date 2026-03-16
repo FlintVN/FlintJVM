@@ -20,7 +20,7 @@ constexpr uint32_t Hash(const char *txt, uint16_t length = 0xFFFF, uint32_t init
     return h;
 }
 
-uint16_t Crc(const uint8_t *data, uint32_t length);
+uint16_t Crc(const uint8_t *data, uint32_t length, uint16_t initValue = 0xFFFF);
 
 int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second);
 
