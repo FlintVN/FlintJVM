@@ -41,9 +41,10 @@ jobject NativeMethod_Invoke0(FNIEnv *env, jobject thisObj, jobject obj, jobjectA
     if(methodInfo->accessFlag & METHOD_STATIC)
         ret = exec->callMethod(methodInfo, argSlot);
     else {
-        JClass *objType = obj->type != NULL ? obj->type : Flint::getClassOfClass(exec);
+        Flint *flint = env->getFlint();
+        JClass *objType = obj->type != NULL ? obj->type : flint->getClassOfClass(exec);
         if(methodInfo->loader != objType->getClassLoader()) {
-            methodInfo = Flint::findMethod(exec, objType, &methodInfo->nameAndType);
+            methodInfo = flint->findMethod(exec, objType, &methodInfo->nameAndType);
             if(methodInfo == NULL) return NULL;
             thisObj->getFieldByIndex(0)->setInt32((int32_t)methodInfo);
         }

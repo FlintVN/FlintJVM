@@ -3,5 +3,5 @@
 #include "flint_native_string.h"
 
 jstring NativeString_Intern(FNIEnv *env, jstring obj) {
-    return Flint::getConstString(env->exec, obj);
+    return env->getFlint()->getConstString(env->exec, obj);
 }

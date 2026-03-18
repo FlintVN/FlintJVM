@@ -54,6 +54,7 @@ public:
     uint32_t monitorOwnId;
     uint32_t monitorCount;
 private:
+    class Flint * const flint;
     ConstPool *poolTable;
     uint16_t *interfaces;
     FieldInfo *fields;
@@ -121,14 +122,14 @@ public:
     bool initStaticFields(FExec *ctx);
     void clearStaticFields(void);
 private:
-    ClassLoader(void);
+    ClassLoader(Flint *flint);
     ClassLoader(const ClassLoader &) = delete;
     void operator=(const ClassLoader &) = delete;
 
     bool load(FileReader *reader);
-    static CodeAttribute *readAttributeCode(FileReader *reader);
+    CodeAttribute *readAttributeCode(FileReader *reader);
 public:
-    static ClassLoader *load(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
+    static ClassLoader *load(Flint *flint, FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
 
     ~ClassLoader(void);
 };

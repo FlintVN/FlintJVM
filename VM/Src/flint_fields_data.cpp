@@ -43,14 +43,14 @@ FieldsData::FieldsData(void) : count(0), objCount(0), fields(NULL) {
 
 }
 
-bool FieldsData::init(class FExec *ctx, class ClassLoader *loader, bool isStatic) {
-    bool ret = isStatic ? initStatic(ctx, loader) : initNonStatic(ctx, loader);
+bool FieldsData::init(Flint *flint, FExec *ctx, ClassLoader *loader, bool isStatic) {
+    bool ret = isStatic ? initStatic(flint, ctx, loader) : initNonStatic(flint, ctx, loader);
     if(ret == false)
-        this->~FieldsData();
+        this->destroy(flint);
     return ret;
 }
 
-bool FieldsData::initStatic(FExec *ctx, ClassLoader *loader) {
+bool FieldsData::initStatic(Flint *flint, FExec *ctx, ClassLoader *loader) {
     uint16_t fieldsCount = loader->getFieldsCount();
     uint16_t fieldIndex = 0;
 
@@ -70,7 +70,7 @@ bool FieldsData::initStatic(FExec *ctx, ClassLoader *loader) {
     }
 
     if(count == 0) return true;
-    fields = (FieldValue *)Flint::malloc(ctx, count * sizeof(FieldValue));
+    fields = (FieldValue *)flint->malloc(ctx, count * sizeof(FieldValue));
     if(fields == NULL) return false;
 
     for(uint16_t index = 0; index < fieldsCount; index++) {
@@ -95,7 +95,7 @@ bool FieldsData::initStatic(FExec *ctx, ClassLoader *loader) {
     return true;
 }
 
-bool FieldsData::initNonStatic(FExec *ctx, ClassLoader *loader) {
+bool FieldsData::initNonStatic(Flint *flint, FExec *ctx, ClassLoader *loader) {
     ClassLoader *ld = loader;
 
     while(ld) {
@@ -117,12 +117,12 @@ bool FieldsData::initNonStatic(FExec *ctx, ClassLoader *loader) {
         /* Don't use ld->getSuperClass here to avoid endless recursion */
         const char *superName = ld->getSuperClassName();
         if(superName == NULL) break;
-        ld = Flint::findLoader(ctx, superName);
+        ld = flint->findLoader(ctx, superName);
         if(ld == NULL) return false;
     }
 
     if(count == 0) return true;
-    fields = (FieldValue *)Flint::malloc(ctx, count * sizeof(FieldValue));
+    fields = (FieldValue *)flint->malloc(ctx, count * sizeof(FieldValue));
     if(fields == NULL) return false;
 
     uint16_t fieldIndex = count;
@@ -151,7 +151,7 @@ bool FieldsData::initNonStatic(FExec *ctx, ClassLoader *loader) {
         /* Don't use ld->getSuperClass here to avoid endless recursion */
         const char *superName = ld->getSuperClassName();
         if(superName == NULL) break;
-        ld = Flint::findLoader(ctx, superName);
+        ld = flint->findLoader(ctx, superName);
         if(ld == NULL) return false;
     }
 
@@ -197,6 +197,6 @@ FieldValue *FieldsData::getFieldByIndex(uint32_t index) const {
     return &fields[index];
 }
 
-FieldsData::~FieldsData(void) {
-    if(fields) Flint::free(fields);
+void FieldsData::destroy(Flint *flint) {
+    if(fields) flint->free(fields);
 }

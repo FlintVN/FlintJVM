@@ -8,25 +8,6 @@
 #include "flint_fields_data.h"
 #include "flint_zip_file_reader.h"
 
-FMutex Flint::flintLock;
-FDbg *Flint::dbg = NULL;
-const char *Flint::cwd = NULL;
-const char *Flint::program = NULL;
-FDict<ClassLoader> Flint::loaders;
-FDict<JClassDictNode> Flint::classes;
-FDict<Utf8DictNode> Flint::utf8s;
-FDict<JStringDictNode> Flint::constStr;
-FList<FExec> Flint::execs;
-FList<JObject> Flint::objs;
-FList<JObject> Flint::globalObjs;
-
-JClass *Flint::classOfClass = NULL;
-
-uint32_t Flint::heapCount = 0;
-uint32_t Flint::objectCountToGc = 0;
-void *Flint::heapStart = (void *)0xFFFFFFFF;
-void *Flint::headEnd = (void *)0x00;
-
 alignas(4) static const char outOfMemoryErrorTypeName[] = "java/lang/OutOfMemoryError";
 
 static uint32_t getDimensions(const char *typeName) {
@@ -67,6 +48,19 @@ static int32_t compareArrayClassName(const char *clsName, uint32_t dimensions, c
     }
     if(isObjectType) if(*clsName == 0) return (uint8_t)';' - (uint8_t)*arrayClsName;
     return 0;
+}
+
+Flint::Flint(void) : flintLock(), loaders(), classes(), utf8s(), constStr(), execs(), objs(), globalObjs() {
+    this->dbg = NULL;
+    this->cwd = NULL;
+    this->program = NULL;
+
+    this->classOfClass = NULL;
+
+    this->heapCount = 0;
+    this->objectCountToGc = 0;
+    this->heapStart = (void *)0xFFFFFFFF;
+    this->headEnd = (void *)0x00;
 }
 
 void Flint::updateHeapRegion(void *p) {
@@ -381,7 +375,7 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
 FExec *Flint::newExecution(FExec *ctx, JThread *onwer, uint32_t stackSize) {
     FExec *newExec = (FExec *)Flint::malloc(ctx, sizeof(FExec) + stackSize);
     if(newExec == NULL) return NULL;
-    new (newExec)FExec(onwer, stackSize);
+    new (newExec)FExec(this, onwer, stackSize);
     lock();
     execs.add(newExec);
     unlock();
@@ -401,7 +395,7 @@ JObject *Flint::newObject(FExec *ctx, JClass *type) {
     if(newObj == NULL) return NULL;
     new (newObj)JObject(sizeof(FieldsData), type);
 
-    if(newObj->initFields(ctx, type->getClassLoader()) == false) { Flint::free(newObj); return NULL; }
+    if(newObj->initFields(this, ctx, type->getClassLoader()) == false) { Flint::free(newObj); return NULL; }
 
     lock();
     objs.add(newObj);
@@ -457,7 +451,7 @@ JObject *Flint::newMultiArray(FExec *ctx, JClass *type, int32_t *counts, uint8_t
 JString *Flint::newString(FExec *ctx, const char *utf8) {
     JString *str = (JString *)newObject(ctx, Flint::findClass(ctx, "java/lang/String"));
     if(str == NULL) return NULL;
-    str->setUtf8(ctx, utf8);
+    str->setUtf8(this, ctx, utf8);
     return str;
 }
 
@@ -470,11 +464,11 @@ JString *Flint::newAscii(FExec *ctx, const char *format, ...) {
 JString *Flint::newAscii(FExec *ctx, const char *format, va_list args) {
     JString *str = (JString *)newObject(ctx, Flint::findClass(ctx, "java/lang/String"));
     if(str == NULL) return NULL;
-    str->setAscii(ctx, format, args);
+    str->setAscii(this, ctx, format, args);
     return str;
 }
 
-static bool verifyComponentType(FExec *ctx, const char *clsName, uint16_t length) {
+static bool verifyComponentType(Flint *flint, FExec *ctx, const char *clsName, uint16_t length) {
     uint16_t start = 0;
     while(start < length && clsName[start] == '[') start++;
     uint16_t end = start;
@@ -489,7 +483,7 @@ static bool verifyComponentType(FExec *ctx, const char *clsName, uint16_t length
             len = end - start;
             if(len <= 0) isVaild = false;
             /* findLoader checked ClassNotFoundException can return immediately if error */
-            else if(Flint::findLoader(ctx, &clsName[start], len) == NULL) return false;
+            else if(flint->findLoader(ctx, &clsName[start], len) == NULL) return false;
         }
     }
     else if(len == 1) {
@@ -510,8 +504,8 @@ static bool verifyComponentType(FExec *ctx, const char *clsName, uint16_t length
     }
     else isVaild = false;
     if(isVaild == false) {
-        JClass *excpCls = Flint::findClass(ctx, "java/lang/ClassNotFoundException");
-        ctx->throwNew(excpCls, "%.*s", length, clsName);
+        JClass *excpCls = flint->findClass(ctx, "java/lang/ClassNotFoundException");
+        if(ctx != NULL) ctx->throwNew(excpCls, "%.*s", length, clsName);
     }
     return isVaild;
 }
@@ -521,7 +515,7 @@ JClass *Flint::newClass(FExec *ctx, const char *clsName, uint16_t length, uint8_
     if(!(flag & 0x01)) {        /* Check primitive flag - if not primitive type */
         if(clsName[0] == '[') {
             if(flag & 0x02)     /* Check verify component type name flag */
-                if(verifyComponentType(ctx, clsName, length) == false) return NULL;
+                if(verifyComponentType(this, ctx, clsName, length) == false) return NULL;
             loader = findLoader(ctx, "java/lang/Object");
         }
         else
@@ -541,7 +535,7 @@ JClass *Flint::newClass(FExec *ctx, const char *clsName, uint16_t length, uint8_
     if(clsName == NULL) return NULL;
     new (cls)JClass(clsName, loader);
 
-    if(cls->initFields(ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
+    if(cls->initFields(this, ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
 
     lock();
     globalObjs.add(cls);
@@ -564,7 +558,7 @@ JClass *Flint::newClassOfClass(FExec *ctx) {
     if(cls == NULL) return NULL;
     new (cls)JClass(jClsLoader->getName(), jClsLoader);
 
-    if(cls->initFields(ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
+    if(cls->initFields(this, ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
 
     lock();
     globalObjs.add(cls);
@@ -577,7 +571,7 @@ ClassLoader *Flint::findLoader(FExec *ctx, const char *clsName, uint16_t length)
     lock();
     ClassLoader *loader = loaders.find(clsName, length);
     if(loader == NULL) {
-        loader = ClassLoader::load(ctx, clsName, length);
+        loader = ClassLoader::load(this, ctx, clsName, length);
         if(loader == NULL) {
             unlock();
             if(ctx != NULL) {
@@ -862,10 +856,10 @@ bool Flint::isObject(void *p) {
 void Flint::gc(void) {
     lock();
     objectCountToGc = 0;
-    globalObjs.forEach([](JObject *obj) {
+    globalObjs.forEach([this](JObject *obj) {
         markObjectRecursion(obj);
     });
-    loaders.forEach([](ClassLoader *ld) {
+    loaders.forEach([this](ClassLoader *ld) {
         uint16_t objCount = ld->hasStaticObjField();
         for(uint16_t i = 0; objCount > 0; i++) {
             FieldValue *fieldValue = ld->getStaticFieldByIndex(i);
@@ -878,7 +872,7 @@ void Flint::gc(void) {
             }
         }
     });
-    execs.forEach([](FExec *exec) {
+    execs.forEach([this](FExec *exec) {
         if(exec->onwerThread && (exec->onwerThread->getProtected() & 0x01) == 0)
             markObjectRecursion(exec->onwerThread);
         if(exec->excp != NULL && ((uint32_t)exec->excp & 0x01) != 0 && (exec->excp->getProtected() & 0x01) == 0)
@@ -897,7 +891,7 @@ void Flint::gc(void) {
             startSp = exec->stack[startSp];
         }
     });
-    objs.forEach([](JObject *obj) {
+    objs.forEach([this](JObject *obj) {
         uint8_t prot = obj->getProtected();
         /* Free object if it is not marked */
         if(prot == 0) freeObject(obj);
@@ -910,7 +904,7 @@ typedef struct {
     const char *mainCls;
 } Manifest;
 
-static bool ReadManifest(const char *jarPath, Manifest *manifest) {
+static bool ReadManifest(Flint *flint, const char *jarPath, Manifest *manifest) {
     bool ret = false;
     char buff[FILE_NAME_BUFF_SIZE];
     ZipFileReader zip(NULL, jarPath);
@@ -928,7 +922,7 @@ static bool ReadManifest(const char *jarPath, Manifest *manifest) {
                     buff[i] = '/';
             }
             uint32_t len = strnlen(&buff[idx], sizeof(buff) - idx);
-            manifest->mainCls = Flint::getUtf8(NULL, &buff[idx], len);
+            manifest->mainCls = flint->getUtf8(NULL, &buff[idx], len);
         }
     }
     ret = true;
@@ -940,7 +934,7 @@ exit:
 bool Flint::start(void) {
     Manifest manifest = {};
     if(program == NULL) return false;
-    if(!ReadManifest(program, &manifest)) return false;
+    if(!ReadManifest(this, program, &manifest)) return false;
     if(manifest.mainCls == NULL) manifest.mainCls = "Main";
 
     FExec *exec = Flint::newExecution(NULL);
@@ -983,19 +977,19 @@ void Flint::freeObject(JObject *obj) {
     if(objs.isContain(obj)) objs.remove(obj);
     else globalObjs.remove(obj);
     unlock();
-    obj->~JObject();
+    obj->destroy(this);
     Flint::free(obj);
 }
 
 void Flint::freeAllObject(void) {
     lock();
-    classes.forEach([](JClassDictNode *item) { Flint::free(item); });
+    classes.forEach([this](JClassDictNode *item) { Flint::free(item); });
     classes.clear();
-    constStr.forEach([](JStringDictNode *item) { Flint::free(item); });
+    constStr.forEach([this](JStringDictNode *item) { Flint::free(item); });
     constStr.clear();
-    objs.forEach([](JObject *obj) { obj->onwerList = NULL; obj->~JObject(); Flint::free(obj); });
+    objs.forEach([this](JObject *obj) { obj->onwerList = NULL; obj->destroy(this); Flint::free(obj); });
     objs.clear();
-    globalObjs.forEach([](JObject *obj) { obj->onwerList = NULL; obj->~JObject(); Flint::free(obj); });
+    globalObjs.forEach([this](JObject *obj) { obj->onwerList = NULL; obj->destroy(this); Flint::free(obj); });
     globalObjs.clear();
     objectCountToGc = 0;
     unlock();
@@ -1010,14 +1004,14 @@ void Flint::clearAllStaticFields(void) {
 
 void Flint::freeAllExecution(void) {
     lock();
-    execs.forEach([](FExec *exec) { execs.remove(exec); Flint::free(exec); });
+    execs.forEach([this](FExec *exec) { execs.remove(exec); Flint::free(exec); });
     execs.clear();
     unlock();
 }
 
 void Flint::freeAllClassLoader(void) {
     lock();
-    loaders.forEach([](ClassLoader *item) {
+    loaders.forEach([this](ClassLoader *item) {
         item->~ClassLoader();
         Flint::free(item);
     });
@@ -1028,7 +1022,7 @@ void Flint::freeAllClassLoader(void) {
 
 void Flint::freeAllConstUtf8(void) {
     lock();
-    utf8s.forEach([](Utf8DictNode *item) { Flint::free(item); });
+    utf8s.forEach([this](Utf8DictNode *item) { Flint::free(item); });
     utf8s.clear();
     unlock();
 }

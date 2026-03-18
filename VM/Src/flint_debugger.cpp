@@ -23,6 +23,7 @@ StackFrame::StackFrame(uint32_t pc, uint32_t baseSp, MethodInfo *method) : pc(pc
 }
 
 FDbg::FDbg(void) : dbgMutex() {
+    flint = NULL;
     exec = NULL;
     dirHandle = NULL;
     fileHandle = NULL;
@@ -32,6 +33,10 @@ FDbg::FDbg(void) : dbgMutex() {
     csr = DBG_STATUS_RESET;
     breakPointCount = 0;
     txDataLength = 0;
+}
+
+void FDbg::setTarget(Flint *flint) {
+    this->flint = flint;
 }
 
 void FDbg::consoleWrite(uint8_t *utf8, uint32_t length) {
@@ -161,11 +166,11 @@ void FDbg::readInfoRequest(void) {
 }
 
 void FDbg::startDebugSessionRequest(const char *jarPath, uint16_t length) {
-    Flint::setDebugger(this);
-    Flint::terminate();
-    Flint::freeAll();
-    Flint::reset();
-    if(Flint::setProgram(jarPath, length))
+    flint->setDebugger(this);
+    flint->terminate();
+    flint->freeAll();
+    flint->reset();
+    if(flint->setProgram(jarPath, length))
         sendRespCode(DBG_CMD_START_DEBUG_SESSION, DBG_RESP_OK);
     else
         sendRespCode(DBG_CMD_START_DEBUG_SESSION, DBG_RESP_FAIL);
@@ -175,7 +180,7 @@ void FDbg::readStatusRequest(void) {
     uint16_t tmp = csr | (consoleLength ? DBG_STATUS_CONSOLE : 0);
     if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT))
         tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
-    if(!Flint::isRunning())
+    if(!flint->isRunning())
         tmp |= DBG_STATUS_DONE;
     initDataFrame(DBG_CMD_READ_STATUS, DBG_RESP_OK, 1);
     dataFrameAppend((uint8_t)tmp);
@@ -297,7 +302,7 @@ void FDbg::stopRequest(void) {
     csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
     exec = NULL;
     unlock();
-    Flint::stopRequest();
+    flint->stopRequest();
     sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
 }
 
@@ -306,22 +311,22 @@ void FDbg::restartRequest(void) {
     csr &= DBG_CONTROL_EXCP_EN;
     exec = NULL;
     unlock();
-    Flint::setDebugger(this);
-    Flint::terminate();
-    Flint::clearAllStaticFields();
-    Flint::freeAllExecution();
-    Flint::gc();
-    Flint::reset();
-    sendRespCode(DBG_CMD_RESTART, Flint::start() ? DBG_RESP_OK : DBG_RESP_FAIL);
+    flint->setDebugger(this);
+    flint->terminate();
+    flint->clearAllStaticFields();
+    flint->freeAllExecution();
+    flint->gc();
+    flint->reset();
+    sendRespCode(DBG_CMD_RESTART, flint->start() ? DBG_RESP_OK : DBG_RESP_FAIL);
 }
 
 void FDbg::terminateRequest(void) {
     lock();
     csr = (csr & DBG_CONTROL_EXCP_EN) | DBG_STATUS_RESET;
     unlock();
-    Flint::terminate();
-    Flint::freeAll();
-    Flint::reset();
+    flint->terminate();
+    flint->freeAll();
+    flint->reset();
     sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
 }
 
@@ -460,7 +465,7 @@ void FDbg::readLocalVariableRequest(uint32_t stackIndex, uint32_t localIndex, ui
 
 void FDbg::readFieldRequest(JObject *obj, const char *fieldName) {
     if(csr & DBG_STATUS_STOP) {
-        if(!Flint::isObject(obj))
+        if(!flint->isObject(obj))
             return (void)sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
         FieldValue *field = obj->getField(NULL, fieldName);
         if(field == NULL)
@@ -497,7 +502,7 @@ void FDbg::readFieldRequest(JObject *obj, const char *fieldName) {
 
 void FDbg::readArrayRequest(JObject *array, uint32_t index, uint32_t length) {
     if(csr & DBG_STATUS_STOP) {
-        if(Flint::isObject(array) && array->isArray()) {
+        if(flint->isObject(array) && array->isArray()) {
             uint8_t compSz = array->type->componentSize();
             uint32_t arrayLen = ((JArray *)array)->getLength();
             uint32_t arrayEnd = index + length;
@@ -536,7 +541,7 @@ void FDbg::readArrayRequest(JObject *array, uint32_t index, uint32_t length) {
 
 void FDbg::readObjSizeAndTypeRequest(JObject *obj) {
     if(csr & DBG_STATUS_STOP) {
-        if(obj == NULL || Flint::isObject(obj) == false) {
+        if(obj == NULL || flint->isObject(obj) == false) {
             sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_FAIL);
             return;
         }
@@ -1023,7 +1028,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
 
 bool FDbg::addBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc) {
     if(breakPointCount < LENGTH(breakPoints)) {
-        ClassLoader *loader = Flint::findLoader(NULL, clsName);
+        ClassLoader *loader = flint->findLoader(NULL, clsName);
         if(loader == NULL) return false;
         MethodInfo *method = loader->getMethodInfo(NULL, name, desc);
         if(method == NULL) return false;
@@ -1053,7 +1058,7 @@ uint8_t FDbg::getSavedOpcode(uint32_t pc, MethodInfo *method) {
 
 bool FDbg::removeBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc) {
     if(breakPointCount) {
-        ClassLoader *loader = Flint::findLoader(NULL, clsName);
+        ClassLoader *loader = flint->findLoader(NULL, clsName);
         if(loader == NULL) return false;
         MethodInfo *method = loader->getMethodInfo(NULL, name, desc);
         if(method == NULL) return false;
@@ -1092,7 +1097,7 @@ void FDbg::caughtException(FExec *exec) {
     csr = tmp;
     this->exec = exec;
     unlock();
-    Flint::stopRequest();
+    flint->stopRequest();
     waitStop(exec);
 }
 
@@ -1101,7 +1106,7 @@ void FDbg::hitBreakpoint(FExec *exec) {
     csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     this->exec = exec;
     unlock();
-    Flint::stopRequest();
+    flint->stopRequest();
     waitStop(exec);
 }
 
@@ -1136,7 +1141,7 @@ bool FDbg::waitStop(FExec *exec) {
                 if(isStopped) {
                     if(exec->code[exec->pc] == OP_BREAKPOINT)
                         return false;
-                    Flint::stopRequest();
+                    flint->stopRequest();
                     lock();
                     csr = (csr & ~(DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     unlock();

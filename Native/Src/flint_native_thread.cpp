@@ -7,8 +7,9 @@
 
 jvoid NativeThread_Start0(FNIEnv *env, jthread thread) {
     static constexpr ConstNameAndType runName("run", "()V");
+    Flint *flint = env->getFlint();
     jobject task = thread->getTask();
-    FExec *exec = Flint::newExecution(env->exec, thread);
+    FExec *exec = flint->newExecution(env->exec, thread);
     if(exec == NULL) return;
     if(task == 0) task = thread;
 
@@ -20,7 +21,7 @@ jvoid NativeThread_Start0(FNIEnv *env, jthread thread) {
     }
 
     if(!exec->run(method, 1, task)) {
-        Flint::freeExecution(exec);
+        flint->freeExecution(exec);
         env->throwNew(env->findClass("java/lang/Exception"), "Thread start failed");
     }
 }

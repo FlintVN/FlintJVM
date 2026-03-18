@@ -17,15 +17,16 @@ const char *JObject::getTypeName(void) const {
     return type->getTypeName();
 }
 
-bool JObject::initFields(FExec *ctx, ClassLoader *loader) {
+bool JObject::initFields(Flint *flint, FExec *ctx, ClassLoader *loader) {
     FieldsData *field = (FieldsData *)data;
     new (field)FieldsData();
 
-    return field->init(ctx, loader, false);
+    return field->init(flint, ctx, loader, false);
 }
 
 static void throwNoSuchFieldError(FExec *ctx, const char *clsName, const char *name) {
-    JClass *excpCls = Flint::findClass(ctx, "java/lang/NoSuchFieldError");
+    Flint *flint = ctx->getFlint();
+    JClass *excpCls = flint->findClass(ctx, "java/lang/NoSuchFieldError");
     ctx->throwNew(excpCls, "Could not find the field %s.%s", clsName, name);
 }
 
@@ -67,7 +68,7 @@ uint8_t JObject::getProtected(void) const {
     return prot;
 }
 
-JObject::~JObject(void) {
+void JObject::destroy(Flint *flint) {
     if(type == NULL || type->isArray() == false)
-        ((FieldsData *)data)->~FieldsData();
+        ((FieldsData *)data)->destroy(flint);
 }

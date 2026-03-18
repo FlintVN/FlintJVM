@@ -11,7 +11,7 @@ jclass NativeClass_GetPrimitiveClass(FNIEnv *env, jstring name) {
         env->throwNew(excpCls, "primitive type name is invalid");
         return NULL;
     }
-    return Flint::getPrimitiveClass(env->exec, name->getAscii(), name->getLength());
+    return env->getFlint()->getPrimitiveClass(env->exec, name->getAscii(), name->getLength());
 }
 
 jclass NativeClass_ForName(FNIEnv *env, jstring name) {
@@ -79,7 +79,7 @@ jstring NativeClass_InitClassName(FNIEnv *env, jclass cls) {
         name++;
     }
     buff[idx] = 0;
-    jstring str = Flint::getConstString(env->exec, buff);
+    jstring str = env->getFlint()->getConstString(env->exec, buff);
     cls->getField(env->exec, "name")->setObj(str);
     return str;
 }
@@ -90,7 +90,7 @@ jclass NativeClass_GetSuperclass(FNIEnv *env, jclass cls) {
 }
 
 static jobjectArray getEmptyClassArray(FNIEnv *env) {
-    jclass clsOfCls = Flint::getClassOfClass(env->exec);
+    jclass clsOfCls = env->getFlint()->getClassOfClass(env->exec);
     FieldValue *field = clsOfCls->getClassLoader()->getStaticField(env->exec, "EMPTY_CLASS_ARRAY");
     if(field == NULL) return NULL;
     return (jobjectArray)field->getObj();
@@ -103,7 +103,7 @@ jobjectArray NativeClass_GetInterfaces0(FNIEnv *env, jclass cls) {
     uint32_t count = loader->getInterfacesCount();
     if(count == 0) return getEmptyClassArray(env);
 
-    jobjectArray clsArr = env->newObjectArray(Flint::getClassOfClass(env->exec), count);
+    jobjectArray clsArr = env->newObjectArray(env->getFlint()->getClassOfClass(env->exec), count);
     if(clsArr == NULL) return NULL;
 
     for(uint32_t i = 0; i < count; i++) {
@@ -116,15 +116,15 @@ jobjectArray NativeClass_GetInterfaces0(FNIEnv *env, jclass cls) {
 
 static jclass findClassOrPrimitive(FNIEnv *env, const char *desc, uint16_t length) {
     if(length == 1) switch(desc[0]) {
-        case 'Z': return Flint::getPrimitiveClass(env->exec, "boolean");
-        case 'C': return Flint::getPrimitiveClass(env->exec, "char");
-        case 'F': return Flint::getPrimitiveClass(env->exec, "float");
-        case 'D': return Flint::getPrimitiveClass(env->exec, "double");
-        case 'B': return Flint::getPrimitiveClass(env->exec, "byte");
-        case 'S': return Flint::getPrimitiveClass(env->exec, "short");
-        case 'I': return Flint::getPrimitiveClass(env->exec, "int");
-        case 'J': return Flint::getPrimitiveClass(env->exec, "long");
-        case 'V': return Flint::getPrimitiveClass(env->exec, "void");
+        case 'Z': return env->getFlint()->getPrimitiveClass(env->exec, "boolean");
+        case 'C': return env->getFlint()->getPrimitiveClass(env->exec, "char");
+        case 'F': return env->getFlint()->getPrimitiveClass(env->exec, "float");
+        case 'D': return env->getFlint()->getPrimitiveClass(env->exec, "double");
+        case 'B': return env->getFlint()->getPrimitiveClass(env->exec, "byte");
+        case 'S': return env->getFlint()->getPrimitiveClass(env->exec, "short");
+        case 'I': return env->getFlint()->getPrimitiveClass(env->exec, "int");
+        case 'J': return env->getFlint()->getPrimitiveClass(env->exec, "long");
+        case 'V': return env->getFlint()->getPrimitiveClass(env->exec, "void");
         default:
             env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "Type name is invalid");
             return NULL;
@@ -197,7 +197,7 @@ static jclass getReturnType(FNIEnv *env, const char *mtDesc) {
 static jobjectArray getParameterTypes(FNIEnv *env, const char *mtDesc) {
     uint8_t count = GetArgCount(mtDesc);
     if(count == 0) return getEmptyClassArray(env);
-    jobjectArray array = env->newObjectArray(Flint::getClassOfClass(env->exec), count);
+    jobjectArray array = env->newObjectArray(env->getFlint()->getClassOfClass(env->exec), count);
     if(array == NULL) return NULL;
     mtDesc = GetNextArgName(mtDesc);
     for(uint8_t i = 0; i < count; i++) {
@@ -214,7 +214,7 @@ static jobjectArray getExceptionTypes(FNIEnv *env, MethodInfo *mt) {
     uint16_t exceptionLength = mt->getExceptionLength();
     if(exceptionLength == 0)
         return getEmptyClassArray(env);
-    jobjectArray excpTypes = env->newObjectArray(Flint::getClassOfClass(env->exec), exceptionLength);
+    jobjectArray excpTypes = env->newObjectArray(env->getFlint()->getClassOfClass(env->exec), exceptionLength);
     if(excpTypes == NULL) return NULL;
     ClassLoader *loader = mt->loader;
     jobject *data = excpTypes->getData();
@@ -249,7 +249,7 @@ jobjectArray NativeClass_GetDeclaredFields0(FNIEnv *env, jclass cls) {
             FieldInfo *fieldInfo = loader->getFieldInfo(i);
 
             /* name */
-            jstring name = Flint::getConstString(env->exec, fieldInfo->name);
+            jstring name = env->getFlint()->getConstString(env->exec, fieldInfo->name);
             if(name == NULL) break;
 
             /* type */
@@ -292,7 +292,7 @@ jobjectArray NativeClass_GetDeclaredMethods0(FNIEnv *env, jclass cls) {
         bool isOk = false;
         do {
             /* name */
-            jstring name = Flint::getConstString(env->exec, methodInfo->name);
+            jstring name = env->getFlint()->getConstString(env->exec, methodInfo->name);
             if(name == NULL) break;
 
             /* returnType */

@@ -93,6 +93,7 @@ public:
     virtual jvoid throwNew(jclass cls, const char *msg = NULL, ...);
 
 public: /* Do not publicize the functions below to users */
+    class Flint *getFlint(void) const;
     jvoid freeObject(jobject obj);
     class FExec * const exec;
 private:

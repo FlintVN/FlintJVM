@@ -96,6 +96,7 @@ private:
 class FDbg {
 private:
     FMutex dbgMutex;
+    class Flint *flint;
     class FExec *exec;
     void *dirHandle;
     void *fileHandle;
@@ -112,6 +113,8 @@ private:
     uint8_t txBuff[DBG_TX_BUFFER_SIZE];
 public:
     FDbg(void);
+
+    void setTarget(Flint *flint);
 
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
 

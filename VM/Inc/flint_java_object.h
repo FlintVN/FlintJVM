@@ -21,7 +21,7 @@ protected:
 public:
     const char *getTypeName(void) const;
 
-    bool initFields(class FExec *ctx, class ClassLoader *loader);
+    bool initFields(class Flint *flint, class FExec *ctx, class ClassLoader *loader);
 
     FieldValue *getField(class FExec *ctx, ConstField *field) const;
     FieldValue *getField(class FExec *ctx, const char *name) const;
@@ -39,7 +39,7 @@ protected:
     JObject(const JObject &) = delete;
     void operator=(const JObject &) = delete;
 
-    ~JObject(void);
+    void destroy(class Flint *flint);
 
     friend class Flint;
     friend class FExec;

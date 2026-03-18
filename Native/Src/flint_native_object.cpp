@@ -5,7 +5,7 @@
 #include "flint_native_object.h"
 
 jclass NativeObject_GetClass(FNIEnv *env, jobject obj) {
-    return (obj->type != NULL) ? obj->type : Flint::getClassOfClass(env->exec);
+    return (obj->type != NULL) ? obj->type : env->getFlint()->getClassOfClass(env->exec);
 }
 
 jint NativeObject_HashCode(FNIEnv *env, jobject obj) {
@@ -16,7 +16,7 @@ jint NativeObject_HashCode(FNIEnv *env, jobject obj) {
 jobject NativeObject_Clone(FNIEnv *env, jobject obj) {
     if(obj->isArray()) {
         uint32_t count = ((jarray)obj)->getLength();
-        jarray cloneObj = (jarray)Flint::newArray(env->exec, obj->type, count);
+        jarray cloneObj = (jarray)env->getFlint()->newArray(env->exec, obj->type, count);
         if(cloneObj == NULL) return NULL;
         memcpy(cloneObj->getData(), ((jarray)obj)->getData(), ((jarray)obj)->getSizeInByte());
         return cloneObj;

@@ -19,7 +19,7 @@
 static const void **opcodeLabelsStop = NULL;
 static const void **opcodeLabelsExit = NULL;
 
-FExec::FExec(JThread *onwer, uint32_t stackSize) : ListNode(), stackLength(stackSize / sizeof(int32_t)) {
+FExec::FExec(Flint *flint, JThread *onwer, uint32_t stackSize) : ListNode(), flint(flint), stackLength(stackSize / sizeof(int32_t)) {
     this->opcodes = 0;
     this->lr = -1;
     this->sp = -1;
@@ -27,6 +27,10 @@ FExec::FExec(JThread *onwer, uint32_t stackSize) : ListNode(), stackLength(stack
     this->peakSp = sp;
     this->onwerThread = onwer;
     this->excp = NULL;
+}
+
+Flint *FExec::getFlint(void) const {
+    return flint;
 }
 
 void FExec::stackPushInt32(int32_t value) {
@@ -55,7 +59,7 @@ void FExec::stackPushObject(JObject *obj) {
     stack[++sp] = (int32_t)obj;
     peakSp = sp;
     if(obj && (obj->getProtected() & 0x02))
-        Flint::clearProtLv2(obj);
+        flint->clearProtLv2(obj);
 }
 
 int32_t FExec::stackPopInt32(void) {
@@ -115,7 +119,7 @@ bool FExec::readLocal(uint32_t stackIndex, uint32_t localIndex, uint32_t *value,
     StackFrame stackTrace;
     if(!getStackTrace(stackIndex, &stackTrace, 0)) return false;
     *value = stack[stackTrace.baseSp + 1 + localIndex];
-    if(*isObject) *isObject = Flint::isObject((void *)*value);
+    if(*isObject) *isObject = flint->isObject((void *)*value);
     return true;
 }
 
@@ -129,7 +133,7 @@ bool FExec::readLocal(uint32_t stackIndex, uint32_t localIndex, uint64_t *value)
 void FExec::stackPushArgs(uint32_t argc, va_list args) {
     for(uint32_t i = 0; i < argc; i++) {
         int32_t val = va_arg(args, int32_t);
-        if(Flint::isObject((void *)val)) stackPushObject((JObject *)val);
+        if(flint->isObject((void *)val)) stackPushObject((JObject *)val);
         else stackPushInt32(val);
     }
 }
@@ -170,7 +174,7 @@ void FExec::initNewContext(MethodInfo *methodInfo, uint16_t argc) {
     method = methodInfo;
     code = methodInfo->getCode();
     if(code == NULL)
-        return throwNew(Flint::findClass(this, "java/lang/LinkageError"), methodInfo->loader->getName(), methodInfo->name);
+        return throwNew(flint->findClass(this, "java/lang/LinkageError"), methodInfo->loader->getName(), methodInfo->name);
     pc = 0;
     locals = &stack[sp + 1];
     for(uint32_t i = argc; i < maxLocals; i++) {
@@ -187,64 +191,64 @@ void FExec::initExitPoint(MethodInfo *methodInfo) {
 }
 
 bool FExec::lockClass(ClassLoader *cls) {
-    Flint::lock();
+    flint->lock();
     if(cls->monitorCount == 0 || cls->monitorOwnId == (int32_t)this) {
         cls->monitorOwnId = (int32_t)this;
         if(cls->monitorCount < 0xFFFFFFFF) {
             cls->monitorCount++;
-            Flint::unlock();
+            flint->unlock();
             return true;
         }
-        Flint::unlock();
-        throwNew(Flint::findClass(this, "java/lang/IllegalMonitorStateException"));
+        flint->unlock();
+        throwNew(flint->findClass(this, "java/lang/IllegalMonitorStateException"));
         return false;
     }
-    Flint::unlock();
+    flint->unlock();
     return false;
 }
 
 void FExec::unlockClass(ClassLoader *cls) {
-    Flint::lock();
+    flint->lock();
     if(cls->monitorCount)
         cls->monitorCount--;
-    Flint::unlock();
+    flint->unlock();
 }
 
 bool FExec::lockObject(JObject *obj) {
-    Flint::lock();
+    flint->lock();
     if(obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
         obj->ownId = (int32_t)this;
         if(obj->monitorCount < 0xFFFFFFFF) {
             obj->monitorCount++;
-            Flint::unlock();
+            flint->unlock();
             return true;
         }
-        Flint::unlock();
-        throwNew(Flint::findClass(this, "java/lang/IllegalMonitorStateException"));
+        flint->unlock();
+        throwNew(flint->findClass(this, "java/lang/IllegalMonitorStateException"));
         return false;
     }
-    Flint::unlock();
+    flint->unlock();
     return false;
 }
 
 void FExec::unlockObject(JObject *obj) {
-    Flint::lock();
+    flint->lock();
     if(obj->monitorCount)
         obj->monitorCount--;
-    Flint::unlock();
+    flint->unlock();
 }
 
-static bool checkInvokeArgs(FExec *ctx, JObject *obj, MethodInfo *methodInfo) {
+bool FExec::checkInvokeArgs(JObject *obj, MethodInfo *methodInfo) {
     if(obj == NULL) {
-        JClass *excpCls = Flint::findClass(ctx, "java/lang/NullPointerException");
-        ctx->throwNew(excpCls, "Can not invoke \"%s.%s\" by null object", methodInfo->loader->getName(), methodInfo->name);
+        JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
+        this->throwNew(excpCls, "Can not invoke \"%s.%s\" by null object", methodInfo->loader->getName(), methodInfo->name);
         return false;
     }
-    JClass *cls = methodInfo->loader->getThisClass(ctx);
+    JClass *cls = methodInfo->loader->getThisClass(this);
     if(cls == NULL) return 0;
-    if(!Flint::isInstanceof(ctx, obj, cls)) {
-        JClass *excpCls = Flint::findClass(ctx, "java/lang/IncompatibleClassChangeError");
-        ctx->throwNew(excpCls, "object type %s cannot be used as the \"this\" parameter for the \"%s.%s\" method", obj->getTypeName(), methodInfo->loader->getName(), methodInfo->name);
+    if(!flint->isInstanceof(this, obj, cls)) {
+        JClass *excpCls = flint->findClass(this, "java/lang/IncompatibleClassChangeError");
+        this->throwNew(excpCls, "object type %s cannot be used as the \"this\" parameter for the \"%s.%s\" method", obj->getTypeName(), methodInfo->loader->getName(), methodInfo->name);
         return false;
     }
     return true;
@@ -256,7 +260,7 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
         peakSp = sp + 4;
         sp -= argc;
         if(peakSp >= stackLength) {
-            throwNew(Flint::findClass(this, "java/lang/StackOverflowError"));
+            throwNew(flint->findClass(this, "java/lang/StackOverflowError"));
             return 0;
         }
         memmove(&stack[sp + 1 + 4], &stack[sp + 1], argc * sizeof(uint32_t));
@@ -264,7 +268,7 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
         sp += argc;
         initExitPoint(methodInfo);
     }
-    if(!(flag & METHOD_STATIC) && !checkInvokeArgs(this, (JObject *)stack[sp - argc + 1], methodInfo)) return 0;
+    if(!(flag & METHOD_STATIC) && !checkInvokeArgs((JObject *)stack[sp - argc + 1], methodInfo)) return 0;
 
     /* Lock Class/Object if method is SYNCHRONIZED */
     if(flag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
@@ -322,7 +326,7 @@ static T callToNative(FNIEnv *env, T (*nmtptr)(FNIEnv *, ...), int32_t *args, ui
 void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
     JNMPtr nmtptr = (JNMPtr)methodInfo->getCode();
     if(nmtptr == NULL) {
-        throwNew(Flint::findClass(this, "java/lang/LinkageError"), "%s.%s", methodInfo->loader->getName(), methodInfo->name);
+        throwNew(flint->findClass(this, "java/lang/LinkageError"), "%s.%s", methodInfo->loader->getName(), methodInfo->name);
         return;
     }
     FNIEnv env(this);
@@ -383,7 +387,7 @@ void FExec::invoke(MethodInfo *methodInfo, uint8_t argc) {
         peakSp = sp + 4;
         sp -= argc;
         if((sp + methodInfo->getMaxLocals() + methodInfo->getMaxStack() + 4) >= stackLength)
-            return throwNew(Flint::findClass(this, "java/lang/StackOverflowError"));
+            return throwNew(flint->findClass(this, "java/lang/StackOverflowError"));
         memmove(&stack[sp + 1 + 4], &stack[sp + 1], argc * sizeof(uint32_t));
         stackSaveContext();
         initNewContext(methodInfo, argc);
@@ -395,7 +399,7 @@ void FExec::invoke(MethodInfo *methodInfo, uint8_t argc) {
 void FExec::invokeStatic(ConstMethod *constMethod) {
     MethodInfo *methodInfo = constMethod->methodInfo;
     if(methodInfo == NULL) {
-        methodInfo = Flint::findMethod(this, Flint::findClass(this, constMethod->className), constMethod->nameAndType);
+        methodInfo = flint->findMethod(this, flint->findClass(this, constMethod->className), constMethod->nameAndType);
         if(methodInfo == NULL) return;
         constMethod->methodInfo = methodInfo;
         if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
@@ -413,7 +417,7 @@ void FExec::invokeSpecial(ConstMethod *constMethod) {
     uint8_t argc = constMethod->getArgc() + 1;
     MethodInfo *methodInfo = constMethod->methodInfo;
     if(methodInfo == NULL) {
-        methodInfo = Flint::findMethod(this, Flint::findClass(this, constMethod->className), constMethod->nameAndType);
+        methodInfo = flint->findMethod(this, flint->findClass(this, constMethod->className), constMethod->nameAndType);
         if(methodInfo == NULL) return;
         constMethod->methodInfo = methodInfo;
         if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
@@ -431,18 +435,18 @@ void FExec::invokeVirtual(ConstMethod *constMethod) {
     uint8_t argc = constMethod->getArgc();
     JObject *obj = (JObject *)stack[sp - argc];
     if(obj == NULL) {
-        JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
+        JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
         return throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", constMethod->className, constMethod->nameAndType->name);
     }
     MethodInfo *methodInfo = constMethod->methodInfo;
     JClass *objType;
     if(obj->type != NULL) objType = obj->type;
     else {
-        objType = Flint::getClassOfClass(this);
+        objType = flint->getClassOfClass(this);
         if(objType == NULL) return;
     }
     if(methodInfo == NULL || methodInfo->loader != objType->getClassLoader()) {
-        methodInfo = Flint::findMethod(this, objType, constMethod->nameAndType);
+        methodInfo = flint->findMethod(this, objType, constMethod->nameAndType);
         if(methodInfo == NULL) return;
         constMethod->methodInfo = methodInfo;
         if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
@@ -460,18 +464,18 @@ void FExec::invokeVirtual(ConstMethod *constMethod) {
 void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc) {
     JObject *obj = (JObject *)stack[sp - argc + 1];
     if(obj == NULL) {
-        JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
+        JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
         return throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", interfaceMethod->className, interfaceMethod->nameAndType->name);
     }
     MethodInfo *methodInfo = interfaceMethod->methodInfo;
     JClass *objType;
     if(obj->type != NULL) objType = obj->type;
     else {
-        objType = Flint::getClassOfClass(this);
+        objType = flint->getClassOfClass(this);
         if(objType == NULL) return;
     }
     if(methodInfo == NULL || methodInfo->loader != objType->getClassLoader()) {
-        methodInfo = Flint::findMethod(this, objType, interfaceMethod->nameAndType);
+        methodInfo = flint->findMethod(this, objType, interfaceMethod->nameAndType);
         if(methodInfo == NULL) return;
         interfaceMethod->methodInfo = methodInfo;
         if(methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
@@ -492,7 +496,7 @@ void FExec::invokeStaticCtor(ClassLoader *loader) {
     if(loader->hasStaticCtor()) {
         MethodInfo *ctorMethod = loader->getStaticCtor(this);
         if(ctorMethod == NULL) {
-            if(excp == NULL) throwNew(Flint::findClass(this, "java/lang/LinkageError"), "<clinit>()");
+            if(excp == NULL) throwNew(flint->findClass(this, "java/lang/LinkageError"), "<clinit>()");
             return unlockClass(loader);
         }
         if(code[pc] == OP_BREAKPOINT)
@@ -512,7 +516,7 @@ void FExec::exec(bool initOpcodeLabels) {
     ::opcodeLabelsStop = (const void **)opcodeLabelsStop;
     ::opcodeLabelsExit = (const void **)opcodeLabelsExit;
 
-    FDbg *dbg = Flint::getDebugger();
+    FDbg *dbg = flint->getDebugger();
     if(initOpcodeLabels) opcodes = (const void ** volatile)opcodeLabels;
 
     const uint8_t *code = this->code;
@@ -638,7 +642,7 @@ void FExec::exec(bool initOpcodeLabels) {
                 pc += 2;
                 goto *opcodes[code[pc]];
             default: {
-                JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
+                JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
                 throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
                 return;
             }
@@ -679,7 +683,7 @@ void FExec::exec(bool initOpcodeLabels) {
                 pc += 3;
                 goto *opcodes[code[pc]];
             default: {
-                JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
+                JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
                 throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
                 return;
             }
@@ -698,7 +702,7 @@ void FExec::exec(bool initOpcodeLabels) {
                 pc += 3;
                 goto *opcodes[code[pc]];
             default: {
-                JClass *excpCls = Flint::findClass(this, "java/lang/ClassFormatError");
+                JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
                 throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
                 return;
             }
@@ -781,7 +785,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
@@ -796,7 +800,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int64_t))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int64_t)));
             goto exception_handler;
         }
@@ -810,7 +814,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int32_t))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
@@ -824,7 +828,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int8_t))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int8_t)));
             goto exception_handler;
         }
@@ -839,7 +843,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto load_null_array_excp;
         else if(index < 0 || index >= (obj->size / sizeof(int16_t))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int16_t)));
             goto exception_handler;
         }
@@ -944,7 +948,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int32_t)))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
@@ -960,7 +964,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int64_t)))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int64_t)));
             goto exception_handler;
         }
@@ -975,7 +979,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int8_t)))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int8_t)));
             goto exception_handler;
         }
@@ -991,7 +995,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(obj == NULL)
             goto store_null_array_excp;
         else if((index < 0) || (index >= (obj->size / sizeof(int16_t)))) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
             throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int16_t)));
             goto exception_handler;
         }
@@ -1563,7 +1567,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(constField == NULL) goto exception_handler;
         ClassLoader *clsLoader = constField->loader;
         if(clsLoader == NULL) {
-            clsLoader = Flint::findLoader(this, constField->className);
+            clsLoader = flint->findLoader(this, constField->className);
             if(clsLoader == NULL) goto exception_handler;
             constField->loader = clsLoader;
         }
@@ -1609,7 +1613,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(constField == NULL) goto exception_handler;
         ClassLoader *clsLoader = constField->loader;
         if(clsLoader == NULL) {
-            clsLoader = Flint::findLoader(this, constField->className);
+            clsLoader = flint->findLoader(this, constField->className);
             if(clsLoader == NULL) goto exception_handler;
             constField->loader = clsLoader;
         }
@@ -1667,7 +1671,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(constField == NULL) goto exception_handler;
         JObject *obj = stackPopObject();
         if(obj == NULL) {
-            JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
+            JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
             throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
             goto exception_handler;
         }
@@ -1702,7 +1706,7 @@ void FExec::exec(bool initOpcodeLabels) {
                 int32_t value = stackPopInt32();
                 JObject *obj = stackPopObject();
                 if(obj == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
+                    JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
@@ -1717,7 +1721,7 @@ void FExec::exec(bool initOpcodeLabels) {
                 int32_t value = stackPopInt32();
                 JObject *obj = stackPopObject();
                 if(obj == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
+                    JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
@@ -1732,7 +1736,7 @@ void FExec::exec(bool initOpcodeLabels) {
                 int64_t value = stackPopInt64();
                 JObject *obj = stackPopObject();
                 if(obj == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
+                    JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
@@ -1747,7 +1751,7 @@ void FExec::exec(bool initOpcodeLabels) {
                 JObject *value = stackPopObject();
                 JObject *obj = stackPopObject();
                 if(obj == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
+                    JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
@@ -1761,7 +1765,7 @@ void FExec::exec(bool initOpcodeLabels) {
                 int32_t value = stackPopInt32();
                 JObject *obj = stackPopObject();
                 if(obj == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/NullPointerException");
+                    JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
                     throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
@@ -1809,13 +1813,13 @@ void FExec::exec(bool initOpcodeLabels) {
     op_invokedynamic: {
         // TODO
         // goto *opcodes[code[pc]];
-        JClass *excpCls = Flint::findClass(this, "java/lang/UnsupportedOperationException");
+        JClass *excpCls = flint->findClass(this, "java/lang/UnsupportedOperationException");
         throwNew(excpCls, "Invokedynamic instructions are not supported");
         goto exception_handler;
     }
     op_new: {
         JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
-        JObject *obj = Flint::newObject(this, cls);
+        JObject *obj = flint->newObject(this, cls);
         if(obj == NULL) goto exception_handler;
         stackPushObject(obj);
         pc += 3;
@@ -1827,7 +1831,7 @@ void FExec::exec(bool initOpcodeLabels) {
         if(count < 0)
             goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
-        JObject *obj = Flint::newArray(this, Flint::findClass(this, primArrayTypeName[atype - 4]), count);
+        JObject *obj = flint->newArray(this, flint->findClass(this, primArrayTypeName[atype - 4]), count);
         if(obj == NULL) goto exception_handler;
         obj->clearData();
         stackPushObject(obj);
@@ -1840,8 +1844,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto negative_array_size_excp;
         JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
         if(cls == NULL) goto exception_handler;
-        cls = Flint::findClassOfArray(this, cls->getTypeName(), 1);
-        JObject *array = Flint::newArray(this, cls, count);
+        cls = flint->findClassOfArray(this, cls->getTypeName(), 1);
+        JObject *array = flint->newArray(this, cls, count);
         if(array == NULL) goto exception_handler;
         array->clearData();
         stackPushObject(array);
@@ -1851,7 +1855,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_arraylength: {
         JObject *obj = stackPopObject();
         if(obj == NULL) {
-            throwNew(Flint::findClass(this, "java/lang/NullPointerException"), "Cannot read the array length from null object");
+            throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot read the array length from null object");
             goto exception_handler;
         }
         stackPushInt32(obj->size / obj->type->componentSize());
@@ -1861,7 +1865,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_athrow: {
         excp = (JThrowable *)stackPopObject();
         if(excp == NULL)
-            throwNew(Flint::findClass(this, "java/lang/NullPointerException"), "Cannot throw exception by null object");
+            throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot throw exception by null object");
         goto exception_handler;
     }
     exception_handler: {
@@ -1889,7 +1893,7 @@ void FExec::exec(bool initOpcodeLabels) {
                             pc = exception->handlerPc;
                             goto exception_handler;
                         }
-                        isMatch = Flint::isInstanceof(this, obj, catchType);
+                        isMatch = flint->isInstanceof(this, obj, catchType);
                         if(isMatch == false && excp != obj) {
                             while(startSp > traceStartSp) restoreContext();
                             code = this->code;
@@ -1924,10 +1928,10 @@ void FExec::exec(bool initOpcodeLabels) {
         JObject *obj = (JObject *)stack[sp];
         if(obj != 0) {
             JClass *catchType = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
-            bool isIns = Flint::isInstanceof(this, obj, catchType);
+            bool isIns = flint->isInstanceof(this, obj, catchType);
             if(isIns == false) {
                 if(excp == NULL) {
-                    JClass *excpCls = Flint::findClass(this, "java/lang/ClassCastException");
+                    JClass *excpCls = flint->findClass(this, "java/lang/ClassCastException");
                     throwNew(excpCls, "Class %s cannot be cast to class %s", obj->getTypeName(), catchType->getTypeName());
                 }
                 goto exception_handler;
@@ -1939,7 +1943,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_instanceof: {
         JObject *obj = stackPopObject();
         JClass *type = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
-        bool isIns = Flint::isInstanceof(this, obj, type);
+        bool isIns = flint->isInstanceof(this, obj, type);
         if(isIns == true)
             stackPushInt32(1);
         else {
@@ -1952,7 +1956,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_monitorenter: {
         JObject *obj = (JObject *)GET_STACK_VALUE(sp);
         if(obj == NULL) {
-            throwNew(Flint::findClass(this, "java/lang/NullPointerException"), "Cannot enter synchronized block by null object");
+            throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot enter synchronized block by null object");
             goto exception_handler;
         }
         if(lockObject(obj) == false) {
@@ -2034,7 +2038,7 @@ void FExec::exec(bool initOpcodeLabels) {
             if(stack[sp + i] < 0)
                 goto negative_array_size_excp;
         }
-        JObject *array = Flint::newMultiArray(this, cls, &stack[sp - dimensions + 1], dimensions);
+        JObject *array = flint->newMultiArray(this, cls, &stack[sp - dimensions + 1], dimensions);
         if(array == NULL) goto exception_handler;
         sp -= dimensions;
         stackPushObject(array);
@@ -2072,23 +2076,23 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodeLabels[op];
     }
     op_unknow: {
-        throwNew(Flint::findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u", code[pc]);
+        throwNew(flint->findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u", code[pc]);
         return;
     }
     divided_by_zero_excp: {
-        throwNew(Flint::findClass(this, "java/lang/ArithmeticException"), "Divided by zero");
+        throwNew(flint->findClass(this, "java/lang/ArithmeticException"), "Divided by zero");
         goto exception_handler;
     }
     negative_array_size_excp: {
-        throwNew(Flint::findClass(this, "java/lang/NegativeArraySizeException"), "Size of the array is a negative number");
+        throwNew(flint->findClass(this, "java/lang/NegativeArraySizeException"), "Size of the array is a negative number");
         goto exception_handler;
     }
     load_null_array_excp: {
-        throwNew(Flint::findClass(this, "java/lang/NullPointerException"), "Cannot load from null array object");
+        throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot load from null array object");
         goto exception_handler;
     }
     store_null_array_excp: {
-        throwNew(Flint::findClass(this, "java/lang/NullPointerException"), "Cannot store to null array object");
+        throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot store to null array object");
         goto exception_handler;
     }
     op_exit:
@@ -2096,27 +2100,28 @@ void FExec::exec(bool initOpcodeLabels) {
 }
 
 void FExec::runTask(FExec *exec) {
+    Flint *flint = exec->getFlint();
     exec->exec(true);
     if(exec->excp != NULL) {
         if(((uint32_t)exec->excp & 0x01) == 0) { /* Is throwable object */
             JString *str = exec->excp->getDetailMessage();
             if(str != NULL) {
-                Flint::print(exec->excp->getTypeName());
-                Flint::print(": ");
-                Flint::println(str);
+                flint->print(exec->excp->getTypeName());
+                flint->print(": ");
+                flint->println(str);
             }
             else
-                Flint::println(exec->excp->getTypeName());
+                flint->println(exec->excp->getTypeName());
         }
         else {  /* Is not throwable object, it is error message */
             const char *msg = (char *)((uint32_t)exec->excp & 0xFFFFFFFC);
-            Flint::println(msg);
+            flint->println(msg);
         }
-        Flint::terminateRequest();
+        flint->terminateRequest();
     }
     while(exec->startSp > 3) exec->restoreContext();
     exec->peakSp = -1;
-    Flint::freeExecution(exec);
+    flint->freeExecution(exec);
     FlintAPI::Thread::terminate(0);
 }
 
@@ -2148,18 +2153,18 @@ void FExec::throwNew(JClass *cls, const char *msg, ...) {
 void FExec::vThrowNew(JClass *cls, const char *msg, va_list args) {
     if(cls == NULL) return;
     if(((uint32_t)excp & 0x01) != 0) return; /* There was a previous fatal error. */
-    JThrowable *obj = (JThrowable *)Flint::newObject(NULL, cls);
+    JThrowable *obj = (JThrowable *)flint->newObject(NULL, cls);
     if(obj == NULL) {
         alignas(4) static const char err[] = "Cannot create Throwable object";
         excp = (JThrowable *)((uint32_t)err | 0x01);
         return;
     }
     if(msg != NULL) {
-        JString *str = Flint::newAscii(NULL, msg, args);
+        JString *str = flint->newAscii(NULL, msg, args);
         if(str == NULL) {
             alignas(4) static const char err[] = "Cannot create java/lang/String object";
             excp = (JThrowable *)((uint32_t)err | 0x01);
-            Flint::freeObject(obj);
+            flint->freeObject(obj);
             return;
         }
         obj->setDetailMessage(str);
@@ -2185,13 +2190,13 @@ bool FExec::hasTerminateRequest(void) const {
 }
 
 JThread *FExec::getOnwerThread() {
-    Flint::lock();
+    flint->lock();
     if(onwerThread == NULL) {
-        JObject *obj = Flint::newObject(this, Flint::findClass(this, "java/lang/Thread"));
+        JObject *obj = flint->newObject(this, flint->findClass(this, "java/lang/Thread"));
         if(obj != NULL) onwerThread = (JThread *)obj;
-        Flint::unlock();
+        flint->unlock();
         return (JThread *)obj;
     }
-    Flint::unlock();
+    flint->unlock();
     return onwerThread;
 }

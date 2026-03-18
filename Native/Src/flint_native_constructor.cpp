@@ -40,7 +40,7 @@ jobject NativeConstructor_NewInstance0(FNIEnv *env, jobject obj, jobjectArray in
     exec->callMethod(methodInfo, argSlot);
 
     if(exec->hasTerminateRequest()) {
-        Flint::freeObject(newObj);
+        env->getFlint()->freeObject(newObj);
         return NULL;
     }
     if(exec->hasException()) {

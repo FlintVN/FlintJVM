@@ -40,12 +40,12 @@ public:
     FieldValue *getField(const char *name) const;
     FieldValue *getFieldByIndex(uint32_t index) const;
 
-    bool init(class FExec *ctx, class ClassLoader *loader, bool isStatic);
+    bool init(class Flint *flint, class FExec *ctx, class ClassLoader *loader, bool isStatic);
 
-    ~FieldsData(void);
+    void destroy(class Flint *flint);
 private:
-    bool initStatic(class FExec *ctx, class ClassLoader *loader);
-    bool initNonStatic(class FExec *ctx, class ClassLoader *loader);
+    bool initStatic(class Flint *flint, class FExec *ctx, class ClassLoader *loader);
+    bool initNonStatic(class Flint *flint, class FExec *ctx, class ClassLoader *loader);
 private:
     FieldsData(const FieldsData &) = delete;
     void operator=(const FieldsData &) = delete;

@@ -53,7 +53,7 @@ bool FileReader::open(void) {
     if(handle == NULL) {
         handle = FlintAPI::IO::fopen(filePath, FlintAPI::IO::FILE_MODE_READ);
         if(handle == NULL && ctx != NULL)
-            ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "Failed to open file %s", GetName(filePath));
+            ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "Failed to open file %s", GetName(filePath));
         return handle != NULL;
     }
     return true;
@@ -62,7 +62,7 @@ bool FileReader::open(void) {
 bool FileReader::close(void) {
     if(FlintAPI::IO::fclose(handle) != FlintAPI::IO::FILE_RESULT_OK) {
         if(ctx != NULL)
-            ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fclose failed");
+            ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fclose failed");
         return false;
     }
     handle = NULL;
@@ -74,7 +74,7 @@ int32_t FileReader::read(void *buff, uint32_t size) {
     FlintAPI::IO::FileResult ret = FlintAPI::IO::fread(handle, buff, size, &temp);
     if(ret != FlintAPI::IO::FILE_RESULT_OK) {
         if(ctx != NULL)
-            ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fread failed");
+            ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fread failed");
         return -1;
     }
     return temp;
@@ -140,7 +140,7 @@ uint32_t FileReader::tell(void) {
 bool FileReader::seek(int32_t offset) {
     if(FlintAPI::IO::fseek(handle, offset) != FlintAPI::IO::FILE_RESULT_OK) {
         if(ctx != NULL)
-            ctx->throwNew(Flint::findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fseek failed");
+            ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fseek failed");
         return false;
     }
     return true;

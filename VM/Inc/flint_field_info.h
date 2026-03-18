@@ -29,8 +29,6 @@ public:
         };
         ConstNameAndType nameAndType;
     };
-
-    void free(FieldInfo *fieldInfo);
 private:
     FieldInfo(FieldAccessFlag accessFlag, const char *name, const char *desc);
 

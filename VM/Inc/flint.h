@@ -19,112 +19,112 @@
 
 class Flint {
 private:
-    static FMutex flintLock;
-    static FDbg *dbg;
-    static const char *cwd;
-    static const char *program;
-    static FDict<ClassLoader> loaders;
-    static FDict<JClassDictNode> classes;
-    static FDict<Utf8DictNode> utf8s;
-    static FDict<JStringDictNode> constStr;
-    static FList<FExec> execs;
-    static FList<JObject> objs;
-    static FList<JObject> globalObjs;
+    FMutex flintLock;
+    FDbg *dbg;
+    const char *cwd;
+    const char *program;
+    FDict<ClassLoader> loaders;
+    FDict<JClassDictNode> classes;
+    FDict<Utf8DictNode> utf8s;
+    FDict<JStringDictNode> constStr;
+    FList<FExec> execs;
+    FList<JObject> objs;
+    FList<JObject> globalObjs;
 
-    static JClass *classOfClass;
+    JClass *classOfClass;
 
-    static uint32_t heapCount;
-    static uint32_t objectCountToGc;
-    static void *heapStart;
-    static void *headEnd;
+    uint32_t heapCount;
+    uint32_t objectCountToGc;
+    void *heapStart;
+    void *headEnd;
 private:
-    static void updateHeapRegion(void *p);
-    static void resetHeapRegion(void);
-    static bool isHeapPointer(void *p);
+    void updateHeapRegion(void *p);
+    void resetHeapRegion(void);
+    bool isHeapPointer(void *p);
 public:
-    static void *malloc(FExec *ctx, uint32_t size);
-    static void *realloc(FExec *ctx, void *p, uint32_t size);
-    static void free(void *p);
+    Flint(void);
+    void *malloc(FExec *ctx, uint32_t size);
+    void *realloc(FExec *ctx, void *p, uint32_t size);
+    void free(void *p);
 
-    static void lock(void);
-    static void unlock(void);
+    void lock(void);
+    void unlock(void);
 
-    static FDbg *getDebugger(void);
-    static void setDebugger(FDbg *dbg);
+    FDbg *getDebugger(void);
+    void setDebugger(FDbg *dbg);
 public:
-    static void consoleWrite(uint8_t *utf8, uint32_t length);
-    static void print(int64_t num);
-    static void print(const char *ascii);
-    static void print(JString *str);
-    static void println(void);
-    static void println(int64_t num);
-    static void println(const char *ascii);
-    static void println(JString *str);
+    void consoleWrite(uint8_t *utf8, uint32_t length);
+    void print(int64_t num);
+    void print(const char *ascii);
+    void print(JString *str);
+    void println(void);
+    void println(int64_t num);
+    void println(const char *ascii);
+    void println(JString *str);
 
-    static const char *getCwd(void);
-    static void setCwd(const char *path);
-    static const char *getClassPath(uint32_t index);
+     const char *getCwd(void);
+     void setCwd(const char *path);
+     const char *getClassPath(uint32_t index);
 
-    static bool setProgram(const char *jarPath, uint16_t length = 0xFFFF);
-    static const char *getProgram(void);
+    bool setProgram(const char *jarPath, uint16_t length = 0xFFFF);
+    const char *getProgram(void);
 
     static char getPathSeparator(void);
     static uint16_t isAbsolutePath(const char *path, uint16_t length);
-    static int16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize);
+    int16_t resolvePath(const char *path, uint16_t length, char *buff, uint16_t buffSize);
 
-    static const char *getUtf8(FExec *ctx, const char *utf8, uint16_t length = 0xFFFF);
-    static ClassLoader *findLoader(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
-    static JClass *findClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, bool verify = false);
-    static JClass *findClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
-    static JClass *getPrimitiveClass(FExec *ctx, const char *name, uint16_t length = 0xFFFF);
-    static JClass *getClassOfClass(FExec *ctx);
-    static MethodInfo *findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAndType);
-    static JString *getConstString(FExec *ctx, const char *utf8);
-    static JString *getConstString(FExec *ctx, JString *str);
+    const char *getUtf8(FExec *ctx, const char *utf8, uint16_t length = 0xFFFF);
+    ClassLoader *findLoader(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
+    JClass *findClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, bool verify = false);
+    JClass *findClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
+    JClass *getPrimitiveClass(FExec *ctx, const char *name, uint16_t length = 0xFFFF);
+    JClass *getClassOfClass(FExec *ctx);
+    MethodInfo *findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAndType);
+    JString *getConstString(FExec *ctx, const char *utf8);
+    JString *getConstString(FExec *ctx, JString *str);
 
-    static bool isInstanceof(FExec *ctx, JObject *obj, JClass *type);
-    static bool isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType);
+    bool isInstanceof(FExec *ctx, JObject *obj, JClass *type);
+    bool isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType);
 
-    static FExec *newExecution(FExec *ctx, JThread *onwer = NULL, uint32_t stackSize = DEFAULT_STACK_SIZE);
-    static void freeExecution(FExec *exec);
+    FExec *newExecution(FExec *ctx, JThread *onwer = NULL, uint32_t stackSize = DEFAULT_STACK_SIZE);
+    void freeExecution(FExec *exec);
 
-    static JObject *newObject(FExec *ctx, JClass *type);
-    static JObject *newArray(FExec *ctx, JClass *type, uint32_t count);
-    static JObject *newMultiArray(FExec *ctx, JClass *type, int32_t *counts, uint8_t depth);
-    static JString *newString(FExec *ctx, const char *utf8);
-    static JString *newAscii(FExec *ctx, const char *format, ...);
-    static JString *newAscii(FExec *ctx, const char *format, va_list args);
+    JObject *newObject(FExec *ctx, JClass *type);
+    JObject *newArray(FExec *ctx, JClass *type, uint32_t count);
+    JObject *newMultiArray(FExec *ctx, JClass *type, int32_t *counts, uint8_t depth);
+    JString *newString(FExec *ctx, const char *utf8);
+    JString *newAscii(FExec *ctx, const char *format, ...);
+    JString *newAscii(FExec *ctx, const char *format, va_list args);
 
-    static void makeToGlobal(JObject *obj);
-    static void clearProtLv2(JObject *obj);
-    static bool isObject(void *p);
-    static void gc(void);
+    void makeToGlobal(JObject *obj);
+    void clearProtLv2(JObject *obj);
+    bool isObject(void *p);
+    void gc(void);
 
-    static bool start(void);
+    bool start(void);
 
-    static bool isRunning(void);
-    static void stopRequest(void);
-    static void terminateRequest(void);
-    static void terminate(void);
-    static void freeObject(JObject *obj);
-    static void clearAllStaticFields(void);
-    static void freeAllExecution(void);
-    static void freeAll(void);
-    static void reset(void);
+    bool isRunning(void);
+    void stopRequest(void);
+    void terminateRequest(void);
+    void terminate(void);
+    void freeObject(JObject *obj);
+    void clearAllStaticFields(void);
+    void freeAllExecution(void);
+    void freeAll(void);
+    void reset(void);
 private:
-    static void freeAllObject(void);
-    static void freeAllClassLoader(void);
-    static void freeAllConstUtf8(void);
-    static void clearMarkRecursion(JObject *obj);
-    static void markObjectRecursion(JObject *obj);
-    static void clearProtLv2Recursion(JObject *obj);
+    void freeAllObject(void);
+    void freeAllClassLoader(void);
+    void freeAllConstUtf8(void);
+    void clearMarkRecursion(JObject *obj);
+    void markObjectRecursion(JObject *obj);
+    void clearProtLv2Recursion(JObject *obj);
 private:
-    static const char *getArrayClassName(FExec *ctx, const char *clsName, uint8_t dimensions);
-    static JClass *newClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, uint8_t flag = 0x00);
-    static JClass *newClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
-    static JClass *newClassOfClass(FExec *ctx);
+    const char *getArrayClassName(FExec *ctx, const char *clsName, uint8_t dimensions);
+    JClass *newClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, uint8_t flag = 0x00);
+    JClass *newClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
+    JClass *newClassOfClass(FExec *ctx);
 private:
-    Flint(void) = delete;
     Flint(const Flint &) = delete;
     void operator=(const Flint &) = delete;
 };

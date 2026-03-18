@@ -14,6 +14,7 @@
 
 class FExec : public ListNode {
 private:
+    class Flint * const flint;
     const void ** volatile opcodes;
     const uint32_t stackLength;
     MethodInfo *method;
@@ -52,6 +53,7 @@ private:
     bool lockObject(JObject *obj);
     void unlockObject(JObject *obj);
 
+    bool checkInvokeArgs(JObject *obj, MethodInfo *methodInfo);
     uint64_t callMethod(jmethodId mtid, uint8_t argc);
     void invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc);
     void invoke(MethodInfo *methodInfo, uint8_t argc);
@@ -71,6 +73,8 @@ private:
 
     static void runTask(FExec *execution);
 public:
+    Flint *getFlint(void) const;
+
     bool run(MethodInfo *method, uint32_t argc = 0, ...);
 
     JClass *getCallerClass(void);
@@ -82,7 +86,7 @@ public:
     bool hasTerminateRequest(void) const;
     JThread *getOnwerThread(void);
 private:
-    FExec(JThread *onwer, uint32_t stackSize);
+    FExec(Flint *flint, JThread *onwer, uint32_t stackSize);
     FExec(const FExec &) = delete;
     void operator=(const FExec &) = delete;
 

@@ -8,8 +8,8 @@
 
 class JString : public JObject {
 public:
-    bool setUtf8(FExec *ctx, const char *utf8);
-    bool setAscii(FExec *ctx, const char *format, va_list args);
+    bool setUtf8(class Flint *flint, FExec *ctx, const char *utf8);
+    bool setAscii(class Flint *flint, FExec *ctx, const char *format, va_list args);
 
     JByteArray *getValue(void) const;
     const char *getAscii(void) const;

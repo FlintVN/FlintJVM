@@ -8,7 +8,7 @@ static const char *ResolvePath(FNIEnv *env, jobject file, char *buff, uint32_t b
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *ptxt = path->getAscii();
     uint32_t len = path->getLength();
-    if(Flint::resolvePath(ptxt, len, buff, buffSize) == -1) {
+    if(env->getFlint()->resolvePath(ptxt, len, buff, buffSize) == -1) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "Class name cannot exceed %d characters", buffSize - 1);
         return NULL;
@@ -49,7 +49,7 @@ jstring NativeIoFile_GetAbsolutePath(FNIEnv *env, jobject file) {
     else {
         char buff[FILE_NAME_BUFF_SIZE];
         if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
-        return Flint::newString(env->exec, buff);
+        return env->getFlint()->newString(env->exec, buff);
     }
 }
 
@@ -150,8 +150,9 @@ jobjectArray NativeIoFile_List(FNIEnv *env, jobject file) {
     auto handle = OpenDir(env, file);
     if(handle == NULL) return NULL;
 
-    jclass strArrCls = Flint::findClassOfArray(env->exec, "java/lang/String", 1);
-    jobjectArray arr = (jobjectArray)Flint::newArray(env->exec, strArrCls, 16);
+    Flint *flint = env->getFlint();
+    jclass strArrCls = flint->findClassOfArray(env->exec, "java/lang/String", 1);
+    jobjectArray arr = (jobjectArray)flint->newArray(env->exec, strArrCls, 16);
     if(strArrCls == NULL || arr == NULL) return NULL;
     arr->clearArray();
     uint32_t count = 0;
@@ -164,7 +165,7 @@ jobjectArray NativeIoFile_List(FNIEnv *env, jobject file) {
         if(fileInfo.name[0] == 0) {
             FlintAPI::IO::closedir(handle);
             if(count != arr->getLength()) {
-                jobjectArray newArr = (jobjectArray)Flint::newArray(env->exec, strArrCls, count);
+                jobjectArray newArr = (jobjectArray)flint->newArray(env->exec, strArrCls, count);
                 if(newArr == NULL) break;
                 newArr->clearArray();
                 memcpy(newArr->getData(), arr->getData(), newArr->getLength() * sizeof(jobject));
@@ -174,14 +175,14 @@ jobjectArray NativeIoFile_List(FNIEnv *env, jobject file) {
             return arr;
         }
         if(count >= arr->getLength()) {
-            jobjectArray newArr = (jobjectArray)Flint::newArray(env->exec, strArrCls, arr->getLength() + 16);
+            jobjectArray newArr = (jobjectArray)flint->newArray(env->exec, strArrCls, arr->getLength() + 16);
             if(newArr == NULL) break;
             newArr->clearArray();
             memcpy(newArr->getData(), arr->getData(), arr->getLength() * sizeof(jobject));
             env->freeObject(arr);
             arr = newArr;
         }
-        arr->getData()[count] = Flint::newString(env->exec, fileInfo.name);
+        arr->getData()[count] = flint->newString(env->exec, fileInfo.name);
         if(arr->getData()[count] == NULL) break;
         count++;
     }
@@ -218,7 +219,7 @@ jstring NativeIoFile_GetCanonicalPath(FNIEnv *env, jobject file, jstring path) {
         *dst++ = *src++;
     }
     *dst = 0;
-    return Flint::newString(env->exec, buff);
+    return env->getFlint()->newString(env->exec, buff);
 }
 
 jbool NativeIoFile_CreateNewFile(FNIEnv *env, jobject file) {
