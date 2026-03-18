@@ -99,7 +99,9 @@ private:
         return balance(root);
     }
 
-    static void forEach(DictNode *node, void (*func)(T *item)) {
+    template<typename Func>
+    requires std::invocable<Func, T *>
+    static void forEach(DictNode *node, Func func) {
         if(node) {
             forEach(node->left, func);
             forEach(node->right, func);
@@ -143,7 +145,9 @@ private:
         root = insert(root, node);
     }
 
-    void forEach(void (*func)(T *item)) {
+    template<typename Func>
+    requires std::invocable<Func, T *>
+    void forEach(Func func) {
         forEach(root, func);
     }
 

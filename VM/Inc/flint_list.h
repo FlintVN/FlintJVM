@@ -59,7 +59,9 @@ public:
         return (node->onwerList == (void *)this) && (root != NULL);
     }
 
-    void forEach(void (*func)(T *item)) {
+    template<typename Func>
+    requires std::invocable<Func, T *>
+    void forEach(Func func) {
         for(ListNode *node = root; node != NULL;) {
             ListNode *nextNode = node->next;
             func((T *)node);
