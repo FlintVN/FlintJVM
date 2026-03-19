@@ -35,24 +35,20 @@ Flint *FExec::getFlint(void) const {
 
 void FExec::stackPushInt32(int32_t value) {
     stack[++sp] = value;
-    peakSp = sp;
 }
 
 void FExec::stackPushInt64(int64_t value) {
     stack[++sp] = ((uint32_t *)&value)[0];
     stack[++sp] = ((uint32_t *)&value)[1];
-    peakSp = sp;
 }
 
 void FExec::stackPushFloat(float value) {
     stack[++sp] = *(uint32_t *)&value;
-    peakSp = sp;
 }
 
 void FExec::stackPushDouble(double value) {
     stack[++sp] = ((uint32_t *)&value)[0];
     stack[++sp] = ((uint32_t *)&value)[1];
-    peakSp = sp;
 }
 
 void FExec::stackPushObject(JObject *obj) {
@@ -1004,11 +1000,11 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodes[code[pc]];
     }
     op_pop:
-        stackPopInt32();
+        sp--;
         pc++;
         goto *opcodes[code[pc]];
     op_pop2:
-        stackPopInt64();
+        sp -= 2;
         pc++;
         goto *opcodes[code[pc]];
     op_dup: {
@@ -1535,6 +1531,7 @@ void FExec::exec(bool initOpcodeLabels) {
         restoreContext();
         code = this->code;
         stackPushInt32(retVal);
+        peakSp = sp;
         pc = lr;
         goto *opcodes[code[pc]];
     }
@@ -1544,6 +1541,7 @@ void FExec::exec(bool initOpcodeLabels) {
         restoreContext();
         code = this->code;
         stackPushInt64(retVal);
+        peakSp = sp;
         pc = lr;
         goto *opcodes[code[pc]];
     }
@@ -1552,6 +1550,7 @@ void FExec::exec(bool initOpcodeLabels) {
         restoreContext();
         code = this->code;
         stackPushObject((JObject *)retVal);
+        peakSp = sp;
         pc = lr;
         goto *opcodes[code[pc]];
     }
@@ -1891,6 +1890,7 @@ void FExec::exec(bool initOpcodeLabels) {
                             code = this->code;
                             sp = startSp + traceMethod->getMaxLocals();
                             pc = exception->handlerPc;
+                            peakSp = sp;
                             goto exception_handler;
                         }
                         isMatch = flint->isInstanceof(this, obj, catchType);
@@ -1899,6 +1899,7 @@ void FExec::exec(bool initOpcodeLabels) {
                             code = this->code;
                             sp = startSp + traceMethod->getMaxLocals();
                             pc = exception->handlerPc;
+                            peakSp = sp;
                             goto exception_handler;
                         }
                     }
@@ -1908,6 +1909,7 @@ void FExec::exec(bool initOpcodeLabels) {
                         sp = startSp + traceMethod->getMaxLocals();
                         pc = exception->handlerPc;
                         stackPushObject(obj);
+                        peakSp = sp;
                         excp = NULL;
                         goto *opcodes[code[pc]];
                     }
