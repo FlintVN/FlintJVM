@@ -1,4 +1,9 @@
 # Change Log
+## V2.4.0
+- Supports loading and executing `JAR` files instead of classes scattered across memory.
+- Use the same CRC type for the debugger's send and receive communication.
+- Implement the ability to run multiple JAR application files (It is possible to create multiple instances of `Flint` class).
+- Add support for methods in FNIEnv to access fields.
 ## V2.3.6
 - Fix `System.arraycopy` is not working correctly.
 - Add `FlintAPI::System::getTimeMillis()` method.
