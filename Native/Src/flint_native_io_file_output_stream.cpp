@@ -29,7 +29,7 @@ jvoid NativeFileOutputStream_Open(FNIEnv *env, jobject obj, jstring name, jbool 
     char buff[FILE_NAME_BUFF_SIZE];
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
-    Flint *flint = env->getFlint();
+    Flint *flint = ((FExec *)env)->getFlint();
     if(flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
     flint->lock();
     if(fd != -1)
@@ -59,7 +59,7 @@ jvoid NativeFileOutputStream_Write(FNIEnv *env, jobject obj, jint b) {
     }
     else if(fd == 1) {  /* out */
         uint8_t buff = (uint8_t)b;
-        env->getFlint()->consoleWrite(&buff, 1);
+        ((FExec *)env)->getFlint()->consoleWrite(&buff, 1);
     }
     else if(fd == 2) {  /* err */
 
@@ -98,7 +98,7 @@ jvoid NativeFileOutputStream_WriteBytes(FNIEnv *env, jobject obj, jbyteArray b, 
     }
     else if(fd == 1) {   /* out */
         int8_t *data = &b->getData()[off];
-        env->getFlint()->consoleWrite((uint8_t *)data, len);
+        ((FExec *)env)->getFlint()->consoleWrite((uint8_t *)data, len);
     }
     else if(fd == 2) {  /* err */
 
@@ -115,7 +115,7 @@ jvoid NativeFileOutputStream_WriteBytes(FNIEnv *env, jobject obj, jbyteArray b, 
 jvoid NativeFileOutputStream_Close(FNIEnv *env, jobject obj) {
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
-    Flint *flint = env->getFlint();
+    Flint *flint = ((FExec *)env)->getFlint();
     flint->lock();
     if(fd != -1) {
         if(!(0 <= fd && fd <= 2)) {

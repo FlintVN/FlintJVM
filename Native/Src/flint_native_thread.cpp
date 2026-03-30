@@ -7,14 +7,14 @@
 
 jvoid NativeThread_Start0(FNIEnv *env, jthread thread) {
     static constexpr ConstNameAndType runName("run", "()V");
-    Flint *flint = env->getFlint();
+    Flint *flint = ((FExec *)env)->getFlint();
     jobject task = thread->getTask();
-    FExec *exec = flint->newExecution(env->exec, thread);
+    FExec *exec = flint->newExecution(((FExec *)env), thread);
     if(exec == NULL) return;
     if(task == 0) task = thread;
 
     ClassLoader *loader = task->type->getClassLoader();
-    jmethodId method = loader->getMethodInfo(env->exec, (ConstNameAndType *)&runName);
+    jmethodId method = loader->getMethodInfo(((FExec *)env), (ConstNameAndType *)&runName);
     if(method == NULL) {
         env->throwNew(env->findClass("java/lang/NoSuchMethodError"), "%s.%s", task->getTypeName(), "run()");
         return;
@@ -39,15 +39,14 @@ jvoid NativeThread_Interrupt0(FNIEnv *env, jthread thread) {
 }
 
 jthread NativeThread_CurrentThread(FNIEnv *env) {
-    (void)env;
-    return env->exec->getOnwerThread();
+    return ((FExec *)env)->getOnwerThread();
 }
 
 jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis) {
     uint64_t startTime = FlintAPI::System::getTimeMillis();
     while((int64_t)(FlintAPI::System::getTimeMillis() - startTime) < (millis - 10)) {
         FlintAPI::Thread::sleep(10);
-        if(env->exec->hasTerminateRequest()) return;
+        if(env->hasTerminateRequest()) return;
     }
     int64_t remaining = millis - (FlintAPI::System::getTimeMillis() - startTime);
     if(remaining > 0) FlintAPI::Thread::sleep((uint32_t)remaining);

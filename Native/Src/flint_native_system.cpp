@@ -8,7 +8,7 @@
 jvoid NativeSystem_setOut0(FNIEnv *env, jobject out) {
     jclass sysCls = env->findClass("java/lang/System");
     if(sysCls == NULL) return;
-    FieldValue *outField = sysCls->getClassLoader()->getStaticField(env->exec, "out");
+    FieldValue *outField = sysCls->getClassLoader()->getStaticField((FExec *)env, "out");
     if(outField == NULL) return;
     outField->setObj(out);
 }

@@ -3,7 +3,7 @@
 #include "flint_native_reflection.h"
 
 jclass NativeReflection_GetCallerClass(FNIEnv *env) {
-    return env->exec->getCallerClass();
+    return ((FExec *)env)->getCallerClass();
 }
 
 jint NativeReflection_GetClassAccessFlags(FNIEnv *env, jclass cls) {
@@ -12,8 +12,8 @@ jint NativeReflection_GetClassAccessFlags(FNIEnv *env, jclass cls) {
 }
 
 jbool NativeReflection_AreNestMates(FNIEnv *env, jclass currentClass, jclass memberClass) {
-    jclass currentNestHost = currentClass->getNestHost(env->exec);
-    jclass memberNestHost = memberClass->getNestHost(env->exec);
+    jclass currentNestHost = currentClass->getNestHost((FExec *)env);
+    jclass memberNestHost = memberClass->getNestHost((FExec *)env);
     if(currentNestHost == NULL || memberNestHost == NULL) return false;
     return currentNestHost == memberNestHost;
 }

@@ -10,7 +10,7 @@ jobject NativeMethod_Invoke0(FNIEnv *env, jobject thisObj, jobject obj, jobjectA
     jmethodId methodInfo = (jmethodId)thisObj->getFieldByIndex(0)->getInt32();  /* entry */
     jclass rtype = (jclass)thisObj->getFieldByIndex(3)->getObj();
     jobjectArray ptypes = (jobjectArray)thisObj->getFieldByIndex(4)->getObj();
-    FExec *exec = env->exec;
+    FExec *exec = (FExec *)env;
 
     int32_t argSlot = 0;
     int32_t argc = ptypes->getLength();
@@ -41,7 +41,7 @@ jobject NativeMethod_Invoke0(FNIEnv *env, jobject thisObj, jobject obj, jobjectA
     if(methodInfo->accessFlag & METHOD_STATIC)
         ret = exec->callMethod(methodInfo, argSlot);
     else {
-        Flint *flint = env->getFlint();
+        Flint *flint = exec->getFlint();
         JClass *objType = obj->type != NULL ? obj->type : flint->getClassOfClass(exec);
         if(methodInfo->loader != objType->getClassLoader()) {
             methodInfo = flint->findMethod(exec, objType, &methodInfo->nameAndType);

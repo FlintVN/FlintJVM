@@ -10,9 +10,10 @@
 #include "flint_method_info.h"
 #include "flint_java_thread.h"
 #include "flint_java_throwable.h"
+#include "flint_native_interface.h"
 #include "flint_default_conf.h"
 
-class FExec : public ListNode {
+class FExec : public ListNode, public FNIEnv {
 private:
     class Flint * const flint;
     const void ** volatile opcodes;
@@ -55,6 +56,7 @@ private:
 
     bool checkInvokeArgs(JObject *obj, MethodInfo *methodInfo);
     uint64_t callMethod(jmethodId mtid, uint8_t argc);
+    uint64_t vCallMethod(jmethodId mtid, va_list args);
     void invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc);
     void invoke(MethodInfo *methodInfo, uint8_t argc);
     void invokeStatic(ConstMethod *constMethod);
@@ -83,8 +85,63 @@ public:
     void vThrowNew(JClass *cls, const char *msg, va_list args);
     bool hasException(void) const;
 
-    bool hasTerminateRequest(void) const;
     JThread *getOnwerThread(void);
+public:
+    jclass findClass(const char *name, uint16_t length = 0xFFFF) __attribute__((used));
+
+    jbool isInstanceof(jobject obj, jclass type) __attribute__((used));
+    jbool isAssignableFrom(jclass fromType, jclass toType) __attribute__((used));
+
+    jobject newObject(jclass type) __attribute__((used));
+    jobject newObject(jclass type, jmethodId ctor, ...) __attribute__((used));
+    jstring newString(const char *format, ...) __attribute__((used));
+    jboolArray newBoolArray(uint32_t count) __attribute__((used));
+    jbyteArray newByteArray(uint32_t count) __attribute__((used));
+    jcharArray newCharArray(uint32_t count) __attribute__((used));
+    jshortArray newShortArray(uint32_t count) __attribute__((used));
+    jintArray newIntArray(uint32_t count) __attribute__((used));
+    jlongArray newLongArray(uint32_t count) __attribute__((used));
+    jfloatArray newFloatArray(uint32_t count) __attribute__((used));
+    jdoubleArray newDoubleArray(uint32_t count) __attribute__((used));
+    jobjectArray newObjectArray(jclass type, uint32_t count) __attribute__((used));
+
+    jfieldId getFieldId(jobject obj, const char *name) __attribute__((used));
+    jbool getBoolField(jfieldId fid) __attribute__((used));
+    jbyte getByteField(jfieldId fid) __attribute__((used));
+    jchar getCharField(jfieldId fid) __attribute__((used));
+    jshort getShortField(jfieldId fid) __attribute__((used));
+    jint getIntField(jfieldId fid) __attribute__((used));
+    jfloat getFloatField(jfieldId fid) __attribute__((used));
+    jlong getLongField(jfieldId fid) __attribute__((used));
+    jdouble getDoubleField(jfieldId fid) __attribute__((used));
+    jobject getObjField(jfieldId fid) __attribute__((used));
+
+    jvoid setBoolField(jfieldId fid, jbool val) __attribute__((used));
+    jvoid setByteField(jfieldId fid, jbyte val) __attribute__((used));
+    jvoid setCharField(jfieldId fid, jchar val) __attribute__((used));
+    jvoid setShortField(jfieldId fid, jshort val) __attribute__((used));
+    jvoid setIntField(jfieldId fid, jint val) __attribute__((used));
+    jvoid setFloatField(jfieldId fid, jfloat val) __attribute__((used));
+    jvoid setLongField(jfieldId fid, jlong val) __attribute__((used));
+    jvoid setDoubleField(jfieldId fid, jdouble val) __attribute__((used));
+    jvoid setObjField(jfieldId fid, jobject obj) __attribute__((used));
+
+    jmethodId getMethodId(jclass cls, const char *name, const char *sig) __attribute__((used));
+    jmethodId getConstructorId(jclass cls, const char *sig) __attribute__((used));
+
+    jvoid callVoidMethod(jmethodId mtid, ...) __attribute__((used));
+    jbool callBoolMethod(jmethodId mtid, ...) __attribute__((used));
+    jbyte callByteMethod(jmethodId mtid, ...) __attribute__((used));
+    jchar callCharMethod(jmethodId mtid, ...) __attribute__((used));
+    jshort callShortMethod(jmethodId mtid, ...) __attribute__((used));
+    jint callIntMethod(jmethodId mtid, ...) __attribute__((used));
+    jlong callLongMethod(jmethodId mtid, ...) __attribute__((used));
+    jfloat callFloatMethod(jmethodId mtid, ...) __attribute__((used));
+    jdouble callDoubleMethod(jmethodId mtid, ...) __attribute__((used));
+    jobject callObjectMethod(jmethodId mtid, ...) __attribute__((used));
+
+    jbool hasTerminateRequest(void) __attribute__((used));
+    jvoid freeObject(jobject obj) __attribute__((used));
 private:
     FExec(Flint *flint, JThread *onwer, uint32_t stackSize);
     FExec(const FExec &) = delete;

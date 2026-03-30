@@ -600,14 +600,14 @@ jobject NativeArray_NewArray(FNIEnv *env, jclass componentType, jint length) {
 jobject NativeArray_MultiNewArray(FNIEnv *env, jclass componentType, jintArray dimensions) {
     if(CheckIsClassType(env, componentType) == false) return NULL;
     if(CheckDimensions(env, dimensions) == false) return NULL;
-    Flint *flint = env->getFlint();
+    Flint *flint = ((FExec *)env)->getFlint();
     if(componentType->isPrimitive()) {
         char type[2];
         type[0] = JClass::isPrimitive(componentType->getTypeName());
         type[1] = 0;
-        jclass cls = flint->findClassOfArray(env->exec, type, dimensions->getLength());
-        return flint->newMultiArray(env->exec, cls, dimensions->getData(), dimensions->getLength());
+        jclass cls = flint->findClassOfArray((FExec *)env, type, dimensions->getLength());
+        return flint->newMultiArray((FExec *)env, cls, dimensions->getData(), dimensions->getLength());
     }
-    jclass cls = flint->findClassOfArray(env->exec, componentType->getTypeName(), dimensions->getLength());
-    return flint->newMultiArray(env->exec, cls, dimensions->getData(), dimensions->getLength());
+    jclass cls = flint->findClassOfArray((FExec *)env, componentType->getTypeName(), dimensions->getLength());
+    return flint->newMultiArray((FExec *)env, cls, dimensions->getData(), dimensions->getLength());
 }

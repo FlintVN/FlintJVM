@@ -37,7 +37,7 @@ jvoid NativeFileInputStream_Open(FNIEnv *env, jobject obj, jstring name) {
     char buff[FILE_NAME_BUFF_SIZE];
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
-    Flint *flint = env->getFlint();
+    Flint *flint = ((FExec *)env)->getFlint();
     if(flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
     flint->lock();
     if(fd != -1)
@@ -144,7 +144,7 @@ jint NativeFileInputStream_Available(FNIEnv *env, jobject obj) {
 jvoid NativeFileInputStream_Close(FNIEnv *env, jobject obj) {
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
-    Flint *flint = env->getFlint();
+    Flint *flint = ((FExec *)env)->getFlint();
     flint->lock();
     if(fd != -1) {
         if(!(0 <= fd && fd <= 2)) {

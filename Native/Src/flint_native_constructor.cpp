@@ -10,7 +10,7 @@ jobject NativeConstructor_NewInstance0(FNIEnv *env, jobject obj, jobjectArray in
     jmethodId methodInfo = (jmethodId)obj->getFieldByIndex(0)->getInt32();  /* entry */
     jclass cls = (jclass)obj->getFieldByIndex(1)->getObj();
     jobjectArray ptypes = (jobjectArray)obj->getFieldByIndex(2)->getObj();
-    FExec *exec = env->exec;
+    FExec *exec = (FExec *)env;
 
     jobject newObj = env->newObject(cls);
     if(newObj == NULL) return NULL;
@@ -40,7 +40,7 @@ jobject NativeConstructor_NewInstance0(FNIEnv *env, jobject obj, jobjectArray in
     exec->callMethod(methodInfo, argSlot);
 
     if(exec->hasTerminateRequest()) {
-        env->getFlint()->freeObject(newObj);
+        exec->getFlint()->freeObject(newObj);
         return NULL;
     }
     if(exec->hasException()) {
