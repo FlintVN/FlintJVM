@@ -91,7 +91,9 @@ private:
 
     static DictNode *insert(DictNode *root, DictNode *node) {
         if(!root) return node;
-        int32_t cmp = node->getHashKey() - root->getHashKey();
+        uint32_t h1 = node->getHashKey();
+        uint32_t h2 = root->getHashKey();
+        int32_t cmp = (h1 == h2) ? node->compareKey(root) : (h1 > h2 ? 1 : -1);
         if(cmp == 0) cmp = node->compareKey(root);
         if(cmp < 0) root->left = insert(root->left, node);
         else if(cmp > 0) root->right = insert(root->right, node);
@@ -115,10 +117,11 @@ private:
 
     T *find(const char *key, uint16_t length = 0xFFFF) {
         if(root == NULL) return NULL;
-        uint32_t hash = Hash(key, length);
+        uint32_t h1 = Hash(key, length);
         DictNode *node = root;
         while(node) {
-            int32_t cmp = node->getHashKey() - hash;
+            uint32_t h2 = node->getHashKey();
+            int32_t cmp = (h2 == h1) ? node->compareKey(key, length) : (h2 > h1 ? 1 : -1);
             if(cmp == 0) cmp = node->compareKey(key, length);
             if(cmp == 0) return (T *)node;
             else if(cmp < 0) node = node->right;
@@ -129,10 +132,11 @@ private:
 
     T *find(T *value) {
         if(root == NULL) return NULL;
-        uint32_t hash = value->getHashKey();
+        uint32_t h1 = value->getHashKey();
         DictNode *node = root;
         while(node) {
-            int32_t cmp = node->getHashKey() - hash;
+            uint32_t h2 = node->getHashKey();
+            int32_t cmp = (h2 == h1) ? node->compareKey(value) : (h2 > h1 ? 1 : -1);
             if(cmp == 0) cmp = node->compareKey(value);
             if(cmp == 0) return (T *)node;
             else if(cmp < 0) node = node->right;
