@@ -537,10 +537,7 @@ JClass *Flint::newClass(FExec *ctx, const char *clsName, uint16_t length, uint8_
 
     if(cls->initFields(this, ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
 
-    lock();
     globalObjs.add(cls);
-    unlock();
-
     return cls;
 }
 
@@ -560,10 +557,7 @@ JClass *Flint::newClassOfClass(FExec *ctx) {
 
     if(cls->initFields(this, ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
 
-    lock();
     globalObjs.add(cls);
-    unlock();
-
     return cls;
 }
 

@@ -30,9 +30,10 @@ void FMutex::lock(void) {
 }
 
 void FMutex::unlock(void) {
+    void *currentThread = FlintAPI::Thread::getCurrentThread();
     while(atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
         FlintAPI::Thread::sleep(1);
-    if(lockNest > 0) {
+    if(currentThread == lockThread && lockNest > 0) {
         if(--lockNest == 0)
             lockThread = NULL;
     }
