@@ -96,6 +96,7 @@ private:
 class FDbg {
 private:
     FMutex dbgMutex;
+    FMutex consoleMutex;
     class Flint *flint;
     class FExec *exec;
     void *dirHandle;
@@ -180,9 +181,6 @@ private:
 
     bool addBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc);
     bool removeBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc);
-
-    void lock(void);
-    void unlock(void);
 };
 
 #endif /* __FLINT_DEBUGGER_H */

@@ -22,7 +22,7 @@ StackFrame::StackFrame(uint32_t pc, uint32_t baseSp, MethodInfo *method) : pc(pc
 
 }
 
-FDbg::FDbg(void) : dbgMutex() {
+FDbg::FDbg(void) : dbgMutex(), consoleMutex() {
     flint = NULL;
     exec = NULL;
     dirHandle = NULL;
@@ -40,13 +40,13 @@ void FDbg::setTarget(Flint *flint) {
 }
 
 void FDbg::consoleWrite(uint8_t *utf8, uint32_t length) {
-    lock();
+    consoleMutex.lock();
     while(length) {
         consolePut((uint8_t)*utf8);
         utf8++;
         length--;
     }
-    unlock();
+    consoleMutex.unlock();
 }
 
 void FDbg::consolePut(uint8_t ch) {
@@ -185,9 +185,9 @@ void FDbg::readStatusRequest(void) {
     initDataFrame(DBG_CMD_READ_STATUS, DBG_RESP_OK, 1);
     dataFrameAppend((uint8_t)tmp);
     if(dataFrameFinish() && (tmp & DBG_STATUS_STOP_SET)) {
-        lock();
+        dbgMutex.lock();
         csr &= ~DBG_STATUS_STOP_SET;
-        unlock();
+        dbgMutex.unlock();
     }
 }
 
@@ -290,27 +290,27 @@ void FDbg::removeAllBkpRequest(void) {
 }
 
 void FDbg::runRequest(void) {
-    lock();
+    dbgMutex.lock();
     csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     exec = NULL;
-    unlock();
+    dbgMutex.unlock();
     sendRespCode(DBG_CMD_RUN, DBG_RESP_OK);
 }
 
 void FDbg::stopRequest(void) {
-    lock();
+    dbgMutex.lock();
     csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
     exec = NULL;
-    unlock();
+    dbgMutex.unlock();
     flint->stopRequest();
     sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
 }
 
 void FDbg::restartRequest(void) {
-    lock();
+    dbgMutex.lock();
     csr &= DBG_CONTROL_EXCP_EN;
     exec = NULL;
-    unlock();
+    dbgMutex.unlock();
     flint->setDebugger(this);
     flint->terminate();
     flint->clearAllStaticFields();
@@ -321,9 +321,9 @@ void FDbg::restartRequest(void) {
 }
 
 void FDbg::terminateRequest(void) {
-    lock();
+    dbgMutex.lock();
     csr = (csr & DBG_CONTROL_EXCP_EN) | DBG_STATUS_RESET;
-    unlock();
+    dbgMutex.unlock();
     flint->terminate();
     flint->freeAll();
     flint->reset();
@@ -333,9 +333,9 @@ void FDbg::terminateRequest(void) {
 void FDbg::stepInRequest(uint32_t stepLength) {
     stepCodeLength = stepLength;
     if(stepCodeLength && exec->getStackTrace(0, &startPoint, 0)) {
-        lock();
+        dbgMutex.lock();
         csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_IN;
-        unlock();
+        dbgMutex.unlock();
         sendRespCode(DBG_CMD_STEP_IN, DBG_RESP_OK);
     }
     else
@@ -345,9 +345,9 @@ void FDbg::stepInRequest(uint32_t stepLength) {
 void FDbg::stepOverRequest(uint32_t stepLength) {
     stepCodeLength = stepLength;
     if(stepCodeLength && exec->getStackTrace(0, &startPoint, 0)) {
-        lock();
+        dbgMutex.lock();
         csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STEP_OVER;
-        unlock();
+        dbgMutex.unlock();
         sendRespCode(DBG_CMD_STEP_OVER, DBG_RESP_OK);
     }
     else
@@ -357,9 +357,9 @@ void FDbg::stepOverRequest(uint32_t stepLength) {
 void FDbg::stepOutRequest(void) {
     if(csr & DBG_STATUS_STOP) {
         if(exec->getStackTrace(0, &startPoint, 0)) {
-            lock();
+            dbgMutex.lock();
             csr = (csr & ~(DBG_STATUS_STOP_SET | DBG_STATUS_EXCP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER)) | DBG_CONTROL_STEP_OUT;
-            unlock();
+            dbgMutex.unlock();
             sendRespCode(DBG_CMD_STEP_OUT, DBG_RESP_OK);
         }
         else
@@ -370,12 +370,12 @@ void FDbg::stepOutRequest(void) {
 }
 
 void FDbg::setExcpModeRequest(bool enabled) {
-    lock();
+    dbgMutex.lock();
     if(enabled)
         csr |= DBG_CONTROL_EXCP_EN;
     else
         csr &= ~DBG_CONTROL_EXCP_EN;
-    unlock();
+    dbgMutex.unlock();
     sendRespCode(DBG_CMD_SET_EXCP_MODE, DBG_RESP_OK);
 }
 
@@ -734,7 +734,7 @@ void FDbg::closeDirRequest(void) {
 }
 
 void FDbg::readConsoleBufferRequest(void) {
-    lock();
+    consoleMutex.lock();
     if(consoleLength) {
         initDataFrame(DBG_CMD_READ_CONSOLE, DBG_RESP_OK, consoleLength);
         uint32_t index = (consoleOffset + sizeof(consoleBuff) - consoleLength) % sizeof(consoleBuff);
@@ -748,7 +748,7 @@ void FDbg::readConsoleBufferRequest(void) {
     }
     else
         sendRespCode(DBG_CMD_READ_CONSOLE, DBG_RESP_OK);
-    unlock();
+    consoleMutex.unlock();
 }
 
 bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
@@ -1080,32 +1080,32 @@ bool FDbg::exceptionIsEnabled(void) {
 
 bool FDbg::checkStop(FExec *exec) {
     if((csr & DBG_CONTROL_STOP) && (this->exec == NULL)) {
-        lock();
+        dbgMutex.lock();
         if(this->exec == NULL) {
             this->exec = exec;
             csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
         }
-        unlock();
+        dbgMutex.unlock();
     }
     return waitStop(exec);
 }
 
 void FDbg::caughtException(FExec *exec) {
-    lock();
+    dbgMutex.lock();
     uint16_t tmp = csr & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     tmp |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     csr = tmp;
     this->exec = exec;
-    unlock();
+    dbgMutex.unlock();
     flint->stopRequest();
     waitStop(exec);
 }
 
 void FDbg::hitBreakpoint(FExec *exec) {
-    lock();
+    dbgMutex.lock();
     csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     this->exec = exec;
-    unlock();
+    dbgMutex.unlock();
     flint->stopRequest();
     waitStop(exec);
 }
@@ -1116,9 +1116,9 @@ bool FDbg::waitStop(FExec *exec) {
         if(this->exec == exec) {
             if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) {
                 if(tmp & DBG_STATUS_STOP) {
-                    lock();
+                    dbgMutex.lock();
                     csr &= ~(DBG_STATUS_STOP | DBG_STATUS_STOP_SET);
-                    unlock();
+                    dbgMutex.unlock();
                     return true;
                 }
                 bool isStopped = false;
@@ -1142,9 +1142,9 @@ bool FDbg::waitStop(FExec *exec) {
                     if(exec->code[exec->pc] == OP_BREAKPOINT)
                         return false;
                     flint->stopRequest();
-                    lock();
+                    dbgMutex.lock();
                     csr = (csr & ~(DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
-                    unlock();
+                    dbgMutex.unlock();
                 }
                 else
                     return true;
@@ -1155,12 +1155,4 @@ bool FDbg::waitStop(FExec *exec) {
         FlintAPI::Thread::yield();
     }
     return (csr & DBG_CONTROL_STOP) ? true : false;
-}
-
-void FDbg::lock(void) {
-    dbgMutex.lock();
-}
-
-void FDbg::unlock(void) {
-    dbgMutex.unlock();
 }
