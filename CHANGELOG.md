@@ -1,4 +1,8 @@
 # Change Log
+## V2.4.1
+- Fix serious bug: The comparison operation in FDict is running incorrectly.
+- Check current thread in FMutex::unlock.
+- Use a separate mutex for the debugger's console.
 ## V2.4.0
 - Supports loading and executing `JAR` files instead of classes scattered across memory.
 - Use the same CRC type for the debugger's send and receive communication.
