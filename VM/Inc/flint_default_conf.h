@@ -47,4 +47,9 @@
     #warning "DBG_CONSOLE_BUFFER_SIZE is not defined. Default value will be used"
 #endif /* DBG_CONSOLE_BUFFER_SIZE */
 
+#ifndef FLINT_API_NET_ENABLED
+    #define FLINT_API_NET_ENABLED       0
+    #warning "DBG_CONSOLE_BUFFER_SIZE is not defined. Default disable"
+#endif /* FLINT_API_NET_ENABLED */
+
 #endif /* __FLINT_DEFAULT_CONF_H */

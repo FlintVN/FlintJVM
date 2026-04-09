@@ -21,25 +21,35 @@
 #include "flint_native_io_file_descriptor.h"
 #include "flint_native_io_file_input_stream.h"
 #include "flint_native_io_file_output_stream.h"
+#include "flint_native_flint_socket_impl.h"
+#include "flint_native_flint_inet_address_impl.h"
+#include "flint_native_flint_socket_input_Stream.h"
+#include "flint_native_flint_socket_output_Stream.h"
+#include "flint_native_flint_datagram_socket_impl.h"
 
 static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
-    NATIVE_CLASS("java/lang/Math",                  mathMethods),
-    NATIVE_CLASS("java/lang/Class",                 classMethods),
-    NATIVE_CLASS("java/lang/reflect/Array",         arrayMethods),
-    NATIVE_CLASS("java/lang/Float",                 floatMethods),
-    NATIVE_CLASS("java/lang/Double",                doubleMethods),
-    NATIVE_CLASS("java/lang/Object",                objectMethods),
-    NATIVE_CLASS("java/lang/String",                stringMethods),
-    NATIVE_CLASS("java/lang/System",                systemMethods),
-    NATIVE_CLASS("java/lang/Thread",                threadMethods),
-    NATIVE_CLASS("java/lang/Character",             characterMethods),
-    NATIVE_CLASS("java/lang/reflect/Method",        methodMethods),
-    NATIVE_CLASS("java/lang/reflect/Constructor",   constructorMethods),
-    NATIVE_CLASS("java/io/File",                    ioFileMethods),
-    NATIVE_CLASS("java/io/FileDescriptor",          fileDescriptorMethods),
-    NATIVE_CLASS("java/io/FileInputStream",         fileInputStreamMethods),
-    NATIVE_CLASS("java/io/FileOutputStream",        fileOutputStreamMethods),
-    NATIVE_CLASS("jdk/internal/reflect/Reflection", reflectionMethods),
+    NATIVE_CLASS("java/lang/Math",                    mathMethods),
+    NATIVE_CLASS("java/lang/Class",                   classMethods),
+    NATIVE_CLASS("java/lang/reflect/Array",           arrayMethods),
+    NATIVE_CLASS("java/lang/Float",                   floatMethods),
+    NATIVE_CLASS("java/lang/Double",                  doubleMethods),
+    NATIVE_CLASS("java/lang/Object",                  objectMethods),
+    NATIVE_CLASS("java/lang/String",                  stringMethods),
+    NATIVE_CLASS("java/lang/System",                  systemMethods),
+    NATIVE_CLASS("java/lang/Thread",                  threadMethods),
+    NATIVE_CLASS("java/lang/Character",               characterMethods),
+    NATIVE_CLASS("java/lang/reflect/Method",          methodMethods),
+    NATIVE_CLASS("java/lang/reflect/Constructor",     constructorMethods),
+    NATIVE_CLASS("java/io/File",                      ioFileMethods),
+    NATIVE_CLASS("java/io/FileDescriptor",            fileDescriptorMethods),
+    NATIVE_CLASS("java/io/FileInputStream",           fileInputStreamMethods),
+    NATIVE_CLASS("java/io/FileOutputStream",          fileOutputStreamMethods),
+    NATIVE_CLASS("jdk/internal/reflect/Reflection",   reflectionMethods),
+    NATIVE_CLASS("flint/net/FlintSocketImpl",         flintSocketImplMethods),
+    NATIVE_CLASS("flint/net/FlintInetAddressImpl",    flintInetAddressImplMethods),
+    NATIVE_CLASS("flint/net/FlintSocketInputStream",  flintSocketInputStreamMethods),
+    NATIVE_CLASS("flint/net/FlintSocketOutputStream", flintSocketOutputStreamMethods),
+    NATIVE_CLASS("flint/net/FlintDatagramSocketImpl", flintDatagramSocketImplMethods),
 };
 
 JNMPtr NativeClass::findNativeMethod(MethodInfo *methodInfo) {

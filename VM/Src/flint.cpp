@@ -50,7 +50,7 @@ static int32_t compareArrayClassName(const char *clsName, uint32_t dimensions, c
     return 0;
 }
 
-Flint::Flint(void) : flintLock(), loaders(), classes(), utf8s(), constStr(), execs(), objs(), globalObjs() {
+Flint::Flint(void) : flintLock(), loaders(), classes(), utf8s(), constStr(), execs(), objs(), globalObjs(), shutdownHook() {
     this->dbg = NULL;
     this->cwd = NULL;
     this->program = NULL;
@@ -976,6 +976,7 @@ void Flint::freeObject(JObject *obj) {
 }
 
 void Flint::freeAllObject(void) {
+    shutdownHook.forEach([this](Hook *hook) { hook->invoke(); Flint::free(hook); });
     lock();
     classes.forEach([this](JClassDictNode *item) { Flint::free(item); });
     classes.clear();
@@ -1030,4 +1031,21 @@ void Flint::freeAll(void) {
 
 void Flint::reset(void) {
     FlintAPI::System::reset();
+}
+
+Hook *Flint::addShutdownHook(FExec *ctx, void *handle, void (*func)(void *)) {
+    Hook *hook = (Hook *)Flint::malloc(ctx, sizeof(Hook));
+    if(hook == NULL) return NULL;
+    new (hook)Hook(handle, func);
+    lock();
+    shutdownHook.add(hook);
+    unlock();
+    return hook;
+}
+
+bool Flint::removeShutdownHook(Hook *hook) {
+    lock();
+    shutdownHook.remove(hook);
+    unlock();
+    return false;
 }

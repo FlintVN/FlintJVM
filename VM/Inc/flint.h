@@ -5,6 +5,7 @@
 #include <cstdarg>
 #include "flint_std.h"
 #include "flint_list.h"
+#include "flint_hook.h"
 #include "flint_mutex.h"
 #include "flint_execution.h"
 #include "flint_dictionary.h"
@@ -30,6 +31,7 @@ private:
     FList<FExec> execs;
     FList<JObject> objs;
     FList<JObject> globalObjs;
+    FList<Hook> shutdownHook;
 
     JClass *classOfClass;
 
@@ -62,9 +64,9 @@ public:
     void println(const char *ascii);
     void println(JString *str);
 
-     const char *getCwd(void);
-     void setCwd(const char *path);
-     const char *getClassPath(uint32_t index);
+    const char *getCwd(void);
+    void setCwd(const char *path);
+    const char *getClassPath(uint32_t index);
 
     bool setProgram(const char *jarPath, uint16_t length = 0xFFFF);
     const char *getProgram(void);
@@ -112,6 +114,9 @@ public:
     void freeAllExecution(void);
     void freeAll(void);
     void reset(void);
+
+    Hook *addShutdownHook(FExec *ctx, void *handle, void (*func)(void *));
+    bool removeShutdownHook(Hook *hook);
 private:
     void freeAllObject(void);
     void freeAllClassLoader(void);

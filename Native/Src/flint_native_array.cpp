@@ -2,6 +2,7 @@
 #include <string.h>
 #include "flint.h"
 #include "flint_common.h"
+#include "flint_native_common.h"
 #include "flint_java_class.h"
 #include "flint_array_object.h"
 #include "flint_native_array.h"
@@ -27,17 +28,6 @@ static bool CheckIsClassType(FNIEnv *env, jobject obj) {
     else if(obj->type != NULL) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "componentType %s is not a Class object", obj->getTypeName());
-        return false;
-    }
-    return true;
-}
-
-static bool CheckIndex(FNIEnv *env, jarray array, int32_t index) {
-    if(index < 0 || index >= array->getLength()) {
-        jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
-        uint16_t len;
-        const char *name = array->getCompTypeName(&len);
-        env->throwNew(excpCls, "index %d out of bounds for %.*s[%d]", index, len, name, array->getLength());
         return false;
     }
     return true;
