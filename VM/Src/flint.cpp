@@ -961,9 +961,10 @@ void Flint::terminateRequest(void) {
 }
 
 void Flint::terminate(void) {
-    terminateRequest();
-    while(isRunning())
+    do {
+        terminateRequest();
         FlintAPI::Thread::sleep(1);
+    } while(isRunning());
 }
 
 void Flint::freeObject(JObject *obj) {
@@ -976,8 +977,9 @@ void Flint::freeObject(JObject *obj) {
 }
 
 void Flint::freeAllObject(void) {
-    shutdownHook.forEach([this](Hook *hook) { hook->invoke(); Flint::free(hook); });
     lock();
+    shutdownHook.forEach([this](Hook *hook) { hook->invoke(); Flint::free(hook); });
+    shutdownHook.clear();
     classes.forEach([this](JClassDictNode *item) { Flint::free(item); });
     classes.clear();
     constStr.forEach([this](JStringDictNode *item) { Flint::free(item); });

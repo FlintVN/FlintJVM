@@ -602,10 +602,14 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
 
     /* Lock Class/Object if method is SYNCHRONIZED */
     if(flag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if(flag & METHOD_NATIVE) while(lockClass(methodInfo->loader) == false)
+        if(flag & METHOD_NATIVE) while(lockClass(methodInfo->loader) == false) {
+            if(FExec::hasTerminateRequest()) return 0;
             FlintAPI::Thread::yield();
-        else while(lockObject((JObject *)stack[sp - argc - 1]) == false)
+        }
+        else while(lockObject((JObject *)stack[sp - argc - 1]) == false) {
+            if(FExec::hasTerminateRequest()) return 0;
             FlintAPI::Thread::yield();
+        }
     }
 
     invoke(methodInfo, argc);
