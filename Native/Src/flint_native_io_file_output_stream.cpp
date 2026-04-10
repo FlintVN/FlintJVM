@@ -40,11 +40,15 @@ jvoid NativeFileOutputStream_Open(FNIEnv *env, jobject obj, jstring name, jbool 
             fileMode = (FlintAPI::IO::FileMode)(FlintAPI::IO::FILE_MODE_APPEND | FlintAPI::IO::FILE_MODE_WRITE);
         else
             fileMode = (FlintAPI::IO::FileMode)(FlintAPI::IO::FILE_MODE_CREATE_ALWAYS | FlintAPI::IO::FILE_MODE_WRITE);
+        FExec *exec = (FExec *)env;
         auto handle = FlintAPI::IO::fopen(buff, fileMode);
-        if(handle == NULL)
+        Hook *hook = (handle == NULL) ? NULL : exec->getFlint()->addShutdownHook(exec, handle, (void (*)(void*))FlintAPI::IO::fclose);
+        if(hook == NULL) {
+            if(handle != NULL) FlintAPI::IO::fclose(handle);
             env->throwNew(env->findClass("java/io/FileNotFoundException"), "File opening failed");
+        }
         else
-            fdObj->getFieldByIndex(0)->setInt32((int32_t)handle);
+            fdObj->getFieldByIndex(0)->setInt32((int32_t)hook);
     }
     flint->unlock();
 }
@@ -67,7 +71,8 @@ jvoid NativeFileOutputStream_Write(FNIEnv *env, jobject obj, jint b) {
     else {
         uint8_t data = b & 0xFF;
         uint32_t bw = 0;
-        auto result = FlintAPI::IO::fwrite((FlintAPI::IO::FileHandle)fd, &data, 1, &bw);
+        void *handle = ((Hook *)fd)->getHandle();
+        auto result = FlintAPI::IO::fwrite((FlintAPI::IO::FileHandle)handle, &data, 1, &bw);
         if(result != FlintAPI::IO::FILE_RESULT_OK || bw != 1)
             env->throwNew(env->findClass("java/io/IOException"), "Error while writing file");
     }
@@ -106,7 +111,8 @@ jvoid NativeFileOutputStream_WriteBytes(FNIEnv *env, jobject obj, jbyteArray b, 
     else {
         int8_t *data = &b->getData()[off];
         uint32_t bw = 0;
-        auto result = FlintAPI::IO::fwrite((FlintAPI::IO::FileHandle)fd, data, len, &bw);
+        void *handle = ((Hook *)fd)->getHandle();
+        auto result = FlintAPI::IO::fwrite((FlintAPI::IO::FileHandle)handle, data, len, &bw);
         if(result != FlintAPI::IO::FILE_RESULT_OK || bw != len)
             env->throwNew(env->findClass("java/io/IOException"), "Error while writing file");
     }
@@ -119,8 +125,11 @@ jvoid NativeFileOutputStream_Close(FNIEnv *env, jobject obj) {
     flint->lock();
     if(fd != -1) {
         if(!(0 <= fd && fd <= 2)) {
-            if(FlintAPI::IO::fclose((FlintAPI::IO::FileHandle)fd) == FlintAPI::IO::FILE_RESULT_OK)
+            void *handle = ((Hook *)fd)->getHandle();
+            if(FlintAPI::IO::fclose((FlintAPI::IO::FileHandle)handle) == FlintAPI::IO::FILE_RESULT_OK) {
+                flint->removeShutdownHook((Hook *)fd);
                 fdObj->getFieldByIndex(0)->setInt32(-1);
+            }
             else
                 env->throwNew(env->findClass("java/io/IOException"), "File closing failed");
         }

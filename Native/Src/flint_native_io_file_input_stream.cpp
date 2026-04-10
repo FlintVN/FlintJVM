@@ -43,11 +43,15 @@ jvoid NativeFileInputStream_Open(FNIEnv *env, jobject obj, jstring name) {
     if(fd != -1)
         env->throwNew(env->findClass("java/io/IOException"), "File has been opened");
     else {
+        FExec *exec = (FExec *)env;
         auto handle = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_READ);
-        if(handle == NULL)
+        Hook *hook = (handle == NULL) ? NULL : exec->getFlint()->addShutdownHook(exec, handle, (void (*)(void*))FlintAPI::IO::fclose);
+        if(hook == NULL) {
+            if(handle != NULL) FlintAPI::IO::fclose(handle);
             env->throwNew(env->findClass("java/io/FileNotFoundException"), "File opening failed");
+        }
         else
-            fdObj->getFieldByIndex(0)->setInt32((int32_t)handle);
+            fdObj->getFieldByIndex(0)->setInt32((int32_t)hook);
     }
     flint->unlock();
 }
@@ -67,7 +71,8 @@ jint NativeFileInputStream_Read(FNIEnv *env, jobject obj) {
     else {
         uint8_t data;
         uint32_t br = 0;
-        auto result = FlintAPI::IO::fread((FlintAPI::IO::FileHandle)fd, &data, 1, &br);
+        void *handle = ((Hook *)fd)->getHandle();
+        auto result = FlintAPI::IO::fread((FlintAPI::IO::FileHandle)handle, &data, 1, &br);
         if(result != FlintAPI::IO::FILE_RESULT_OK)
             env->throwNew(env->findClass("java/io/IOException"), "Error while writing file");
         return (br == 1) ? data : -1;
@@ -105,7 +110,8 @@ jint NativeFileInputStream_ReadBytes(FNIEnv *env, jobject obj, jbyteArray b, jin
     else {
         int8_t *buff = &b->getData()[off];
         uint32_t br = 0;
-        auto result = FlintAPI::IO::fread((FlintAPI::IO::FileHandle)fd, buff, len, &br);
+        void *handle = ((Hook *)fd)->getHandle();
+        auto result = FlintAPI::IO::fread((FlintAPI::IO::FileHandle)handle, buff, len, &br);
         if(result != FlintAPI::IO::FILE_RESULT_OK)
             env->throwNew(env->findClass("java/io/IOException"), "Error while writing file");
         return br;
@@ -115,29 +121,33 @@ jint NativeFileInputStream_ReadBytes(FNIEnv *env, jobject obj, jbyteArray b, jin
 jlong NativeFileInputStream_Length(FNIEnv *env, jobject obj) {
     jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
-    return FlintAPI::IO::fsize((FlintAPI::IO::FileHandle)fd);
+    void *handle = ((Hook *)fd)->getHandle();
+    return FlintAPI::IO::fsize((FlintAPI::IO::FileHandle)handle);
 }
 
 jlong NativeFileInputStream_Position(FNIEnv *env, jobject obj) {
     jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
-    return FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd);
+    void *handle = ((Hook *)fd)->getHandle();
+    return FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)handle);
 }
 
 jlong NativeFileInputStream_Skip(FNIEnv *env, jobject obj, jlong n) {
     jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
     if(n > 0xFFFFFFFF) n = 0xFFFFFFFF;
-    jint oldPos = FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd);
-    if(FlintAPI::IO::fseek((FlintAPI::IO::FileHandle)fd, (uint32_t)(n + oldPos)) != FlintAPI::IO::FILE_RESULT_OK)
+    void *handle = ((Hook *)fd)->getHandle();
+    jint oldPos = FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)handle);
+    if(FlintAPI::IO::fseek((FlintAPI::IO::FileHandle)handle, (uint32_t)(n + oldPos)) != FlintAPI::IO::FILE_RESULT_OK)
         return 0;
-    return FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)fd) - oldPos;
+    return FlintAPI::IO::ftell((FlintAPI::IO::FileHandle)handle) - oldPos;
 }
 
 jint NativeFileInputStream_Available(FNIEnv *env, jobject obj) {
     jint fd = GetFd(env, obj);
     if(fd == -1) return 0;
-    auto h = (FlintAPI::IO::FileHandle)fd;
+    void *handle = ((Hook *)fd)->getHandle();
+    auto h = (FlintAPI::IO::FileHandle)handle;
     return FlintAPI::IO::fsize(h) - FlintAPI::IO::ftell(h);
 }
 
@@ -148,8 +158,11 @@ jvoid NativeFileInputStream_Close(FNIEnv *env, jobject obj) {
     flint->lock();
     if(fd != -1) {
         if(!(0 <= fd && fd <= 2)) {
-            if(FlintAPI::IO::fclose((FlintAPI::IO::FileHandle)fd) == FlintAPI::IO::FILE_RESULT_OK)
+            void *handle = ((Hook *)fd)->getHandle();
+            if(FlintAPI::IO::fclose((FlintAPI::IO::FileHandle)handle) == FlintAPI::IO::FILE_RESULT_OK) {
+                flint->removeShutdownHook((Hook *)fd);
                 fdObj->getFieldByIndex(0)->setInt32(-1);
+            }
             else
                 env->throwNew(env->findClass("java/io/IOException"), "File closing failed");
         }
