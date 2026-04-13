@@ -32,16 +32,4 @@ jvoid NativeFlintSocketOutputStream_SocketWrite(FNIEnv *env, jobject obj, jbyteA
     }
 }
 
-#else
-
-jvoid NativeFlintSocketOutputStream_SocketWrite(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
-    (void)env;
-    (void)obj;
-    (void)b;
-    (void)off;
-    (void)len;
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "Network system not supported");
-    return;
-}
-
 #endif /* FLINT_API_NET_ENABLED */

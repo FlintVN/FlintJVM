@@ -132,36 +132,4 @@ jobject NativeFlintInetAddressImpl_AnyLocalAddress(FNIEnv *env, jobject obj) {
     return inetAddr;
 }
 
-#else
-
-jstring NativeFlintInetAddressImpl_GetLocalHostName(FNIEnv *env, jobject obj) {
-    (void)env;
-    (void)obj;
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "Network system not supported");
-    return NULL;
-}
-
-jobjectArray NativeFlintInetAddressImpl_LookupAllHostAddr(FNIEnv *env, jobject obj, jstring hostname) {
-    (void)env;
-    (void)obj;
-    (void)hostname;
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "Network system not supported");
-    return NULL;
-}
-
-jstring NativeFlintInetAddressImpl_GetHostByAddr(FNIEnv *env, jobject obj, jbyteArray addr) {
-    (void)env;
-    (void)obj;
-    (void)addr;
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "Network system not supported");
-    return NULL;
-}
-
-jobject NativeFlintInetAddressImpl_AnyLocalAddress(FNIEnv *env, jobject obj) {
-    (void)env;
-    (void)obj;
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "Network system not supported");
-    return NULL;
-}
-
 #endif /* FLINT_API_NET_ENABLED */

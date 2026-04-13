@@ -36,16 +36,4 @@ jint NativeFlintSocketInputStream_SocketRead(FNIEnv *env, jobject obj, jbyteArra
     return -1;
 }
 
-#else
-
-jint NativeFlintSocketInputStream_SocketRead(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
-    (void)env;
-    (void)obj;
-    (void)b;
-    (void)off;
-    (void)len;
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "Network system not supported");
-    return NULL;
-}
-
 #endif /* FLINT_API_NET_ENABLED */

@@ -4,6 +4,9 @@
 #define __FLINT_NATIVE_FLINT_SOCKET_IMPL_H
 
 #include "flint_native.h"
+#include "flint_default_conf.h"
+
+#if FLINT_API_NET_ENABLED
 
 jvoid NativeFlintSocketImpl_SocketCreate(FNIEnv *env, jobject obj);
 jvoid NativeFlintSocketImpl_SocketConnect(FNIEnv *env, jobject obj, jobject address, jint port);
@@ -28,5 +31,7 @@ inline constexpr NativeMethod flintSocketImplMethods[] = {
     NATIVE_METHOD("socketSetOption", "(IZLjava/lang/Object;)V",    NativeFlintSocketImpl_SocketSetOption),
     NATIVE_METHOD("socketGetOption", "(I)Ljava/lang/Object;",      NativeFlintSocketImpl_SocketGetOption),
 };
+
+#endif /* FLINT_API_NET_ENABLED */
 
 #endif /* __FLINT_NATIVE_FLINT_SOCKET_IMPL_H */

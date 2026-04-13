@@ -4,6 +4,9 @@
 #define __FLINT_NATIVE_FLINT_DATAGRAM_SOCKET_IMPL_H
 
 #include "flint_native.h"
+#include "flint_default_conf.h"
+
+#if FLINT_API_NET_ENABLED
 
 jvoid NativeFlintDatagramSocketImpl_Bind(FNIEnv *env, jobject obj, jint lport, jobject laddr);
 jvoid NativeFlintDatagramSocketImpl_Send(FNIEnv *env, jobject obj, jobject p);
@@ -32,5 +35,7 @@ inline constexpr NativeMethod flintDatagramSocketImplMethods[] = {
     NATIVE_METHOD("socketSetOption",      "(ILjava/lang/Object;)V",       NativeFlintDatagramSocketImpl_SocketSetOption),
     NATIVE_METHOD("socketGetOption",      "(I)Ljava/lang/Object;",        NativeFlintDatagramSocketImpl_SocketGetOption),
 };
+
+#endif /* FLINT_API_NET_ENABLED */
 
 #endif /* __FLINT_NATIVE_FLINT_DATAGRAM_SOCKET_IMPL_H */

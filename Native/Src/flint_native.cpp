@@ -21,11 +21,14 @@
 #include "flint_native_io_file_descriptor.h"
 #include "flint_native_io_file_input_stream.h"
 #include "flint_native_io_file_output_stream.h"
+
+#if FLINT_API_NET_ENABLED
 #include "flint_native_flint_socket_impl.h"
 #include "flint_native_flint_inet_address_impl.h"
 #include "flint_native_flint_socket_input_Stream.h"
 #include "flint_native_flint_socket_output_Stream.h"
 #include "flint_native_flint_datagram_socket_impl.h"
+#endif /* FLINT_API_NET_ENABLED */
 
 static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/lang/Math",                    mathMethods),
@@ -45,11 +48,13 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/io/FileInputStream",           fileInputStreamMethods),
     NATIVE_CLASS("java/io/FileOutputStream",          fileOutputStreamMethods),
     NATIVE_CLASS("jdk/internal/reflect/Reflection",   reflectionMethods),
+#if FLINT_API_NET_ENABLED
     NATIVE_CLASS("flint/net/FlintSocketImpl",         flintSocketImplMethods),
     NATIVE_CLASS("flint/net/FlintInetAddressImpl",    flintInetAddressImplMethods),
     NATIVE_CLASS("flint/net/FlintSocketInputStream",  flintSocketInputStreamMethods),
     NATIVE_CLASS("flint/net/FlintSocketOutputStream", flintSocketOutputStreamMethods),
     NATIVE_CLASS("flint/net/FlintDatagramSocketImpl", flintDatagramSocketImplMethods),
+#endif /* FLINT_API_NET_ENABLED */
 };
 
 JNMPtr NativeClass::findNativeMethod(MethodInfo *methodInfo) {

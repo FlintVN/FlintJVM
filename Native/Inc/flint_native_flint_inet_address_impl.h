@@ -4,6 +4,9 @@
 #define __FLINT_NATIVE_FLINT_INET_ADDRESS_IMPL_H
 
 #include "flint_native.h"
+#include "flint_default_conf.h"
+
+#if FLINT_API_NET_ENABLED
 
 jstring NativeFlintInetAddressImpl_GetLocalHostName(FNIEnv *env, jobject obj);
 jobjectArray NativeFlintInetAddressImpl_LookupAllHostAddr(FNIEnv *env, jobject obj, jstring hostname);
@@ -16,5 +19,7 @@ inline constexpr NativeMethod flintInetAddressImplMethods[] = {
     NATIVE_METHOD("getHostByAddr",     "([B)Ljava/lang/String;",                      NativeFlintInetAddressImpl_GetHostByAddr),
     NATIVE_METHOD("anyLocalAddress",   "()Ljava/net/InetAddress;",                    NativeFlintInetAddressImpl_AnyLocalAddress),
 };
+
+#endif /* FLINT_API_NET_ENABLED */
 
 #endif /* __FLINT_NATIVE_FLINT_INET_ADDRESS_IMPL_H */
