@@ -1,6 +1,6 @@
 
-#ifndef __FLINT_NATIVE_IO_FILE_OUTPUT_STREAM_H
-#define __FLINT_NATIVE_IO_FILE_OUTPUT_STREAM_H
+#ifndef __FLINT_NATIVE_FILE_OUTPUT_STREAM_H
+#define __FLINT_NATIVE_FILE_OUTPUT_STREAM_H
 
 #include "flint_native.h"
 
@@ -16,4 +16,4 @@ inline constexpr NativeMethod fileOutputStreamMethods[] = {
     NATIVE_METHOD("close",      "()V",                    NativeFileOutputStream_Close)
 };
 
-#endif /* __FLINT_NATIVE_IO_FILE_OUTPUT_STREAM_H */
+#endif /* __FLINT_NATIVE_FILE_OUTPUT_STREAM_H */

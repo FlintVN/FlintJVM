@@ -2,7 +2,7 @@
 #include <string.h>
 #include "flint.h"
 #include "flint_common.h"
-#include "flint_native_io_file.h"
+#include "flint_native_file.h"
 
 static const char *ResolvePath(FNIEnv *env, jobject file, char *buff, uint32_t buffSize) {
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
@@ -22,17 +22,17 @@ static FlintAPI::IO::DirHandle OpenDir(FNIEnv *env, jobject file) {
     return FlintAPI::IO::opendir(buff);
 }
 
-jchar NativeIoFile_GetSeparatorChar0(FNIEnv *env) {
+jchar NativeFile_GetSeparatorChar0(FNIEnv *env) {
     (void)env;
     return Flint::getPathSeparator();
 }
 
-jchar NativeIoFile_GetPathSeparatorChar0(FNIEnv *env) {
+jchar NativeFile_GetPathSeparatorChar0(FNIEnv *env) {
     (void)env;
     return ';';
 }
 
-jbool NativeIoFile_IsAbsolute(FNIEnv *env, jobject file) {
+jbool NativeFile_IsAbsolute(FNIEnv *env, jobject file) {
     (void)env;
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *txt = path->getAscii();
@@ -40,7 +40,7 @@ jbool NativeIoFile_IsAbsolute(FNIEnv *env, jobject file) {
     return Flint::isAbsolutePath(txt, len) ? true : false;
 }
 
-jstring NativeIoFile_GetAbsolutePath(FNIEnv *env, jobject file) {
+jstring NativeFile_GetAbsolutePath(FNIEnv *env, jobject file) {
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *txt = path->getAscii();
     uint32_t len = path->getLength();
@@ -53,14 +53,14 @@ jstring NativeIoFile_GetAbsolutePath(FNIEnv *env, jobject file) {
     }
 }
 
-jbool NativeIoFile_Exists(FNIEnv *env, jobject file) {
+jbool NativeFile_Exists(FNIEnv *env, jobject file) {
     (void)env;
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
     return FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK;
 }
 
-jbool NativeIoFile_CanWrite(FNIEnv *env, jobject file) {
+jbool NativeFile_CanWrite(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
@@ -69,7 +69,7 @@ jbool NativeIoFile_CanWrite(FNIEnv *env, jobject file) {
     return (fileInfo.system | fileInfo.readOnly) ? false : true;
 }
 
-jbool NativeIoFile_CanRead(FNIEnv *env, jobject file) {
+jbool NativeFile_CanRead(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
@@ -78,7 +78,7 @@ jbool NativeIoFile_CanRead(FNIEnv *env, jobject file) {
     return fileInfo.system ? false : true;
 }
 
-jbool NativeIoFile_IsFile(FNIEnv *env, jobject file) {
+jbool NativeFile_IsFile(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
@@ -87,11 +87,11 @@ jbool NativeIoFile_IsFile(FNIEnv *env, jobject file) {
     return fileInfo.directory ? false : true;
 }
 
-jbool NativeIoFile_IsDirectory(FNIEnv *env, jobject file) {
-    return !NativeIoFile_IsFile(env, file);
+jbool NativeFile_IsDirectory(FNIEnv *env, jobject file) {
+    return !NativeFile_IsFile(env, file);
 }
 
-jbool NativeIoFile_IsHidden(FNIEnv *env, jobject file) {
+jbool NativeFile_IsHidden(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
@@ -100,7 +100,7 @@ jbool NativeIoFile_IsHidden(FNIEnv *env, jobject file) {
     return fileInfo.hidden ? true : false;
 }
 
-jlong NativeIoFile_LastModified(FNIEnv *env, jobject file) {
+jlong NativeFile_LastModified(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
@@ -109,7 +109,7 @@ jlong NativeIoFile_LastModified(FNIEnv *env, jobject file) {
     return fileInfo.time;
 }
 
-jlong NativeIoFile_Length(FNIEnv *env, jobject file) {
+jlong NativeFile_Length(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
@@ -118,13 +118,13 @@ jlong NativeIoFile_Length(FNIEnv *env, jobject file) {
     return fileInfo.size;
 }
 
-jbool NativeIoFile_Mkdir(FNIEnv *env, jobject file) {
+jbool NativeFile_Mkdir(FNIEnv *env, jobject file) {
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
     return FlintAPI::IO::mkdir(buff) == FlintAPI::IO::FILE_RESULT_OK;
 }
 
-jbool NativeIoFile_RenameTo(FNIEnv *env, jobject file, jobject dest) {
+jbool NativeFile_RenameTo(FNIEnv *env, jobject file, jobject dest) {
     if(dest == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return false;
@@ -136,17 +136,17 @@ jbool NativeIoFile_RenameTo(FNIEnv *env, jobject file, jobject dest) {
     return FlintAPI::IO::frename(buff1, buff2) == FlintAPI::IO::FILE_RESULT_OK;
 }
 
-jbool NativeIoFile_Delete0(FNIEnv *env, jobject file) {
+jbool NativeFile_Delete0(FNIEnv *env, jobject file) {
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
     return FlintAPI::IO::fremove(buff) == FlintAPI::IO::FILE_RESULT_OK;
 }
 
-jbool NativeIoFile_Rmdir0(FNIEnv *env, jobject file) {
-    return NativeIoFile_Delete0(env, file);
+jbool NativeFile_Rmdir0(FNIEnv *env, jobject file) {
+    return NativeFile_Delete0(env, file);
 }
 
-jobjectArray NativeIoFile_List(FNIEnv *env, jobject file) {
+jobjectArray NativeFile_List(FNIEnv *env, jobject file) {
     auto handle = OpenDir(env, file);
     if(handle == NULL) return NULL;
 
@@ -193,7 +193,7 @@ jobjectArray NativeIoFile_List(FNIEnv *env, jobject file) {
     return NULL;
 }
 
-jstring NativeIoFile_GetCanonicalPath(FNIEnv *env, jobject file, jstring path) {
+jstring NativeFile_GetCanonicalPath(FNIEnv *env, jobject file, jstring path) {
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
     char sep = Flint::getPathSeparator();
@@ -222,7 +222,7 @@ jstring NativeIoFile_GetCanonicalPath(FNIEnv *env, jobject file, jstring path) {
     return ((FExec *)env)->getFlint()->newString((FExec *)env, buff);
 }
 
-jbool NativeIoFile_CreateNewFile(FNIEnv *env, jobject file) {
+jbool NativeFile_CreateNewFile(FNIEnv *env, jobject file) {
     char buff[FILE_NAME_BUFF_SIZE];
     if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
     auto f = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_CREATE_NEW);

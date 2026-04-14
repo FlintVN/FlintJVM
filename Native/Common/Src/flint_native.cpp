@@ -14,13 +14,13 @@
 #include "flint_native_system.h"
 #include "flint_native_thread.h"
 #include "flint_native_method.h"
-#include "flint_native_io_file.h"
 #include "flint_native_character.h"
 #include "flint_native_reflection.h"
 #include "flint_native_constructor.h"
-#include "flint_native_io_file_descriptor.h"
-#include "flint_native_io_file_input_stream.h"
-#include "flint_native_io_file_output_stream.h"
+#include "flint_native_file.h"
+#include "flint_native_file_descriptor.h"
+#include "flint_native_file_input_stream.h"
+#include "flint_native_file_output_stream.h"
 
 #if FLINT_API_NET_ENABLED
 #include "flint_native_flint_socket_impl.h"
@@ -43,11 +43,12 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/lang/Character",               characterMethods),
     NATIVE_CLASS("java/lang/reflect/Method",          methodMethods),
     NATIVE_CLASS("java/lang/reflect/Constructor",     constructorMethods),
-    NATIVE_CLASS("java/io/File",                      ioFileMethods),
+    NATIVE_CLASS("java/io/File",                      fileMethods),
     NATIVE_CLASS("java/io/FileDescriptor",            fileDescriptorMethods),
     NATIVE_CLASS("java/io/FileInputStream",           fileInputStreamMethods),
     NATIVE_CLASS("java/io/FileOutputStream",          fileOutputStreamMethods),
     NATIVE_CLASS("jdk/internal/reflect/Reflection",   reflectionMethods),
+
 #if FLINT_API_NET_ENABLED
     NATIVE_CLASS("flint/net/FlintSocketImpl",         flintSocketImplMethods),
     NATIVE_CLASS("flint/net/FlintInetAddressImpl",    flintInetAddressImplMethods),

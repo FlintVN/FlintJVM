@@ -6,6 +6,9 @@
 #include "flint.h"
 #include "flint_java_object.h"
 #include "flint_java_string.h"
+#include "flint_default_conf.h"
+
+#if FLINT_API_NET_ENABLED
 
 class InetAddress : public JObject {
 public:
@@ -33,5 +36,7 @@ public:
     jbool getScopeIdSet() { return getFieldByIndex(4)->getInt32(); }
     void setScopeIdSet(jbool val) { return getFieldByIndex(4)->setInt32(val); }
 };
+
+#endif /* FLINT_API_NET_ENABLED */
 
 #endif /* __FLINT_JAVA_INET_ADDRESS_H */

@@ -1,6 +1,6 @@
 
-#ifndef __FLINT_NATIVE_IO_FILE_DESCRIPTOR_H
-#define __FLINT_NATIVE_IO_FILE_DESCRIPTOR_H
+#ifndef __FLINT_NATIVE_FILE_DESCRIPTOR_H
+#define __FLINT_NATIVE_FILE_DESCRIPTOR_H
 
 #include "flint_native.h"
 
@@ -10,4 +10,4 @@ inline constexpr NativeMethod fileDescriptorMethods[] = {
     NATIVE_METHOD("sync", "()V", NativeFileDescriptor_Sync),
 };
 
-#endif /* __FLINT_NATIVE_IO_FILE_DESCRIPTOR_H */
+#endif /* __FLINT_NATIVE_FILE_DESCRIPTOR_H */
