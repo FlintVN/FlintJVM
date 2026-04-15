@@ -13,7 +13,6 @@
 #define DBG_STATUS_EXCP             0x0004
 #define DBG_STATUS_CONSOLE          0x0008
 #define DBG_STATUS_DONE             0x0040
-#define DBG_STATUS_RESET            0x0080
 
 #define DBG_CONTROL_STOP            0x0100
 #define DBG_CONTROL_STEP_IN         0x0200
