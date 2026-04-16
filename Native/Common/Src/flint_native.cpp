@@ -30,6 +30,10 @@
 #include "flint_native_flint_datagram_socket_impl.h"
 #endif /* FLINT_API_NET_ENABLED */
 
+#if FLINT_API_DRAW_ENABLED
+#include "flint_native_argb565_graphics.h"
+#endif /* FLINT_API_DRAW_ENABLED */
+
 static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/lang/Math",                    mathMethods),
     NATIVE_CLASS("java/lang/Class",                   classMethods),
@@ -56,6 +60,10 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("flint/net/FlintSocketOutputStream", flintSocketOutputStreamMethods),
     NATIVE_CLASS("flint/net/FlintDatagramSocketImpl", flintDatagramSocketImplMethods),
 #endif /* FLINT_API_NET_ENABLED */
+
+#if FLINT_API_DRAW_ENABLED
+    NATIVE_CLASS("flint/drawing/Argb565Graphics",     argb565GraphicsMethods),
+#endif /* FLINT_API_DRAW_ENABLED */
 };
 
 JNMPtr NativeClass::findNativeMethod(MethodInfo *methodInfo) {
