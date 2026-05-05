@@ -26,5 +26,5 @@ void FlintAPI::Thread::sleep(uint32_t ms) {
 }
 
 void FlintAPI::Thread::yield(void) {
-    taskYIELD();
+    vTaskDelay(1);
 }
