@@ -2,10 +2,21 @@
 #ifndef __FLINT_JAVA_THREAD_H
 #define __FLINT_JAVA_THREAD_H
 
+#include "flint_system_api.h"
 #include "flint_java_object.h"
 
 class JThread : public JObject {
 public:
+    FlintAPI::Thread::ThreadHandle getHandle(void) const;
+    void setHandle(FlintAPI::Thread::ThreadHandle handle);
+
+    JString *getName(void) const;
+    void setName(JString *name);
+
+    bool getInterrupt(void) const;
+    void setInterrupt(void);
+    void clearInterrupt(void);
+
     JObject *getTask(void) const;
 protected:
     JThread(void) = delete;
