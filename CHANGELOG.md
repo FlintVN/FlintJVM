@@ -65,7 +65,7 @@
   - Support for building with `C++20`.
   - And there are many other changes that I may not remember.
 ## V1.1.7
-- Fixed bug in `FExec::getOnwerThread` function that did not return value.
+- Fixed bug in `FExec::getOwnerThread` function that did not return value.
 - Self-implemented mutex (No need to implement when porting).
 - Debugger:
   - Fixed bug breakpoints and jumps being jumped in place when static constructor is called.

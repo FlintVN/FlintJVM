@@ -26,7 +26,7 @@ private:
     int32_t startSp;
     int32_t peakSp;
     int32_t *locals;
-    JThread *onwerThread;
+    JThread *ownerThread;
     JThrowable *excp;
     int32_t stack[];
 
@@ -85,7 +85,7 @@ public:
     void vThrowNew(JClass *cls, const char *msg, va_list args);
     bool hasException(void) const;
 
-    JThread *getOnwerThread(void);
+    JThread *getOwnerThread(void);
 public:
     jclass findClass(const char *name, uint16_t length = 0xFFFF) __attribute__((used));
 
@@ -143,7 +143,7 @@ public:
     jbool hasTerminateRequest(void) __attribute__((used));
     jvoid freeObject(jobject obj) __attribute__((used));
 private:
-    FExec(Flint *flint, JThread *onwer, uint32_t stackSize);
+    FExec(Flint *flint, JThread *owner, uint32_t stackSize);
     FExec(const FExec &) = delete;
     void operator=(const FExec &) = delete;
 

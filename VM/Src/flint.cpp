@@ -372,19 +372,19 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
     return false;
 }
 
-FExec *Flint::newExecution(FExec *ctx, JThread *onwer, uint32_t stackSize) {
+FExec *Flint::newExecution(FExec *ctx, JThread *owner, uint32_t stackSize) {
     FExec *newExec = (FExec *)Flint::malloc(ctx, sizeof(FExec) + stackSize);
     if(newExec == NULL) return NULL;
-    if(onwer == NULL) {
-        onwer = (JThread *)newObject(ctx, findClass(ctx, "java/lang/Thread"));
-        if(onwer == NULL) {
+    if(owner == NULL) {
+        owner = (JThread *)newObject(ctx, findClass(ctx, "java/lang/Thread"));
+        if(owner == NULL) {
             Flint::free(newExec);
             return NULL;
         }
     }
-    onwer->setHandle(NULL);
-    onwer->clearInterrupt();
-    new (newExec)FExec(this, onwer, stackSize);
+    owner->setHandle(NULL);
+    owner->clearInterrupt();
+    new (newExec)FExec(this, owner, stackSize);
     lock();
     execs.add(newExec);
     unlock();
@@ -393,7 +393,7 @@ FExec *Flint::newExecution(FExec *ctx, JThread *onwer, uint32_t stackSize) {
 
 void Flint::freeExecution(FExec *exec) {
     lock();
-    exec->getOnwerThread()->setHandle(NULL);
+    exec->getOwnerThread()->setHandle(NULL);
     execs.remove(exec);
     Flint::free(exec);
     unlock();
@@ -877,8 +877,8 @@ void Flint::gc(void) {
         }
     });
     execs.forEach([this](FExec *exec) {
-        if(exec->onwerThread && (exec->onwerThread->getProtected() & 0x01) == 0)
-            markObjectRecursion(exec->onwerThread);
+        if(exec->ownerThread && (exec->ownerThread->getProtected() & 0x01) == 0)
+            markObjectRecursion(exec->ownerThread);
         if(exec->excp != NULL && ((uint32_t)exec->excp & 0x01) != 0 && (exec->excp->getProtected() & 0x01) == 0)
             markObjectRecursion(exec->excp);
         int32_t startSp = exec->startSp;
@@ -994,9 +994,9 @@ void Flint::freeAllObject(void) {
     classes.clear();
     constStr.forEach([this](JStringDictNode *item) { Flint::free(item); });
     constStr.clear();
-    objs.forEach([this](JObject *obj) { obj->onwerList = NULL; obj->destroy(this); Flint::free(obj); });
+    objs.forEach([this](JObject *obj) { obj->ownerList = NULL; obj->destroy(this); Flint::free(obj); });
     objs.clear();
-    globalObjs.forEach([this](JObject *obj) { obj->onwerList = NULL; obj->destroy(this); Flint::free(obj); });
+    globalObjs.forEach([this](JObject *obj) { obj->ownerList = NULL; obj->destroy(this); Flint::free(obj); });
     globalObjs.clear();
     objectCountToGc = 0;
     unlock();

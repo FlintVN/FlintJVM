@@ -76,11 +76,6 @@ namespace FlintAPI::IO {
 namespace FlintAPI::Thread {
     typedef void * ThreadHandle;
 
-    typedef enum : uint32_t {
-        NOTIFY_NONE = 0,
-        NOTIFY_ALL_OBJECT = 0xFFFFFFFF,
-    } NotifyType;
-
     ThreadHandle create(void (*task)(void *), void *param, uint32_t stackSize = 0);
     ThreadHandle getCurrentThread(void);
     void terminate(ThreadHandle handle);

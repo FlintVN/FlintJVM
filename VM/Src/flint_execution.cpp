@@ -353,13 +353,13 @@ jvoid FExec::freeObject(jobject obj) {
     flint->freeObject(obj);
 }
 
-FExec::FExec(Flint *flint, JThread *onwer, uint32_t stackSize) : ListNode(), FNIEnv(), flint(flint), stackLength(stackSize / sizeof(int32_t)) {
+FExec::FExec(Flint *flint, JThread *owner, uint32_t stackSize) : ListNode(), FNIEnv(), flint(flint), stackLength(stackSize / sizeof(int32_t)) {
     this->opcodes = 0;
     this->lr = -1;
     this->sp = -1;
     this->startSp = sp;
     this->peakSp = sp;
-    this->onwerThread = onwer;
+    this->ownerThread = owner;
     this->excp = NULL;
 }
 
@@ -2476,9 +2476,9 @@ bool FExec::run(MethodInfo *method, uint32_t argc, ...) {
         invoke(method, argc);
         FlintAPI::Thread::ThreadHandle handle = FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this);
         if(handle != NULL) {
-            getOnwerThread()->setHandle(handle);
-            getOnwerThread()->clearInterrupt();
-            FlintAPI::Thread::notify(handle, FlintAPI::Thread::NOTIFY_NONE);
+            getOwnerThread()->setHandle(handle);
+            getOwnerThread()->clearInterrupt();
+            FlintAPI::Thread::notify(handle, -1);
             return true;
         }
     }
@@ -2532,10 +2532,10 @@ void FExec::terminateRequest(void) {
 }
 
 jbool FExec::hasTerminateRequest(void) {
-    FlintAPI::Thread::notify(getOnwerThread()->getHandle(), FlintAPI::Thread::NOTIFY_NONE);
+    FlintAPI::Thread::notify(getOwnerThread()->getHandle(), -1);
     return (opcodes == opcodeLabelsExit);
 }
 
-JThread *FExec::getOnwerThread() {
-    return onwerThread;
+JThread *FExec::getOwnerThread() {
+    return ownerThread;
 }

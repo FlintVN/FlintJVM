@@ -6,11 +6,11 @@
 
 class ListNode {
 public:
-    void *onwerList;
+    void *ownerList;
     ListNode *next;
     ListNode *prev;
 protected:
-    ListNode(void) : onwerList(NULL), next(NULL), prev(NULL) {
+    ListNode(void) : ownerList(NULL), next(NULL), prev(NULL) {
 
     };
 private:
@@ -29,9 +29,9 @@ public:
     }
 
     void add(T *node) {
-        if(node->onwerList != NULL)
-            ((FList<T> *)node->onwerList)->remove(node);
-        node->onwerList = (void *)this;
+        if(node->ownerList != NULL)
+            ((FList<T> *)node->ownerList)->remove(node);
+        node->ownerList = (void *)this;
         node->prev = NULL;
         node->next = root;
         if(root != NULL)
@@ -40,7 +40,7 @@ public:
     }
 
     void remove(T *node) {
-        if(node->onwerList != (void *)this)
+        if(node->ownerList != (void *)this)
             return;
         ListNode *prev = node->prev;
         ListNode *next = node->next;
@@ -50,13 +50,13 @@ public:
             root = next;
         if(next)
             next->prev = prev;
-        node->onwerList = NULL;
+        node->ownerList = NULL;
         node->prev = NULL;
         node->next = NULL;
     }
 
     bool isContain(T *node) {
-        return (node->onwerList == (void *)this) && (root != NULL);
+        return (node->ownerList == (void *)this) && (root != NULL);
     }
 
     template<typename Func>
