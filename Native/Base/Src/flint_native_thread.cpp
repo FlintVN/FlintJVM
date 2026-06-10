@@ -1,5 +1,4 @@
 
-
 #include "flint.h"
 #include "flint_java_thread.h"
 #include "flint_system_api.h"
@@ -32,10 +31,9 @@ jvoid NativeThread_Yield0(FNIEnv *env) {
 }
 
 jvoid NativeThread_Interrupt0(FNIEnv *env, jthread thread) {
-    // TODO
     (void)env;
-    (void)thread;
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"), "interrupt0 is not implemented in VM");
+    FlintAPI::Thread::ThreadHandle handle = thread->getHandle();
+    FlintAPI::Thread::notify(handle, (uint32_t)handle);
 }
 
 jthread NativeThread_CurrentThread(FNIEnv *env) {
@@ -43,11 +41,18 @@ jthread NativeThread_CurrentThread(FNIEnv *env) {
 }
 
 jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis) {
-    uint64_t startTime = FlintAPI::System::getTimeMillis();
-    while((int64_t)(FlintAPI::System::getTimeMillis() - startTime) < (millis - 10)) {
-        FlintAPI::Thread::sleep(10);
+    int64_t startTime = FlintAPI::System::getTimeMillis();
+    while((int64_t)(FlintAPI::System::getTimeMillis() - startTime) < millis) {
+        int64_t remaining = millis - (FlintAPI::System::getTimeMillis() - startTime);
+        if(remaining > 1000) remaining = 1000;
+        else if(remaining < 0) return;
         if(env->hasTerminateRequest()) return;
+        jthread onwerThread = ((FExec *)env)->getOnwerThread();
+        if(onwerThread->getInterrupt()) {
+            onwerThread->clearInterrupt();
+            env->throwNew(env->findClass("java/lang/InterruptedException"), "sleep interrupted");
+            return;
+        }
+        FlintAPI::Thread::wait((uint32_t)remaining);
     }
-    int64_t remaining = millis - (FlintAPI::System::getTimeMillis() - startTime);
-    if(remaining > 0) FlintAPI::Thread::sleep((uint32_t)remaining);
 }

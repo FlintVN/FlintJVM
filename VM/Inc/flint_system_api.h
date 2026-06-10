@@ -76,11 +76,18 @@ namespace FlintAPI::IO {
 namespace FlintAPI::Thread {
     typedef void * ThreadHandle;
 
+    typedef enum : uint32_t {
+        NOTIFY_NONE = 0,
+        NOTIFY_ALL_OBJECT = 0xFFFFFFFF,
+    } NotifyType;
+
     ThreadHandle create(void (*task)(void *), void *param, uint32_t stackSize = 0);
     ThreadHandle getCurrentThread(void);
     void terminate(ThreadHandle handle);
     void sleep(uint32_t ms);
     void yield(void);
+    bool wait(uint32_t ms, uint32_t *notifyValue = NULL);
+    void notify(ThreadHandle handle, uint32_t notifyValue);
 };
 
 #ifdef FLINT_API_NET_ENABLED

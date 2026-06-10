@@ -2439,6 +2439,7 @@ void FExec::exec(bool initOpcodeLabels) {
 }
 
 void FExec::runTask(FExec *exec) {
+    FlintAPI::Thread::wait(0);
     Flint *flint = exec->getFlint();
     exec->exec(true);
     if(exec->excp != NULL) {
@@ -2473,7 +2474,13 @@ bool FExec::run(MethodInfo *method, uint32_t argc, ...) {
             stackPushArgs(argc, args);
         }
         invoke(method, argc);
-        return (FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this) != 0);
+        FlintAPI::Thread::ThreadHandle handle = FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this);
+        if(handle != NULL) {
+            getOnwerThread()->setHandle(handle);
+            getOnwerThread()->clearInterrupt();
+            FlintAPI::Thread::notify(handle, FlintAPI::Thread::NOTIFY_NONE);
+            return true;
+        }
     }
     return false;
 }
@@ -2525,17 +2532,10 @@ void FExec::terminateRequest(void) {
 }
 
 jbool FExec::hasTerminateRequest(void) {
+    FlintAPI::Thread::notify(getOnwerThread()->getHandle(), FlintAPI::Thread::NOTIFY_NONE);
     return (opcodes == opcodeLabelsExit);
 }
 
 JThread *FExec::getOnwerThread() {
-    flint->lock();
-    if(onwerThread == NULL) {
-        JObject *obj = flint->newObject(this, flint->findClass(this, "java/lang/Thread"));
-        if(obj != NULL) onwerThread = (JThread *)obj;
-        flint->unlock();
-        return (JThread *)obj;
-    }
-    flint->unlock();
     return onwerThread;
 }

@@ -28,3 +28,14 @@ void FlintAPI::Thread::sleep(uint32_t ms) {
 void FlintAPI::Thread::yield(void) {
     vTaskDelay(1);
 }
+
+bool FlintAPI::Thread::wait(uint32_t ms, uint32_t *notifyValue) {
+    if(ms > 0)
+        return xTaskNotifyWait(0, ULONG_MAX, notifyValue, pdMS_TO_TICKS(ms));
+    else
+        return xTaskNotifyWait(0, ULONG_MAX, notifyValue, portMAX_DELAY);
+}
+
+void FlintAPI::Thread::notify(ThreadHandle handle, uint32_t notifyValue) {
+    xTaskNotify((TaskHandle_t)handle, notifyValue, eSetValueWithOverwrite);
+}

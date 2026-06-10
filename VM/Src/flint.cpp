@@ -375,6 +375,15 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
 FExec *Flint::newExecution(FExec *ctx, JThread *onwer, uint32_t stackSize) {
     FExec *newExec = (FExec *)Flint::malloc(ctx, sizeof(FExec) + stackSize);
     if(newExec == NULL) return NULL;
+    if(onwer == NULL) {
+        onwer = (JThread *)newObject(ctx, findClass(ctx, "java/lang/Thread"));
+        if(onwer == NULL) {
+            Flint::free(newExec);
+            return NULL;
+        }
+    }
+    onwer->setHandle(NULL);
+    onwer->clearInterrupt();
     new (newExec)FExec(this, onwer, stackSize);
     lock();
     execs.add(newExec);
@@ -384,6 +393,7 @@ FExec *Flint::newExecution(FExec *ctx, JThread *onwer, uint32_t stackSize) {
 
 void Flint::freeExecution(FExec *exec) {
     lock();
+    exec->getOnwerThread()->setHandle(NULL);
     execs.remove(exec);
     Flint::free(exec);
     unlock();

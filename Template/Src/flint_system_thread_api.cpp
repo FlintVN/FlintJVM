@@ -22,3 +22,11 @@ void FlintAPI::Thread::sleep(uint32_t ms) {
 void FlintAPI::Thread::yield(void) {
     #error "FlintAPI::Thread::yield is not implemented in VM";
 }
+
+bool FlintAPI::Thread::wait(uint32_t ms, uint32_t *notifyValue) {
+    #error "FlintAPI::Thread::wait is not implemented in VM";
+}
+
+void FlintAPI::Thread::notify(ThreadHandle handle, uint32_t notifyValue) {
+    #error "FlintAPI::Thread::notify is not implemented in VM";
+}
