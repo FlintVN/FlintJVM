@@ -28,6 +28,7 @@ private:
     int32_t *locals;
     JThread *ownerThread;
     JThrowable *excp;
+    JObject *currentWaiting;
     int32_t stack[];
 
     void stackPushInt32(int32_t value);
@@ -86,6 +87,9 @@ public:
     bool hasException(void) const;
 
     JThread *getOwnerThread(void);
+
+    JObject *getCurrentWaiting(void);
+    void setCurrentWaiting(JObject *obj);
 public:
     jclass findClass(const char *name, uint16_t length = 0xFFFF) __attribute__((used));
 

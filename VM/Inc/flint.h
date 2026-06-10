@@ -117,6 +117,10 @@ public:
 
     Hook *addShutdownHook(FExec *ctx, void *handle, void (*func)(void *));
     bool removeShutdownHook(Hook *hook);
+
+    void wait(FExec *ctx, JObject *obj, int64_t millis);
+    void notify(FExec *ctx, JObject *obj);
+    void notifyAll(FExec *ctx, JObject *obj);
 private:
     void freeAllObject(void);
     void freeAllClassLoader(void);

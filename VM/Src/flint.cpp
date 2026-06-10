@@ -1061,3 +1061,95 @@ bool Flint::removeShutdownHook(Hook *hook) {
     unlock();
     return false;
 }
+
+void Flint::wait(FExec *ctx, JObject *obj, int64_t millis) {
+    int64_t startTime = FlintAPI::System::getTimeMillis();
+    if(ctx == NULL) return;
+    jthread ownerThread = ctx->getOwnerThread();
+    uint32_t notifyValue;
+
+    if(obj->monitorCount == 0 || obj->ownId != (uint32_t)ctx) {
+        ctx->throwNew(findClass(ctx, "java/lang/IllegalMonitorStateException"), "current thread is not owner");
+        return;
+    }
+
+    ctx->setCurrentWaiting(obj);
+    uint32_t monitorCountOld = obj->monitorCount;
+    obj->monitorCount = 0;
+    obj->ownId = 0;
+
+    if(millis > 0) {
+        while((int64_t)(FlintAPI::System::getTimeMillis() - startTime) < millis) {
+            int64_t remaining = millis - (FlintAPI::System::getTimeMillis() - startTime);
+            if(remaining > 1000) remaining = 1000;
+            else if(remaining < 0) break;
+            if(ctx->hasTerminateRequest() || ownerThread->getInterrupt()) break;
+            if((FlintAPI::Thread::wait((uint32_t)remaining, &notifyValue) == true) && (notifyValue == (uint32_t)obj)) break;
+        }
+    }
+    else {
+        while(true) {
+            if(ctx->hasTerminateRequest() || ownerThread->getInterrupt()) break;
+            if((FlintAPI::Thread::wait(0, &notifyValue) == true) && (notifyValue == (uint32_t)obj)) break;
+        }
+    }
+
+    volatile uint32_t *monitorCount = &obj->monitorCount;
+    if(!ctx->hasTerminateRequest()) {
+        while(!ctx->hasTerminateRequest()) {
+            if(*monitorCount == 0) {
+                lock();
+                if(*monitorCount == 0) {
+                    obj->monitorCount = monitorCountOld;
+                    obj->ownId = (uint32_t)ctx;
+                    unlock();
+                    break;
+                }
+                unlock();
+            }
+            FlintAPI::Thread::yield();
+        }
+        if(!ctx->hasTerminateRequest() && ownerThread->getInterrupt()) {
+            ctx->throwNew(findClass(ctx, "java/lang/InterruptedException"), "wait interrupted");
+            ownerThread->clearInterrupt();
+        }
+    }
+    ctx->setCurrentWaiting(NULL);
+}
+
+void Flint::notify(FExec *ctx, JObject *obj) {
+    if(ctx == NULL) return;
+    if(obj->monitorCount == 0 || obj->ownId != (uint32_t)ctx) {
+        ctx->throwNew(findClass(ctx, "java/lang/IllegalMonitorStateException"), "current thread is not owner");
+        return;
+    }
+
+    lock();
+    for(ListNode *node = execs.root; node != NULL;) {
+        ListNode *nextNode = node->next;
+        if(((FExec *)node)->getCurrentWaiting() == obj) {
+            FlintAPI::Thread::notify(((FExec *)node)->getOwnerThread()->getHandle(), (uint32_t)obj);
+            break;
+        }
+        node = nextNode;
+    }
+    unlock();
+}
+
+void Flint::notifyAll(FExec *ctx, JObject *obj) {
+    if(ctx == NULL) return;
+    if(obj->monitorCount == 0 || obj->ownId != (uint32_t)ctx) {
+        if(ctx != NULL)
+            ctx->throwNew(findClass(ctx, "java/lang/IllegalMonitorStateException"), "current thread is not owner");
+        return;
+    }
+
+    lock();
+    for(ListNode *node = execs.root; node != NULL;) {
+        ListNode *nextNode = node->next;
+        if(((FExec *)node)->getCurrentWaiting() == obj)
+            FlintAPI::Thread::notify(((FExec *)node)->getOwnerThread()->getHandle(), (uint32_t)obj);
+        node = nextNode;
+    }
+    unlock();
+}
