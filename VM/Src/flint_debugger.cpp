@@ -170,6 +170,7 @@ void FDbg::startDebugSessionRequest(const char *jarPath, uint16_t length) {
     flint->terminate();
     flint->freeAll();
     flint->reset();
+    consoleClear();
     if(flint->setProgram(jarPath, length))
         sendRespCode(DBG_CMD_START_DEBUG_SESSION, DBG_RESP_OK);
     else
@@ -317,6 +318,7 @@ void FDbg::restartRequest(void) {
     flint->freeAllExecution();
     flint->gc();
     flint->reset();
+    consoleClear();
     sendRespCode(DBG_CMD_RESTART, flint->start() ? DBG_RESP_OK : DBG_RESP_FAIL);
 }
 
