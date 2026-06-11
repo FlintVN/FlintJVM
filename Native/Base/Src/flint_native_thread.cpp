@@ -30,6 +30,14 @@ jvoid NativeThread_Yield0(FNIEnv *env) {
     FlintAPI::Thread::yield();
 }
 
+jvoid NativeThread_SetPriority0(FNIEnv *env, jthread thread, jint newPriority) {
+    // TODO
+    (void)env;
+    (void)thread;
+    (void)newPriority;
+    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"));
+}
+
 jvoid NativeThread_Interrupt0(FNIEnv *env, jthread thread) {
     (void)env;
     FlintAPI::Thread::ThreadHandle handle = thread->getHandle();
