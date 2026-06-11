@@ -1,5 +1,6 @@
 
 #include <string.h>
+#include "flint.h"
 #include "flint_java_class.h"
 #include "flint_system_api.h"
 #include "flint_array_object.h"
@@ -90,4 +91,15 @@ jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest
 jint NativeSystem_IdentityHashCode(FNIEnv *env, jobject obj) {
     (void)env;
     return (int32_t)obj;
+}
+
+jvoid NativeSystem_Exit(FNIEnv *env, jint status) {
+    Flint *flint = ((FExec *)env)->getFlint();
+    flint->setExitCode(status);
+    flint->terminateRequest();
+}
+
+jvoid NativeSystem_Gc(FNIEnv *env) {
+    (void)env;
+    // TODO
 }

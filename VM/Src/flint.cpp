@@ -61,6 +61,8 @@ Flint::Flint(void) : flintLock(), loaders(), classes(), utf8s(), constStr(), exe
     this->objectCountToGc = 0;
     this->heapStart = (void *)0xFFFFFFFF;
     this->headEnd = (void *)0x00;
+
+    this->exitCode = 0;
 }
 
 void Flint::updateHeapRegion(void *p) {
@@ -1065,6 +1067,14 @@ void Flint::freeAll(void) {
 
 void Flint::reset(void) {
     FlintAPI::System::reset();
+}
+
+void Flint::setExitCode(int32_t value) {
+    exitCode = value;
+}
+
+int32_t Flint::getExitCode(void) const {
+    return exitCode;
 }
 
 Hook *Flint::addShutdownHook(FExec *ctx, void *handle, void (*func)(void *)) {

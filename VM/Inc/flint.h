@@ -39,6 +39,8 @@ private:
     uint32_t objectCountToGc;
     void *heapStart;
     void *headEnd;
+
+    int32_t exitCode;
 private:
     void updateHeapRegion(void *p);
     void resetHeapRegion(void);
@@ -114,6 +116,9 @@ public:
     void freeAllExecution(void);
     void freeAll(void);
     void reset(void);
+
+    void setExitCode(int32_t value);
+    int32_t getExitCode(void) const;
 
     Hook *addShutdownHook(FExec *ctx, void *handle, void (*func)(void *));
     bool removeShutdownHook(Hook *hook);
