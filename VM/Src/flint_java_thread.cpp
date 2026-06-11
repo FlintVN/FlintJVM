@@ -33,3 +33,27 @@ void JThread::clearInterrupt(void) {
 JObject *JThread::getTask(void) const {
     return getFieldByIndex(3)->getObj();
 }
+
+int32_t JThread::getStackSize(void) const {
+    return getFieldByIndex(4)->getInt32();
+}
+
+void JThread::setStackSize(int32_t size) {
+    getFieldByIndex(4)->setInt32(size);
+}
+
+int32_t JThread::getPriority(void) const {
+    return getFieldByIndex(5)->getInt32();
+}
+
+void JThread::setPriority(int32_t priority) {
+    getFieldByIndex(5)->setInt32(priority);
+}
+
+bool JThread::isDaemon(void) const {
+    return getFieldByIndex(6)->getInt32() != 0;
+}
+
+void JThread::setDaemon(bool on) {
+    getFieldByIndex(6)->setInt32((int32_t)on);
+}

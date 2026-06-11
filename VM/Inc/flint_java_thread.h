@@ -18,6 +18,15 @@ public:
     void clearInterrupt(void);
 
     JObject *getTask(void) const;
+
+    int32_t getStackSize(void) const;
+    void setStackSize(int32_t size);
+
+    int32_t getPriority(void) const;
+    void setPriority(int32_t priority);
+
+    bool isDaemon(void) const;
+    void setDaemon(bool on);
 protected:
     JThread(void) = delete;
     JThread(const JThread &) = delete;

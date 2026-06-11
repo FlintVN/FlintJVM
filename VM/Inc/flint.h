@@ -88,7 +88,7 @@ public:
     bool isInstanceof(FExec *ctx, JObject *obj, JClass *type);
     bool isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType);
 
-    FExec *newExecution(FExec *ctx, JThread *owner = NULL, uint32_t stackSize = DEFAULT_STACK_SIZE);
+    FExec *newExecution(FExec *ctx, JThread *owner = NULL);
     void freeExecution(FExec *exec);
 
     JObject *newObject(FExec *ctx, JClass *type);

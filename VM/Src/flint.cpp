@@ -372,18 +372,26 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
     return false;
 }
 
-FExec *Flint::newExecution(FExec *ctx, JThread *owner, uint32_t stackSize) {
+FExec *Flint::newExecution(FExec *ctx, JThread *owner) {
+    uint32_t stackSize = DEFAULT_STACK_SIZE;
+    if(owner != NULL && owner->getStackSize() >= 64)
+        stackSize = owner->getStackSize();
+
     FExec *newExec = (FExec *)Flint::malloc(ctx, sizeof(FExec) + stackSize);
     if(newExec == NULL) return NULL;
+
     if(owner == NULL) {
         owner = (JThread *)newObject(ctx, findClass(ctx, "java/lang/Thread"));
         if(owner == NULL) {
             Flint::free(newExec);
             return NULL;
         }
+        owner->setPriority(5);
     }
     owner->setHandle(NULL);
     owner->clearInterrupt();
+    owner->setStackSize(stackSize);
+
     new (newExec)FExec(this, owner, stackSize);
     lock();
     execs.add(newExec);
@@ -392,10 +400,24 @@ FExec *Flint::newExecution(FExec *ctx, JThread *owner, uint32_t stackSize) {
 }
 
 void Flint::freeExecution(FExec *exec) {
+    bool isDaemon = exec->getOwnerThread()->isDaemon();
     lock();
+
     exec->getOwnerThread()->setHandle(NULL);
     execs.remove(exec);
     Flint::free(exec);
+
+    if(isDaemon == false) {
+        bool hasNoneDaemon = false;
+        for(ListNode *node = execs.root; node != NULL; node = node->next) {
+            if(((FExec *)node)->getOwnerThread()->isDaemon() == false) {
+                hasNoneDaemon = true;
+                break;
+            }
+        }
+        if(!hasNoneDaemon) terminateRequest();
+    }
+
     unlock();
 }
 
