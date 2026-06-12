@@ -1,4 +1,17 @@
 # Change Log
+## V2.5.0
+- Implement native methods for `flint.net`.
+- Supports the implementation of several SystemAPIs helps reduce workload when porting to a new device.
+- Support storing and managing files opened by the user, to release them (if not) when the program terminates.
+- Debugger:
+  - Disable VM state checks for file-related commands.
+  - Clear the console buffer before starting the debug session.
+- Supports `flint.drawing.Rgb565Graphics`.
+- Thread:
+  - Implement `Thread.interrupt0()` native method.
+  - Support create new execution (*FExec*) with stackSize specified from Java *Thread* and terminate all daemon Thread when the program terminated.
+- Implement the native methods `Object.wait()`, `Object.notify()` and `Object.notifyAll()`.
+- Implement native method `System.exit()`.
 ## V2.4.1
 - Fix serious bug: The comparison operation in FDict is running incorrectly.
 - Check current thread in FMutex::unlock.
