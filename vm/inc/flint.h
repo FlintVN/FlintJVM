@@ -41,6 +41,7 @@ private:
     void *headEnd;
 
     int32_t exitCode;
+    void (*termCb)(Flint *);
 private:
     void updateHeapRegion(void *p);
     void resetHeapRegion(void);
@@ -116,6 +117,8 @@ public:
     void freeAllExecution(void);
     void freeAll(void);
     void reset(void);
+
+    void terminatedCallback(void (*cb)(Flint *));
 
     void setExitCode(int32_t value);
     int32_t getExitCode(void) const;

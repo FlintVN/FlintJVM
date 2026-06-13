@@ -63,6 +63,7 @@ Flint::Flint(void) : flintLock(), loaders(), classes(), utf8s(), constStr(), exe
     this->headEnd = (void *)0x00;
 
     this->exitCode = 0;
+    this->termCb = NULL;
 }
 
 void Flint::updateHeapRegion(void *p) {
@@ -421,6 +422,8 @@ void Flint::freeExecution(FExec *exec) {
     }
 
     unlock();
+
+    if(termCb != NULL && !isRunning()) termCb(this);
 }
 
 JObject *Flint::newObject(FExec *ctx, JClass *type) {
@@ -1067,6 +1070,10 @@ void Flint::freeAll(void) {
 
 void Flint::reset(void) {
     FlintAPI::System::reset();
+}
+
+void Flint::terminatedCallback(void (*cb)(Flint *)) {
+    termCb = cb;
 }
 
 void Flint::setExitCode(int32_t value) {
