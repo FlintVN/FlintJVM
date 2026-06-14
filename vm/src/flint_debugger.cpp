@@ -36,7 +36,9 @@ FDbg::FDbg(void) : dbgMutex(), consoleMutex() {
 }
 
 void FDbg::setTarget(Flint *flint) {
+    dbgMutex.lock();
     this->flint = flint;
+    dbgMutex.unlock();
 }
 
 void FDbg::consoleWrite(uint8_t *utf8, uint32_t length) {
@@ -166,23 +168,31 @@ void FDbg::readInfoRequest(void) {
 }
 
 void FDbg::startDebugSessionRequest(const char *jarPath, uint16_t length) {
-    flint->setDebugger(this);
-    flint->terminate();
-    flint->freeAll();
-    flint->reset();
-    consoleClear();
-    if(flint->setProgram(jarPath, length))
-        sendRespCode(DBG_CMD_START_DEBUG_SESSION, DBG_RESP_OK);
-    else
-        sendRespCode(DBG_CMD_START_DEBUG_SESSION, DBG_RESP_FAIL);
+    dbgMutex.lock();
+    if(flint != NULL) {
+        flint->setDebugger(this);
+        flint->terminate();
+        flint->freeAll();
+        flint->reset();
+        consoleClear();
+        if(flint->setProgram(jarPath, length)) {
+            dbgMutex.unlock();
+            sendRespCode(DBG_CMD_START_DEBUG_SESSION, DBG_RESP_OK);
+            return;
+        }
+    }
+    dbgMutex.unlock();
+    sendRespCode(DBG_CMD_START_DEBUG_SESSION, DBG_RESP_FAIL);
 }
 
 void FDbg::readStatusRequest(void) {
     uint16_t tmp = csr | (consoleLength ? DBG_STATUS_CONSOLE : 0);
     if(tmp & (DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT))
         tmp &= ~(DBG_STATUS_STOP_SET | DBG_STATUS_STOP);
-    if(!flint->isRunning())
+    dbgMutex.lock();
+    if(flint == NULL || !flint->isRunning())
         tmp |= DBG_STATUS_DONE;
+    dbgMutex.unlock();
     initDataFrame(DBG_CMD_READ_STATUS, DBG_RESP_OK, 1);
     dataFrameAppend((uint8_t)tmp);
     if(dataFrameFinish() && (tmp & DBG_STATUS_STOP_SET)) {
@@ -302,22 +312,33 @@ void FDbg::stopRequest(void) {
     dbgMutex.lock();
     csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
     exec = NULL;
-    dbgMutex.unlock();
-    flint->stopRequest();
-    sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
+    if(flint != NULL) {
+        dbgMutex.unlock();
+        flint->stopRequest();
+        sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
+    }
+    else {
+        dbgMutex.unlock();
+        sendRespCode(DBG_CMD_STOP, DBG_RESP_FAIL);
+    }
 }
 
 void FDbg::restartRequest(void) {
     dbgMutex.lock();
     csr &= DBG_CONTROL_EXCP_EN;
     exec = NULL;
-    dbgMutex.unlock();
+    if(flint == NULL) {
+        dbgMutex.unlock();
+        sendRespCode(DBG_CMD_RESTART, DBG_RESP_FAIL);
+        return;
+    }
     flint->setDebugger(this);
     flint->terminate();
     flint->clearAllStaticFields();
     flint->freeAllExecution();
     flint->gc();
     flint->reset();
+    dbgMutex.unlock();
     consoleClear();
     sendRespCode(DBG_CMD_RESTART, flint->start() ? DBG_RESP_OK : DBG_RESP_FAIL);
 }
@@ -325,10 +346,15 @@ void FDbg::restartRequest(void) {
 void FDbg::terminateRequest(void) {
     dbgMutex.lock();
     csr = csr & DBG_CONTROL_EXCP_EN;
-    dbgMutex.unlock();
+    if(flint == NULL) {
+        dbgMutex.unlock();
+        sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
+        return;
+    }
     flint->terminate();
     flint->freeAll();
     flint->reset();
+    dbgMutex.unlock();
     sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
 }
 
