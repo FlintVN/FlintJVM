@@ -37,7 +37,7 @@ public:
 };
 
 static inline __attribute__((always_inline)) uint32_t ColorRgb565(uint32_t rgb888) {
-    return __builtin_bswap16(((rgb888 >> 19) & 0x1F) | ((rgb888 >> 5) & 0x07E0) | ((rgb888 << 8) & 0xF800)) | (rgb888 & 0xFF000000);
+    return __builtin_bswap16(((rgb888 >> 8) & 0xF800) | ((rgb888 >> 5) & 0x07E0) | ((rgb888 >> 3) & 0x1F)) | (rgb888 & 0xFF000000);
 }
 
 jvoid NativeRgb565Graphics_Clear1(FNIEnv *env, jobject obj) {
@@ -100,7 +100,14 @@ jvoid NativeRgb565Graphics_DrawRoundRect(FNIEnv *env, jobject obj, jobject c, ji
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
     jint ox = ((JRgb565Gfx)obj)->getOX();
     jint oy = ((JRgb565Gfx)obj)->getOY();
-    g.drawRoundRect(color, thk, x + ox, y + oy, w, h, r1, r2, r3, r4);
+    if(r1 < 0) r1 = 0;
+    if(r2 < 0) r2 = 0;
+    if(r3 < 0) r3 = 0;
+    if(r4 < 0) r4 = 0;
+    if(!r1 && !r2 && !r3 && !r4)
+        g.fillRect(color, x + ox, y + oy, w, h);
+    else
+        g.drawRoundRect(color, thk, x + ox, y + oy, w, h, r1, r2, r3, r4);
 }
 
 jvoid NativeRgb565Graphics_FillRoundRect(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h, jint r1, jint r2, jint r3, jint r4) {
@@ -112,7 +119,14 @@ jvoid NativeRgb565Graphics_FillRoundRect(FNIEnv *env, jobject obj, jobject c, ji
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
     jint ox = ((JRgb565Gfx)obj)->getOX();
     jint oy = ((JRgb565Gfx)obj)->getOY();
-    g.fillRoundRect(color, x + ox, y + oy, w, h, r1, r2, r3, r4);
+    if(r1 < 0) r1 = 0;
+    if(r2 < 0) r2 = 0;
+    if(r3 < 0) r3 = 0;
+    if(r4 < 0) r4 = 0;
+    if(!r1 && !r2 && !r3 && !r4)
+        g.fillRect(color, x + ox, y + oy, w, h);
+    else
+        g.fillRoundRect(color, x + ox, y + oy, w, h, r1, r2, r3, r4);
 }
 
 jvoid NativeRgb565Graphics_DrawEllipse(FNIEnv *env, jobject obj, jobject c, jint thk, jint x, jint y, jint w, jint h) {
