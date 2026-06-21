@@ -1718,7 +1718,7 @@ void Rgb565Gfx::drawLatin1(uint8_t *str, uint32_t len, Font *font, uint32_t colo
             x += c->getWidth() + space;
         }
         else {
-            fillRect(color, x, y, stdWidth - 1, stdHeight - 1);
+            fillRect(color, x, y, stdWidth, stdHeight);
             x += stdWidth + space;
         }
     }
@@ -1739,7 +1739,7 @@ void Rgb565Gfx::drawUTF16(uint8_t *str, uint32_t len, Font *font, uint32_t color
             x += c->getWidth() + space;
         }
         else {
-            fillRect(color, x, y, stdWidth - 1, stdHeight - 1);
+            fillRect(color, x, y, stdWidth, stdHeight);
             x += stdWidth + space;
         }
         str += 2;
