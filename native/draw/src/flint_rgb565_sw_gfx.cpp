@@ -10,8 +10,8 @@ typedef struct {
 } Point;
 
 static inline bool IsVisible(Rgb565Gfx *g, int32_t x, int32_t y, int32_t w, int32_t h) {
-    if(x > g->clipX2 || (x + w) < g->clipX1) return false;
-    if(y > g->clipY2 || (y + h) < g->clipY1) return false;
+    if(x > g->clipX2 || (x + w) <= g->clipX1) return false;
+    if(y > g->clipY2 || (y + h) <= g->clipY1) return false;
     return true;
 }
 
@@ -333,7 +333,7 @@ void Rgb565Gfx::drawRect(uint32_t color, int32_t thk, int32_t x, int32_t y, int3
 }
 
 void Rgb565Gfx::fillRect(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h) {
-    ((Rgb565GfxHelper *)this)->blendRect(color >> 27, color, x, y, x + w, y + h);
+    ((Rgb565GfxHelper *)this)->blendRect(color >> 27, color, x, y, x + w - 1, y + h - 1);
 }
 
 static void RadiusAdjustment(int32_t w, int32_t h, int32_t &r1, int32_t &r2, int32_t &r3, int32_t &r4) {
@@ -1556,18 +1556,18 @@ void Rgb565Gfx::fillRoundRect(uint32_t color, int32_t x, int32_t y, int32_t w, i
     uint8_t alpha = color >> 27;
     int32_t x1, x2;
     int32_t y1 = GFX_MAX(clipY1 - y, 0);
-    int32_t y2 = GFX_MIN(clipY2 - y, h);
+    int32_t y2 = GFX_MIN(clipY2 - y, h - 1);
 
     for(int32_t i = y1; i <= y2; i++) {
         x1 = x + (i < r1 ? r1 : (i > (h - r4) ? r4 : 0));
-        x2 = x + w - (i < r2 ? r2 : (i > (h - r3) ? r3 : 0));
+        x2 = x + w - 1 - (i < r2 ? r2 : (i > (h - r3) ? r3 : 0));
         ((Rgb565GfxHelper *)this)->blendHLine(alpha, color, x1, x2, i + y);
     }
 
     if(r1 > 0) FillQuarterCircle1(this, color, x, y, r1);
-    if(r2 > 0) FillQuarterCircle2(this, color, x + w - r2 + 1, y, r2);
-    if(r3 > 0) FillQuarterCircle3(this, color, x + w - r3 + 1, y + h - r3 + 1, r3);
-    if(r4 > 0) FillQuarterCircle4(this, color, x, y + h - r4 + 1, r4);
+    if(r2 > 0) FillQuarterCircle2(this, color, x + w - r2, y, r2);
+    if(r3 > 0) FillQuarterCircle3(this, color, x + w - r3, y + h - r3, r3);
+    if(r4 > 0) FillQuarterCircle4(this, color, x, y + h - r4, r4);
 }
 
 static void DrawImageRGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y) {
