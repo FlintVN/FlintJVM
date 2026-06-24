@@ -1688,16 +1688,19 @@ static void DrawChar(Rgb565GfxHelper *g, const CharInfo *c, uint32_t color, int3
     if(alpha == 0x1F) {
         for(int32_t cy = 0; cy < height; cy++) {
             int32_t py = y + cy + yOff;
-            if(!(g->clipY1 <= y && y <= g->clipY2)) continue;
+            if(!(g->clipY1 <= py && py <= g->clipY2)) continue;
             uint16_t *p = &((uint16_t *)g->data)[py * g->width + x];
-            for(int32_t cx = cx0; cx < cxw; cx++)
-                if(c->getPixel(cx, cy)) p[cx] = color;
+            for(int32_t cx = cx0; cx < cxw; cx++) {
+                int32_t px = x + cx;
+                if(g->clipX1 <= px && px <= g->clipX2)
+                    if(c->getPixel(cx, cy)) p[cx] = color;
+            }
         }
     }
     else {
         for(int32_t cy = 0; cy < height; cy++) {
             int32_t py = y + cy + yOff;
-            if(!(g->clipY1 <= y && y <= g->clipY2)) continue;
+            if(!(g->clipY1 <= py && py <= g->clipY2)) continue;
             for(int32_t cx = cx0; cx < cxw; cx++)
                 if(c->getPixel(cx, cy)) g->blendPixel(alpha, color, x + cx, py);
         }
