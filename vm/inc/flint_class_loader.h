@@ -98,7 +98,7 @@ public:
     FieldInfo *getFieldInfo(uint16_t fieldIndex) const;
 
     uint16_t getMethodsCount(void) const;
-    MethodInfo *getMethodInfo(FExec *ctx, uint8_t methodIndex);
+    MethodInfo *getMethodInfo(FExec *ctx, uint16_t methodIndex);
     MethodInfo *getMethodInfo(FExec *ctx, ConstNameAndType *nameAndType);
     MethodInfo *getMethodInfo(FExec *ctx, const char *name, const char *desc);
     MethodInfo *getMainMethodInfo(FExec *ctx);

@@ -31,11 +31,13 @@ jvoid NativeThread_Yield0(FNIEnv *env) {
 }
 
 jvoid NativeThread_SetPriority0(FNIEnv *env, jthread thread, jint newPriority) {
-    // TODO
+    /* Thread priority is advisory. We don't remap it onto the FreeRTOS scheduler
+     * (risk of starving the VM/render threads), so ignore it. Must NOT throw:
+     * J2ME code commonly does setPriority() immediately before start(), and
+     * throwing here prevents the thread from ever starting. */
     (void)env;
     (void)thread;
     (void)newPriority;
-    env->throwNew(env->findClass("java/lang/UnsupportedOperationException"));
 }
 
 jvoid NativeThread_Interrupt0(FNIEnv *env, jthread thread) {

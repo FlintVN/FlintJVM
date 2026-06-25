@@ -25,8 +25,8 @@
 #if FLINT_API_NET_ENABLED
 #include "flint_native_flint_socket_impl.h"
 #include "flint_native_flint_inet_address_impl.h"
-#include "flint_native_flint_socket_input_Stream.h"
-#include "flint_native_flint_socket_output_Stream.h"
+#include "flint_native_flint_socket_input_stream.h"
+#include "flint_native_flint_socket_output_stream.h"
 #include "flint_native_flint_datagram_socket_impl.h"
 #endif /* FLINT_API_NET_ENABLED */
 
