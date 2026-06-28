@@ -27,8 +27,8 @@ static void MeasureStringLatin1(uint8_t *str, uint32_t len, Font *font, uint32_t
         const CharInfo *c = font->getChar(*str++);
         if(c != NULL) {
             txtW += c->getWidth() + space;
-            uint8_t h = c->getHeight() + c->getYOffset();
-            if(h > txtH) txtH = h;
+            int32_t h = c->getHeight() + c->getYOffset();
+            if(h > (int32_t)txtH) txtH = h;
         }
         else {
             txtW += stdWidth + space;
@@ -61,8 +61,8 @@ static void MeasureStringUTF16(uint8_t *str, uint32_t len, Font *font, uint32_t 
         const CharInfo *c = font->getChar(unicode);
         if(c != NULL) {
             txtW += c->getWidth() + space;
-            uint8_t h = c->getHeight() + c->getYOffset();
-            if(h > txtH) txtH = h;
+            int32_t h = c->getHeight() + c->getYOffset();
+            if(h > (int32_t)txtH) txtH = h;
         }
         else {
             txtW += stdWidth + space;
