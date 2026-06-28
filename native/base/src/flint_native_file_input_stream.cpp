@@ -1,5 +1,5 @@
 
-#include "Flint.h"
+#include "flint.h"
 #include "flint_common.h"
 #include "flint_native_file_input_stream.h"
 

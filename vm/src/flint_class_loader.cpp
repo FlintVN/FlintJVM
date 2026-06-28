@@ -568,7 +568,7 @@ uint16_t ClassLoader::getMethodsCount(void) const {
     return methodsCount;
 }
 
-MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, uint8_t methodIndex) {
+MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, uint16_t methodIndex) {
     MethodInfo *method = &methods[methodIndex];
     if(method->accessFlag & METHOD_UNLOADED) {
         flint->lock();

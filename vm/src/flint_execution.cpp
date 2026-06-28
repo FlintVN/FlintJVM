@@ -749,6 +749,10 @@ void FExec::invokeStatic(ConstMethod *constMethod) {
 
 void FExec::invokeSpecial(ConstMethod *constMethod) {
     uint8_t argc = constMethod->getArgc() + 1;
+    if((JObject *)stack[sp - argc + 1] == NULL) {
+        JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
+        return FExec::throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", constMethod->className, constMethod->nameAndType->name);
+    }
     MethodInfo *methodInfo = constMethod->methodInfo;
     if(methodInfo == NULL) {
         methodInfo = flint->findMethod(this, flint->findClass(this, constMethod->className), constMethod->nameAndType);

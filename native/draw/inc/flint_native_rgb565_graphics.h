@@ -39,8 +39,8 @@ inline constexpr NativeMethod rgb565GraphicsMethods[] = {
     NATIVE_METHOD("drawPolygon",   "(Lflint/drawing/Color;I[Lflint/drawing/Point;)V",                   NativeRgb565Graphics_DrawPolygon),
     NATIVE_METHOD("fillPolygon",   "(Lflint/drawing/Color;[Lflint/drawing/Point;)V",                    NativeRgb565Graphics_FillPolygon),
     NATIVE_METHOD("drawString",    "(Ljava/lang/String;Lflint/drawing/Font;Lflint/drawing/Color;II)V",  NativeRgb565Graphics_DrawString),
-    NATIVE_METHOD("drawImage",     "(Lflint/drawing/Image,II)V",                                        NativeRgb565Graphics_DrawImage1),
-    NATIVE_METHOD("drawImage",     "(Lflint/drawing/Image,IIII)V",                                      NativeRgb565Graphics_DrawImage2),
+    NATIVE_METHOD("drawImage",     "(Lflint/drawing/Image;II)V",                                        NativeRgb565Graphics_DrawImage1),
+    NATIVE_METHOD("drawImage",     "(Lflint/drawing/Image;IIII)V",                                      NativeRgb565Graphics_DrawImage2),
 };
 
 #endif /* FLINT_API_DRAW_ENABLED */

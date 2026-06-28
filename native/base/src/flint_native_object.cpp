@@ -35,6 +35,6 @@ jvoid NativeObject_NotifyAll(FNIEnv *env, jobject obj) {
     ((FExec *)env)->getFlint()->notifyAll((FExec *)env, obj);
 }
 
-jvoid NativeObject_Wait(FNIEnv *env, jobject obj, jlong millis) {
+jvoid NativeObject_Wait0(FNIEnv *env, jobject obj, jlong millis) {
     ((FExec *)env)->getFlint()->wait((FExec *)env, obj, millis);
 }
