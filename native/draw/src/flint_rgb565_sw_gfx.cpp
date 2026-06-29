@@ -1014,15 +1014,15 @@ static void DrawQuarterCircle1(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
         FP rro = square(r + (FP)thk / (int32_t)2);
         FP rri = (thk >= (r << 1)) ? (FP)0 : square(r - (FP)thk / (int32_t)2);
 
-        FP ymax = cy - g->clipY1;
         FP yo = (cy - g->clipY2 > FP::ONE) ? floor(cy - g->clipY2) : FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy - yo;
+            if(py < g->clipY1) return;
             FP yy = square(yo);
             xi = sqrt(rri - yy);
             if(xi >= yo) {
                 xo = sqrt(rro - yy);
-                DrawHLineAA(g, color, cx - xo, cx - xi, cy - yo);
+                DrawHLineAA(g, color, cx - xo, cx - xi, py);
             }
             else break;
             ++yo;
@@ -1030,9 +1030,10 @@ static void DrawQuarterCircle1(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
 
         FP xi0 = cx - floor(cx - xi) + FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy - yo;
+            if(py < g->clipY1) return;
             xo = sqrt(rro - square(yo));
-            if(xo >= yo) DrawHLineAA(g, color, cx - xo, (int32_t)(cx - xi0), cy - yo);
+            if(xo >= yo) DrawHLineAA(g, color, cx - xo, (int32_t)(cx - xi0), py);
             else break;
             ++yo;
         }
@@ -1060,17 +1061,16 @@ static void DrawQuarterCircle1(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
         FP cy = y + r + FP::HALF;
         FP rr = square(r + FP::HALF);
 
-        FP ymax = cy - g->clipY1;
         FP xo, yo = (cy - g->clipY2 > FP::ONE) ? floor(cy - g->clipY2) : FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy - yo;
+            if(py < g->clipY1) return;
             FP yy = square(yo);
             xo = sqrt(rr - yy);
             if(xo > yo) {
                 uint8_t ai = (cx - xo).fraction(alpha);
                 uint8_t ao = alpha - ai;
                 int32_t px = cx - xo;
-                int32_t py = cy - yo;
                 ((Rgb565GfxHelper *)g)->blendPixel(ao, color, px, py);
                 if(ai > 0) ((Rgb565GfxHelper *)g)->blendPixel(ai, color, px + 1, py);
             }
@@ -1102,15 +1102,15 @@ static void DrawQuarterCircle2(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
         FP rro = square(r + (FP)thk / (int32_t)2);
         FP rri = (thk >= (r << 1)) ? (FP)0 : square(r - (FP)thk / (int32_t)2);
 
-        FP ymax = cy - g->clipY1;
         FP yo = (cy - g->clipY2 > FP::ONE) ? floor(cy - g->clipY2) : FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy - yo;
+            if(py < g->clipY1) return;
             FP yy = square(yo);
             xi = sqrt(rri - yy);
             if(xi >= yo) {
                 xo = sqrt(rro - yy);
-                DrawHLineAA(g, color, cx + xi, cx + xo, cy - yo);
+                DrawHLineAA(g, color, cx + xi, cx + xo, py);
             }
             else break;
             ++yo;
@@ -1118,9 +1118,10 @@ static void DrawQuarterCircle2(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
 
         FP xi0 = floor(cx + xi) - cx + FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy - yo;
+            if(py < g->clipY1) return;
             xo = sqrt(rro - square(yo));
-            if(xo >= yo) DrawHLineAA(g, color, (int32_t)(cx + xi0), cx + xo, cy - yo);
+            if(xo >= yo) DrawHLineAA(g, color, (int32_t)(cx + xi0), cx + xo, py);
             else break;
             ++yo;
         }
@@ -1148,17 +1149,16 @@ static void DrawQuarterCircle2(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
         FP cy = y + r + FP::HALF;
         FP rr = square(r + FP::HALF);
 
-        FP ymax = cy - g->clipY1;
         FP xo, yo = (cy - g->clipY2 > FP::ONE) ? floor(cy - g->clipY2) : FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy - yo;
+            if(py < g->clipY1) return;
             FP yy = square(yo);
             xo = sqrt(rr - yy);
             if(xo > yo) {
                 uint8_t ao = (cx + xo).fraction(alpha);
                 uint8_t ai = alpha - ao;
                 int32_t px = cx + xo;
-                int32_t py = cy - yo;
                 ((Rgb565GfxHelper *)g)->blendPixel(ao, color, px, py);
                 if(ai > 0) ((Rgb565GfxHelper *)g)->blendPixel(ai, color, px - 1, py);
             }
@@ -1190,15 +1190,15 @@ static void DrawQuarterCircle3(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
         FP rro = square(r + (FP)thk / (int32_t)2);
         FP rri = (thk >= (r << 1)) ? (FP)0 : square(r - (FP)thk / (int32_t)2);
 
-        FP ymax = g->clipY2 - cy;
         FP yo = (g->clipY1 - cy > FP::ONE) ? floor(g->clipY1 - cy) : FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy + yo;
+            if(py > g->clipY2) return;
             FP yy = square(yo);
             xi = sqrt(rri - yy);
             if(xi >= yo) {
                 xo = sqrt(rro - yy);
-                DrawHLineAA(g, color, cx + xi, cx + xo, cy + yo);
+                DrawHLineAA(g, color, cx + xi, cx + xo, py);
             }
             else break;
             ++yo;
@@ -1206,9 +1206,10 @@ static void DrawQuarterCircle3(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
 
         FP xi0 = floor(cx + xi) - cx + FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy + yo;
+            if(py > g->clipY2) return;
             xo = sqrt(rro - square(yo));
-            if(xo >= yo) DrawHLineAA(g, color, (int32_t)(cx + xi0), cx + xo, cy + yo);
+            if(xo >= yo) DrawHLineAA(g, color, (int32_t)(cx + xi0), cx + xo, py);
             else break;
             ++yo;
         }
@@ -1236,17 +1237,16 @@ static void DrawQuarterCircle3(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
         FP cy = y - FP::HALF;
         FP rr = square(r + FP::HALF);
 
-        FP ymax = g->clipY2 - cy;
         FP xo, yo = (g->clipY1 - cy > FP::ONE) ? floor(g->clipY1 - cy) : FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy + yo;
+            if(py > g->clipY2) return;
             FP yy = square(yo);
             xo = sqrt(rr - yy);
             if(xo > yo) {
                 uint8_t ao = (cx + xo).fraction(alpha);
                 uint8_t ai = alpha - ao;
                 int32_t px = cx + xo;
-                int32_t py = cy + yo;
                 ((Rgb565GfxHelper *)g)->blendPixel(ao, color, px, py);
                 if(ai > 0) ((Rgb565GfxHelper *)g)->blendPixel(ai, color, px - 1, py);
             }
@@ -1278,15 +1278,15 @@ static void DrawQuarterCircle4(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
         FP rro = square(r + (FP)thk / (int32_t)2);
         FP rri = (thk >= (r << 1)) ? (FP)0 : square(r - (FP)thk / (int32_t)2);
 
-        FP ymax = g->clipY2 - cy;
         FP yo = (g->clipY1 - cy > FP::ONE) ? floor(g->clipY1 - cy) : FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy + yo;
+            if(py > g->clipY2) return;
             FP yy = square(yo);
             xi = sqrt(rri - yy);
             if(xi >= yo) {
                 xo = sqrt(rro - yy);
-                DrawHLineAA(g, color, cx - xo, cx - xi, cy + yo);
+                DrawHLineAA(g, color, cx - xo, cx - xi, py);
             }
             else break;
             ++yo;
@@ -1294,9 +1294,10 @@ static void DrawQuarterCircle4(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
 
         FP xi0 = cx - floor(cx - xi) + FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy + yo;
+            if(py > g->clipY2) return;
             xo = sqrt(rro - square(yo));
-            if(xo >= yo) DrawHLineAA(g, color, cx - xo, (int32_t)(cx - xi0), cy + yo);
+            if(xo >= yo) DrawHLineAA(g, color, cx - xo, (int32_t)(cx - xi0), py);
             else break;
             ++yo;
         }
@@ -1324,17 +1325,16 @@ static void DrawQuarterCircle4(Rgb565Gfx *g, uint32_t color, int32_t thk, int32_
         FP cy = y - FP::HALF;
         FP rr = square(r + FP::HALF);
 
-        FP ymax = g->clipY2 - cy;
         FP xo, yo = (g->clipY1 - cy > FP::ONE) ? floor(g->clipY1 - cy) : FP::ONE;
         while(true) {
-            if(yo > ymax) return;
+            int32_t py = cy + yo;
+            if(py > g->clipY2) return;
             FP yy = square(yo);
             xo = sqrt(rr - yy);
             if(xo > yo) {
                 uint8_t ai = (cx - xo).fraction(alpha);
                 uint8_t ao = alpha - ai;
                 int32_t px = cx - xo;
-                int32_t py = cy + yo;
                 ((Rgb565GfxHelper *)g)->blendPixel(ao, color, px, py);
                 if(ai > 0) ((Rgb565GfxHelper *)g)->blendPixel(ai, color, px + 1, py);
             }
@@ -1454,12 +1454,12 @@ static void FillQuarterCircle1(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t 
     FP aa = r * r;
 
     FP xo;
-    FP ymax = cy - g->clipY1;
     FP yo = (cy - g->clipY2 > 1) ? (cy - g->clipY2 - FP::HALF) : FP::HALF;
     while(true) {
-        if(yo > ymax) return;
+        int32_t py = cy - yo;
+        if(py < g->clipY1) return;
         xo = sqrt(aa - square(yo));
-        if(xo >= yo) DrawHLineAA(g, color, cx - xo, cx - 1, cy - yo);
+        if(xo >= yo) DrawHLineAA(g, color, cx - xo, cx - 1, py);
         else break;
         ++yo;
     }
@@ -1480,12 +1480,12 @@ static void FillQuarterCircle2(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t 
     FP aa = r * r;
 
     FP xo;
-    FP ymax = cy - g->clipY1;
     FP yo = (cy - g->clipY2 > 1) ? (cy - g->clipY2 - FP::HALF) : FP::HALF;
     while(true) {
-        if(yo > ymax) return;
+        int32_t py = cy - yo;
+        if(py < g->clipX1) return;
         xo = sqrt(aa - square(yo));
-        if(xo >= yo) DrawHLineAA(g, color, x, x + xo, cy - yo);
+        if(xo >= yo) DrawHLineAA(g, color, x, x + xo, py);
         else break;
         ++yo;
     }
@@ -1504,12 +1504,12 @@ static void FillQuarterCircle3(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t 
 
     FP aa = r * r;
     FP xo;
-    FP ymax = g->clipY2 - y;
     FP yo = (g->clipY1 - y > 1) ? (g->clipY1 - y - FP::HALF) : FP::HALF;
     while(true) {
-        if(yo > ymax) return;
+        int32_t py = y + yo;
+        if(py >  g->clipY2) return;
         xo = sqrt(aa - square(yo));
-        if(xo >= yo) DrawHLineAA(g, color, x, x + xo, y + yo);
+        if(xo >= yo) DrawHLineAA(g, color, x, x + xo, py);
         else break;
         ++yo;
     }
@@ -1530,12 +1530,12 @@ static void FillQuarterCircle4(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t 
     FP aa = r * r;
 
     FP xo;
-    FP ymax = g->clipY2 - y;
     FP yo = (g->clipY1 - y > 1) ? (g->clipY1 - y - FP::HALF) : FP::HALF;
     while(true) {
-        if(yo > ymax) return;
+        int32_t py = y + yo;
+        if(py >  g->clipY2) return;
         xo = sqrt(aa - square(yo));
-        if(xo >= yo) DrawHLineAA(g, color, cx - xo, cx - 1, y + yo);
+        if(xo >= yo) DrawHLineAA(g, color, cx - xo, cx - 1, py);
         else break;
         ++yo;
     }
