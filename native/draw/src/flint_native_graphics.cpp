@@ -8,6 +8,27 @@
 #include "flint_java_string.h"
 #include "flint_native_graphics.h"
 
+typedef class : public JObject {
+public:
+    int32_t getX() { return getFieldByIndex(0)->getInt32(); }
+    int32_t getY() { return getFieldByIndex(1)->getInt32(); }
+    int32_t getW() { return getFieldByIndex(2)->getInt32(); }
+    int32_t getH() { return getFieldByIndex(3)->getInt32(); }
+    int32_t getClipX() { return getFieldByIndex(4)->getInt32(); }
+    int32_t getClipY() { return getFieldByIndex(5)->getInt32(); }
+    int32_t getClipW() { return getFieldByIndex(6)->getInt32(); }
+    int32_t getClipH() { return getFieldByIndex(7)->getInt32(); }
+
+    void setX(int32_t x) { getFieldByIndex(0)->setInt32(x); }
+    void setY(int32_t y) { getFieldByIndex(1)->setInt32(y); }
+    void setW(int32_t w) { getFieldByIndex(2)->setInt32(w); }
+    void setH(int32_t h) { getFieldByIndex(3)->setInt32(h); }
+    void setClipX(int32_t x) { getFieldByIndex(4)->setInt32(x); }
+    void setClipY(int32_t y) { getFieldByIndex(5)->setInt32(y); }
+    void setClipW(int32_t w) { getFieldByIndex(6)->setInt32(w); }
+    void setClipH(int32_t h) { getFieldByIndex(7)->setInt32(h); }
+} *JGfx;
+
 static void MeasureStringLatin1(uint8_t *str, uint32_t len, Font *font, uint32_t *width, uint32_t *height) {
     uint8_t stdHeight = font->getStdHeight();
 
@@ -74,6 +95,45 @@ static void MeasureStringUTF16(uint8_t *str, uint32_t len, Font *font, uint32_t 
 
     *width = txtW;
     *height = txtH;
+}
+
+jbool NativeGraphics_IsVisible(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h) {
+    int32_t clipX1 = ((JGfx)obj)->getClipX();
+    if(x + w <= clipX1) return false;
+    int32_t clipY1 = ((JGfx)obj)->getClipY();
+    if(y + h <= clipY1) return false;
+    int32_t clipX2 = clipX1 + ((JGfx)obj)->getClipW();
+    if(x >= clipX2) return false;
+    int32_t clipY2 = clipY1 + ((JGfx)obj)->getClipH();
+    return y < clipY2;
+}
+
+jvoid NativeGraphics_SetClip0(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h, jint mode) {
+    if(w < 0 || h < 0) {
+        env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "width and height cannot be negative");
+        return;
+    }
+    JGfx g = ((JGfx)obj);
+    if(mode == 0) {     /* REPLACE mode */
+        int32_t xend = x + w;
+        int32_t yend = y + h;
+        g->setClipX(GFX_MAX(x, 0));
+        g->setClipY(GFX_MAX(y, 0));
+        g->setClipW(GFX_MIN(xend, g->getW()) - g->getClipX());
+        g->setClipH(GFX_MIN(yend, g->getH()) - g->getClipY());
+    }
+    else {
+        x += g->getX();
+        y += g->getY();
+        int32_t xend1 = g->getClipX() + g->getClipW();
+        int32_t yend1 = g->getClipY() + g->getClipH();
+        int32_t xend2 = x + w;
+        int32_t yend2 = y + h;
+        g->setClipX(GFX_MAX(x, g->getClipX()));
+        g->setClipY(GFX_MAX(y, g->getClipY()));
+        g->setClipW(GFX_MIN(xend2, xend1) - g->getClipX());
+        g->setClipH(GFX_MIN(yend2, yend1) - g->getClipY());
+    }
 }
 
 jobject NativeGraphics_MeasureString(FNIEnv *env, jstring str, jobject font) {

@@ -10,10 +10,10 @@
 
 typedef class : public JObject {
 public:
-    int32_t getOX() { return getFieldByIndex(0)->getInt32(); }
-    int32_t getOY() { return getFieldByIndex(1)->getInt32(); }
-    int32_t getWidth() { return getFieldByIndex(2)->getInt32(); }
-    int32_t getHeight() { return getFieldByIndex(3)->getInt32(); }
+    int32_t getX() { return getFieldByIndex(0)->getInt32(); }
+    int32_t getY() { return getFieldByIndex(1)->getInt32(); }
+    int32_t getW() { return getFieldByIndex(2)->getInt32(); }
+    int32_t getH() { return getFieldByIndex(3)->getInt32(); }
     int32_t getClipX1() { return getFieldByIndex(4)->getInt32(); }
     int32_t getClipY1() { return getFieldByIndex(5)->getInt32(); }
     int32_t getClipX2() { return getClipX1() + getFieldByIndex(6)->getInt32() - 1; }
@@ -24,8 +24,8 @@ public:
 class Rgb565GfxInitHelper : public Rgb565Gfx {
 public:
     Rgb565GfxInitHelper(JRgb565Gfx jgfx) : Rgb565Gfx(
-        jgfx->getWidth(),
-        jgfx->getHeight(),
+        jgfx->getW(),
+        jgfx->getH(),
         jgfx->getClipX1(),
         jgfx->getClipY1(),
         jgfx->getClipX2(),
@@ -62,8 +62,8 @@ jvoid NativeRgb565Graphics_DrawLine(FNIEnv *env, jobject obj, jobject c, jint th
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     g.drawLine(color, thk, x1 + ox, y1 + oy, x2 + ox, y2 + oy);
 }
 
@@ -74,8 +74,8 @@ jvoid NativeRgb565Graphics_DrawRect(FNIEnv *env, jobject obj, jobject c, jint th
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     g.drawRect(color, thk, x + ox, y + oy, w, h);
 }
 
@@ -86,8 +86,8 @@ jvoid NativeRgb565Graphics_FillRect(FNIEnv *env, jobject obj, jobject c, jint x,
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     g.fillRect(color, x + ox, y + oy, w, h);
 }
 
@@ -98,8 +98,8 @@ jvoid NativeRgb565Graphics_DrawRoundRect(FNIEnv *env, jobject obj, jobject c, ji
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     if(r1 < 0) r1 = 0;
     if(r2 < 0) r2 = 0;
     if(r3 < 0) r3 = 0;
@@ -117,8 +117,8 @@ jvoid NativeRgb565Graphics_FillRoundRect(FNIEnv *env, jobject obj, jobject c, ji
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     if(r1 < 0) r1 = 0;
     if(r2 < 0) r2 = 0;
     if(r3 < 0) r3 = 0;
@@ -136,8 +136,8 @@ jvoid NativeRgb565Graphics_DrawEllipse(FNIEnv *env, jobject obj, jobject c, jint
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     g.drawEllipse(color, thk, x + ox, y + oy, w, h);
 }
 
@@ -148,8 +148,8 @@ jvoid NativeRgb565Graphics_FillEllipse(FNIEnv *env, jobject obj, jobject c, jint
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     g.fillEllipse(color, x + ox, y + oy, w, h);
 }
 
@@ -198,8 +198,8 @@ jvoid NativeRgb565Graphics_DrawString(FNIEnv *env, jobject obj, jstring str, job
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     Font *f = (Font *)((jbyteArray)font->getFieldByIndex(0)->getObj())->getData();
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     if(str->getCoder() == 0)
         g.drawLatin1((uint8_t *)str->getAscii(), str->getLength(), f, color, x + ox, y + oy);
     else
@@ -216,8 +216,8 @@ jvoid NativeRgb565Graphics_DrawImage1(FNIEnv *env, jobject obj, jobject img, jin
     jint imgw = img->getFieldByIndex(1)->getInt32();
     jint imgh = img->getFieldByIndex(2)->getInt32();
     int8_t *data = ((jbyteArray)img->getFieldByIndex(3)->getObj())->getData();
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     Image cimg((ImgFormat)format, imgw, imgh, data);
     g.drawImage(&cimg, x + ox, y + oy);
 }
@@ -232,8 +232,8 @@ jvoid NativeRgb565Graphics_DrawImage2(FNIEnv *env, jobject obj, jobject img, jin
     jint imgw = img->getFieldByIndex(1)->getInt32();
     jint imgh = img->getFieldByIndex(2)->getInt32();
     int8_t *data = ((jbyteArray)img->getFieldByIndex(3)->getObj())->getData();
-    jint ox = ((JRgb565Gfx)obj)->getOX();
-    jint oy = ((JRgb565Gfx)obj)->getOY();
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
     Image cimg((ImgFormat)format, imgw, imgh, data);
     g.drawImage(&cimg, x + ox, y + oy, w, h);
 }
