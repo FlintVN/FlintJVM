@@ -508,10 +508,6 @@ void FExec::initNewContext(MethodInfo *methodInfo, uint16_t argc) {
         return FExec::throwNew(flint->findClass(this, "java/lang/LinkageError"), methodInfo->loader->getName(), methodInfo->name);
     pc = 0;
     locals = &stack[sp + 1];
-    for(uint32_t i = argc; i < maxLocals; i++) {
-        uint32_t index = sp + i + 1;
-        stack[index] = 0;
-    }
     sp += maxLocals;
 }
 
