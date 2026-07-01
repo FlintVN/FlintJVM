@@ -1405,6 +1405,19 @@ void FExec::exec(bool initOpcodeLabels) {
         pc++;
         goto *opcodes[code[pc]];
     }
+    op_swap: {
+        int32_t value2 = GET_STACK_VALUE(sp - 1);
+        int32_t value1 = GET_STACK_VALUE(sp - 0);
+        /* value1 may hold an object pointer. During the swap operation, the reference could temporarily
+         * disappear from the stack, creating a risk that the garbage collector may reclaim the object.
+         * To prevent this, value1 is pushed onto the stack as a temporary root before the swap is performed. */
+        stackPushInt32(value1);
+        SET_STACK_VALUE(sp - 1, value2);
+        SET_STACK_VALUE(sp - 2, value1);
+        sp--;
+        pc++;
+        goto *opcodes[code[pc]];
+    }
     op_iadd: {
         int32_t value2 = stackPopInt32();
         int32_t value1 = stackPopInt32();

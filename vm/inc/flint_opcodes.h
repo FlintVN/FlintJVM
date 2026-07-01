@@ -108,6 +108,7 @@ typedef enum : uint8_t {
     OP_DUP2 = 0x5C,
     OP_DUP2_X1 = 0x5D,
     OP_DUP2_X2 = 0x5E,
+    OP_SWAP = 0x5F,
 
     OP_IADD = 0x60,
     OP_LADD = 0x61,
