@@ -1,4 +1,5 @@
 
+#include <cstdlib>
 #include "flint_fixed_point.h"
 
 const FP FP::ONE(1);
