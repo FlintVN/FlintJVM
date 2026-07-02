@@ -1,4 +1,14 @@
 # Change Log
+## V2.5.1
+- Fix Rgb565Graphics:
+  - Fixed `fillRect` and `fillRoundRect`, which were 1 pixel too large.
+  - Fixed `drawString` dose not apply the clip area.
+  - Fixed `fillRoundRect` and `drawRoundRect` rounded corners being drawn with a missing stroke.
+- Add support `Graphics.measureString`, `Graphics.measureStringWidth` and `Graphics.measureStringHeight`.
+- Remove zero-initialization of local variables before a method is called (because it is not necessary, and it also helps improve method invocation performance).
+- Implemented native methods `Graphics.isVisible`, `Graphics.setClip0`.
+- Implemented missing instruction (swap instruction).
+- FatFs wrapper implementation: Zero-initialize FIL before calling f_open.
 ## V2.5.0
 - Implement native methods for `flint.net`.
 - Supports the implementation of several SystemAPIs helps reduce workload when porting to a new device.
