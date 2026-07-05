@@ -122,7 +122,7 @@ int32_t FileReader::readLine(char *buff, uint32_t size) {
         if(br == -1) return -1;
         if(br == 0) {
             if(index < size) buff[index] = 0;
-            return index;
+            return index == 0 ? -1 : index;
         }
         if(c == '\r') continue;
         if(c == '\n') {
