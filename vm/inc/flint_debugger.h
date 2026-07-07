@@ -18,7 +18,8 @@
 #define DBG_CONTROL_STEP_IN         0x0200
 #define DBG_CONTROL_STEP_OVER       0x0400
 #define DBG_CONTROL_STEP_OUT        0x0800
-#define DBG_CONTROL_EXCP_EN         0x1000
+#define DBG_CONTROL_RESTART         0x1000
+#define DBG_CONTROL_EXCP_EN         0x8000
 
 typedef enum : uint8_t {
     DBG_CMD_READ_VM_INFO,
@@ -169,6 +170,7 @@ private:
 public:
     bool receivedDataHandler(uint8_t *data, uint32_t length);
     bool exceptionIsEnabled(void);
+    bool restartRequested(void);
     bool waitStop(FExec *exec);
     bool checkStop(FExec *exec);
     void caughtException(FExec *exec);

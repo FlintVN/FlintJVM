@@ -423,7 +423,10 @@ void Flint::freeExecution(FExec *exec) {
 
     unlock();
 
-    if(termCb != NULL && !isRunning()) termCb(this);
+    if(termCb != NULL && !isRunning()) {
+        if(dbg == NULL || !dbg->restartRequested())
+            termCb(this);
+    }
 }
 
 JObject *Flint::newObject(FExec *ctx, JClass *type) {

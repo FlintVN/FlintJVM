@@ -325,7 +325,7 @@ void FDbg::stopRequest(void) {
 
 void FDbg::restartRequest(void) {
     dbgMutex.lock();
-    csr &= DBG_CONTROL_EXCP_EN;
+    csr = (csr & DBG_CONTROL_EXCP_EN) | DBG_CONTROL_RESTART;
     exec = NULL;
     if(flint == NULL) {
         dbgMutex.unlock();
@@ -340,12 +340,16 @@ void FDbg::restartRequest(void) {
     flint->reset();
     dbgMutex.unlock();
     consoleClear();
-    sendRespCode(DBG_CMD_RESTART, flint->start() ? DBG_RESP_OK : DBG_RESP_FAIL);
+    bool ret = flint->start();
+    dbgMutex.lock();
+    csr &= DBG_CONTROL_EXCP_EN;
+    dbgMutex.unlock();
+    sendRespCode(DBG_CMD_RESTART, ret ? DBG_RESP_OK : DBG_RESP_FAIL);
 }
 
 void FDbg::terminateRequest(void) {
     dbgMutex.lock();
-    csr = csr & DBG_CONTROL_EXCP_EN;
+    csr &= DBG_CONTROL_EXCP_EN;
     if(flint == NULL) {
         dbgMutex.unlock();
         sendRespCode(DBG_CMD_TERMINATE, DBG_RESP_OK);
@@ -1060,6 +1064,10 @@ bool FDbg::removeBreakPoint(uint32_t pc, const char *clsName, const char *name, 
 
 bool FDbg::exceptionIsEnabled(void) {
     return (csr & DBG_CONTROL_EXCP_EN) == DBG_CONTROL_EXCP_EN;
+}
+
+bool FDbg::restartRequested(void) {
+    return (csr & DBG_CONTROL_RESTART) == DBG_CONTROL_RESTART;
 }
 
 bool FDbg::checkStop(FExec *exec) {
