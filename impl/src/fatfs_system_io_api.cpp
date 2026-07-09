@@ -67,8 +67,8 @@ FileResult FlintAPI::IO::finfo(const char *fileName, FileInfo *fileInfo) {
 
 FileHandle FlintAPI::IO::fopen(const char *fileName, FileMode mode) {
     FIL *fp = (FIL *)FlintAPI::System::malloc(sizeof(FIL));
-    memset(fp, 0, sizeof(FIL));
     if(fp == NULL) return NULL;
+    memset(fp, 0, sizeof(FIL));
     if(f_open(fp, fileName, (BYTE)mode) != FR_OK) { FlintAPI::System::free(fp); return NULL; }
     return fp;
 }
