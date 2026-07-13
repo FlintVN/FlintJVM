@@ -1483,7 +1483,7 @@ static void FillQuarterCircle2(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t 
     FP yo = (cy - g->clipY2 > 1) ? (cy - g->clipY2 - FP::HALF) : FP::HALF;
     while(true) {
         int32_t py = cy - yo;
-        if(py < g->clipX1) return;
+        if(py < g->clipY1) return;
         xo = sqrt(aa - square(yo));
         if(xo >= yo) DrawHLineAA(g, color, x, x + xo, py);
         else break;
