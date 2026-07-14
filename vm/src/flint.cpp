@@ -10,13 +10,13 @@
 
 alignas(4) static const char outOfMemoryErrorTypeName[] = "java/lang/OutOfMemoryError";
 
-static uint32_t getDimensions(const char *typeName) {
+static uint32_t GetDimensions(const char *typeName) {
     const char *text = typeName;
     while(*text == '[') text++;
     return (uint32_t)(text - typeName);
 }
 
-static bool isPrimitiveTypes(const char *typeName) {
+static bool IsPrimitiveTypes(const char *typeName) {
     if(typeName[1] == 0) switch(typeName[0]) {
         case 'Z':
         case 'C':
@@ -32,11 +32,11 @@ static bool isPrimitiveTypes(const char *typeName) {
     return false;
 }
 
-static int32_t compareArrayClassName(const char *clsName, uint32_t dimensions, const char *arrayClsName) {
+static int32_t CompareArrayClassName(const char *clsName, uint32_t dimensions, const char *arrayClsName) {
     for(uint8_t i = 0; i < dimensions; i++)
         if('[' != arrayClsName[i]) return (uint8_t)'[' - (uint8_t)arrayClsName[i];
     arrayClsName += dimensions;
-    bool isObjectType = !isPrimitiveTypes(clsName) && clsName[0] != '[';
+    bool isObjectType = !IsPrimitiveTypes(clsName) && clsName[0] != '[';
     if(isObjectType) {
         if('L' != *arrayClsName) return (uint8_t)'L' - (uint8_t)*arrayClsName;
         arrayClsName++;
@@ -296,7 +296,7 @@ const char *Flint::getArrayClassName(FExec *ctx, const char *clsName, uint8_t di
     lock();
 
     uint32_t hash = 0;
-    bool isObjectType = !isPrimitiveTypes(clsName) && clsName[0] != '[';
+    bool isObjectType = !IsPrimitiveTypes(clsName) && clsName[0] != '[';
     Utf8DictNode *utf8Node = NULL;
     do {
         if(utf8s.root == NULL) break;
@@ -307,7 +307,7 @@ const char *Flint::getArrayClassName(FExec *ctx, const char *clsName, uint8_t di
         Utf8DictNode *node = (Utf8DictNode *)utf8s.root;
         while(node) {
             int32_t cmp = hash - node->getHashKey();
-            if(cmp == 0) cmp = compareArrayClassName(clsName, dimensions, node->value);
+            if(cmp == 0) cmp = CompareArrayClassName(clsName, dimensions, node->value);
             if(cmp == 0) { utf8Node = node; break; }
             else if(cmp < 0) node = (Utf8DictNode *)node->left;
             else node = (Utf8DictNode *)node->right;
@@ -342,8 +342,8 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
 
     const char *typeName1 = fromType->getTypeName();
     const char *typeName2 = toType->getTypeName();
-    uint8_t dim1 = getDimensions(typeName1);
-    uint8_t dim2 = getDimensions(typeName2);
+    uint8_t dim1 = GetDimensions(typeName1);
+    uint8_t dim2 = GetDimensions(typeName2);
     const char *compTypeName1 = &typeName1[dim1];
     const char *compTypeName2 = &typeName2[dim2];
 
@@ -352,7 +352,7 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
 
     if(dim1 >= dim2 && strncmp(compTypeName2, "java/lang/Object", 16) == 0) return true;
     if(dim1 != dim2) return false;
-    if(isPrimitiveTypes(compTypeName1) || isPrimitiveTypes(compTypeName2))
+    if(IsPrimitiveTypes(compTypeName1) || IsPrimitiveTypes(compTypeName2))
         return (compTypeName1[0] == compTypeName2[0]) && (compTypeName1[1] == compTypeName2[1]);
 
     uint32_t len1 = 0, len2 = 0;
@@ -650,7 +650,7 @@ JClass *Flint::findClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensi
     do {
         if(classes.root == NULL) break;
         uint32_t hash = 0;
-        bool isObjectType = !isPrimitiveTypes(clsName) && clsName[0] != '[';
+        bool isObjectType = !IsPrimitiveTypes(clsName) && clsName[0] != '[';
         for(uint8_t i = 0; i < dimensions; i++) hash = Hash("[", 1, hash);
         if(isObjectType) hash = Hash("L", 1, hash);
         hash = Hash(clsName, 0xFFFF, hash);
@@ -658,7 +658,7 @@ JClass *Flint::findClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensi
         JClassDictNode *node = (JClassDictNode *)classes.root;
         while(node) {
             int32_t cmp = hash - node->getHashKey();
-            if(cmp == 0) cmp = compareArrayClassName(clsName, dimensions, node->cls->getTypeName());
+            if(cmp == 0) cmp = CompareArrayClassName(clsName, dimensions, node->cls->getTypeName());
             if(cmp == 0) { clsNode = node; break; }
             else if(cmp < 0) node = (JClassDictNode *)node->left;
             else node = (JClassDictNode *)node->right;

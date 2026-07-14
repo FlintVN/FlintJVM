@@ -30,6 +30,7 @@ public:
     void clearData(void);
 
     bool isArray(void) const;
+    char isArrayOfPrimative(void) const;
 
     void clearProtected(void);
     void setProtected(void);

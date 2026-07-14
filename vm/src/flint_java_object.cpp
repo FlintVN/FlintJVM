@@ -56,6 +56,23 @@ bool JObject::isArray(void) const {
     return (type != NULL && type->isArray());
 }
 
+char JObject::isArrayOfPrimative(void) const {
+    const char *typeName = getTypeName();
+    if(typeName[0] == '[' && typeName[2] == 0) switch(typeName[1]) {
+        case 'Z':
+        case 'C':
+        case 'F':
+        case 'D':
+        case 'B':
+        case 'S':
+        case 'I':
+        case 'J':
+        case 'V': return typeName[1];
+        default: return 0;
+    }
+    return 0;
+}
+
 void JObject::clearProtected(void) {
     prot = 0;
 }
