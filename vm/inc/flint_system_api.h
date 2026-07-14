@@ -37,7 +37,10 @@ namespace FlintAPI::IO {
         FILE_RESULT_ERR,
         FILE_RESULT_NO_PATH,
         FILE_RESULT_DENIED,
-        FILE_RESULT_WRITE_PROTECTED
+        FILE_RESULT_EXIST,
+        FILE_RESULT_WRITE_PROTECTED,
+        FILE_RESULT_BUSY,
+        FILE_RESULT_TOO_MANY_OPEN_FILES,
     } FileResult;
 
     typedef struct {
