@@ -85,7 +85,7 @@ jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest
     uint8_t *srcVal = (uint8_t *)((jarray)src)->getData();
     uint8_t *dstVal = (uint8_t *)((jarray)dest)->getData();
     uint8_t compSz = ((jarray)src)->componentSize();
-    memcpy(dstVal + destPos * compSz, srcVal + srcPos * compSz, length * compSz);
+    memmove(dstVal + destPos * compSz, srcVal + srcPos * compSz, length * compSz);
 }
 
 jint NativeSystem_IdentityHashCode(FNIEnv *env, jobject obj) {
