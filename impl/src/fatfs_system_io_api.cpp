@@ -118,6 +118,7 @@ FileResult FlintAPI::IO::frename(const char *oldName, const char *newName) {
 
 DirHandle FlintAPI::IO::opendir(const char *dirName) {
     FF_DIR *dir = (FF_DIR *)FlintAPI::System::malloc(sizeof(FF_DIR));
+    if(dir == NULL) return NULL;
     FRESULT ret = f_opendir(dir, dirName);
     if(ret == FR_OK)
         return (void *)dir;
