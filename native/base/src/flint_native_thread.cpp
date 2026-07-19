@@ -51,18 +51,20 @@ jthread NativeThread_CurrentThread(FNIEnv *env) {
 }
 
 jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis) {
+    int64_t duration = (int64_t)millis;
     int64_t startTime = FlintAPI::System::getTimeMillis();
     jthread ownerThread = ((FExec *)env)->getOwnerThread();
-    while((int64_t)(FlintAPI::System::getTimeMillis() - startTime) < millis) {
-        int64_t remaining = millis - (FlintAPI::System::getTimeMillis() - startTime);
-        if(remaining > 1000) remaining = 1000;
-        else if(remaining < 0) return;
+    while(true) {
+        int64_t elapsed = FlintAPI::System::getTimeMillis() - startTime;
+        int64_t remaining = duration - elapsed;
+        if(remaining <= 0) return;
         if(env->hasTerminateRequest()) return;
         if(ownerThread->getInterrupt()) {
             env->throwNew(env->findClass("java/lang/InterruptedException"), "sleep interrupted");
             ownerThread->clearInterrupt();
             return;
         }
-        FlintAPI::Thread::wait((uint32_t)remaining);
+        uint32_t waitTime = remaining > 1000 ? 1000 : (uint32_t)remaining;
+        FlintAPI::Thread::wait(waitTime);
     }
 }
