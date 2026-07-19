@@ -33,6 +33,14 @@ FileResult FlintAPI::IO::fseek(FileHandle handle, uint32_t offset) {
     #error "FlintAPI::IO::fseek is not implemented in VM";
 }
 
+FileResult FlintAPI::IO::fsync(FileHandle handle) {
+    #error "FlintAPI::IO::fsync is not implemented in VM";
+}
+
+FileResult FlintAPI::IO::ftruncate(FileHandle handle, uint32_t length) {
+    #error "FlintAPI::IO::ftruncate is not implemented in VM";
+}
+
 FileResult FlintAPI::IO::fclose(FileHandle handle) {
     #error "FlintAPI::IO::fclose is not implemented in VM";
 }

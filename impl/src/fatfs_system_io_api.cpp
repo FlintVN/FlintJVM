@@ -99,6 +99,23 @@ FileResult FlintAPI::IO::fseek(FileHandle handle, uint32_t offset) {
     return convertFileResult(f_lseek((FIL *)handle, offset));
 }
 
+FileResult FlintAPI::IO::fsync(FileHandle handle) {
+    return convertFileResult(f_sync((FIL *)handle));
+}
+
+FileResult FlintAPI::IO::ftruncate(FileHandle handle, uint32_t length) {
+    uint32_t size = f_size((FIL *)handle);
+    FRESULT res = FR_OK;
+    if(length != size) {
+        res = f_lseek((FIL *)handle, length);
+        if(res != FR_OK)
+            return convertFileResult(res);
+        return convertFileResult(f_truncate((FIL *)handle));
+    }
+    else
+        return FILE_RESULT_OK;
+}
+
 FileResult FlintAPI::IO::fclose(FileHandle handle) {
     if(handle != NULL) {
         FileResult ret = convertFileResult(f_close((FIL *)handle));

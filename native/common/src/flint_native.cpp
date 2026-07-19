@@ -21,6 +21,7 @@
 #include "flint_native_file_descriptor.h"
 #include "flint_native_file_input_stream.h"
 #include "flint_native_file_output_stream.h"
+#include "flint_native_random_access_file.h"
 
 #if FLINT_API_NET_ENABLED
 #include "flint_native_flint_socket_impl.h"
@@ -52,6 +53,7 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/io/FileDescriptor",            fileDescriptorMethods),
     NATIVE_CLASS("java/io/FileInputStream",           fileInputStreamMethods),
     NATIVE_CLASS("java/io/FileOutputStream",          fileOutputStreamMethods),
+    NATIVE_CLASS("java/io/RandomAccessFile",          randomAccessFileMethods),
     NATIVE_CLASS("jdk/internal/reflect/Reflection",   reflectionMethods),
 
 #if FLINT_API_NET_ENABLED

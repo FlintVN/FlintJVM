@@ -23,13 +23,13 @@ namespace FlintAPI::IO {
     typedef void * DirHandle;
 
     typedef enum : uint8_t {
-        FILE_MODE_OPEN_EXISTING = 0x00,
-        FILE_MODE_READ = 0x01,
-        FILE_MODE_WRITE = 0x02,
-        FILE_MODE_CREATE_NEW = 0x04,
-        FILE_MODE_CREATE_ALWAYS = 0x08,
-        FILE_MODE_OPEN_ALWAYS = 0x10,
-        FILE_MODE_APPEND = 0x30
+        FILE_MODE_OPEN_EXISTING = 0x00, /* Opens the file. The function fails if the file is not existing. */
+        FILE_MODE_READ = 0x01,          /* Specifies read access to the file. Data can be read from the file. */
+        FILE_MODE_WRITE = 0x02,         /* Specifies write access to the file. Data can be written to the file. Combine with FA_READ for read-write access. */
+        FILE_MODE_CREATE_NEW = 0x04,    /* Creates a new file. The function fails if the file is existing. */
+        FILE_MODE_CREATE_ALWAYS = 0x08, /* Creates a new file. If the file is existing, the file is truncated and overwritten. */
+        FILE_MODE_OPEN_ALWAYS = 0x10,   /* Opens the file. If it is not exist, a new file is created. */
+        FILE_MODE_APPEND = 0x30         /* Same as FA_OPEN_ALWAYS except the read/write pointer is set end of the file. */
     } FileMode;
 
     typedef enum : uint8_t {
@@ -66,6 +66,8 @@ namespace FlintAPI::IO {
     uint32_t fsize(FileHandle handle);
     uint32_t ftell(FileHandle handle);
     FileResult fseek(FileHandle handle, uint32_t offset);
+    FileResult fsync(FileHandle handle);
+    FileResult ftruncate(FileHandle handle, uint32_t length);
     FileResult fclose(FileHandle handle);
     FileResult fremove(const char *fileName);
     FileResult frename(const char *oldName, const char *newName);

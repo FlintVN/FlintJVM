@@ -1,39 +1,25 @@
 
 #include "flint.h"
-#include "flint_common.h"
+#include "flint_native_common.h"
 #include "flint_native_file_output_stream.h"
 
-static bool CheckArrayIndexSize(FNIEnv *env, jarray arr, int32_t index, int32_t count) {
-    if(arr == NULL) {
-        env->throwNew(env->findClass("java/lang/NullPointerException"));
-        return false;
-    }
-    else if(index < 0) {
-        jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
-        uint16_t len;
-        const char *name = arr->getCompTypeName(&len);
-        env->throwNew(excpCls, "index %d out of bounds for %.*s[%d]", index, len, name, arr->getLength());
-        return false;
-    }
-    else if((index + count) > arr->getLength()) {
-        jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
-        uint16_t len;
-        const char *name = arr->getCompTypeName(&len);
-        env->throwNew(excpCls, "last index %d out of bounds for %.*s[%d]", index + count - 1, len, name, arr->getLength());
-        return false;
-    }
-    return true;
+static jint getFd(FNIEnv *env, jobject obj) {
+    jobject fdObj = obj->getFieldByIndex(0)->getObj();
+    jint fd = fdObj->getFieldByIndex(0)->getInt32();
+    if(fd == -1)
+        env->throwNew(env->findClass("java/io/IOException"), "Stream closed");
+    return fd;
 }
 
 jvoid NativeFileOutputStream_Open(FNIEnv *env, jobject obj, jstring name, jbool append) {
     char buff[FILE_NAME_BUFF_SIZE];
-    jobject fdObj = obj->getFieldByIndex(0)->getObj();
-    jint fd = fdObj->getFieldByIndex(0)->getInt32();
     Flint *flint = ((FExec *)env)->getFlint();
     if(flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
     flint->lock();
+    jobject fdObj = obj->getFieldByIndex(0)->getObj();
+    jint fd = fdObj->getFieldByIndex(0)->getInt32();
     if(fd != -1)
-        env->throwNew(env->findClass("java/io/IOException"), "File has been opened");
+        env->throwNew(env->findClass("java/io/IOException"), "Stream has been opened");
     else {
         FlintAPI::IO::FileMode fileMode;
         if(append)
@@ -45,7 +31,7 @@ jvoid NativeFileOutputStream_Open(FNIEnv *env, jobject obj, jstring name, jbool 
         Hook *hook = (handle == NULL) ? NULL : exec->getFlint()->addShutdownHook(exec, handle, (void (*)(void*))FlintAPI::IO::fclose);
         if(hook == NULL) {
             if(handle != NULL) FlintAPI::IO::fclose(handle);
-            env->throwNew(env->findClass("java/io/FileNotFoundException"), "File opening failed");
+            env->throwNew(env->findClass("java/io/FileNotFoundException"), "Stream opening failed");
         }
         else
             fdObj->getFieldByIndex(0)->setInt32((int32_t)hook);
@@ -54,10 +40,8 @@ jvoid NativeFileOutputStream_Open(FNIEnv *env, jobject obj, jstring name, jbool 
 }
 
 jvoid NativeFileOutputStream_Write(FNIEnv *env, jobject obj, jint b) {
-    jobject fdObj = obj->getFieldByIndex(0)->getObj();
-    jint fd = fdObj->getFieldByIndex(0)->getInt32();
-    if(fd == -1)
-        env->throwNew(env->findClass("java/io/IOException"), "File has not been opened");
+    jint fd = getFd(env, obj);
+    if(fd == -1) return;
     else if(fd == 0) {  /* in */
 
     }
@@ -74,30 +58,14 @@ jvoid NativeFileOutputStream_Write(FNIEnv *env, jobject obj, jint b) {
         void *handle = ((Hook *)fd)->getHandle();
         auto result = FlintAPI::IO::fwrite((FlintAPI::IO::FileHandle)handle, &data, 1, &bw);
         if(result != FlintAPI::IO::FILE_RESULT_OK || bw != 1)
-            env->throwNew(env->findClass("java/io/IOException"), "Error while writing file");
+            env->throwNew(env->findClass("java/io/IOException"), "Error while writing");
     }
 }
 
 jvoid NativeFileOutputStream_WriteBytes(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
-    if(b == NULL) {
-        env->throwNew(env->findClass("java/lang/NullPointerException"));
-        return;
-    }
-    if(off < 0 || (off + len) > b->getLength()) {
-        jclass excpCls = env->findClass("java/lang/IndexOutOfBoundsException");
-        if(off < 0)
-            env->throwNew(excpCls, "Index %d out of bounds for byte[%d]", off, b->getLength());
-        else
-            env->throwNew(excpCls, "Last index %d out of bounds for byte[%d]", off + len - 1, b->getLength());
-        return;
-    }
-    jobject fdObj = obj->getFieldByIndex(0)->getObj();
-    jint fd = fdObj->getFieldByIndex(0)->getInt32();
     if(!CheckArrayIndexSize(env, b, off, len)) return;
-    else if(fd == -1) {
-        env->throwNew(env->findClass("java/io/IOException"), "File has not been opened");
-        return;
-    }
+    jint fd = getFd(env, obj);
+    if(fd == -1) return;
     else if(fd == 0) {  /* in */
 
     }
@@ -114,15 +82,15 @@ jvoid NativeFileOutputStream_WriteBytes(FNIEnv *env, jobject obj, jbyteArray b, 
         void *handle = ((Hook *)fd)->getHandle();
         auto result = FlintAPI::IO::fwrite((FlintAPI::IO::FileHandle)handle, data, len, &bw);
         if(result != FlintAPI::IO::FILE_RESULT_OK || bw != len)
-            env->throwNew(env->findClass("java/io/IOException"), "Error while writing file");
+            env->throwNew(env->findClass("java/io/IOException"), "Error while writing");
     }
 }
 
 jvoid NativeFileOutputStream_Close(FNIEnv *env, jobject obj) {
-    jobject fdObj = obj->getFieldByIndex(0)->getObj();
-    jint fd = fdObj->getFieldByIndex(0)->getInt32();
     Flint *flint = ((FExec *)env)->getFlint();
     flint->lock();
+    jobject fdObj = obj->getFieldByIndex(0)->getObj();
+    jint fd = fdObj->getFieldByIndex(0)->getInt32();
     if(fd != -1) {
         if(!(0 <= fd && fd <= 2)) {
             void *handle = ((Hook *)fd)->getHandle();
@@ -131,10 +99,8 @@ jvoid NativeFileOutputStream_Close(FNIEnv *env, jobject obj) {
                 fdObj->getFieldByIndex(0)->setInt32(-1);
             }
             else
-                env->throwNew(env->findClass("java/io/IOException"), "File closing failed");
+                env->throwNew(env->findClass("java/io/IOException"), "Stream closing failed");
         }
     }
-    else
-        env->throwNew(env->findClass("java/io/IOException"), "File has not been opened");
     flint->unlock();
 }
