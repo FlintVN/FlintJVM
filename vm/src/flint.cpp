@@ -127,7 +127,7 @@ void *Flint::realloc(FExec *ctx, void *p, uint32_t size) {
 }
 
 void Flint::free(void *p) {
-    ::free(p);
+    FlintAPI::System::free(p);
     heapCount--;
 }
 

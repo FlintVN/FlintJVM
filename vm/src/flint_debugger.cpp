@@ -79,7 +79,7 @@ void FDbg::initDataFrame(DbgCmd cmd, DbgRespCode responseCode, uint32_t dataLeng
     txBuff[3] = (uint8_t)(dataLength >> 10);
     txBuff[4] = (uint8_t)responseCode;
     txDataLength = 5;
-    txDataCrc = Crc(txBuff, txDataLength);
+    txDataCrc = Crc16(txBuff, txDataLength);
 }
 
 bool FDbg::dataFrameAppend(uint8_t data) {
@@ -89,7 +89,7 @@ bool FDbg::dataFrameAppend(uint8_t data) {
         txDataLength = 0;
     }
     txBuff[txDataLength++] = data;
-    txDataCrc = Crc(&data, 1, ~txDataCrc);
+    txDataCrc = Crc16(&data, 1, ~txDataCrc);
     return true;
 }
 
@@ -747,7 +747,7 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
         return true;
     }
     uint16_t crc = data[length - 2] | (data[length - 1] << 8);
-    if(crc != Crc(data, length - 2)) {
+    if(crc != Crc16(data, length - 2)) {
         sendRespCode(cmd, DBG_RESP_CRC_FAIL);
         return true;
     }
