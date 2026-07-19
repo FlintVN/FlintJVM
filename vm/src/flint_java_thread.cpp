@@ -7,7 +7,7 @@ FlintAPI::Thread::ThreadHandle JThread::getHandle(void) const {
 }
 
 void JThread::setHandle(FlintAPI::Thread::ThreadHandle handle) {
-    getFieldByIndex(0)->setInt64((int64_t)handle);
+    getFieldByIndex(0)->setInt32((int32_t)handle);
 }
 
 JString *JThread::getName(void) const {
