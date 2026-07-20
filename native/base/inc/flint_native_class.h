@@ -23,6 +23,7 @@ jobjectArray NativeClass_GetDeclaredFields0(FNIEnv *env, jclass cls);
 jobjectArray NativeClass_GetDeclaredMethods0(FNIEnv *env, jclass cls);
 jobjectArray NativeClass_GetDeclaredConstructors0(FNIEnv *env, jclass cls);
 jclass NativeClass_GetDeclaringClass0(FNIEnv *env, jclass cls);
+jstring NativeClass_GetParentPath(FNIEnv *env, jclass cls);
 
 inline constexpr NativeMethod classMethods[] = {
     NATIVE_METHOD("getPrimitiveClass",        "(Ljava/lang/String;)Ljava/lang/Class;", NativeClass_GetPrimitiveClass),
@@ -44,6 +45,7 @@ inline constexpr NativeMethod classMethods[] = {
     NATIVE_METHOD("getDeclaredMethods0",      "()[Ljava/lang/reflect/Method;",         NativeClass_GetDeclaredMethods0),
     NATIVE_METHOD("getDeclaredConstructors0", "()[Ljava/lang/reflect/Constructor;",    NativeClass_GetDeclaredConstructors0),
     NATIVE_METHOD("getDeclaringClass0",       "()Ljava/lang/Class;",                   NativeClass_GetDeclaringClass0),
+    NATIVE_METHOD("getParentPath",            "()Ljava/lang/String;",                  NativeClass_GetParentPath),
 };
 
 #endif /* __FLINT_NATIVE_CLASS_H */

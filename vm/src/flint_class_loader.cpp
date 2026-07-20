@@ -530,6 +530,10 @@ ClassAccessFlag ClassLoader::getAccessFlag(void) const {
     return (ClassAccessFlag)accessFlags;
 }
 
+const char *ClassLoader::getFilePath(void) const {
+    return filePath;
+}
+
 const char *ClassLoader::getName(void) const {
     return getConstClassName(thisClass);
 }
