@@ -382,3 +382,26 @@ jclass NativeClass_GetDeclaringClass0(FNIEnv *env, jclass cls) {
     if(len > 0 && clsName[len - 1] == '$') return env->findClass(clsName, len - 1);
     return NULL;
 }
+
+static uint32_t isClassFile(const char *path) {
+    size_t len = strlen(path);
+    if((len > 6) && (strcasecmp(path + (len - 6), ".class") == 0))
+        return len - 6;
+    return 0;
+}
+
+jstring NativeClass_GetParentPath(FNIEnv *env, jclass cls) {
+    ClassLoader *loader = cls->getClassLoader();
+    if(loader == NULL)
+        loader = env->findClass("java/lang/Class")->getClassLoader();
+    const char *file = loader->getFilePath();
+    uint32_t len = isClassFile(file);
+    if(len > 0) {
+        char separator = Flint::getPathSeparator();
+        uint32_t lastIndex = len - 1;
+        while(file[lastIndex] != separator)
+            lastIndex--;
+        return env->newString("%.*s", lastIndex, file);
+    }
+    return env->newString(file);
+}

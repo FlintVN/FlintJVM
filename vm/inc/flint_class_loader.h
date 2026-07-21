@@ -85,6 +85,7 @@ public:
 
     ClassAccessFlag getAccessFlag(void) const;
 
+    const char *getFilePath(void) const;
     const char *getName(void) const;
     const char *getSuperClassName(void) const;
 
