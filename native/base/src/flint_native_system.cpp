@@ -1,8 +1,10 @@
 
 #include <string.h>
 #include "flint.h"
+#include "flint_common.h"
 #include "flint_java_class.h"
 #include "flint_system_api.h"
+#include "flint_java_string.h"
 #include "flint_array_object.h"
 #include "flint_native_system.h"
 
@@ -128,6 +130,21 @@ jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest
 jint NativeSystem_IdentityHashCode(FNIEnv *env, jobject obj) {
     (void)env;
     return (int32_t)obj;
+}
+
+jstring NativeSystem_GetProperty(FNIEnv *env, jstring key) {
+    #define CASE_KEY(_key)  case Hash(_key): if(key->compareTo(_key, sizeof(_key) - 1) != 0) return NULL;
+
+    uint32_t hash = key->getHashCode();
+    switch(hash) {
+        CASE_KEY("microedition.platform") return env->newString(FLINT_VARIANT_NAME);
+        CASE_KEY("microedition.locale") return env->newString("en-US");
+        CASE_KEY("microedition.encoding") return env->newString("ISO-8859-1");
+        CASE_KEY("microedition.configuration") return env->newString("CLDC-1.0");
+        CASE_KEY("microedition.profiles") return env->newString("MIDP-2.0");
+        CASE_KEY("line.separator") return env->newString("\r\n");
+        default: return NULL;
+    }
 }
 
 jvoid NativeSystem_Exit(FNIEnv *env, jint status) {
