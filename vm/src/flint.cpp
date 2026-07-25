@@ -6,7 +6,6 @@
 #include "flint_utf8.h"
 #include "flint_system_api.h"
 #include "flint_fields_data.h"
-#include "flint_zip_file_reader.h"
 
 alignas(4) static const char outOfMemoryErrorTypeName[] = "java/lang/OutOfMemoryError";
 
@@ -934,50 +933,31 @@ void Flint::gc(void) {
     unlock();
 }
 
-typedef struct {
-    const char *mainCls;
-} Manifest;
-
-static bool ReadManifest(Flint *flint, const char *jarPath, Manifest *manifest) {
-    bool ret = false;
-    char buff[FILE_NAME_BUFF_SIZE];
-    ZipFileReader zip(NULL, jarPath);
-    if(!zip.open()) return false;
-    if(!zip.gotoFile("META-INF/MANIFEST.MF")) goto exit;
-    while(true) {
-        int32_t br = zip.readLine(buff, sizeof(buff));
-        if(br == -1) goto exit;
-        if(br < 2) break;
-        if(strncmp(buff, "Main-Class:", 11) == 0) {
-            uint32_t idx = 11;
-            while(buff[idx] == ' ' && idx < sizeof(buff)) idx++;
-            for(uint32_t i = idx; buff[i] && (i < sizeof(buff)); i++) {
-                if(buff[i] == '.')
-                    buff[i] = '/';
-            }
-            uint32_t len = strnlen(&buff[idx], sizeof(buff) - idx);
-            manifest->mainCls = flint->getUtf8(NULL, &buff[idx], len);
-        }
-    }
-    ret = true;
-exit:
-    zip.close();
-    return ret;
-}
-
-bool Flint::start(void) {
-    Manifest manifest = {};
-    if(program == NULL) return false;
-    if(!ReadManifest(this, program, &manifest)) return false;
-    if(manifest.mainCls == NULL) manifest.mainCls = "Main";
+bool Flint::start(const char *mainClass, const char *argument) {
+    if(program == NULL) { println("Flint.start failed: missing program"); return false; }
+    if(mainClass == NULL || *mainClass == 0) mainClass = "Main";
 
     FExec *exec = Flint::newExecution(NULL);
-    if(exec == NULL) return false;
-    JClass *mainCls = Flint::findClass(NULL, manifest.mainCls);
-    if(mainCls == NULL) return false;
+    if(exec == NULL) { println("Flint.start failed: execution"); return false; }
+
+    JClass *mainCls = Flint::findClass(NULL, mainClass);
+    if(mainCls == NULL) { println("Flint.start failed: main class"); return false; }
     MethodInfo *mt = mainCls->getClassLoader()->getMainMethodInfo(NULL);
-    if(mt == NULL) return false;
-    return exec->run(mt, 1, NULL);
+    if(mt == NULL) { println("Flint.start failed: main method"); return false; }
+
+    JClass *stringArrayClass = Flint::findClassOfArray(exec, "java/lang/String", 1);
+    if(stringArrayClass == NULL) { println("Flint.start failed: String array class"); return false; }
+    JObjectArray *args = (JObjectArray *)Flint::newArray(exec, stringArrayClass, argument == NULL ? 0 : 1);
+    if(args == NULL) { println("Flint.start failed: arguments"); return false; }
+    args->clearArray();
+    if(argument != NULL) {
+        JString *value = Flint::newString(exec, argument);
+        if(value == NULL) { println("Flint.start failed: argument string"); return false; }
+        args->getData()[0] = value;
+    }
+    if(!exec->run(mt, 1, args)) { println("Flint.start failed: run"); return false; }
+    println("Flint.start ok");
+    return true;
 }
 
 bool Flint::isRunning(void) {

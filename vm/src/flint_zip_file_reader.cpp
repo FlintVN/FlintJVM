@@ -3,11 +3,11 @@
 #include "flint.h"
 #include "flint_zip_file_reader.h"
 
-ZipFileReader::ZipFileReader(void) : FileReader() {
+ZipFileReader::ZipFileReader(void) : FileReader(), compressionMethod(0), compressedSize(0), uncompressedSize(0) {
 
 }
 
-ZipFileReader::ZipFileReader(FExec *ctx, const char *filePath) : FileReader(ctx, filePath) {
+ZipFileReader::ZipFileReader(FExec *ctx, const char *filePath) : FileReader(ctx, filePath), compressionMethod(0), compressedSize(0), uncompressedSize(0) {
 
 }
 
@@ -66,10 +66,20 @@ bool ZipFileReader::gotoFile(const char *name, uint16_t length) {
                 isOk = strncmp(&name[length - N], buff, N) == 0;
             }
             if(isOk) {
+                uint16_t method;
+                uint32_t packedSize, unpackedSize;
+                if(!seek(off + 10)) return false;
+                if(!readUInt16(method)) return false;
+                if(!seek(off + 20)) return false;
+                if(!readUInt32(packedSize)) return false;
+                if(!readUInt32(unpackedSize)) return false;
                 if(!seek(fileOff + 26)) return false;
                 if(!readUInt16(nameLen)) return false;
                 if(!readUInt16(fieldLen)) return false;
                 if(!seek(fileOff + 30 + nameLen + fieldLen)) return false;
+                compressionMethod = method;
+                compressedSize = packedSize;
+                uncompressedSize = unpackedSize;
                 return true;
             }
         }
@@ -127,4 +137,16 @@ bool ZipFileReader::gotoClassFile(const char *name, uint16_t length) {
         if(!seek(off + 46 + nameLen + fieldLen + cmtLen)) return false;
     }
     return false;
+}
+
+uint16_t ZipFileReader::getCompressionMethod(void) const {
+    return compressionMethod;
+}
+
+uint32_t ZipFileReader::getCompressedSize(void) const {
+    return compressedSize;
+}
+
+uint32_t ZipFileReader::getUncompressedSize(void) const {
+    return uncompressedSize;
 }
