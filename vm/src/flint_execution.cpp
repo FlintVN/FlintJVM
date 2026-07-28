@@ -2279,7 +2279,7 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     op_checkcast: {
         JObject *obj = (JObject *)stack[sp];
-        if(obj != 0) {
+        if(obj != NULL) {
             JClass *catchType = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
             bool isIns = flint->isInstanceof(this, obj, catchType);
             if(isIns == false) {
