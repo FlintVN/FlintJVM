@@ -51,8 +51,8 @@ static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint
     if(src->type != dest->type && (src->isArrayOfPrimative() || dest->isArrayOfPrimative())) {
         const char *msg = "type mismatch, can not copy %.*s[] into %.*s[]";
         uint16_t len1, len2;
-        const char *name1 = ((jarray)src)->getCompTypeName(&len1);
-        const char *name2 = ((jarray)dest)->getCompTypeName(&len2);
+        const char *name1 = ((jarray)src)->getBaseCompTypeName(&len1);
+        const char *name2 = ((jarray)dest)->getBaseCompTypeName(&len2);
         env->throwNew(env->findClass("java/lang/ArrayStoreException"), msg, len1, name1, len2, name2);
         return false;
     }
@@ -64,28 +64,28 @@ static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint
     if(srcPos < 0) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
-        const char *name = ((jarray)src)->getCompTypeName(&len);
+        const char *name = ((jarray)src)->getBaseCompTypeName(&len);
         env->throwNew(excpCls, "source index %d out of bounds for %.*s[%d]", srcPos, len, name, ((jarray)src)->getLength());
         return false;
     }
     if(destPos < 0) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
-        const char *name = ((jarray)dest)->getCompTypeName(&len);
+        const char *name = ((jarray)dest)->getBaseCompTypeName(&len);
         env->throwNew(excpCls, "destination index %d out of bounds for %.*s[%d]", destPos, len, name, ((jarray)dest)->getLength());
         return false;
     }
     if((srcPos + length) > ((jarray)src)->getLength()) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
-        const char *name = ((jarray)src)->getCompTypeName(&len);
+        const char *name = ((jarray)src)->getBaseCompTypeName(&len);
         env->throwNew(excpCls, "last source index %d out of bounds for %.*s[%d]", srcPos + length, len, name, ((jarray)src)->getLength());
         return false;
     }
     if((destPos + length) > ((jarray)dest)->getLength()) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
-        const char *name = ((jarray)dest)->getCompTypeName(&len);
+        const char *name = ((jarray)dest)->getBaseCompTypeName(&len);
         env->throwNew(excpCls, "last destination index %d out of bounds for %.*s[%d]", destPos + length, len, name, ((jarray)dest)->getLength());
         return false;
     }
@@ -112,8 +112,8 @@ jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest
             if(item != NULL && !exec->isInstanceof(item, destCompType)) {
                 const char *msg = "element type mismatch: can not cast one of the elements of %.*s[] to the type of the destination array %.*s[]";
                 uint16_t len1, len2;
-                const char *name1 = ((jarray)src)->getCompTypeName(&len1);
-                const char *name2 = ((jarray)dest)->getCompTypeName(&len2);
+                const char *name1 = ((jarray)src)->getBaseCompTypeName(&len1);
+                const char *name2 = ((jarray)dest)->getBaseCompTypeName(&len2);
                 return env->throwNew(env->findClass("java/lang/ArrayStoreException"), msg, len1, name1, len2, name2);
             }
             dstVal[i] = item;

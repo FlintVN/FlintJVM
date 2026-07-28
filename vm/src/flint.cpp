@@ -365,7 +365,7 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
         if(loader == NULL) return false;
         uint16_t ifCount = loader->getInterfacesCount();
         for(uint32_t i = 0; i < ifCount; i++) {
-            if(strncmp(loader->getInterface(i), compTypeName2, len2) == 0)
+            if(strncmp(loader->getInterfaceName(i), compTypeName2, len2) == 0)
                 return true;
         }
         JClass *super = loader->getSuperClass(ctx);

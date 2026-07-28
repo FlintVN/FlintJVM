@@ -93,7 +93,8 @@ public:
     JClass *getSuperClass(FExec *ctx);
 
     uint16_t getInterfacesCount(void) const;
-    const char *getInterface(uint16_t interfaceIndex) const;
+    JClass *getInterface(FExec *ctx, uint16_t interfaceIndex);
+    const char *getInterfaceName(uint16_t interfaceIndex) const;
 
     uint16_t getFieldsCount(void) const;
     FieldInfo *getFieldInfo(uint16_t fieldIndex) const;

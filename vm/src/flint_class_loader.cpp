@@ -556,7 +556,11 @@ uint16_t ClassLoader::getInterfacesCount(void) const {
     return interfacesCount;
 }
 
-const char *ClassLoader::getInterface(uint16_t interfaceIndex) const {
+JClass *ClassLoader::getInterface(FExec *ctx, uint16_t interfaceIndex) {
+    return flint->findClass(ctx, getInterfaceName(interfaceIndex));
+}
+
+const char *ClassLoader::getInterfaceName(uint16_t interfaceIndex) const {
     return getConstClassName(interfaces[interfaceIndex]);
 }
 

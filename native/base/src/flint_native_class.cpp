@@ -106,8 +106,9 @@ jobjectArray NativeClass_GetInterfaces0(FNIEnv *env, jclass cls) {
     jobjectArray clsArr = env->newObjectArray(((FExec *)env)->getFlint()->getClassOfClass((FExec *)env), count);
     if(clsArr == NULL) return NULL;
 
+    FExec *exec = (FExec *)env;
     for(uint32_t i = 0; i < count; i++) {
-        jclass ifaceCls = env->findClass(loader->getInterface(i));
+        jclass ifaceCls = loader->getInterface(exec, i);
         if(ifaceCls == NULL) { env->freeObject(clsArr); return NULL; }
     }
 

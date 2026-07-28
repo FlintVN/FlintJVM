@@ -8,8 +8,8 @@ class JArray : public JObject {
 public:
     uint32_t getLength(void) const;
     uint32_t getSizeInByte(void) const;
-    uint8_t componentSize() const;
-    const char *getCompTypeName(uint16_t *length);
+    uint8_t componentSize(void) const;
+    const char *getBaseCompTypeName(uint16_t *length) const;
     void *getData(void) const;
     void clearArray(void);
 private:
