@@ -56,6 +56,9 @@ Flint::Flint(void) : flintLock(), loaders(), classes(), utf8s(), constStr(), exe
     this->program = NULL;
 
     this->classOfClass = NULL;
+    this->classOfObject = NULL;
+    this->classOfCloneable = NULL;
+    this->classOfSerializable = NULL;
 
     this->heapCount = 0;
     this->objectCountToGc = 0;
@@ -337,42 +340,88 @@ bool Flint::isInstanceof(FExec *ctx, JObject *obj, JClass *type) {
     return isAssignableFrom(ctx, objType, type);
 }
 
+bool Flint::isAssignableFromInterface(FExec *ctx, JClass *fromType, JClass *toIfType) {
+    while(fromType != NULL) {
+        ClassLoader *loader = fromType->getClassLoader();
+        uint16_t ifCount = loader->getInterfacesCount();
+
+        for(uint32_t i = 0; i < ifCount; i++) {
+            JClass *iface = loader->getInterface(ctx, i);
+            if(iface == NULL) return false;
+            if(iface == toIfType) return true;
+            if(isAssignableFromInterface(ctx, iface, toIfType)) return true;
+        }
+
+        fromType = loader->getSuperClass(ctx);
+    }
+    return false;
+}
+
+static JClass *getBaseCompType(Flint *flint, FExec *ctx, JClass *arrayType) {
+    const char *name = arrayType->getTypeName();
+    uint32_t len = 0;
+    while(*name == '[') name++;
+    if(*name == 'L') name++;
+    while(name[len] && name[len] != ';') len++;
+    if(len == 1) switch(*name) {
+        case 'Z': return flint->getPrimitiveClass(ctx, "boolean");
+        case 'C': return flint->getPrimitiveClass(ctx, "char");
+        case 'F': return flint->getPrimitiveClass(ctx, "float");
+        case 'D': return flint->getPrimitiveClass(ctx, "double");
+        case 'B': return flint->getPrimitiveClass(ctx, "byte");
+        case 'S': return flint->getPrimitiveClass(ctx, "short");
+        case 'I': return flint->getPrimitiveClass(ctx, "int");
+        case 'J': return flint->getPrimitiveClass(ctx, "long");
+        case 'V': return flint->getPrimitiveClass(ctx, "void");
+        default: break;
+    }
+    return flint->findClass(ctx, name, len);
+}
+
 bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
     if(fromType == toType) return true;
 
-    const char *typeName1 = fromType->getTypeName();
-    const char *typeName2 = toType->getTypeName();
-    uint8_t dim1 = getDimensions(typeName1);
-    uint8_t dim2 = getDimensions(typeName2);
-    const char *compTypeName1 = &typeName1[dim1];
-    const char *compTypeName2 = &typeName2[dim2];
+    uint8_t dim1 = getDimensions(fromType->getTypeName());
+    uint8_t dim2 = getDimensions(toType->getTypeName());
 
-    if(compTypeName1[0] == 'L') compTypeName1++;
-    if(compTypeName2[0] == 'L') compTypeName2++;
-
-    if(dim1 >= dim2 && strncmp(compTypeName2, "java/lang/Object", 16) == 0) return true;
-    if(dim1 != dim2) return false;
-    if(isPrimitiveTypes(compTypeName1) || isPrimitiveTypes(compTypeName2))
-        return (compTypeName1[0] == compTypeName2[0]) && (compTypeName1[1] == compTypeName2[1]);
-
-    uint32_t len1 = 0, len2 = 0;
-    while(compTypeName1[len1] != 0 && compTypeName1[len1] != ';') len1++;
-    while(compTypeName2[len2] != 0 && compTypeName2[len2] != ';') len2++;
-
-    ClassLoader *loader = Flint::findLoader(ctx, compTypeName1, len1);
-    while(loader != NULL) {
-        if(strncmp(loader->getName(), compTypeName2, len2) == 0) return true;
-        if(loader == NULL) return false;
-        uint16_t ifCount = loader->getInterfacesCount();
-        for(uint32_t i = 0; i < ifCount; i++) {
-            if(strncmp(loader->getInterfaceName(i), compTypeName2, len2) == 0)
-                return true;
-        }
-        JClass *super = loader->getSuperClass(ctx);
-        if(super == NULL) break;
-        loader = super->getClassLoader();
+    if(dim1 > 0) {
+        fromType = getBaseCompType(this, ctx, fromType);
+        if(fromType == NULL) return false;
     }
-    return false;
+    if(dim2 > 0) {
+        toType = getBaseCompType(this, ctx, toType);
+        if(toType == NULL) return false;
+    }
+ 
+    if(dim1 > 0 && dim1 >= dim2) {
+        if((dim1 > dim2) || !fromType->isPrimitive()) {
+            JClass *tmp;
+            if((tmp = getClassOfObject(ctx)) == NULL) return false;
+            if(toType == tmp) return true;
+
+            if((tmp = getClassOfCloneable(ctx)) == NULL) return false;
+            if(toType == tmp) return true;
+
+            if((tmp = getClassOfSerializable(ctx)) == NULL) return false;
+            if(toType == tmp) return true;
+        }
+        else
+            return false;
+    }
+    if(dim1 != dim2) return false;
+
+    if(fromType->isPrimitive() || toType->isPrimitive())
+        return fromType == toType;
+
+    if(toType->getClassLoader()->getAccessFlag() & CLASS_INTERFACE)
+        return isAssignableFromInterface(ctx, fromType, toType);
+    else {
+        while(fromType != NULL) {
+            fromType = fromType->getClassLoader()->getSuperClass(ctx);
+            if(fromType == toType) return true;
+        }
+        return false;
+    }
 }
 
 FExec *Flint::newExecution(FExec *ctx, JThread *owner) {
@@ -707,6 +756,8 @@ JClass *Flint::getClassOfClass(FExec *ctx) {
     do {
         lock();
 
+        if(classOfClass != NULL) { unlock(); break; }
+
         JClassDictNode *clsNode = classes.find("java/lang/Class");
         if(clsNode != NULL) { unlock(); classOfClass = clsNode->getClass(); break; }
 
@@ -723,6 +774,39 @@ JClass *Flint::getClassOfClass(FExec *ctx) {
     } while(false);
 
     return classOfClass;
+}
+
+JClass *Flint::getClassOfObject(FExec *ctx) {
+    if(classOfObject != NULL) return classOfObject;
+
+    lock();
+    if(classOfObject != NULL) { unlock(); return classOfObject; }
+    classOfObject = findClass(ctx, "java/lang/Object");
+    unlock();
+
+    return classOfObject;
+}
+
+JClass *Flint::getClassOfCloneable(FExec *ctx) {
+    if(classOfCloneable != NULL) return classOfCloneable;
+
+    lock();
+    if(classOfCloneable != NULL) { unlock(); return classOfCloneable; }
+    classOfCloneable = findClass(ctx, "java/lang/Cloneable");
+    unlock();
+
+    return classOfCloneable;
+}
+
+JClass *Flint::getClassOfSerializable(FExec *ctx) {
+    if(classOfSerializable != NULL) return classOfSerializable;
+
+    lock();
+    if(classOfSerializable != NULL) { unlock(); return classOfSerializable; }
+    classOfSerializable = findClass(ctx, "java/io/Serializable");
+    unlock();
+
+    return classOfSerializable;
 }
 
 MethodInfo *Flint::findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAndType) {
@@ -1054,6 +1138,9 @@ void Flint::freeAllClassLoader(void) {
     });
     loaders.clear();
     classOfClass = NULL;
+    classOfObject = NULL;
+    classOfCloneable = NULL;
+    classOfSerializable = NULL;
     unlock();
 }
 

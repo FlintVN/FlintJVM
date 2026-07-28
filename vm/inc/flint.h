@@ -34,6 +34,9 @@ private:
     FList<Hook> shutdownHook;
 
     JClass *classOfClass;
+    JClass *classOfObject;
+    JClass *classOfCloneable;
+    JClass *classOfSerializable;
 
     uint32_t heapCount;
     uint32_t objectCountToGc;
@@ -84,6 +87,9 @@ public:
     JClass *findClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
     JClass *getPrimitiveClass(FExec *ctx, const char *name, uint16_t length = 0xFFFF);
     JClass *getClassOfClass(FExec *ctx);
+    JClass *getClassOfObject(FExec *ctx);
+    JClass *getClassOfCloneable(FExec *ctx);
+    JClass *getClassOfSerializable(FExec *ctx);
     MethodInfo *findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAndType);
     JString *getConstString(FExec *ctx, const char *utf8);
     JString *getConstString(FExec *ctx, JString *str);
@@ -141,6 +147,7 @@ private:
     JClass *newClass(FExec *ctx, const char *clsName, uint16_t length = 0xFFFF, uint8_t flag = 0x00);
     JClass *newClassOfArray(FExec *ctx, const char *clsName, uint8_t dimensions);
     JClass *newClassOfClass(FExec *ctx);
+    bool isAssignableFromInterface(FExec *ctx, JClass *fromType, JClass *toIfType);
 private:
     Flint(const Flint &) = delete;
     void operator=(const Flint &) = delete;
