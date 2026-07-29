@@ -56,7 +56,7 @@ public:
 private:
     class Flint * const flint;
     ConstPool *poolTable;
-    uint16_t *interfaces;
+    JClass **interfaces;
     FieldInfo *fields;
     MethodInfo *methods;
     uint16_t *nestMembers;

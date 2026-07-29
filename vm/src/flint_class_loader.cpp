@@ -178,10 +178,13 @@ bool ClassLoader::load(FileReader *reader) {
 
     if(!reader->readSwapUInt16(interfacesCount)) return false;
     if(interfacesCount) {
-        interfaces = (uint16_t *)flint->malloc(ctx, interfacesCount * sizeof(uint16_t));
+        interfaces = (JClass **)flint->malloc(ctx, interfacesCount * sizeof(JClass *));
         if(interfaces == NULL) return false;
-        for(uint32_t i = 0; i < interfacesCount; i++)
-            if(!reader->readSwapUInt16(interfaces[i])) return false;
+        for(uint32_t i = 0; i < interfacesCount; i++) {
+            uint16_t interfaceIndex;
+            if(!reader->readSwapUInt16(interfaceIndex)) return false;
+            interfaces[i] = (JClass *)(0xFFFE0001 | (interfaceIndex << 1));
+        }
     }
 
     if(!reader->readSwapUInt16(fieldsCount)) return false;
@@ -557,11 +560,22 @@ uint16_t ClassLoader::getInterfacesCount(void) const {
 }
 
 JClass *ClassLoader::getInterface(FExec *ctx, uint16_t interfaceIndex) {
-    return flint->findClass(ctx, getInterfaceName(interfaceIndex));
+    if((((uint32_t)interfaces[interfaceIndex]) & 0xFFFE0001) == 0xFFFE0001) {
+        flint->lock();
+        if((((uint32_t)interfaces[interfaceIndex]) & 0xFFFE0001) == 0xFFFE0001) {
+            uint16_t index = (((uint32_t)interfaces[interfaceIndex]) >> 1) & 0xFFFF;
+            interfaces[interfaceIndex] = flint->findClass(ctx, getConstClassName(index));
+        }
+        flint->unlock();
+    }
+    return interfaces[interfaceIndex];
 }
 
 const char *ClassLoader::getInterfaceName(uint16_t interfaceIndex) const {
-    return getConstClassName(interfaces[interfaceIndex]);
+    uint32_t interface = (uint32_t)interfaces[interfaceIndex];
+    if((interface & 0xFFFE0001) == 0xFFFE0001)
+        return getConstClassName((interface >> 1) & 0xFFFF);
+    return ((JClass *)interface)->getTypeName();
 }
 
 uint16_t ClassLoader::getFieldsCount(void) const {
