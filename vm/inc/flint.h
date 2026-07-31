@@ -112,7 +112,8 @@ public:
     bool isObject(void *p);
     void gc(void);
 
-    bool start(void);
+    bool start(MethodInfo *method, uint32_t argc = 0, ...);
+    bool startToMain(uint32_t argc = 0, ...);
 
     bool isRunning(void);
     void stopRequest(void);

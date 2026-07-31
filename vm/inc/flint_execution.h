@@ -79,6 +79,7 @@ public:
     Flint *getFlint(void) const;
 
     bool run(MethodInfo *method, uint32_t argc = 0, ...);
+    bool vRun(MethodInfo *method, uint32_t argc, va_list args);
 
     JClass *getCallerClass(void);
 

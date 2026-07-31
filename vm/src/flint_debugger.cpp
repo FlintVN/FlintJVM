@@ -340,7 +340,7 @@ void FDbg::restartRequest(void) {
     flint->reset();
     dbgMutex.unlock();
     consoleClear();
-    bool ret = flint->start();
+    bool ret = flint->startToMain();
     dbgMutex.lock();
     csr &= DBG_CONTROL_EXCP_EN;
     dbgMutex.unlock();

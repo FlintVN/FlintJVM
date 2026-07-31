@@ -284,8 +284,8 @@ const char *Flint::getUtf8(FExec *ctx, const char *utf8, uint16_t length) {
     Utf8DictNode *utf8Node = utf8s.find(utf8, length);
     if(utf8Node != NULL) { unlock(); return utf8Node->getValue(); }
 
-    uint16_t len = strlen(utf8);
-    len = (len < length) ? len : length;
+    uint16_t len = strnlen(utf8, length);
+
     utf8Node = (Utf8DictNode *)Flint::malloc(ctx, sizeof(Utf8DictNode) + len + 1);
     if(utf8Node == NULL) { unlock(); return NULL; }
     new (utf8Node)Utf8DictNode(utf8, len);
@@ -1022,7 +1022,16 @@ typedef struct {
     const char *mainCls;
 } Manifest;
 
-static bool ReadManifest(Flint *flint, const char *jarPath, Manifest *manifest) {
+char *getNextValue(char *value, char seperator, uint32_t *len) {
+    uint32_t i = 0;
+    while(*value == ' ' || *value == seperator) value++;
+    while(value[i] && value[i] != seperator) i++;
+    while(i > 0 && value[i - 1] == ' ') i--;
+    *len = i;
+    return value;
+}
+
+static bool readManifest(Flint *flint, const char *jarPath, Manifest *manifest) {
     bool ret = false;
     char buff[FILE_NAME_BUFF_SIZE];
     ZipFileReader zip(NULL, jarPath);
@@ -1033,14 +1042,13 @@ static bool ReadManifest(Flint *flint, const char *jarPath, Manifest *manifest) 
         if(br == -1) goto exit;
         if(br < 2) break;
         if(strncmp(buff, "Main-Class:", 11) == 0) {
-            uint32_t idx = 11;
-            while(buff[idx] == ' ' && idx < sizeof(buff)) idx++;
-            for(uint32_t i = idx; buff[i] && (i < sizeof(buff)); i++) {
-                if(buff[i] == '.')
-                    buff[i] = '/';
-            }
-            uint32_t len = strnlen(&buff[idx], sizeof(buff) - idx);
-            manifest->mainCls = flint->getUtf8(NULL, &buff[idx], len);
+            uint32_t len;
+            char *mainCls = getNextValue(&buff[11], ',', &len);
+            if(len == 0) goto exit;
+            for(uint32_t i = 0; i < len; i++)
+                if(mainCls[i] == '.') mainCls[i] = '/';
+            manifest->mainCls = flint->getUtf8(NULL, mainCls, len);
+            if(manifest->mainCls == NULL) goto exit;
         }
     }
     ret = true;
@@ -1049,19 +1057,51 @@ exit:
     return ret;
 }
 
-bool Flint::start(void) {
+bool Flint::start(MethodInfo *method, uint32_t argc, ...) {
+    if(method == NULL) return false;
+
+    FExec *exec = newExecution(NULL);
+    if(exec == NULL) return false;
+
+    if(argc == 0) {
+        if(exec->run(method, 1, NULL))
+            return true;
+    }
+    else {
+        va_list args;
+        va_start(args, argc);
+        if(exec->vRun(method, argc, args)) return true;
+    }
+    freeExecution(exec);
+    return false;
+}
+
+bool Flint::startToMain(uint32_t argc, ...) {
     Manifest manifest = {};
     if(program == NULL) return false;
-    if(!ReadManifest(this, program, &manifest)) return false;
+    if(!readManifest(this, program, &manifest)) return false;
     if(manifest.mainCls == NULL) manifest.mainCls = "Main";
 
-    FExec *exec = Flint::newExecution(NULL);
-    if(exec == NULL) return false;
-    JClass *mainCls = Flint::findClass(NULL, manifest.mainCls);
+    JClass *mainCls = findClass(NULL, manifest.mainCls);
     if(mainCls == NULL) return false;
-    MethodInfo *mt = mainCls->getClassLoader()->getMainMethodInfo(NULL);
-    if(mt == NULL) return false;
-    return exec->run(mt, 1, NULL);
+
+    MethodInfo *method = mainCls->getClassLoader()->getMainMethodInfo(NULL);
+    if(method == NULL) return false;
+
+    FExec *exec = newExecution(NULL);
+    if(exec == NULL) return false;
+
+    if(argc == 0) {
+        if(exec->run(method, 1, NULL))
+            return true;
+    }
+    else {
+        va_list args;
+        va_start(args, argc);
+        if(exec->vRun(method, argc, args)) return true;
+    }
+    freeExecution(exec);
+    return false;
 }
 
 bool Flint::isRunning(void) {

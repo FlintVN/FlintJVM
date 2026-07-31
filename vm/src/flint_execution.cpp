@@ -2482,13 +2482,16 @@ void FExec::runTask(FExec *exec) {
 }
 
 bool FExec::run(MethodInfo *method, uint32_t argc, ...) {
+    va_list args;
+    va_start(args, argc);
+    return vRun(method, argc, args);
+}
+
+bool FExec::vRun(MethodInfo *method, uint32_t argc, va_list args) {
     if(!opcodes) {
         initExitPoint(method);
-        if(argc > 0) {
-            va_list args;
-            va_start(args, argc);
+        if(argc > 0)
             stackPushArgs(argc, args);
-        }
         invoke(method, argc);
         FlintAPI::Thread::ThreadHandle handle = FlintAPI::Thread::create((void (*)(void *))runTask, (void *)this);
         if(handle != NULL) {
