@@ -8,9 +8,12 @@ Utf8DictNode::Utf8DictNode(void) : hash(0) {
 }
 
 Utf8DictNode::Utf8DictNode(const char *txt, uint16_t length) {
-    hash = Hash(txt);
+    hash = Hash(txt, length);
     char *val = value;
-    while(*txt) *val++ = *txt++;
+    while(*txt && length) {
+        *val++ = *txt++;
+        length--;
+    }
     *val = 0;
 }
 
