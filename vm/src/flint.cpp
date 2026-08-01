@@ -815,7 +815,7 @@ MethodInfo *Flint::findMethod(FExec *ctx, JClass *cls, ConstNameAndType *nameAnd
     while(loader != NULL) {
         MethodInfo *mtInfo = loader->getMethodInfo(ctx, nameAndType);
         if(mtInfo != NULL) return mtInfo;
-        if(ctx->excp != NULL) return NULL;
+        if(ctx != NULL && ctx->excp != NULL) return NULL;
         JClass *super = loader->getSuperClass(ctx);
         if(super == NULL) break;
         loader = super->getClassLoader();
