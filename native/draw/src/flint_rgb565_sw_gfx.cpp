@@ -50,7 +50,7 @@ static void CalcRectPoints(uint32_t width, int32_t x1, int32_t y1, int32_t x2, i
     }
 
     int32_t wy0 = wy >> 1;
-    int32_t wy1 = wy0 + (wy & 0x1);  
+    int32_t wy1 = wy0 + (wy & 0x1);
     int32_t wx0 = wx >> 1;
     int32_t wx1 = wx0 + (wx & 0x01);
 

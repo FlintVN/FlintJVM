@@ -392,7 +392,7 @@ bool Flint::isAssignableFrom(FExec *ctx, JClass *fromType, JClass *toType) {
         toType = getBaseCompType(this, ctx, toType);
         if(toType == NULL) return false;
     }
- 
+
     if(dim1 > 0 && dim1 >= dim2) {
         if((dim1 > dim2) || !fromType->isPrimitive()) {
             JClass *tmp;
