@@ -1063,15 +1063,10 @@ bool Flint::start(MethodInfo *method, uint32_t argc, ...) {
     FExec *exec = newExecution(NULL);
     if(exec == NULL) return false;
 
-    if(argc == 0) {
-        if(exec->run(method, 1, NULL))
-            return true;
-    }
-    else {
-        va_list args;
-        va_start(args, argc);
-        if(exec->vRun(method, argc, args)) return true;
-    }
+    va_list args;
+    va_start(args, argc);
+    if(exec->vRun(method, argc, args)) return true;
+
     freeExecution(exec);
     return false;
 }
@@ -1091,15 +1086,10 @@ bool Flint::startToMain(uint32_t argc, ...) {
     FExec *exec = newExecution(NULL);
     if(exec == NULL) return false;
 
-    if(argc == 0) {
-        if(exec->run(method, 1, NULL))
-            return true;
-    }
-    else {
-        va_list args;
-        va_start(args, argc);
-        if(exec->vRun(method, argc, args)) return true;
-    }
+    va_list args;
+    va_start(args, argc);
+    if(exec->vRun(method, argc, args)) return true;
+
     freeExecution(exec);
     return false;
 }
