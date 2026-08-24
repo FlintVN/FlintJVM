@@ -1860,20 +1860,25 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     op_lookupswitch: {
         int32_t key = stackPopInt32();
-        uint8_t padding = (4 - ((pc + 1) % 4)) % 4;
-        const uint8_t *table = &code[pc + padding + 1];
-        int32_t defaultPc = ARRAY_TO_INT32(table);
-        int32_t npairs = ARRAY_TO_INT32(&table[4]);
-        table = &table[8];
-        while(npairs--) {
-            int32_t pairs = ARRAY_TO_INT32(table);
-            if(key == pairs) {
-                pc += ARRAY_TO_INT32(&table[4]);
+        uint8_t padding = (4 - (pc + 1)) & 0x03;
+        const uint8_t *lookupswitch = &code[pc + padding + 1];
+        const uint8_t *table = &lookupswitch[8];
+        int32_t left = 0;
+        int32_t right = ARRAY_TO_INT32(&lookupswitch[4]) - 1;
+        while(left <= right) {
+            int32_t mid = left + (right - left) / 2;
+            const uint8_t *pair = &table[mid << 3];
+            int32_t pairKey = ARRAY_TO_INT32(pair);
+            if(key == pairKey) {
+                pc += ARRAY_TO_INT32(&pair[4]);
                 goto *opcodes[code[pc]];
             }
-            table = &table[8];
+            else if (pairKey < key)
+                left = mid + 1;
+            else
+                right = mid - 1;
         }
-        pc += defaultPc;
+        pc += ARRAY_TO_INT32(lookupswitch);
         goto *opcodes[code[pc]];
     }
     op_ireturn:
