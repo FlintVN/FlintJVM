@@ -6,9 +6,10 @@
 
 using namespace FlintAPI::Thread;
 
-ThreadHandle FlintAPI::Thread::create(void (*task)(void *), void *param, uint32_t stackSize) {
+ThreadHandle FlintAPI::Thread::create(void (*task)(void *), void *param, uint32_t stackSize, ThreadPriority priority) {
+    static const uint8_t priorities[] = {tskIDLE_PRIORITY + 1, tskIDLE_PRIORITY + 2, tskIDLE_PRIORITY + 3};
     TaskHandle_t xHandle = NULL;
-    xTaskCreate(task, "FlintJavaThread", stackSize ? stackSize : 5120, param, tskIDLE_PRIORITY + 1, &xHandle);
+    xTaskCreate(task, "FlintJavaThread", stackSize ? stackSize : 5120, param, priorities[priority], &xHandle);
     return (void *)xHandle;
 }
 

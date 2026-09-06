@@ -81,7 +81,13 @@ namespace FlintAPI::IO {
 namespace FlintAPI::Thread {
     typedef void * ThreadHandle;
 
-    ThreadHandle create(void (*task)(void *), void *param, uint32_t stackSize = 0);
+    typedef enum {
+        THREAD_PRIORITY_LOW,
+        THREAD_PRIORITY_MEDIUM,
+        THREAD_PRIORITY_HIGH
+    } ThreadPriority;
+
+    ThreadHandle create(void (*task)(void *), void *param, uint32_t stackSize = 0, ThreadPriority priority = THREAD_PRIORITY_LOW);
     ThreadHandle getCurrentThread(void);
     void terminate(ThreadHandle handle);
     void sleep(uint32_t ms);
