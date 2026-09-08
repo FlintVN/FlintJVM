@@ -81,19 +81,27 @@ namespace FlintAPI::IO {
 namespace FlintAPI::Thread {
     typedef void * ThreadHandle;
 
-    typedef enum {
+    typedef enum : uint8_t {
         THREAD_PRIORITY_LOW,
         THREAD_PRIORITY_MEDIUM,
         THREAD_PRIORITY_HIGH
     } ThreadPriority;
+
+    typedef enum : uint32_t {
+        THREAD_NOTIFY_INTERRUPT,
+        THREAD_NOTIFY_TERMINATE,
+        THREAD_NOTIFY_OBJECT_NOTIFY,
+        THREAD_NOTIFY_SYSTEM_EVENT,
+        THREAD_NOTIFY_TIMEOUT = 0xFFFFFFFF,
+    } ThreadNotify;
 
     ThreadHandle create(void (*task)(void *), void *param, uint32_t stackSize = 0, ThreadPriority priority = THREAD_PRIORITY_LOW);
     ThreadHandle getCurrentThread(void);
     void terminate(ThreadHandle handle);
     void sleep(uint32_t ms);
     void yield(void);
-    bool wait(uint32_t ms, uint32_t *notifyValue = NULL);
-    void notify(ThreadHandle handle, uint32_t notifyValue);
+    ThreadNotify wait(uint32_t ms);
+    void notify(ThreadHandle handle, ThreadNotify notifyValue);
 };
 
 #ifdef FLINT_API_NET_ENABLED

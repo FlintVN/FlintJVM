@@ -28,13 +28,13 @@ jobject NativeObject_Clone(FNIEnv *env, jobject obj) {
 }
 
 jvoid NativeObject_Notify(FNIEnv *env, jobject obj) {
-    ((FExec *)env)->getFlint()->notify((FExec *)env, obj);
+    ((FExec *)env)->getFlint()->objectNotify((FExec *)env, obj);
 }
 
 jvoid NativeObject_NotifyAll(FNIEnv *env, jobject obj) {
-    ((FExec *)env)->getFlint()->notifyAll((FExec *)env, obj);
+    ((FExec *)env)->getFlint()->objectNotifyAll((FExec *)env, obj);
 }
 
 jvoid NativeObject_Wait0(FNIEnv *env, jobject obj, jlong millis) {
-    ((FExec *)env)->getFlint()->wait((FExec *)env, obj, millis);
+    ((FExec *)env)->getFlint()->objectWait((FExec *)env, obj, millis);
 }

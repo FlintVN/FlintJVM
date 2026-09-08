@@ -361,7 +361,7 @@ FExec::FExec(Flint *flint, JThread *owner, uint32_t stackSize) : ListNode(), FNI
     this->peakSp = sp;
     this->ownerThread = owner;
     this->excp = NULL;
-    this->currentWaiting = NULL;
+    this->waitingObj = NULL;
 }
 
 Flint *FExec::getFlint(void) const {
@@ -2502,7 +2502,7 @@ bool FExec::vRun(MethodInfo *method, uint32_t argc, va_list args) {
         if(handle != NULL) {
             getOwnerThread()->setHandle(handle);
             getOwnerThread()->clearInterrupt();
-            FlintAPI::Thread::notify(handle, -1);
+            FlintAPI::Thread::notify(handle, FlintAPI::Thread::THREAD_NOTIFY_INTERRUPT);
             return true;
         }
     }
@@ -2553,7 +2553,7 @@ void FExec::stopRequest(void) {
 
 void FExec::terminateRequest(void) {
     opcodes = opcodeLabelsExit;
-    FlintAPI::Thread::notify(getOwnerThread()->getHandle(), -1);
+    FlintAPI::Thread::notify(getOwnerThread()->getHandle(), FlintAPI::Thread::THREAD_NOTIFY_TERMINATE);
 }
 
 jbool FExec::hasTerminateRequest(void) {
@@ -2562,12 +2562,4 @@ jbool FExec::hasTerminateRequest(void) {
 
 JThread *FExec::getOwnerThread() {
     return ownerThread;
-}
-
-JObject *FExec::getCurrentWaiting(void) {
-    return currentWaiting;
-}
-
-void FExec::setCurrentWaiting(JObject *obj) {
-    currentWaiting = obj;
 }

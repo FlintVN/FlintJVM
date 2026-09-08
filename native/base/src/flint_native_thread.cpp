@@ -43,7 +43,7 @@ jvoid NativeThread_SetPriority0(FNIEnv *env, jthread thread, jint newPriority) {
 jvoid NativeThread_Interrupt0(FNIEnv *env, jthread thread) {
     (void)env;
     FlintAPI::Thread::ThreadHandle handle = thread->getHandle();
-    FlintAPI::Thread::notify(handle, (uint32_t)handle);
+    FlintAPI::Thread::notify(handle, FlintAPI::Thread::THREAD_NOTIFY_INTERRUPT);
 }
 
 jthread NativeThread_CurrentThread(FNIEnv *env) {
