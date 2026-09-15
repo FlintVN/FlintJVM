@@ -55,7 +55,7 @@ jvoid NativeRgb565Graphics_Clear2(FNIEnv *env, jobject obj, jobject c) {
     g.clear(color);
 }
 
-jvoid NativeRgb565Graphics_DrawLine(FNIEnv *env, jobject obj, jobject c, jint thk, jint x1, jint y1, jint x2, jint y2) {
+jvoid NativeRgb565Graphics_DrawLine(FNIEnv *env, jobject obj, jobject c, jint x1, jint y1, jint x2, jint y2) {
     if(c == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"), "color cannot be null");
         return;
@@ -64,10 +64,10 @@ jvoid NativeRgb565Graphics_DrawLine(FNIEnv *env, jobject obj, jobject c, jint th
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
     jint ox = ((JRgb565Gfx)obj)->getX();
     jint oy = ((JRgb565Gfx)obj)->getY();
-    g.drawLine(color, thk, x1 + ox, y1 + oy, x2 + ox, y2 + oy);
+    g.drawLine(color, x1 + ox, y1 + oy, x2 + ox, y2 + oy);
 }
 
-jvoid NativeRgb565Graphics_DrawRect(FNIEnv *env, jobject obj, jobject c, jint thk, jint x, jint y, jint w, jint h) {
+jvoid NativeRgb565Graphics_DrawRect(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h) {
     if(c == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"), "color cannot be null");
         return;
@@ -76,7 +76,7 @@ jvoid NativeRgb565Graphics_DrawRect(FNIEnv *env, jobject obj, jobject c, jint th
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
     jint ox = ((JRgb565Gfx)obj)->getX();
     jint oy = ((JRgb565Gfx)obj)->getY();
-    g.drawRect(color, thk, x + ox, y + oy, w, h);
+    g.drawRect(color, x + ox, y + oy, w, h);
 }
 
 jvoid NativeRgb565Graphics_FillRect(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h) {
@@ -91,7 +91,7 @@ jvoid NativeRgb565Graphics_FillRect(FNIEnv *env, jobject obj, jobject c, jint x,
     g.fillRect(color, x + ox, y + oy, w, h);
 }
 
-jvoid NativeRgb565Graphics_DrawRoundRect(FNIEnv *env, jobject obj, jobject c, jint thk, jint x, jint y, jint w, jint h, jint r1, jint r2, jint r3, jint r4) {
+jvoid NativeRgb565Graphics_DrawRoundRect(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h, jint r1, jint r2, jint r3, jint r4) {
     if(c == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"), "color cannot be null");
         return;
@@ -107,7 +107,7 @@ jvoid NativeRgb565Graphics_DrawRoundRect(FNIEnv *env, jobject obj, jobject c, ji
     if(!r1 && !r2 && !r3 && !r4)
         g.fillRect(color, x + ox, y + oy, w, h);
     else
-        g.drawRoundRect(color, thk, x + ox, y + oy, w, h, r1, r2, r3, r4);
+        g.drawRoundRect(color, x + ox, y + oy, w, h, r1, r2, r3, r4);
 }
 
 jvoid NativeRgb565Graphics_FillRoundRect(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h, jint r1, jint r2, jint r3, jint r4) {
@@ -129,7 +129,7 @@ jvoid NativeRgb565Graphics_FillRoundRect(FNIEnv *env, jobject obj, jobject c, ji
         g.fillRoundRect(color, x + ox, y + oy, w, h, r1, r2, r3, r4);
 }
 
-jvoid NativeRgb565Graphics_DrawEllipse(FNIEnv *env, jobject obj, jobject c, jint thk, jint x, jint y, jint w, jint h) {
+jvoid NativeRgb565Graphics_DrawEllipse(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h) {
     if(c == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"), "color cannot be null");
         return;
@@ -138,7 +138,7 @@ jvoid NativeRgb565Graphics_DrawEllipse(FNIEnv *env, jobject obj, jobject c, jint
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
     jint ox = ((JRgb565Gfx)obj)->getX();
     jint oy = ((JRgb565Gfx)obj)->getY();
-    g.drawEllipse(color, thk, x + ox, y + oy, w, h);
+    g.drawEllipse(color, x + ox, y + oy, w, h);
 }
 
 jvoid NativeRgb565Graphics_FillEllipse(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h) {
@@ -153,7 +153,7 @@ jvoid NativeRgb565Graphics_FillEllipse(FNIEnv *env, jobject obj, jobject c, jint
     g.fillEllipse(color, x + ox, y + oy, w, h);
 }
 
-jvoid NativeRgb565Graphics_DrawArc(FNIEnv *env, jobject obj, jobject c, jint thk, jint x, jint y, jint w, jint h, jfloat startAngle, jfloat sweepAngle) {
+jvoid NativeRgb565Graphics_DrawArc(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h, jfloat startAngle, jfloat sweepAngle) {
     if(c == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"), "color cannot be null");
         return;
@@ -169,7 +169,7 @@ jvoid NativeRgb565Graphics_FillArc(FNIEnv *env, jobject obj, jobject c, jint x, 
     // TODO
 }
 
-jvoid NativeRgb565Graphics_DrawPolygon(FNIEnv *env, jobject obj, jobject c, jint thk, jobject points) {
+jvoid NativeRgb565Graphics_DrawPolygon(FNIEnv *env, jobject obj, jobject c, jobject points) {
     if(c == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"), "color cannot be null");
         return;
