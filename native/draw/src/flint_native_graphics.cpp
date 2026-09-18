@@ -110,8 +110,8 @@ jbool NativeGraphics_IsVisible(FNIEnv *env, jobject obj, jint x, jint y, jint w,
 
 jvoid NativeGraphics_SetClip0(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h, jint mode) {
     if(w < 0 || h < 0) {
-        env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "width and height cannot be negative");
-        return;
+        w = 0;
+        h = 0;
     }
     JGfx g = ((JGfx)obj);
     if(mode == 0) {     /* REPLACE mode */
