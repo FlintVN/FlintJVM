@@ -393,7 +393,6 @@ static void fillEllipseVLine4(Rgb565Gfx *g, uint32_t color, FP cx, FP cy, FP yo,
 
 void Rgb565Gfx::fillCircle(uint32_t color, int32_t x, int32_t y, uint32_t d) {
     if(!isVisible(this, x, y, d, d)) return;
-    d++;
     FP r = (FP)d / (int32_t)2;
     FP cx = x + r;
     FP cy = y + r;
@@ -429,8 +428,6 @@ void Rgb565Gfx::fillEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
     if(w == h) return fillCircle(color, x, y, w);
     if(!isVisible(this, x, y, w, h)) return;
 
-    w++;
-    h++;
     FP a = (FP)w / (int32_t)2;
     FP b = (FP)h / (int32_t)2;
 
