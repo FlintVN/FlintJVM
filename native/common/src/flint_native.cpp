@@ -23,6 +23,7 @@
 #include "flint_native_file_output_stream.h"
 #include "flint_native_random_access_file.h"
 #include "flint_native_crc32.h"
+#include "flint_native_inflater.h"
 
 #if FLINT_API_NET_ENABLED
 #include "flint_native_flint_socket_impl.h"
@@ -57,6 +58,7 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
     NATIVE_CLASS("java/io/RandomAccessFile",          randomAccessFileMethods),
     NATIVE_CLASS("jdk/internal/reflect/Reflection",   reflectionMethods),
     NATIVE_CLASS("java/util/zip/CRC32",               crc32Methods),
+    NATIVE_CLASS("java/util/zip/Inflater",            inflaterMethods),
 
 #if FLINT_API_NET_ENABLED
     NATIVE_CLASS("flint/net/FlintSocketImpl",         flintSocketImplMethods),
