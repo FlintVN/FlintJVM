@@ -68,3 +68,11 @@ jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis) {
         FlintAPI::Thread::wait(waitTime);
     }
 }
+
+jbool NativeThread_HoldsLock(FNIEnv *env, jobject obj) {
+    if(obj == NULL) {
+        env->throwNew(env->findClass("java/lang/NullPointerException"));
+        return false;
+    }
+    return ((FExec *)env)->holdsLock(obj);
+}

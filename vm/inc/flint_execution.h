@@ -88,6 +88,7 @@ public:
     bool hasException(void) const;
 
     JThread *getOwnerThread(void);
+    bool holdsLock(JObject *obj);
 public:
     jclass findClass(const char *name, uint16_t length = 0xFFFF) __attribute__((used));
 

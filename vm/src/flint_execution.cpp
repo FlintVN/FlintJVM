@@ -565,6 +565,11 @@ void FExec::unlockObject(JObject *obj) {
     flint->unlock();
 }
 
+bool FExec::holdsLock(JObject *obj) {
+    if(obj == NULL) return false;
+    return obj->ownId == (int32_t)this;
+}
+
 bool FExec::checkInvokeArgs(JObject *obj, MethodInfo *methodInfo) {
     if(obj == NULL) {
         JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
