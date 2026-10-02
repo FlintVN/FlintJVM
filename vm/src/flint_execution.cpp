@@ -2469,7 +2469,7 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodeLabels[op];
     }
     op_unknow: {
-        FExec::throwNew(flint->findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u", code[pc]);
+        FExec::throwNew(flint->findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u at %s.%s%s pc=%u", code[pc], method->loader->getName(), method->name, method->desc, pc);
         return;
     }
     divided_by_zero_excp: {

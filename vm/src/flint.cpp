@@ -989,7 +989,7 @@ void Flint::gc(void) {
     execs.forEach([this](FExec *exec) {
         if (exec->ownerThread && (exec->ownerThread->getProtected() & 0x01) == 0)
             markObjectRecursion(exec->ownerThread);
-        if (exec->excp != NULL && ((uint32_t)exec->excp & 0x01) != 0 && (exec->excp->getProtected() & 0x01) == 0)
+        if(exec->excp != NULL && ((uint32_t)exec->excp & 0x01) == 0 && (exec->excp->getProtected() & 0x01) == 0)
             markObjectRecursion(exec->excp);
         int32_t startSp = exec->startSp;
         int32_t endSp = (exec->sp > exec->peakSp) ? exec->sp : exec->peakSp;
@@ -1126,8 +1126,7 @@ void Flint::freeObject(JObject *obj) {
 
 void Flint::freeAllObject(void) {
     lock();
-    shutdownHook.forEach([this](Hook *hook) { hook->invoke(); Flint::free(hook); });
-    shutdownHook.clear();
+    runShutdownHooks();
     classes.forEach([this](JClassDictNode *item) { Flint::free(item); });
     classes.clear();
     constStr.forEach([this](JStringDictNode *item) { Flint::free(item); });
@@ -1213,6 +1212,18 @@ bool Flint::removeShutdownHook(Hook *hook) {
     shutdownHook.remove(hook);
     unlock();
     return false;
+}
+
+void Flint::runShutdownHooks(void) {
+    lock();
+    while(shutdownHook.root != NULL) {
+        Hook *hook = (Hook *)shutdownHook.root;
+        // Detach before invocation so recursive cleanup cannot invoke it twice.
+        shutdownHook.remove(hook);
+        hook->invoke();
+        Flint::free(hook);
+    }
+    unlock();
 }
 
 void Flint::objectWait(FExec *ctx, JObject *obj, int64_t millis) {

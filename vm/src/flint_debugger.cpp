@@ -341,6 +341,7 @@ void FDbg::restartRequest(void) {
     }
     flint->setDebugger(this);
     flint->terminate();
+    flint->runShutdownHooks();
     flint->clearAllStaticFields();
     flint->freeAllExecution();
     flint->gc();

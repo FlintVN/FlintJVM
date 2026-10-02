@@ -131,6 +131,8 @@ public:
 
     Hook *addShutdownHook(FExec *ctx, void *handle, void (*func)(void *));
     bool removeShutdownHook(Hook *hook);
+    // Invoke and free native hooks after all executions have stopped.
+    void runShutdownHooks(void);
 
     void objectWait(FExec *ctx, JObject *obj, int64_t millis);
     void objectNotify(FExec *ctx, JObject *obj);
