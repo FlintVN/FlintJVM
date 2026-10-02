@@ -812,7 +812,7 @@ static void drawImageRGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uint
     if(imgx >= imgw) return;
     for(; imgy < imgh; imgy++) {
         uint16_t *src = &((uint16_t *)img->data)[(imgy * img->height / h) * img->width];
-        uint16_t *des = &((uint16_t *)g->data)[(imgy + y) * g->width];
+        uint16_t *des = &((uint16_t *)g->data)[(imgy + y) * g->width + x];
         for(uint16_t i = imgx; i < imgw; i++) des[i] = src[i * img->width / w];
     }
 }
@@ -828,7 +828,7 @@ static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uin
     for(; imgy < imgh; imgy++) {
         uint32_t tmp = (imgy * img->height / h) * img->width;
         uint16_t *src = &((uint16_t *)img->data)[tmp];
-        uint16_t *des = &((uint16_t *)g->data)[(imgy + y) * g->width];
+        uint16_t *des = &((uint16_t *)g->data)[(imgy + y) * g->width + x];
         for(uint16_t i = imgx; i < imgw; i++) {
             uint32_t srcIdx = i * img->width / w;
             uint32_t aIdx = tmp + srcIdx;
