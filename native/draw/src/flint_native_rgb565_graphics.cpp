@@ -1,8 +1,6 @@
 
 #include "flint_default_conf.h"
 
-#if FLINT_API_DRAW_ENABLED
-
 #include "flint_java_string.h"
 #include "flint_array_object.h"
 #include "flint_rgb565_gfx.h"
@@ -212,13 +210,13 @@ jvoid NativeRgb565Graphics_DrawImage1(FNIEnv *env, jobject obj, jobject img, jin
         return;
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
-    jint format = img->getFieldByIndex(0)->getInt32();
+    jbool hasAlpha = img->getFieldByIndex(0)->getInt32();
     jint imgw = img->getFieldByIndex(1)->getInt32();
     jint imgh = img->getFieldByIndex(2)->getInt32();
     int8_t *data = ((jbyteArray)img->getFieldByIndex(3)->getObj())->getData();
     jint ox = ((JRgb565Gfx)obj)->getX();
     jint oy = ((JRgb565Gfx)obj)->getY();
-    Image cimg((ImgFormat)format, imgw, imgh, data);
+    Image cimg(hasAlpha, imgw, imgh, data);
     g.drawImage(&cimg, x + ox, y + oy);
 }
 
@@ -228,14 +226,12 @@ jvoid NativeRgb565Graphics_DrawImage2(FNIEnv *env, jobject obj, jobject img, jin
         return;
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
-    jint format = img->getFieldByIndex(0)->getInt32();
+    jbool hasAlpha = img->getFieldByIndex(0)->getInt32();
     jint imgw = img->getFieldByIndex(1)->getInt32();
     jint imgh = img->getFieldByIndex(2)->getInt32();
     int8_t *data = ((jbyteArray)img->getFieldByIndex(3)->getObj())->getData();
     jint ox = ((JRgb565Gfx)obj)->getX();
     jint oy = ((JRgb565Gfx)obj)->getY();
-    Image cimg((ImgFormat)format, imgw, imgh, data);
+    Image cimg(hasAlpha, imgw, imgh, data);
     g.drawImage(&cimg, x + ox, y + oy, w, h);
 }
-
-#endif /* FLINT_API_DRAW_ENABLED */

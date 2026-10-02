@@ -796,16 +796,11 @@ static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y) {
     }
 }
 
-static void drawImageARGB888(Rgb565Gfx *g, Image *img, int32_t x, int32_t y) {
-    // TODO
-}
-
 void Rgb565Gfx::drawImage(Image *img, int32_t x, int32_t y) {
-    switch(img->format) {
-        case IMG_RGB565: return drawImageRGB565(this, img, x, y);
-        case IMG_ARGB565: return drawImageARGB565(this, img, x, y);
-        default: return drawImageARGB888(this, img, x, y);
-    }
+    if(img->hasAlpha)
+        return drawImageARGB565(this, img, x, y);
+    else
+        return drawImageRGB565(this, img, x, y);
 }
 
 static void drawImageRGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uint16_t w, uint16_t h) {
@@ -850,17 +845,11 @@ static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uin
     }
 }
 
-static void drawImageARGB888(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uint16_t w, uint16_t h) {
-    if(w == img->width && h == img->height) return drawImageARGB888(g, img, x, y);
-    // TODO
-}
-
 void Rgb565Gfx::drawImage(Image *img, int32_t x, int32_t y, uint16_t w, uint16_t h) {
-    switch(img->format) {
-        case IMG_RGB565: return drawImageRGB565(this, img, x, y, w, h);
-        case IMG_ARGB565: return drawImageARGB565(this, img, x, y, w, h);
-        default: return drawImageARGB888(this, img, x, y, w, h);
-    }
+    if(img->hasAlpha)
+        return drawImageARGB565(this, img, x, y, w, h);
+    else
+        return drawImageRGB565(this, img, x, y, w, h);
 }
 
 static void drawChar(Rgb565GfxHelper *g, const CharInfo *c, uint32_t color, int32_t x, int32_t y) {

@@ -1,8 +1,6 @@
 
 #include "flint_default_conf.h"
 
-#if FLINT_API_DRAW_ENABLED
-
 #include "flint_gfx_common.h"
 #include "flint_java_object.h"
 #include "flint_java_string.h"
@@ -195,5 +193,3 @@ jint NativeGraphics_MeasureStringHeight(FNIEnv *env, jstring str, jobject font) 
     }
     return h;
 }
-
-#endif /* FLINT_API_DRAW_ENABLED */

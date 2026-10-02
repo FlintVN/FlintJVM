@@ -5,8 +5,6 @@
 #include "flint_native.h"
 #include "flint_default_conf.h"
 
-#if FLINT_API_DRAW_ENABLED
-
 jvoid NativeRgb565Graphics_Clear1(FNIEnv *env, jobject obj);
 jvoid NativeRgb565Graphics_Clear2(FNIEnv *env, jobject obj, jobject c);
 jvoid NativeRgb565Graphics_DrawLine(FNIEnv *env, jobject obj, jobject c, jint x1, jint y1, jint x2, jint y2);
@@ -42,7 +40,5 @@ inline constexpr NativeMethod rgb565GraphicsMethods[] = {
     NATIVE_METHOD("drawImage",     "(Lflint/drawing/Image;II)V",                                        NativeRgb565Graphics_DrawImage1),
     NATIVE_METHOD("drawImage",     "(Lflint/drawing/Image;IIII)V",                                      NativeRgb565Graphics_DrawImage2),
 };
-
-#endif /* FLINT_API_DRAW_ENABLED */
 
 #endif /* __FLINT_NATIVE_RGB565_GRAPHICS_H */
