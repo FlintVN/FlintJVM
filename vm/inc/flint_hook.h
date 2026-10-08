@@ -6,19 +6,20 @@
 #include "flint_list.h"
 
 class Hook : public ListNode {
-public:
+private:
     void * const handle;
     void (* const func)(void *);
-public:
-    Hook(void *handle, void (*func)(void *));
 
+    Hook(void *handle, void (*func)(void *));
+    void invoke(void) const;
+public:
     void *getHandle(void) const;
     void (*getFunc(void))(void *) const;
-
-    void invoke(void) const;
 private:
     Hook(const Hook &) = delete;
     void operator=(const Hook &) = delete;
+
+    friend class Flint;
 };
 
 #endif /* __FLINT_HOOK_H */
