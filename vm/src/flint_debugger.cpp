@@ -313,8 +313,8 @@ void FDbg::stopRequest(void) {
     csr = (csr & ~(DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT)) | DBG_CONTROL_STOP;
     exec = NULL;
     if (flint != NULL) {
-        dbgMutex.unlock();
         flint->stopRequest();
+        dbgMutex.unlock();
         sendRespCode(DBG_CMD_STOP, DBG_RESP_OK);
     }
     else {
@@ -338,10 +338,8 @@ void FDbg::restartRequest(void) {
     flint->freeAllExecution();
     flint->gc();
     flint->reset();
-    dbgMutex.unlock();
     consoleClear();
     bool ret = flint->startToMain();
-    dbgMutex.lock();
     csr &= DBG_CONTROL_EXCP_EN;
     dbgMutex.unlock();
     sendRespCode(DBG_CMD_RESTART, ret ? DBG_RESP_OK : DBG_RESP_FAIL);
@@ -497,8 +495,12 @@ void FDbg::readLocalVariableRequest(uint32_t stackIndex, uint32_t localIndex, ui
 
 void FDbg::readFieldRequest(JObject *obj, const char *fieldName) {
     if (csr & DBG_STATUS_STOP) {
-        if (!flint->isObject(obj))
+        dbgMutex.lock();
+        if (flint == NULL || !flint->isObject(obj)) {
+            dbgMutex.unlock();
             return (void)sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
+        }
+        dbgMutex.unlock();
         FieldValue *field = obj->getField(NULL, fieldName);
         if (field == NULL)
             return (void)sendRespCode(DBG_CMD_READ_FIELD, DBG_RESP_FAIL);
@@ -534,7 +536,10 @@ void FDbg::readFieldRequest(JObject *obj, const char *fieldName) {
 
 void FDbg::readArrayRequest(JObject *array, uint32_t index, uint32_t length) {
     if (csr & DBG_STATUS_STOP) {
-        if (flint->isObject(array) && array->isArray()) {
+        dbgMutex.lock();
+        bool isObj = (flint != NULL) && flint->isObject(array);
+        dbgMutex.unlock();
+        if (isObj && array->isArray()) {
             uint8_t compSz = array->type->componentSize();
             uint32_t arrayLen = ((JArray *)array)->getLength();
             uint32_t arrayEnd = index + length;
@@ -573,10 +578,13 @@ void FDbg::readArrayRequest(JObject *array, uint32_t index, uint32_t length) {
 
 void FDbg::readObjSizeAndTypeRequest(JObject *obj) {
     if (csr & DBG_STATUS_STOP) {
-        if (obj == NULL || flint->isObject(obj) == false) {
+        dbgMutex.lock();
+        if (obj == NULL || flint == NULL || flint->isObject(obj) == false) {
+            dbgMutex.unlock();
             sendRespCode(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_FAIL);
             return;
         }
+        dbgMutex.unlock();
         const char *type = obj->getTypeName();
         initDataFrame(DBG_CMD_READ_SIZE_AND_TYPE, DBG_RESP_OK, 4 + (2 + strlen(type) + 1));
         if (!dataFrameAppend((uint32_t)obj->size)) return;
@@ -1016,7 +1024,9 @@ bool FDbg::receivedDataHandler(uint8_t *data, uint32_t length) {
 
 bool FDbg::addBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc) {
     if (breakPointCount < LENGTH(breakPoints)) {
-        ClassLoader *loader = flint->findLoader(NULL, clsName);
+        dbgMutex.lock();
+        ClassLoader *loader = flint != NULL ? flint->findLoader(NULL, clsName) : NULL;
+        dbgMutex.unlock();
         if (loader == NULL) return false;
         MethodInfo *method = loader->getMethodInfo(NULL, name, desc);
         if (method == NULL) return false;
@@ -1046,7 +1056,9 @@ uint8_t FDbg::getSavedOpcode(uint32_t pc, MethodInfo *method) {
 
 bool FDbg::removeBreakPoint(uint32_t pc, const char *clsName, const char *name, const char *desc) {
     if (breakPointCount) {
-        ClassLoader *loader = flint->findLoader(NULL, clsName);
+        dbgMutex.lock();
+        ClassLoader *loader = flint != NULL ? flint->findLoader(NULL, clsName) : NULL;
+        dbgMutex.unlock();
         if (loader == NULL) return false;
         MethodInfo *method = loader->getMethodInfo(NULL, name, desc);
         if (method == NULL) return false;
@@ -1088,8 +1100,8 @@ void FDbg::caughtException(FExec *exec) {
     tmp |= DBG_STATUS_STOP | DBG_STATUS_STOP_SET | DBG_STATUS_EXCP;
     csr = tmp;
     this->exec = exec;
-    dbgMutex.unlock();
     flint->stopRequest();
+    dbgMutex.unlock();
     waitStop(exec);
 }
 
@@ -1097,8 +1109,8 @@ void FDbg::hitBreakpoint(FExec *exec) {
     dbgMutex.lock();
     csr = (csr | DBG_STATUS_STOP | DBG_STATUS_STOP_SET) & ~(DBG_CONTROL_STOP | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_OUT);
     this->exec = exec;
-    dbgMutex.unlock();
     flint->stopRequest();
+    dbgMutex.unlock();
     waitStop(exec);
 }
 
@@ -1133,7 +1145,7 @@ bool FDbg::waitStop(FExec *exec) {
                 if (isStopped) {
                     if (exec->code[exec->pc] == OP_BREAKPOINT)
                         return false;
-                    flint->stopRequest();
+                    exec->getFlint()->stopRequest();
                     dbgMutex.lock();
                     csr = (csr & ~(DBG_CONTROL_STEP_OVER | DBG_CONTROL_STEP_IN | DBG_CONTROL_STEP_OUT)) | DBG_STATUS_STOP | DBG_STATUS_STOP_SET;
                     dbgMutex.unlock();
