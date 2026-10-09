@@ -76,6 +76,17 @@ public:
         }
     }
 
+    template<typename Func>
+    requires std::invocable<Func, T*> && std::same_as<std::invoke_result_t<Func, T*>, bool>
+    T* find(Func func) {
+        for(ListNode *node = root; node != nullptr;) {
+            ListNode *nextNode = node->next;
+            if(func((T*)node)) return (T*)node;
+            node = nextNode;
+        }
+        return NULL;
+    }
+
     void clear(void) {
         root = NULL;
     }
