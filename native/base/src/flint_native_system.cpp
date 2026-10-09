@@ -10,10 +10,10 @@
 
 static jclass GetTypeOfArrayComp(FNIEnv *env, jarray array) {
     const char *typeName = array->getTypeName() + 1;
-    if(typeName[0] == 'L') {
+    if (typeName[0] == 'L') {
         typeName++;
         uint16_t length = 0;
-        while(typeName[length] && typeName[length] != ';') length++;
+        while (typeName[length] && typeName[length] != ';') length++;
         return env->findClass(typeName, length);
     }
     return env->findClass(typeName);
@@ -21,9 +21,9 @@ static jclass GetTypeOfArrayComp(FNIEnv *env, jarray array) {
 
 jvoid NativeSystem_setOut0(FNIEnv *env, jobject out) {
     jclass sysCls = env->findClass("java/lang/System");
-    if(sysCls == NULL) return;
+    if (sysCls == NULL) return;
     FieldValue *outField = sysCls->getClassLoader()->getStaticField((FExec *)env, "out");
-    if(outField == NULL) return;
+    if (outField == NULL) return;
     outField->setObj(out);
 }
 
@@ -38,17 +38,17 @@ jlong NativeSystem_NanoTime(FNIEnv *env) {
 }
 
 static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length) {
-    if(src == NULL || dest == NULL) {
+    if (src == NULL || dest == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return false;
     }
-    if(!src->isArray() || !dest->isArray()) {
+    if (!src->isArray() || !dest->isArray()) {
         jclass excpCls = env->findClass("java/lang/ArrayStoreException");
         jobject obj = !src->isArray() ? src : dest;
         env->throwNew(excpCls, "%s type %s is not an array", !src->isArray() ? "source" : "destination", obj->getTypeName());
         return false;
     }
-    if(src->type != dest->type && (src->isArrayOfPrimative() || dest->isArrayOfPrimative())) {
+    if (src->type != dest->type && (src->isArrayOfPrimative() || dest->isArrayOfPrimative())) {
         const char *msg = "type mismatch, can not copy %.*s[] into %.*s[]";
         uint16_t len1, len2;
         const char *name1 = ((jarray)src)->getBaseCompTypeName(&len1);
@@ -56,33 +56,33 @@ static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint
         env->throwNew(env->findClass("java/lang/ArrayStoreException"), msg, len1, name1, len2, name2);
         return false;
     }
-    if(length < 0) {
+    if (length < 0) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         env->throwNew(excpCls, "length -%d is negative", length);
         return false;
     }
-    if(srcPos < 0) {
+    if (srcPos < 0) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = ((jarray)src)->getBaseCompTypeName(&len);
         env->throwNew(excpCls, "source index %d out of bounds for %.*s[%d]", srcPos, len, name, ((jarray)src)->getLength());
         return false;
     }
-    if(destPos < 0) {
+    if (destPos < 0) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = ((jarray)dest)->getBaseCompTypeName(&len);
         env->throwNew(excpCls, "destination index %d out of bounds for %.*s[%d]", destPos, len, name, ((jarray)dest)->getLength());
         return false;
     }
-    if((srcPos + length) > ((jarray)src)->getLength()) {
+    if ((srcPos + length) > ((jarray)src)->getLength()) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = ((jarray)src)->getBaseCompTypeName(&len);
         env->throwNew(excpCls, "last source index %d out of bounds for %.*s[%d]", srcPos + length, len, name, ((jarray)src)->getLength());
         return false;
     }
-    if((destPos + length) > ((jarray)dest)->getLength()) {
+    if ((destPos + length) > ((jarray)dest)->getLength()) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = ((jarray)dest)->getBaseCompTypeName(&len);
@@ -93,13 +93,13 @@ static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint
 }
 
 jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length) {
-    if(checkParam(env, src, srcPos, dest, destPos, length) == false) return;
-    if(src->type != dest->type) {
+    if (checkParam(env, src, srcPos, dest, destPos, length) == false) return;
+    if (src->type != dest->type) {
         jclass destCompType = GetTypeOfArrayComp(env, (jarray)dest);
-        if(destCompType == NULL) return;
+        if (destCompType == NULL) return;
 
         int32_t step = 1;
-        if(src == dest && destPos > srcPos) {
+        if (src == dest && destPos > srcPos) {
             step = -1;
             srcPos += length - 1;
             destPos += length - 1;
@@ -107,9 +107,9 @@ jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest
         FExec *exec = (FExec *)env;
         jobject *srcVal = &(((jobjectArray)src))->getData()[srcPos];
         jobject *dstVal = &(((jobjectArray)dest))->getData()[srcPos];
-        for(int32_t i = 0; i < length; i += step) {
+        for (int32_t i = 0; i < length; i += step) {
             jobject item = srcVal[i];
-            if(item != NULL && !exec->isInstanceof(item, destCompType)) {
+            if (item != NULL && !exec->isInstanceof(item, destCompType)) {
                 const char *msg = "element type mismatch: can not cast one of the elements of %.*s[] to the type of the destination array %.*s[]";
                 uint16_t len1, len2;
                 const char *name1 = ((jarray)src)->getBaseCompTypeName(&len1);
@@ -133,10 +133,10 @@ jint NativeSystem_IdentityHashCode(FNIEnv *env, jobject obj) {
 }
 
 jstring NativeSystem_GetProperty(FNIEnv *env, jstring key) {
-    #define CASE_KEY(_key)  case Hash(_key): if(key->compareTo(_key, sizeof(_key) - 1) != 0) return NULL;
+    #define CASE_KEY(_key)  case Hash(_key): if (key->compareTo(_key, sizeof(_key) - 1) != 0) return NULL;
 
     uint32_t hash = key->getHashCode();
-    switch(hash) {
+    switch (hash) {
         CASE_KEY("microedition.platform") return env->newString(FLINT_VARIANT_NAME);
         CASE_KEY("microedition.locale") return env->newString("en-US");
         CASE_KEY("microedition.encoding") return env->newString("ISO-8859-1");

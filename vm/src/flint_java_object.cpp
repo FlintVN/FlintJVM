@@ -12,7 +12,7 @@ size(size), prot(0x02), type(type), monitorCount(0), ownId(0) {
 }
 
 const char *JObject::getTypeName(void) const {
-    if(type == NULL)
+    if (type == NULL)
         return "java/lang/Class";
     return type->getTypeName();
 }
@@ -32,14 +32,14 @@ static void throwNoSuchFieldError(FExec *ctx, const char *clsName, const char *n
 
 FieldValue *JObject::getField(FExec *ctx, ConstField *field) const {
     FieldValue *ret = ((FieldsData *)data)->getField(field);
-    if(ret == NULL && ctx != NULL)
+    if (ret == NULL && ctx != NULL)
         throwNoSuchFieldError(ctx, field->className, field->nameAndType->name);
     return ret;
 }
 
 FieldValue *JObject::getField(FExec *ctx, const char *name) const {
     FieldValue *ret = ((FieldsData *)data)->getField(name);
-    if(ret == NULL && ctx != NULL)
+    if (ret == NULL && ctx != NULL)
         throwNoSuchFieldError(ctx, getTypeName(), name);
     return ret;
 }
@@ -58,7 +58,7 @@ bool JObject::isArray(void) const {
 
 char JObject::isArrayOfPrimative(void) const {
     const char *typeName = getTypeName();
-    if(typeName[0] == '[' && typeName[2] == 0) switch(typeName[1]) {
+    if (typeName[0] == '[' && typeName[2] == 0) switch (typeName[1]) {
         case 'Z':
         case 'C':
         case 'F':
@@ -86,6 +86,6 @@ uint8_t JObject::getProtected(void) const {
 }
 
 void JObject::destroy(Flint *flint) {
-    if(type == NULL || type->isArray() == false)
+    if (type == NULL || type->isArray() == false)
         ((FieldsData *)data)->destroy(flint);
 }

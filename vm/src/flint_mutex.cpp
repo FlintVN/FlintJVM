@@ -10,16 +10,16 @@ FMutex::FMutex(void) {
 
 void FMutex::lock(void) {
     void *currentThread = FlintAPI::Thread::getCurrentThread();
-    while(1) {
-        while(atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
+    while (1) {
+        while (atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
             FlintAPI::Thread::yield();
-        if(lockThread == NULL) {
+        if (lockThread == NULL) {
             lockNest = 1;
             lockThread = currentThread;
             atomic_flag_clear_explicit(&locked, memory_order_release);
             return;
         }
-        else if(lockThread == currentThread) {
+        else if (lockThread == currentThread) {
             lockNest++;
             atomic_flag_clear_explicit(&locked, memory_order_release);
             return;
@@ -31,10 +31,10 @@ void FMutex::lock(void) {
 
 void FMutex::unlock(void) {
     void *currentThread = FlintAPI::Thread::getCurrentThread();
-    while(atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
+    while (atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
         FlintAPI::Thread::yield();
-    if(currentThread == lockThread && lockNest > 0) {
-        if(--lockNest == 0)
+    if (currentThread == lockThread && lockNest > 0) {
+        if (--lockNest == 0)
             lockThread = NULL;
     }
     atomic_flag_clear_explicit(&locked, memory_order_release);

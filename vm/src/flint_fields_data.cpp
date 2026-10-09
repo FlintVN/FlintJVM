@@ -45,7 +45,7 @@ FieldsData::FieldsData(void) : count(0), objCount(0), fields(NULL) {
 
 bool FieldsData::init(Flint *flint, FExec *ctx, ClassLoader *loader, bool isStatic) {
     bool ret = isStatic ? initStatic(flint, ctx, loader) : initNonStatic(flint, ctx, loader);
-    if(ret == false)
+    if (ret == false)
         this->destroy(flint);
     return ret;
 }
@@ -54,10 +54,10 @@ bool FieldsData::initStatic(Flint *flint, FExec *ctx, ClassLoader *loader) {
     uint16_t fieldsCount = loader->getFieldsCount();
     uint16_t fieldIndex = 0;
 
-    for(uint16_t index = 0; index < fieldsCount; index++) {
+    for (uint16_t index = 0; index < fieldsCount; index++) {
         FieldInfo *fieldInfo = loader->getFieldInfo(index);
-        if((fieldInfo->accessFlag & FIELD_STATIC) == FIELD_STATIC) {
-            switch(fieldInfo->desc[0]) {
+        if ((fieldInfo->accessFlag & FIELD_STATIC) == FIELD_STATIC) {
+            switch (fieldInfo->desc[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
                     count += 2;
@@ -69,15 +69,15 @@ bool FieldsData::initStatic(Flint *flint, FExec *ctx, ClassLoader *loader) {
         }
     }
 
-    if(count == 0) return true;
+    if (count == 0) return true;
     fields = (FieldValue *)flint->malloc(ctx, count * sizeof(FieldValue));
-    if(fields == NULL) return false;
+    if (fields == NULL) return false;
 
-    for(uint16_t index = 0; index < fieldsCount; index++) {
+    for (uint16_t index = 0; index < fieldsCount; index++) {
         FieldInfo *fieldInfo = loader->getFieldInfo(index);
-        if((fieldInfo->accessFlag & FIELD_STATIC) == FIELD_STATIC) {
+        if ((fieldInfo->accessFlag & FIELD_STATIC) == FIELD_STATIC) {
             new (&fields[fieldIndex++])FieldValue(fieldInfo);
-            switch(fieldInfo->desc[0]) {
+            switch (fieldInfo->desc[0]) {
                 case 'J':   /* Long */
                 case 'D':   /* Double */
                     new (&fields[fieldIndex++])FieldValue(NULL);
@@ -98,12 +98,12 @@ bool FieldsData::initStatic(Flint *flint, FExec *ctx, ClassLoader *loader) {
 bool FieldsData::initNonStatic(Flint *flint, FExec *ctx, ClassLoader *loader) {
     ClassLoader *ld = loader;
 
-    while(ld) {
+    while (ld) {
         uint16_t fieldsCount = ld->getFieldsCount();
-        for(uint16_t index = 0; index < fieldsCount; index++) {
+        for (uint16_t index = 0; index < fieldsCount; index++) {
             FieldInfo *fieldInfo = ld->getFieldInfo(index);
-            if((fieldInfo->accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                switch(fieldInfo->desc[0]) {
+            if ((fieldInfo->accessFlag & FIELD_STATIC) != FIELD_STATIC) {
+                switch (fieldInfo->desc[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
                         count += 2;
@@ -116,24 +116,24 @@ bool FieldsData::initNonStatic(Flint *flint, FExec *ctx, ClassLoader *loader) {
         }
         /* Don't use ld->getSuperClass here to avoid endless recursion */
         const char *superName = ld->getSuperClassName();
-        if(superName == NULL) break;
+        if (superName == NULL) break;
         ld = flint->findLoader(ctx, superName);
-        if(ld == NULL) return false;
+        if (ld == NULL) return false;
     }
 
-    if(count == 0) return true;
+    if (count == 0) return true;
     fields = (FieldValue *)flint->malloc(ctx, count * sizeof(FieldValue));
-    if(fields == NULL) return false;
+    if (fields == NULL) return false;
 
     uint16_t fieldIndex = count;
 
     ld = loader;
-    while(ld) {
+    while (ld) {
         uint16_t fieldsCount = ld->getFieldsCount();
-        for(int16_t index = fieldsCount - 1; index >= 0; index--) {
+        for (int16_t index = fieldsCount - 1; index >= 0; index--) {
             FieldInfo *fieldInfo = ld->getFieldInfo(index);
-            if((fieldInfo->accessFlag & FIELD_STATIC) != FIELD_STATIC) {
-                switch(fieldInfo->desc[0]) {
+            if ((fieldInfo->accessFlag & FIELD_STATIC) != FIELD_STATIC) {
+                switch (fieldInfo->desc[0]) {
                     case 'J':   /* Long */
                     case 'D':   /* Double */
                         new (&fields[--fieldIndex])FieldValue(NULL);
@@ -150,9 +150,9 @@ bool FieldsData::initNonStatic(Flint *flint, FExec *ctx, ClassLoader *loader) {
         }
         /* Don't use ld->getSuperClass here to avoid endless recursion */
         const char *superName = ld->getSuperClassName();
-        if(superName == NULL) break;
+        if (superName == NULL) break;
         ld = flint->findLoader(ctx, superName);
-        if(ld == NULL) return false;
+        if (ld == NULL) return false;
     }
 
     return true;
@@ -163,10 +163,10 @@ uint16_t FieldsData::hasObjField(void) const {
 }
 
 FieldValue *FieldsData::getField(ConstField *field) const {
-    if(field->fieldIndex == 0 && count) {
-        for(uint16_t i = 0; i < count; i++) {
+    if (field->fieldIndex == 0 && count) {
+        for (uint16_t i = 0; i < count; i++) {
             const FieldInfo *fieldInfo = fields[i].fieldInfo;
-            if(
+            if (
                 fieldInfo != NULL &&
                 field->nameAndType->hash == fieldInfo->hash &&
                 strcmp(field->nameAndType->name, fieldInfo->name) == 0 &&
@@ -176,17 +176,17 @@ FieldValue *FieldsData::getField(ConstField *field) const {
                 break;
             }
         }
-        if(field->fieldIndex == 0) return NULL;
+        if (field->fieldIndex == 0) return NULL;
     }
     return &fields[field->fieldIndex & 0x7FFFFFFF];
 }
 
 FieldValue *FieldsData::getField(const char *name) const {
-    if(count > 0) {
+    if (count > 0) {
         uint16_t hash = Hash(name);
-        for(uint16_t i = 0; i < count; i++) {
+        for (uint16_t i = 0; i < count; i++) {
             const FieldInfo *fieldInfo = fields[i].fieldInfo;
-            if(fieldInfo != NULL && hash == (uint16_t)fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
+            if (fieldInfo != NULL && hash == (uint16_t)fieldInfo->hash && strcmp(name, fieldInfo->name) == 0)
                 return &fields[i];
         }
     }
@@ -198,5 +198,5 @@ FieldValue *FieldsData::getFieldByIndex(uint32_t index) const {
 }
 
 void FieldsData::destroy(Flint *flint) {
-    if(fields) flint->free(fields);
+    if (fields) flint->free(fields);
 }

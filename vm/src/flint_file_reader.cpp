@@ -32,8 +32,8 @@ static const char *GetName(const char *filePath) {
     const char *name = filePath;
     const char *path = filePath;
     const char separatorChar = Flint::getPathSeparator();
-    while(*path) {
-        if(*path == separatorChar)
+    while (*path) {
+        if (*path == separatorChar)
             name = path;
         path++;
     }
@@ -50,9 +50,9 @@ handle(NULL), ctx(ctx), filePath(filePath) {
 }
 
 bool FileReader::open(void) {
-    if(handle == NULL) {
+    if (handle == NULL) {
         handle = FlintAPI::IO::fopen(filePath, FlintAPI::IO::FILE_MODE_READ);
-        if(handle == NULL && ctx != NULL)
+        if (handle == NULL && ctx != NULL)
             ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "Failed to open file %s", GetName(filePath));
         return handle != NULL;
     }
@@ -60,8 +60,8 @@ bool FileReader::open(void) {
 }
 
 bool FileReader::close(void) {
-    if(FlintAPI::IO::fclose(handle) != FlintAPI::IO::FILE_RESULT_OK) {
-        if(ctx != NULL)
+    if (FlintAPI::IO::fclose(handle) != FlintAPI::IO::FILE_RESULT_OK) {
+        if (ctx != NULL)
             ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fclose failed");
         return false;
     }
@@ -72,8 +72,8 @@ bool FileReader::close(void) {
 int32_t FileReader::read(void *buff, uint32_t size) {
     uint32_t temp;
     FlintAPI::IO::FileResult ret = FlintAPI::IO::fread(handle, buff, size, &temp);
-    if(ret != FlintAPI::IO::FILE_RESULT_OK) {
-        if(ctx != NULL)
+    if (ret != FlintAPI::IO::FILE_RESULT_OK) {
+        if (ctx != NULL)
             ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fread failed");
         return -1;
     }
@@ -97,19 +97,19 @@ bool FileReader::readUInt64(uint64_t &value) {
 }
 
 bool FileReader::readSwapUInt16(uint16_t &value) {
-    if(read(&value, 2) != 2) return false;
+    if (read(&value, 2) != 2) return false;
     value = Swap16(value);
     return true;
 }
 
 bool FileReader::readSwapUInt32(uint32_t &value) {
-    if(read(&value, 4) != 4) return false;
+    if (read(&value, 4) != 4) return false;
     value = Swap32(value);
     return true;
 }
 
 bool FileReader::readSwapUInt64(uint64_t &value) {
-    if(read(&value, 8) != 8) return false;
+    if (read(&value, 8) != 8) return false;
     value = Swap64(value);
     return true;
 }
@@ -117,19 +117,19 @@ bool FileReader::readSwapUInt64(uint64_t &value) {
 int32_t FileReader::readLine(char *buff, uint32_t size) {
     uint32_t index = 0;
     char c;
-    while(true) {
+    while (true) {
         int32_t br = read(&c, 1);
-        if(br == -1) return -1;
-        if(br == 0) {
-            if(index < size) buff[index] = 0;
+        if (br == -1) return -1;
+        if (br == 0) {
+            if (index < size) buff[index] = 0;
             return index == 0 ? -1 : index;
         }
-        if(c == '\r') continue;
-        if(c == '\n') {
-            if(index < size) buff[index] = 0;
+        if (c == '\r') continue;
+        if (c == '\n') {
+            if (index < size) buff[index] = 0;
             return index;
         }
-        if(index < size) buff[index++] = c;
+        if (index < size) buff[index++] = c;
     }
 }
 
@@ -138,8 +138,8 @@ uint32_t FileReader::tell(void) {
 }
 
 bool FileReader::seek(int32_t offset) {
-    if(FlintAPI::IO::fseek(handle, offset) != FlintAPI::IO::FILE_RESULT_OK) {
-        if(ctx != NULL)
+    if (FlintAPI::IO::fseek(handle, offset) != FlintAPI::IO::FILE_RESULT_OK) {
+        if (ctx != NULL)
             ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "FlintAPI::IO::fseek failed");
         return false;
     }

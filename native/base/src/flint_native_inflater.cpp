@@ -49,7 +49,7 @@ static void NativeInflater_InflaterEnd(mz_stream *strm) {
 jint NativeInflater_Init(FNIEnv *env, jbool nowrap) {
     FExec *exec = (FExec *)env;
     mz_stream *strm = (mz_stream *)FlintAPI::System::malloc(sizeof(mz_stream));
-    if(strm == NULL) {
+    if (strm == NULL) {
         throwOutOfMemoryError(env, "out of memory allocating inflate stream");
         return 0;
     }
@@ -57,14 +57,14 @@ jint NativeInflater_Init(FNIEnv *env, jbool nowrap) {
 
     int windowBits = nowrap ? -MZ_DEFAULT_WINDOW_BITS : MZ_DEFAULT_WINDOW_BITS;
     int ret = mz_inflateInit2(strm, windowBits);
-    if(ret != MZ_OK) {
+    if (ret != MZ_OK) {
         FlintAPI::System::free(strm);
         throwDataFormatException(env, "mz_inflateInit2 failed");
         return 0;
     }
 
     Hook *hook = exec->getFlint()->addShutdownHook(exec, strm, (void (*)(void*))NativeInflater_InflaterEnd);
-    if(hook == NULL) {
+    if (hook == NULL) {
         inflateEnd(strm);
         return 0;
     }
@@ -73,7 +73,7 @@ jint NativeInflater_Init(FNIEnv *env, jbool nowrap) {
 }
 
 jvoid NativeInflater_SetDictionary(FNIEnv *env, jint addr, jbyteArray b, jint off, jint len) {
-    if(addr == 0) {
+    if (addr == 0) {
         throwDataFormatException(env, "Inflater has been closed");
         return;
     }
@@ -99,7 +99,7 @@ jvoid NativeInflater_SetDictionary(FNIEnv *env, jint addr, jbyteArray b, jint of
 
 jint NativeInflater_InflateBytes(FNIEnv *env, jobject obj, jint addr, jbyteArray b, jint off, jint len) {
     JInflater inf = (JInflater)obj;
-    if(addr == 0) {
+    if (addr == 0) {
         throwDataFormatException(env, "Inflater has been closed");
         return 0;
     }
@@ -123,7 +123,7 @@ jint NativeInflater_InflateBytes(FNIEnv *env, jobject obj, jint addr, jbyteArray
 
     jint produced = len - (jint)strm->avail_out;
 
-    switch(ret) {
+    switch (ret) {
         case MZ_STREAM_END:
             inf->setFinished(true);
             break;
@@ -148,12 +148,12 @@ jint NativeInflater_GetAdler(FNIEnv *env, jint addr) {
 }
 
 jvoid NativeInflater_Reset(FNIEnv *env, jint addr) {
-    if(addr == 0) return;
+    if (addr == 0) return;
     mz_inflateReset(getMzStream(addr));
 }
 
 jvoid NativeInflater_End(FNIEnv *env, jint addr) {
-    if(addr != 0) {
+    if (addr != 0) {
         ((FExec *)env)->getFlint()->removeShutdownHook((Hook *)addr);
         NativeInflater_InflaterEnd(getMzStream(addr));
     }

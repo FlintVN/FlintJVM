@@ -12,20 +12,20 @@ extern jint NativeFlintSocketImpl_GetSock(FNIEnv *env, jobject socketObj, jbool 
 
 jvoid NativeFlintSocketOutputStream_SocketWrite(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
-    if(!CheckArrayIndexSize(env, b, off, len)) return;
+    if (!CheckArrayIndexSize(env, b, off, len)) return;
 
-    while(len > 0 && !env->hasTerminateRequest()) {
+    while (len > 0 && !env->hasTerminateRequest()) {
         int32_t sent;
         SockError err = send(sock, (uint8_t *)&b->getData()[off], len, &sent);
-        if(err == SOCK_OK) {
+        if (err == SOCK_OK) {
             len -= sent;
             off += sent;
         }
-        else if(err == SOCK_CLOSED)
+        else if (err == SOCK_CLOSED)
             return;
-        else if(err == SOCK_ERR) {
+        else if (err == SOCK_ERR) {
             env->throwNew(env->findClass("java/io/IOException"), "Write error");
             return;
         }

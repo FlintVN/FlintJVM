@@ -4,7 +4,7 @@
 #include "flint_const_pool.h"
 
 bool ConstNameAndType::operator==(ConstNameAndType &another) const {
-    if(
+    if (
         hash == another.hash &&
         strcmp(name, another.name) == 0 &&
         strcmp(desc, another.desc) == 0

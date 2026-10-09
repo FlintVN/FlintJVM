@@ -3,7 +3,7 @@
 #include "flint_native_common.h"
 
 bool CheckIndex(FNIEnv *env, jarray array, int32_t index) {
-    if(index < 0 || index >= array->getLength()) {
+    if (index < 0 || index >= array->getLength()) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = array->getBaseCompTypeName(&len);
@@ -14,18 +14,18 @@ bool CheckIndex(FNIEnv *env, jarray array, int32_t index) {
 }
 
 bool CheckArrayIndexSize(FNIEnv *env, jarray arr, int32_t index, int32_t count) {
-    if(arr == NULL) {
+    if (arr == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return false;
     }
-    else if(index < 0) {
+    else if (index < 0) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = arr->getBaseCompTypeName(&len);
         env->throwNew(excpCls, "index %d out of bounds for %.*s[%d]", index, len, name, arr->getLength());
         return false;
     }
-    else if((index + count) > arr->getLength()) {
+    else if ((index + count) > arr->getLength()) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = arr->getBaseCompTypeName(&len);

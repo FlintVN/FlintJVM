@@ -9,17 +9,17 @@ jvoid NativeThread_Start0(FNIEnv *env, jthread thread) {
     Flint *flint = ((FExec *)env)->getFlint();
     jobject task = thread->getTask();
     FExec *exec = flint->newExecution(((FExec *)env), thread);
-    if(exec == NULL) return;
-    if(task == 0) task = thread;
+    if (exec == NULL) return;
+    if (task == 0) task = thread;
 
     ClassLoader *loader = task->type->getClassLoader();
     jmethodId method = loader->getMethodInfo(((FExec *)env), (ConstNameAndType *)&runName);
-    if(method == NULL) {
+    if (method == NULL) {
         env->throwNew(env->findClass("java/lang/NoSuchMethodError"), "%s.%s", task->getTypeName(), "run()");
         return;
     }
 
-    if(!exec->run(method, 1, task)) {
+    if (!exec->run(method, 1, task)) {
         flint->freeExecution(exec);
         env->throwNew(env->findClass("java/lang/Exception"), "Thread start failed");
     }
@@ -54,12 +54,12 @@ jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis) {
     int64_t duration = (int64_t)millis;
     int64_t startTime = FlintAPI::System::getTimeMillis();
     jthread ownerThread = ((FExec *)env)->getOwnerThread();
-    while(true) {
+    while (true) {
         int64_t elapsed = FlintAPI::System::getTimeMillis() - startTime;
         int64_t remaining = duration - elapsed;
-        if(remaining <= 0) return;
-        if(env->hasTerminateRequest()) return;
-        if(ownerThread->getInterrupt()) {
+        if (remaining <= 0) return;
+        if (env->hasTerminateRequest()) return;
+        if (ownerThread->getInterrupt()) {
             env->throwNew(env->findClass("java/lang/InterruptedException"), "sleep interrupted");
             ownerThread->clearInterrupt();
             return;
@@ -70,7 +70,7 @@ jvoid NativeThread_Sleep0(FNIEnv *env, jlong millis) {
 }
 
 jbool NativeThread_HoldsLock(FNIEnv *env, jobject obj) {
-    if(obj == NULL) {
+    if (obj == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return false;
     }

@@ -14,10 +14,10 @@ jint NativeObject_HashCode(FNIEnv *env, jobject obj) {
 }
 
 jobject NativeObject_Clone(FNIEnv *env, jobject obj) {
-    if(obj->isArray()) {
+    if (obj->isArray()) {
         uint32_t count = ((jarray)obj)->getLength();
         jarray cloneObj = (jarray)((FExec *)env)->getFlint()->newArray((FExec *)env, obj->type, count);
-        if(cloneObj == NULL) return NULL;
+        if (cloneObj == NULL) return NULL;
         memcpy(cloneObj->getData(), ((jarray)obj)->getData(), ((jarray)obj)->getSizeInByte());
         return cloneObj;
     }

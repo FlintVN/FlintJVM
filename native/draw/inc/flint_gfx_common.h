@@ -8,7 +8,7 @@
 #define GFX_MAX(_a, _b)         ((_a) > (_b) ? (_a) : (_b))
 #define GFX_MIN(_a, _b)         ((_a) < (_b) ? (_a) : (_b))
 #define GFX_ABS(_a)             ((_a) < 0 ? -(_a) : (_a))
-#define GFX_SWAP(_a, _b)        do { decltype(_a) tmp = (_a); (_a) = (_b); (_b) = tmp; } while(0)
+#define GFX_SWAP(_a, _b)        do { decltype(_a) tmp = (_a); (_a) = (_b); (_b) = tmp; } while (0)
 
 class CharInfo {
 private:

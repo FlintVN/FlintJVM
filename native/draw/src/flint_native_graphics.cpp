@@ -30,7 +30,7 @@ public:
 static void measureStringLatin1(uint8_t *str, uint32_t len, Font *font, uint32_t *width, uint32_t *height) {
     uint8_t stdHeight = font->getStdHeight();
 
-    if(len == 0) {
+    if (len == 0) {
         *width = 0;
         *height = stdHeight;
         return;
@@ -42,19 +42,19 @@ static void measureStringLatin1(uint8_t *str, uint32_t len, Font *font, uint32_t
     uint32_t txtW = 0;
     uint32_t txtH = 0;
 
-    while(len--) {
+    while (len--) {
         const CharInfo *c = font->getChar(*str++);
-        if(c != NULL) {
+        if (c != NULL) {
             txtW += c->getWidth() + space;
             int32_t h = c->getHeight() + c->getYOffset();
-            if(h > (int32_t)txtH) txtH = h;
+            if (h > (int32_t)txtH) txtH = h;
         }
         else {
             txtW += stdWidth + space;
-            if(stdHeight > txtH) txtH = stdHeight;
+            if (stdHeight > txtH) txtH = stdHeight;
         }
     }
-    if(txtW > space) txtW -= space;
+    if (txtW > space) txtW -= space;
 
     *width = txtW;
     *height = txtH;
@@ -63,7 +63,7 @@ static void measureStringLatin1(uint8_t *str, uint32_t len, Font *font, uint32_t
 static void measureStringUTF16(uint8_t *str, uint32_t len, Font *font, uint32_t *width, uint32_t *height) {
     uint8_t stdHeight = font->getStdHeight();
 
-    if(len == 0) {
+    if (len == 0) {
         *width = 0;
         *height = stdHeight;
         return;
@@ -75,21 +75,21 @@ static void measureStringUTF16(uint8_t *str, uint32_t len, Font *font, uint32_t 
     uint32_t txtW = 0;
     uint32_t txtH = 0;
 
-    while(len--) {
+    while (len--) {
         uint16_t unicode = str[0] | (str[1] << 8);
         const CharInfo *c = font->getChar(unicode);
-        if(c != NULL) {
+        if (c != NULL) {
             txtW += c->getWidth() + space;
             int32_t h = c->getHeight() + c->getYOffset();
-            if(h > (int32_t)txtH) txtH = h;
+            if (h > (int32_t)txtH) txtH = h;
         }
         else {
             txtW += stdWidth + space;
-            if(stdHeight > txtH) txtH = stdHeight;
+            if (stdHeight > txtH) txtH = stdHeight;
         }
         str += 2;
     }
-    if(txtW > space) txtW -= space;
+    if (txtW > space) txtW -= space;
 
     *width = txtW;
     *height = txtH;
@@ -97,22 +97,22 @@ static void measureStringUTF16(uint8_t *str, uint32_t len, Font *font, uint32_t 
 
 jbool NativeGraphics_IsVisible(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h) {
     int32_t clipX1 = ((JGfx)obj)->getClipX();
-    if(x + w <= clipX1) return false;
+    if (x + w <= clipX1) return false;
     int32_t clipY1 = ((JGfx)obj)->getClipY();
-    if(y + h <= clipY1) return false;
+    if (y + h <= clipY1) return false;
     int32_t clipX2 = clipX1 + ((JGfx)obj)->getClipW();
-    if(x >= clipX2) return false;
+    if (x >= clipX2) return false;
     int32_t clipY2 = clipY1 + ((JGfx)obj)->getClipH();
     return y < clipY2;
 }
 
 jvoid NativeGraphics_SetClip0(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h, jint mode) {
-    if(w < 0 || h < 0) {
+    if (w < 0 || h < 0) {
         w = 0;
         h = 0;
     }
     JGfx g = ((JGfx)obj);
-    if(mode == 0) {     /* REPLACE mode */
+    if (mode == 0) {     /* REPLACE mode */
         int32_t xend = x + w;
         int32_t yend = y + h;
         g->setClipX(GFX_MAX(x, 0));
@@ -138,20 +138,20 @@ jobject NativeGraphics_MeasureString(FNIEnv *env, jstring str, jobject font) {
     uint32_t w = 0, h = 0;
     Font *f = (Font *)((jbyteArray)font->getFieldByIndex(0)->getObj())->getData();
 
-    if(str == NULL)
+    if (str == NULL)
         measureStringLatin1(NULL, 0, f, &w, &h);
     else {
         uint8_t coder = str->getCoder();
         uint8_t *txt = (uint8_t *)str->getAscii();
         uint32_t len = str->getLength();
-        if(coder == 0)
+        if (coder == 0)
             measureStringLatin1(txt, len, f, &w, &h);
         else
             measureStringUTF16(txt, len, f, &w, &h);
     }
 
     jobject size = env->newObject(env->findClass("flint/drawing/Size"));
-    if(size != NULL) {
+    if (size != NULL) {
         size->getFieldByIndex(0)->setInt32(w);
         size->getFieldByIndex(1)->setInt32(h);
     }
@@ -162,13 +162,13 @@ jint NativeGraphics_MeasureStringWidth(FNIEnv *env, jstring str, jobject font) {
     uint32_t w = 0, h = 0;
     Font *f = (Font *)((jbyteArray)font->getFieldByIndex(0)->getObj())->getData();
 
-    if(str == NULL)
+    if (str == NULL)
         measureStringLatin1(NULL, 0, f, &w, &h);
     else {
         uint8_t coder = str->getCoder();
         uint8_t *txt = (uint8_t *)str->getAscii();
         uint32_t len = str->getLength();
-        if(coder == 0)
+        if (coder == 0)
             measureStringLatin1(txt, len, f, &w, &h);
         else
             measureStringUTF16(txt, len, f, &w, &h);
@@ -180,13 +180,13 @@ jint NativeGraphics_MeasureStringHeight(FNIEnv *env, jstring str, jobject font) 
     uint32_t w = 0, h = 0;
     Font *f = (Font *)((jbyteArray)font->getFieldByIndex(0)->getObj())->getData();
 
-    if(str == NULL)
+    if (str == NULL)
         measureStringLatin1(NULL, 0, f, &w, &h);
     else {
         uint8_t coder = str->getCoder();
         uint8_t *txt = (uint8_t *)str->getAscii();
         uint32_t len = str->getLength();
-        if(coder == 0)
+        if (coder == 0)
             measureStringLatin1(txt, len, f, &w, &h);
         else
             measureStringUTF16(txt, len, f, &w, &h);

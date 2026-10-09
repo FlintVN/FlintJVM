@@ -247,13 +247,13 @@ public:
     }
 
     friend constexpr inline __attribute__((always_inline)) FP ceil(const FP x) {
-        if(x.value & fpmask)
+        if (x.value & fpmask)
             return FP((x.value + fpmax) & ~fpmask, true);
         return x;
     }
 
     constexpr inline __attribute__((always_inline)) FP ceil(void) const {
-        if(value & fpmask)
+        if (value & fpmask)
             return FP((value + fpmax) & ~fpmask, true);
         return *this;
     }

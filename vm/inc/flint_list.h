@@ -34,27 +34,27 @@ public:
     }
 
     void add(T *node) {
-        if(node->ownerList != NULL)
+        if (node->ownerList != NULL)
             ((FList<T> *)node->ownerList)->remove(node);
         node->ownerList = (void *)this;
         node->prev = NULL;
         node->next = root;
-        if(root != NULL)
+        if (root != NULL)
             root->prev = node;
         root = node;
         count++;
     }
 
     void remove(T *node) {
-        if(node->ownerList != (void *)this)
+        if (node->ownerList != (void *)this)
             return;
         ListNode *prev = node->prev;
         ListNode *next = node->next;
-        if(prev != NULL)
+        if (prev != NULL)
             prev->next = next;
         else
             root = next;
-        if(next)
+        if (next)
             next->prev = prev;
         node->ownerList = NULL;
         node->prev = NULL;
@@ -69,7 +69,7 @@ public:
     template<typename Func>
     requires std::invocable<Func, T *>
     void forEach(Func func) {
-        for(ListNode *node = root; node != NULL;) {
+        for (ListNode *node = root; node != NULL;) {
             ListNode *nextNode = node->next;
             func((T *)node);
             node = nextNode;
@@ -79,9 +79,9 @@ public:
     template<typename Func>
     requires std::invocable<Func, T*> && std::same_as<std::invoke_result_t<Func, T*>, bool>
     T* find(Func func) {
-        for(ListNode *node = root; node != nullptr;) {
+        for (ListNode *node = root; node != nullptr;) {
             ListNode *nextNode = node->next;
-            if(func((T*)node)) return (T*)node;
+            if (func((T*)node)) return (T*)node;
             node = nextNode;
         }
         return NULL;

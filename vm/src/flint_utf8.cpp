@@ -17,10 +17,10 @@ uint8_t Utf8EncodeSize(uint16_t c) {
 }
 
 uint32_t Utf8DecodeOneChar(const char *c) {
-    if(*c & 0x80) {
+    if (*c & 0x80) {
         uint8_t byteCount = Utf8DecodeSizeOneChar(*c);
         uint32_t code = *c & (0xFF >> (byteCount + 1));
-        while(--byteCount) {
+        while (--byteCount) {
             c++;
             code <<= 6;
             code |= *c & 0x3F;
@@ -31,11 +31,11 @@ uint32_t Utf8DecodeOneChar(const char *c) {
 }
 
 uint8_t Utf8EncodeOneChar(uint16_t c, char *buff) {
-    if(c < 0x80) {
+    if (c < 0x80) {
         buff[0] = (uint8_t)c;
         return 1;
     }
-    else if(c < 0x0800) {
+    else if (c < 0x0800) {
         buff[0] = 0xC0 | (c >> 6);
         buff[1] = 0x80 | (c & 0x3F);
         return 2;
@@ -50,7 +50,7 @@ uint8_t Utf8EncodeOneChar(uint16_t c, char *buff) {
 
 uint32_t Utf8StrLen(const char *utf8) {
     uint32_t len = 0;
-    while(*utf8) {
+    while (*utf8) {
         utf8 += Utf8DecodeSizeOneChar(*utf8);
         len++;
     }

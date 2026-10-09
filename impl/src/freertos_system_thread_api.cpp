@@ -32,7 +32,7 @@ void FlintAPI::Thread::yield(void) {
 
 ThreadNotify FlintAPI::Thread::wait(uint32_t ms) {
     uint32_t value;
-    if(ms > 0)
+    if (ms > 0)
         return xTaskNotifyWait(0, ULONG_MAX, &value, pdMS_TO_TICKS(ms)) ? (ThreadNotify)value : THREAD_NOTIFY_TIMEOUT;
     else
         return xTaskNotifyWait(0, ULONG_MAX, &value, portMAX_DELAY) ? (ThreadNotify)value : THREAD_NOTIFY_TIMEOUT;

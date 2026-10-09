@@ -39,7 +39,7 @@ static const uint32_t crc32Table[] = {
 
 uint32_t Crc32(uint32_t crc, const uint8_t *data, uint32_t len) {
     crc = ~crc;
-    for(uint32_t i = 0; i < len; i++)
+    for (uint32_t i = 0; i < len; i++)
         crc = crc32Table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
     return ~crc;
 }

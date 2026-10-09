@@ -74,14 +74,14 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
 
 JNMPtr NativeClass::findNativeMethod(MethodInfo *methodInfo) {
     uint32_t classNameHash = methodInfo->loader->getHashKey();
-    for(uint32_t i = 0; i < LENGTH(BASE_NATIVE_CLASS_LIST); i++) {
+    for (uint32_t i = 0; i < LENGTH(BASE_NATIVE_CLASS_LIST); i++) {
         const NativeClass *nativeCls = &BASE_NATIVE_CLASS_LIST[i];
-        if(
+        if (
             classNameHash == nativeCls->hash &&
             strcmp(nativeCls->className, methodInfo->loader->getName()) == 0
         ) {
-            for(uint32_t k = 0; k < nativeCls->methodCount; k++) {
-                if(
+            for (uint32_t k = 0; k < nativeCls->methodCount; k++) {
+                if (
                     nativeCls->methods[k].hash == methodInfo->hash &&
                     strcmp(nativeCls->methods[k].name, methodInfo->name) == 0 &&
                     strcmp(nativeCls->methods[k].desc, methodInfo->desc) == 0

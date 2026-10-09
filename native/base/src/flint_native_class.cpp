@@ -6,7 +6,7 @@
 #include "flint_native_class.h"
 
 jclass NativeClass_GetPrimitiveClass(FNIEnv *env, jstring name) {
-    if(name->getCoder() != 0) {
+    if (name->getCoder() != 0) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "primitive type name is invalid");
         return NULL;
@@ -15,12 +15,12 @@ jclass NativeClass_GetPrimitiveClass(FNIEnv *env, jstring name) {
 }
 
 jclass NativeClass_ForName(FNIEnv *env, jstring name) {
-    if(name == NULL) {
+    if (name == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return NULL;
     }
     uint32_t len = name->getLength();
-    if(len >= FILE_NAME_BUFF_SIZE) {
+    if (len >= FILE_NAME_BUFF_SIZE) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "Class name cannot exceed %d characters", FILE_NAME_BUFF_SIZE - 1);
         return NULL;
@@ -28,8 +28,8 @@ jclass NativeClass_ForName(FNIEnv *env, jstring name) {
     char buff[FILE_NAME_BUFF_SIZE];
     const char *txt = name->getAscii();
     uint16_t idx = 0;
-    while(idx < len) {
-        if(*txt == '/') {
+    while (idx < len) {
+        if (*txt == '/') {
             jclass excpCls = env->findClass("java/lang/ClassNotFoundException");
             env->throwNew(excpCls, "%.*s", name->getLength(), name->getAscii());
             return NULL;
@@ -42,12 +42,12 @@ jclass NativeClass_ForName(FNIEnv *env, jstring name) {
 }
 
 jbool NativeClass_IsInstance(FNIEnv *env, jclass cls, jobject obj) {
-    if(obj == NULL) return false;
+    if (obj == NULL) return false;
     return env->isInstanceof(obj, cls);
 }
 
 jbool NativeClass_IsAssignableFrom(FNIEnv *env, jclass thisCls, jclass cls) {
-    if(cls == NULL) {
+    if (cls == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return false;
     }
@@ -56,7 +56,7 @@ jbool NativeClass_IsAssignableFrom(FNIEnv *env, jclass thisCls, jclass cls) {
 
 jbool NativeClass_IsInterface(FNIEnv *env, jclass cls) {
     (void)env;
-    if(cls->isArray() || cls->isPrimitive()) return false;
+    if (cls->isArray() || cls->isPrimitive()) return false;
     return (cls->getClassLoader()->getAccessFlag() & CLASS_INTERFACE) ? true : false;
 }
 
@@ -74,7 +74,7 @@ jstring NativeClass_InitClassName(FNIEnv *env, jclass cls) {
     char buff[FILE_NAME_BUFF_SIZE];
     uint16_t idx = 0;
     const char *name = cls->getTypeName();
-    while(*name) {
+    while (*name) {
         buff[idx++] = (*name != '/') ? *name : '.';
         name++;
     }
@@ -85,39 +85,39 @@ jstring NativeClass_InitClassName(FNIEnv *env, jclass cls) {
 }
 
 jclass NativeClass_GetSuperclass(FNIEnv *env, jclass cls) {
-    if(cls->isArray() || cls->isPrimitive()) return NULL;
+    if (cls->isArray() || cls->isPrimitive()) return NULL;
     return cls->getClassLoader()->getSuperClass((FExec *)env);
 }
 
 static jobjectArray getEmptyClassArray(FNIEnv *env) {
     jclass clsOfCls = ((FExec *)env)->getFlint()->getClassOfClass((FExec *)env);
     FieldValue *field = clsOfCls->getClassLoader()->getStaticField((FExec *)env, "EMPTY_CLASS_ARRAY");
-    if(field == NULL) return NULL;
+    if (field == NULL) return NULL;
     return (jobjectArray)field->getObj();
 }
 
 jobjectArray NativeClass_GetInterfaces0(FNIEnv *env, jclass cls) {
-    if(cls->isArray() || cls->isPrimitive()) return getEmptyClassArray(env);
+    if (cls->isArray() || cls->isPrimitive()) return getEmptyClassArray(env);
 
     ClassLoader *loader = cls->getClassLoader();
     uint32_t count = loader->getInterfacesCount();
-    if(count == 0) return getEmptyClassArray(env);
+    if (count == 0) return getEmptyClassArray(env);
 
     jobjectArray clsArr = env->newObjectArray(((FExec *)env)->getFlint()->getClassOfClass((FExec *)env), count);
-    if(clsArr == NULL) return NULL;
+    if (clsArr == NULL) return NULL;
 
     FExec *exec = (FExec *)env;
-    for(uint32_t i = 0; i < count; i++) {
+    for (uint32_t i = 0; i < count; i++) {
         jclass ifaceCls = loader->getInterface(exec, i);
-        if(ifaceCls == NULL) { env->freeObject(clsArr); return NULL; }
+        if (ifaceCls == NULL) { env->freeObject(clsArr); return NULL; }
     }
 
     return clsArr;
 }
 
 static jclass findClassOrPrimitive(FNIEnv *env, const char *desc, uint16_t length) {
-    if(length == 1) {
-        switch(desc[0]) {
+    if (length == 1) {
+        switch (desc[0]) {
             case 'Z': return ((FExec *)env)->getFlint()->getPrimitiveClass((FExec *)env, "boolean");
             case 'C': return ((FExec *)env)->getFlint()->getPrimitiveClass((FExec *)env, "char");
             case 'F': return ((FExec *)env)->getFlint()->getPrimitiveClass((FExec *)env, "float");
@@ -132,16 +132,16 @@ static jclass findClassOrPrimitive(FNIEnv *env, const char *desc, uint16_t lengt
                 return NULL;
         }
     }
-    if(desc[0] == 'L') {
+    if (desc[0] == 'L') {
         desc++;
         length--;
-        while(desc[length - 1] == ';') length--;
+        while (desc[length - 1] == ';') length--;
     }
     return env->findClass(desc, length);
 }
 
 jclass NativeClass_GetComponentType(FNIEnv *env, jclass cls) {
-    if(cls->isArray()) {
+    if (cls->isArray()) {
         const char *typeName = cls->getTypeName();
         uint16_t len = GetArgNameLength(typeName);
         return findClassOrPrimitive(env, typeName, len);
@@ -151,7 +151,7 @@ jclass NativeClass_GetComponentType(FNIEnv *env, jclass cls) {
 
 jint NativeClass_GetModifiers(FNIEnv *env, jclass cls) {
     (void)env;
-    if(cls->isArray() || cls->isPrimitive())
+    if (cls->isArray() || cls->isPrimitive())
         return (CLASS_PUBLIC | CLASS_FINAL | CLASS_ABSTRACT);
     else {
         uint16_t flag = cls->getClassLoader()->getAccessFlag();
@@ -166,21 +166,21 @@ jclass NativeClass_GetNestHost0(FNIEnv *env, jclass cls) {
 
 jobjectArray NativeClass_GetNestMembers0(FNIEnv *env, jclass cls) {
     jobjectArray array;
-    if(cls->isArray() || cls->isPrimitive()) {
+    if (cls->isArray() || cls->isPrimitive()) {
         array = env->newObjectArray(env->findClass("java/lang/Class"), 1);
-        if(array == NULL) return NULL;
+        if (array == NULL) return NULL;
         array->getData()[0] = cls;
         return array;
     }
     jclass nestHost = cls->getNestHost((FExec *)env);
-    if(nestHost == NULL) return NULL;
+    if (nestHost == NULL) return NULL;
     uint16_t membersCount = nestHost->getNestMembersCount();
     array = env->newObjectArray(env->findClass("java/lang/Class"), membersCount + 1);
-    if(array == NULL) return NULL;
+    if (array == NULL) return NULL;
     array->getData()[0] = nestHost;
-    for(uint16_t i = 0; i < membersCount; i++) {
+    for (uint16_t i = 0; i < membersCount; i++) {
         jclass clsMember = nestHost->getNestMember((FExec *)env, i);
-        if(clsMember == NULL) return NULL;
+        if (clsMember == NULL) return NULL;
         array->getData()[i + 1] = clsMember;
     }
     return array;
@@ -193,17 +193,17 @@ jbool NativeClass_IsHidden(FNIEnv *env) {
 
 static jclass getReturnType(FNIEnv *env, const char *mtDesc) {
     const char *txt = mtDesc;
-    while(*txt++ != ')');
+    while (*txt++ != ')');
     return findClassOrPrimitive(env, txt, GetArgNameLength(txt));
 }
 
 static jobjectArray getParameterTypes(FNIEnv *env, const char *mtDesc) {
     uint8_t count = GetArgCount(mtDesc);
-    if(count == 0) return getEmptyClassArray(env);
+    if (count == 0) return getEmptyClassArray(env);
     jobjectArray array = env->newObjectArray(((FExec *)env)->getFlint()->getClassOfClass((FExec *)env), count);
-    if(array == NULL) return NULL;
+    if (array == NULL) return NULL;
     mtDesc = GetNextArgName(mtDesc);
-    for(uint8_t i = 0; i < count; i++) {
+    for (uint8_t i = 0; i < count; i++) {
         uint16_t len = GetArgNameLength(mtDesc);
         array->getData()[i] = findClassOrPrimitive(env, mtDesc, len);
         mtDesc += len;
@@ -212,18 +212,18 @@ static jobjectArray getParameterTypes(FNIEnv *env, const char *mtDesc) {
 }
 
 static jobjectArray getExceptionTypes(FNIEnv *env, MethodInfo *mt) {
-    if(mt->accessFlag & METHOD_NATIVE)
+    if (mt->accessFlag & METHOD_NATIVE)
         return getEmptyClassArray(env);
     uint16_t exceptionLength = mt->getExceptionLength();
-    if(exceptionLength == 0)
+    if (exceptionLength == 0)
         return getEmptyClassArray(env);
     jobjectArray excpTypes = env->newObjectArray(((FExec *)env)->getFlint()->getClassOfClass((FExec *)env), exceptionLength);
-    if(excpTypes == NULL) return NULL;
+    if (excpTypes == NULL) return NULL;
     ClassLoader *loader = mt->loader;
     jobject *data = excpTypes->getData();
-    for(uint16_t i = 0; i < exceptionLength; i++) {
+    for (uint16_t i = 0; i < exceptionLength; i++) {
         jclass cls = loader->getConstClass((FExec *)env, mt->getException(i)->catchType);
-        if(cls == NULL) { env->freeObject(excpTypes); return NULL; }
+        if (cls == NULL) { env->freeObject(excpTypes); return NULL; }
         data[i] = cls;
     }
     return excpTypes;
@@ -231,88 +231,88 @@ static jobjectArray getExceptionTypes(FNIEnv *env, MethodInfo *mt) {
 
 static void supportFreeObjArray(FNIEnv *env, jobjectArray array, uint32_t count) {
     jobject *data = array->getData();
-    for(uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; i < count; i++)
         env->freeObject(data[i]);
     env->freeObject(array);
 }
 
 jobjectArray NativeClass_GetDeclaredFields0(FNIEnv *env, jclass cls) {
     jclass fieldCls = env->findClass("java/lang/reflect/Field");
-    if(cls->isArray() || cls->isPrimitive()) return env->newObjectArray(fieldCls, 0);
+    if (cls->isArray() || cls->isPrimitive()) return env->newObjectArray(fieldCls, 0);
     jmethodId ctorId = env->getConstructorId(fieldCls, "(Ljava/lang/Class;Ljava/lang/String;Ljava/lang/Class;I)V");
-    if(ctorId == NULL) return NULL;
+    if (ctorId == NULL) return NULL;
 
     ClassLoader *loader = cls->getClassLoader();
     uint16_t fieldCount = loader->getFieldsCount();
     jobjectArray array = env->newObjectArray(fieldCls, fieldCount);
-    if(array == NULL) return NULL;
-    for(uint16_t i = 0; i < fieldCount; i++) {
+    if (array == NULL) return NULL;
+    for (uint16_t i = 0; i < fieldCount; i++) {
         bool isOk = false;
         do {
             FieldInfo *fieldInfo = loader->getFieldInfo(i);
 
             /* name */
             jstring name = ((FExec *)env)->getFlint()->getConstString((FExec *)env, fieldInfo->name);
-            if(name == NULL) break;
+            if (name == NULL) break;
 
             /* type */
             jclass type = fieldInfo->desc[1] == 0 ? findClassOrPrimitive(env, fieldInfo->desc, 1) : env->findClass(fieldInfo->desc);
-            if(type == NULL) break;
+            if (type == NULL) break;
 
             jobject field = env->newObject(fieldCls, ctorId, cls, name, type, (int32_t)fieldInfo->accessFlag & 0x1FFF);
-            if(field == NULL) break;
+            if (field == NULL) break;
             env->setIntField(env->getFieldId(field, "entry"), i);
 
             array->getData()[i] = field;
             isOk = true;
-        } while(0);
+        } while (0);
 
-        if(!isOk) { supportFreeObjArray(env, array, i + 1); return NULL; }
+        if (!isOk) { supportFreeObjArray(env, array, i + 1); return NULL; }
     }
     return array;
 }
 
 jobjectArray NativeClass_GetDeclaredMethods0(FNIEnv *env, jclass cls) {
     jclass methodCls = env->findClass("java/lang/reflect/Method");
-    if(cls->isPrimitive()) return env->newObjectArray(methodCls, 0);
+    if (cls->isPrimitive()) return env->newObjectArray(methodCls, 0);
     jmethodId ctorId = env->getConstructorId(methodCls, "(Ljava/lang/Class;Ljava/lang/String;[Ljava/lang/Class;Ljava/lang/Class;[Ljava/lang/Class;I)V");
-    if(ctorId == NULL) return NULL;
+    if (ctorId == NULL) return NULL;
 
     ClassLoader *loader = cls->getClassLoader();
     uint16_t methodCount = loader->getMethodsCount();
     uint16_t count = 0;
-    for(uint16_t i = 0; i < methodCount; i++) {
+    for (uint16_t i = 0; i < methodCount; i++) {
         MethodInfo *methodInfo = loader->getMethodInfo((FExec *)env, i);
-        if(methodInfo == NULL) return NULL;
-        if((methodInfo->accessFlag & (METHOD_INIT | METHOD_CLINIT)) == 0) count++;
+        if (methodInfo == NULL) return NULL;
+        if ((methodInfo->accessFlag & (METHOD_INIT | METHOD_CLINIT)) == 0) count++;
     }
     jobjectArray array = env->newObjectArray(methodCls, count);
-    if(array == NULL) return NULL;
-    for(uint16_t midx = 0, aidx = 0; aidx < count; midx++) {
+    if (array == NULL) return NULL;
+    for (uint16_t midx = 0, aidx = 0; aidx < count; midx++) {
         MethodInfo *methodInfo = loader->getMethodInfo((FExec *)env, midx);
-        if((methodInfo->accessFlag & (METHOD_INIT | METHOD_CLINIT)) != 0) continue;
+        if ((methodInfo->accessFlag & (METHOD_INIT | METHOD_CLINIT)) != 0) continue;
 
         bool isOk = false;
         do {
             /* name */
             jstring name = ((FExec *)env)->getFlint()->getConstString((FExec *)env, methodInfo->name);
-            if(name == NULL) break;
+            if (name == NULL) break;
 
             /* returnType */
             jclass retType = getReturnType(env, methodInfo->desc);
-            if(retType == NULL) break;
+            if (retType == NULL) break;
 
             /* parameterTypes */
             jobjectArray ptypes = getParameterTypes(env, methodInfo->desc);
-            if(ptypes == NULL) break;
+            if (ptypes == NULL) break;
 
             /* exceptionTypes */
             jobjectArray etypes = getExceptionTypes(env, methodInfo);
-            if(etypes == NULL) break;
+            if (etypes == NULL) break;
             /* modifiers */
 
             jobject method = env->newObject(methodCls, ctorId, cls, name, ptypes, retType, etypes, (int32_t)methodInfo->accessFlag & 0x1FFF);
-            if(method == NULL) {
+            if (method == NULL) {
                 ptypes->clearProtected();
                 etypes->clearProtected();
                 break;
@@ -321,45 +321,45 @@ jobjectArray NativeClass_GetDeclaredMethods0(FNIEnv *env, jclass cls) {
 
             array->getData()[aidx++] = method;
             isOk = true;
-        } while(0);
+        } while (0);
 
-        if(!isOk) { supportFreeObjArray(env, array, aidx); return NULL; }
+        if (!isOk) { supportFreeObjArray(env, array, aidx); return NULL; }
     }
     return array;
 }
 
 jobjectArray NativeClass_GetDeclaredConstructors0(FNIEnv *env, jclass cls) {
     jclass ctorCls = env->findClass("java/lang/reflect/Constructor");
-    if(cls->isArray() || cls->isPrimitive()) return env->newObjectArray(ctorCls, 0);
+    if (cls->isArray() || cls->isPrimitive()) return env->newObjectArray(ctorCls, 0);
     jmethodId ctorId = env->getConstructorId(ctorCls, "(Ljava/lang/Class;[Ljava/lang/Class;[Ljava/lang/Class;I)V");
-    if(ctorId == NULL) return NULL;
+    if (ctorId == NULL) return NULL;
 
     ClassLoader *loader = cls->getClassLoader();
     uint16_t methodCount = loader->getMethodsCount();
     uint16_t count = 0;
-    for(uint16_t i = 0; i < methodCount; i++) {
+    for (uint16_t i = 0; i < methodCount; i++) {
         MethodInfo *methodInfo = loader->getMethodInfo((FExec *)env, i);
-        if(methodInfo == NULL) return NULL;
-        if(methodInfo->accessFlag & METHOD_INIT) count++;
+        if (methodInfo == NULL) return NULL;
+        if (methodInfo->accessFlag & METHOD_INIT) count++;
     }
     jobjectArray array = env->newObjectArray(ctorCls, count);
-    if(array == NULL) return NULL;
-    for(uint16_t midx = 0, aidx = 0; aidx < count; midx++) {
+    if (array == NULL) return NULL;
+    for (uint16_t midx = 0, aidx = 0; aidx < count; midx++) {
         MethodInfo *methodInfo = loader->getMethodInfo((FExec *)env, midx);
-        if(!(methodInfo->accessFlag & METHOD_INIT)) continue;
+        if (!(methodInfo->accessFlag & METHOD_INIT)) continue;
 
         bool isOk = false;
         do {
             /* parameterTypes */
             jobjectArray ptypes = getParameterTypes(env, methodInfo->desc);
-            if(ptypes == NULL) break;
+            if (ptypes == NULL) break;
 
             /* exceptionTypes */
             jobjectArray etypes = getExceptionTypes(env, methodInfo);
-            if(etypes == NULL) break;
+            if (etypes == NULL) break;
 
             jobject ctor = env->newObject(ctorCls, ctorId, cls, ptypes, etypes, (int32_t)methodInfo->accessFlag & 0x1FFF);
-            if(ctor == NULL) {
+            if (ctor == NULL) {
                 ptypes->clearProtected();
                 etypes->clearProtected();
                 break;
@@ -368,39 +368,39 @@ jobjectArray NativeClass_GetDeclaredConstructors0(FNIEnv *env, jclass cls) {
 
             array->getData()[aidx++] = ctor;
             isOk = true;
-        } while(0);
+        } while (0);
 
-        if(!isOk) { supportFreeObjArray(env, array, aidx); return NULL; }
+        if (!isOk) { supportFreeObjArray(env, array, aidx); return NULL; }
     }
     return array;
 }
 
 jclass NativeClass_GetDeclaringClass0(FNIEnv *env, jclass cls) {
-    if(cls->isArray() || cls->isPrimitive()) return NULL;
+    if (cls->isArray() || cls->isPrimitive()) return NULL;
     const char *clsName = cls->getTypeName();
     uint16_t len = strlen(clsName);
-    while(len > 0 && clsName[len - 1] != '$') len--;
-    if(len > 0 && clsName[len - 1] == '$') return env->findClass(clsName, len - 1);
+    while (len > 0 && clsName[len - 1] != '$') len--;
+    if (len > 0 && clsName[len - 1] == '$') return env->findClass(clsName, len - 1);
     return NULL;
 }
 
 static uint32_t isClassFile(const char *path) {
     size_t len = strlen(path);
-    if((len > 6) && (strcasecmp(path + (len - 6), ".class") == 0))
+    if ((len > 6) && (strcasecmp(path + (len - 6), ".class") == 0))
         return len - 6;
     return 0;
 }
 
 jstring NativeClass_GetParentPath(FNIEnv *env, jclass cls) {
     ClassLoader *loader = cls->getClassLoader();
-    if(loader == NULL)
+    if (loader == NULL)
         loader = env->findClass("java/lang/Class")->getClassLoader();
     const char *file = loader->getFilePath();
     uint32_t len = isClassFile(file);
-    if(len > 0) {
+    if (len > 0) {
         char separator = Flint::getPathSeparator();
         uint32_t lastIndex = len - 1;
-        while(file[lastIndex] != separator)
+        while (file[lastIndex] != separator)
             lastIndex--;
         return env->newString("%.*s", lastIndex, file);
     }

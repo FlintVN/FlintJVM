@@ -38,15 +38,15 @@ public:
 
 jvoid NativeFlintDatagramSocketImpl_Bind(FNIEnv *env, jobject obj, jint lport, jobject laddr) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
     InetAddress *inetAddr = (InetAddress *)laddr;
     SockAddr addr;
-    if(!ConvertToSockAddr(inetAddr, lport, &addr)) {
+    if (!ConvertToSockAddr(inetAddr, lport, &addr)) {
         env->throwNew(env->findClass("java/io/IOException"), "Invalid address");
         return;
     }
-    if(bind(sock, &addr) != SOCK_OK)
+    if (bind(sock, &addr) != SOCK_OK)
         env->throwNew(env->findClass("java/io/IOException"), "Bind error");
     else
         env->setIntField(env->getFieldId(obj, "localPort"), lport);
@@ -54,9 +54,9 @@ jvoid NativeFlintDatagramSocketImpl_Bind(FNIEnv *env, jobject obj, jint lport, j
 
 jvoid NativeFlintDatagramSocketImpl_Send(FNIEnv *env, jobject obj, jobject p) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
-    if(p == NULL) {
+    if (p == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return;
     }
@@ -68,25 +68,25 @@ jvoid NativeFlintDatagramSocketImpl_Send(FNIEnv *env, jobject obj, jobject p) {
 
     jint off = 0;
     SockAddr addr;
-    if(inetAddr == NULL) {
+    if (inetAddr == NULL) {
         env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "Address not set");
         return;
     }
-    else if(!ConvertToSockAddr(inetAddr, port, &addr)) {
+    else if (!ConvertToSockAddr(inetAddr, port, &addr)) {
         env->throwNew(env->findClass("java/io/IOException"), "Invalid address");
         return;
     }
 
-    if(!CheckArrayIndexSize(env, b, 0, len)) return;
+    if (!CheckArrayIndexSize(env, b, 0, len)) return;
 
-    while(len > 0 && !env->hasTerminateRequest()) {
+    while (len > 0 && !env->hasTerminateRequest()) {
         int32_t sent;
         SockError err = sendTo(sock, &addr, (uint8_t *)&b->getData()[off], len, &sent);
-        if(err == SOCK_OK) {
+        if (err == SOCK_OK) {
             len -= sent;
             off += sent;
         }
-        else if(err == SOCK_ERR) {
+        else if (err == SOCK_ERR) {
             env->throwNew(env->findClass("java/io/IOException"), "Write error");
             return;
         }
@@ -104,9 +104,9 @@ jint NativeFlintDatagramSocketImpl_Peek(FNIEnv *env, jobject obj, jobject i) {
 
 jvoid NativeFlintDatagramSocketImpl_Receive(FNIEnv *env, jobject obj, jobject p) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
-    if(p == NULL) {
+    if (p == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return;
     }
@@ -116,78 +116,78 @@ jvoid NativeFlintDatagramSocketImpl_Receive(FNIEnv *env, jobject obj, jobject p)
     jbyteArray b = packet->getBuf();
     jint len = packet->getLength();
 
-    if(!CheckArrayIndexSize(env, b, off, len)) return;
+    if (!CheckArrayIndexSize(env, b, off, len)) return;
 
     int32_t timeout = env->getIntField(env->getFieldId(obj, "timeout"));
     uint64_t startTime = getTimeMillis();
 
-    while(!env->hasTerminateRequest() && (timeout <= 0 || ((uint64_t)(getTimeMillis() - startTime)) < timeout)) {
+    while (!env->hasTerminateRequest() && (timeout <= 0 || ((uint64_t)(getTimeMillis() - startTime)) < timeout)) {
         int32_t n;
         SockAddr addr;
         SockError err = recvFrom(sock, &addr, (uint8_t *)b->getData(), len, &n);
-        if(err == SOCK_OK) {
+        if (err == SOCK_OK) {
             InetAddress *inetAddr = NativeFlintSocketImpl_CreateInetAddress(env, &addr);
-            if(inetAddr == NULL) return;
+            if (inetAddr == NULL) return;
             packet->setAddress(inetAddr);
             inetAddr->clearProtected();
-            if(inetAddr->getFamily() == NET_INET6)
+            if (inetAddr->getFamily() == NET_INET6)
                 ((Inet6Address *)inetAddr)->getAddress()->clearProtected();
             packet->setPort(addr.port);
             packet->setLength(n);
             return;
         }
-        else if(err == SOCK_ERR) {
+        else if (err == SOCK_ERR) {
             env->throwNew(env->findClass("java/io/IOException"), "Read error");
             return;
         }
     }
-    if(!env->hasTerminateRequest())
+    if (!env->hasTerminateRequest())
         env->throwNew(env->findClass("java/net/SocketTimeoutException"), "Read timed out");
 }
 
 jvoid NativeFlintDatagramSocketImpl_SetTTL(FNIEnv *env, jobject obj, jbyte ttl) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
     int32_t tmp = ttl;
-    if(setSockOpt(sock, SOCK_UNICAST_HOPS, true, &tmp) != SOCK_OK)
+    if (setSockOpt(sock, SOCK_UNICAST_HOPS, true, &tmp) != SOCK_OK)
         env->throwNew(env->findClass("java/io/IOException"), "Set TTL error");
 }
 
 jbyte NativeFlintDatagramSocketImpl_GetTTL(FNIEnv *env, jobject obj) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return 0;
+    if (sock == -1) return 0;
 
     int32_t hopLimit;
-    if(getSockOpt(sock, SOCK_UNICAST_HOPS, NULL, &hopLimit) != SOCK_OK)
+    if (getSockOpt(sock, SOCK_UNICAST_HOPS, NULL, &hopLimit) != SOCK_OK)
         env->throwNew(env->findClass("java/io/IOException"), "Get TTL error");
     return hopLimit;
 }
 
 jvoid NativeFlintDatagramSocketImpl_Join(FNIEnv *env, jobject obj, jobject inetaddr) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
     InetAddress *inetObj = (InetAddress *)inetaddr;
     SockAddr addr;
-    if(!ConvertToSockAddr(inetObj, 0, &addr)) {
+    if (!ConvertToSockAddr(inetObj, 0, &addr)) {
         env->throwNew(env->findClass("java/io/IOException"), "Invalid address");
         return;
     }
-    if(setSockOpt(sock, SOCK_JOIN_GROUP, NULL, &addr) != SOCK_OK)
+    if (setSockOpt(sock, SOCK_JOIN_GROUP, NULL, &addr) != SOCK_OK)
         env->throwNew(env->findClass("java/net/IOException"), "Join error");
 }
 
 jvoid NativeFlintDatagramSocketImpl_Leave(FNIEnv *env, jobject obj, jobject inetaddr) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
     InetAddress *inetObj = (InetAddress *)inetaddr;
     SockAddr addr;
-    if(!ConvertToSockAddr(inetObj, 0, &addr)) {
+    if (!ConvertToSockAddr(inetObj, 0, &addr)) {
         env->throwNew(env->findClass("java/io/IOException"), "Invalid address");
         return;
     }
-    if(setSockOpt(sock, SOCK_LEAVE_GROUP, NULL, &addr) != SOCK_OK)
+    if (setSockOpt(sock, SOCK_LEAVE_GROUP, NULL, &addr) != SOCK_OK)
         env->throwNew(env->findClass("java/net/IOException"), "Leave error");
 }
 
@@ -195,8 +195,8 @@ jvoid NativeFlintDatagramSocketImpl_DatagramSocketCreate(FNIEnv *env, jobject ob
     FExec *exec = (FExec *)env;
     int32_t sock = socket(false);
     Hook *hook = sock == -1 ? NULL : exec->getFlint()->addShutdownHook(exec, (void *)sock, NativeFlintSocketImpl_SocketClose);
-    if(hook == NULL) {
-        if(sock != -1) close(sock);
+    if (hook == NULL) {
+        if (sock != -1) close(sock);
         env->throwNew(env->findClass("java/io/IOException"), "Create DatagramSocket error");
         return;
     }
@@ -206,23 +206,23 @@ jvoid NativeFlintDatagramSocketImpl_DatagramSocketCreate(FNIEnv *env, jobject ob
 
 jvoid NativeFlintDatagramSocketImpl_DatagramSocketClose(FNIEnv *env, jobject obj) {
     Hook *hook = NativeFlintSocketImpl_GetHook(env, obj, true);
-    if(hook == NULL) return;
+    if (hook == NULL) return;
     ((FExec *)env)->getFlint()->removeShutdownHook(hook);
     NativeFlintSocketImpl_SocketClose(hook->getHandle());
 }
 
 jvoid NativeFlintDatagramSocketImpl_SocketSetOption(FNIEnv *env, jobject obj, jint opt, jobject val) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
-    switch(opt) {
+    switch (opt) {
         case NATIVE_SO_REUSEADDR: {
-            if(val == NULL) {
+            if (val == NULL) {
                 env->throwNew(env->findClass("java/lang/NullPointerException"));
                 return;
             }
             int32_t tmp = val->getFieldByIndex(0)->getInt32();
-            if(setSockOpt(sock, SOCK_SO_REUSEADDR, true, &tmp) != SOCK_OK)
+            if (setSockOpt(sock, SOCK_SO_REUSEADDR, true, &tmp) != SOCK_OK)
                 env->throwNew(env->findClass("java/io/IOException"), "Set SO_REUSEADDR error");
             break;
         }
@@ -234,23 +234,23 @@ jvoid NativeFlintDatagramSocketImpl_SocketSetOption(FNIEnv *env, jobject obj, ji
 
 jobject NativeFlintDatagramSocketImpl_SocketGetOption(FNIEnv *env, jobject obj, jint opt) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return NULL;
+    if (sock == -1) return NULL;
 
-    switch(opt) {
+    switch (opt) {
         case NATIVE_SO_REUSEADDR: {
             int32_t val = 0;
-            if(getSockOpt(sock, SOCK_SO_REUSEADDR, NULL, &val) != SOCK_OK) {
+            if (getSockOpt(sock, SOCK_SO_REUSEADDR, NULL, &val) != SOCK_OK) {
                 env->throwNew(env->findClass("java/io/IOException"), "Get SO_REUSEADDR error");
                 return NULL;
             }
             jobject ret = env->newObject(env->findClass("java/lang/Integer"));
-            if(ret == NULL) return NULL;
+            if (ret == NULL) return NULL;
             ret->getFieldByIndex(0)->setInt32(val);
             return ret;
         }
         case NATIVE_SO_BINDADDR: {
             SockAddr addr;
-            if(getSockOpt(sock, SOCK_SO_BINDADDR, NULL, &addr) != SOCK_OK) {
+            if (getSockOpt(sock, SOCK_SO_BINDADDR, NULL, &addr) != SOCK_OK) {
                 env->throwNew(env->findClass("java/io/IOException"), "Get SO_BINDADDR error");
                 return NULL;
             }

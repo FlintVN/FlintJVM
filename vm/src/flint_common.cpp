@@ -39,7 +39,7 @@ static const uint16_t crc16Table[] = {
 
 uint16_t Crc16(const uint8_t *data, uint32_t length, uint16_t initValue) {
     uint16_t crc = initValue;
-    for(uint32_t i = 0; i < length; i++)
+    for (uint32_t i = 0; i < length; i++)
         crc = crc16Table[(crc ^ data[i]) & 0xFF] ^ (crc >> 8);
     return ~crc;
 }
@@ -47,9 +47,9 @@ uint16_t Crc16(const uint8_t *data, uint32_t length, uint16_t initValue) {
 int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
     static const uint16_t dayCount[] = {0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334};
     int64_t ret = dayCount[month - 1] + day;
-    if(year % 4 == 0 && month > 2)
+    if (year % 4 == 0 && month > 2)
         ret++;
-    if(year >= 1) {
+    if (year >= 1) {
         year--;
         ret = ret + year * 365 + year / 4 - year / 100 + year / 400;
     }
@@ -62,20 +62,20 @@ int64_t UnixTime(uint16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_
 }
 
 const char *GetNextArgName(const char *desc) {
-    while(*desc == '[') desc++;
-    if(*desc == 'L')
-        while(*desc++ != ';');
+    while (*desc == '[') desc++;
+    if (*desc == 'L')
+        while (*desc++ != ';');
     else
         desc++;
-    if(*desc == ')' || *desc == 0) return NULL;
+    if (*desc == ')' || *desc == 0) return NULL;
     return desc;
 }
 
 uint16_t GetArgNameLength(const char *desc) {
     const char *tmp = desc;
-    while(*tmp == '[') tmp++;
-    if(*tmp == 'L')
-        while(*tmp && *tmp++ != ';');
+    while (*tmp == '[') tmp++;
+    if (*tmp == 'L')
+        while (*tmp && *tmp++ != ';');
     else
         tmp++;
     return tmp - desc;
@@ -83,18 +83,18 @@ uint16_t GetArgNameLength(const char *desc) {
 
 uint8_t GetArgCount(const char *desc) {
     uint8_t argc = 0;
-    while(desc) {
+    while (desc) {
         desc = GetNextArgName(desc);
-        if(desc != NULL) argc++;
+        if (desc != NULL) argc++;
     }
     return argc;
 }
 
 uint8_t GetArgSlotCount(const char *desc) {
     uint8_t argc = 0;
-    while(desc) {
+    while (desc) {
         desc = GetNextArgName(desc);
-        if(desc != NULL)
+        if (desc != NULL)
             argc += (desc[0] == 'J' || desc[0] == 'D') ? 2 : 1;
     }
     return argc;

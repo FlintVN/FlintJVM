@@ -11,7 +11,7 @@ FP sqrt(const FP x) {
     do {
         g = y;
         y = (g + n / g) >> 1;
-    } while(std::abs((int64_t)(y - g)) > 1);
+    } while (std::abs((int64_t)(y - g)) > 1);
     return FP((uint32_t)y, true);
 }
 
@@ -21,6 +21,6 @@ FP FP::sqrt(void) const {
     do {
         g = y;
         y = (g + n / g) >> 1;
-    } while(std::abs((int64_t)(y - g)) > 1);
+    } while (std::abs((int64_t)(y - g)) > 1);
     return FP((uint32_t)y, true);
 }

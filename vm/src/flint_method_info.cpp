@@ -16,9 +16,9 @@ hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)), retType(NULL), code(NULL) {
 }
 
 const char *MethodInfo::getReturnType(void) {
-    if(retType == NULL) {
+    if (retType == NULL) {
         const char *tmp = desc;
-        while(*tmp != ')')
+        while (*tmp != ')')
             tmp++;
         retType = ++tmp;
     }
@@ -26,8 +26,8 @@ const char *MethodInfo::getReturnType(void) {
 }
 
 uint8_t *MethodInfo::getCode(void) {
-    if(accessFlag & METHOD_NATIVE) {
-        if(code == 0)
+    if (accessFlag & METHOD_NATIVE) {
+        if (code == 0)
             code = (uint8_t *)NativeClass::findNativeMethod(this);
         return (uint8_t *)code;
     }
@@ -52,7 +52,7 @@ uint16_t MethodInfo::getExceptionLength(void) const {
 }
 
 ExceptionTable *MethodInfo::getException(uint16_t index) const {
-    if(accessFlag & METHOD_NATIVE)
+    if (accessFlag & METHOD_NATIVE)
         return NULL;
     CodeAttribute *codeAttr = (CodeAttribute *)code;
     return &((ExceptionTable *)codeAttr->data)[index];

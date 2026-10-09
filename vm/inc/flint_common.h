@@ -13,7 +13,7 @@
 constexpr uint32_t Hash(const char *txt, uint16_t length = 0xFFFF, uint32_t initValue = 0) {
     uint16_t index = 0;
     uint32_t h = initValue;
-    while(txt[index] && index < length) {
+    while (txt[index] && index < length) {
         h = 31 * h + (uint8_t)txt[index];
         index++;
     }

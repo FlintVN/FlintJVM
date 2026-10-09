@@ -5,7 +5,7 @@
 
 jvoid NativeFileDescriptor_Sync(FNIEnv *env, jobject obj) {
     int32_t fd = obj->getFieldByIndex(0)->getInt32();
-    if(fd < 0)
+    if (fd < 0)
         env->throwNew(env->findClass("java/io/SyncFailedException"), "sync failed");
     else {
         // TODO

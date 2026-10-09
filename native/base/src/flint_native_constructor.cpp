@@ -13,16 +13,16 @@ jobject NativeConstructor_NewInstance0(FNIEnv *env, jobject obj, jobjectArray in
     FExec *exec = (FExec *)env;
 
     jobject newObj = env->newObject(cls);
-    if(newObj == NULL) return NULL;
+    if (newObj == NULL) return NULL;
     exec->stackPushObject(newObj);
 
     int32_t argSlot = 1;
     int32_t argc = ptypes->getLength();
-    for(uint32_t i = 0; i < argc; i++) {
+    for (uint32_t i = 0; i < argc; i++) {
         jclass ptype = (jclass)ptypes->getData()[i];
-        if(ptype->isPrimitive()) {
+        if (ptype->isPrimitive()) {
             const char *ptypeName = ptype->getTypeName();
-            if(strcmp(ptypeName, "long") == 0 || strcmp(ptypeName, "double") == 0) {
+            if (strcmp(ptypeName, "long") == 0 || strcmp(ptypeName, "double") == 0) {
                 exec->stackPushInt64(initargs->getData()[i]->getFieldByIndex(0)->getInt64());
                 argSlot += 2;
             }
@@ -39,11 +39,11 @@ jobject NativeConstructor_NewInstance0(FNIEnv *env, jobject obj, jobjectArray in
 
     exec->callMethod(methodInfo, argSlot);
 
-    if(exec->hasTerminateRequest()) {
+    if (exec->hasTerminateRequest()) {
         exec->getFlint()->freeObject(newObj);
         return NULL;
     }
-    if(exec->hasException()) {
+    if (exec->hasException()) {
         env->throwNew(env->findClass("java/lang/reflect/InvocationTargetException"));
         return NULL;
     }

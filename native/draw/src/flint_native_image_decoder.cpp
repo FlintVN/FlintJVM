@@ -16,7 +16,7 @@ jobject NativeImageDecoder_DecodeBmpToRgb565(FNIEnv *env, jbyteArray imageData, 
 jobject NativeImageDecoder_DecodePngToRgb565(FNIEnv *env, jbyteArray imageData, jint off, jint len) {
     PngDecoder decoder;
 
-    if(!decoder.setImageData((uint8_t *)&imageData->getData()[off], len)) {
+    if (!decoder.setImageData((uint8_t *)&imageData->getData()[off], len)) {
         throwImageFormatException(env, "Png file format error");
         return NULL;
     }
@@ -26,16 +26,16 @@ jobject NativeImageDecoder_DecodePngToRgb565(FNIEnv *env, jbyteArray imageData, 
     uint32_t aBytes = decoder.hasAlpha() ? ((pixels + 1) >> 1) : 0;
 
     jbyteArray data = env->newByteArray(rgbBytes + aBytes);
-    if(data == NULL) return NULL;
+    if (data == NULL) return NULL;
 
-    if(!decoder.decodeToRgb565((uint8_t *)data->getData(), (uint8_t *)&data->getData()[rgbBytes])) {
+    if (!decoder.decodeToRgb565((uint8_t *)data->getData(), (uint8_t *)&data->getData()[rgbBytes])) {
         env->freeObject(data);
         throwImageFormatException(env, "Png file format error");
         return NULL;
     }
 
     jobject rgb565Img = env->newObject(env->findClass("flint/drawing/Rgb565Image"));
-    if(rgb565Img != NULL) {
+    if (rgb565Img != NULL) {
         rgb565Img->getFieldByIndex(0)->setInt32(decoder.hasAlpha());
         rgb565Img->getFieldByIndex(1)->setInt32(decoder.getWidth());
         rgb565Img->getFieldByIndex(2)->setInt32(decoder.getHeight());

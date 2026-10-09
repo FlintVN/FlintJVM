@@ -100,11 +100,11 @@ static constexpr uint16_t letterUpper[] = {
 static int32_t FindIndex(const uint16_t *letterList, uint16_t c) {
     int32_t r = LENGTH(letterLower) - 1;
     int32_t l = 0;
-    while(r >= l) {
+    while (r >= l) {
         int32_t mid = l + (r - l) / 2;
-        if(letterList[mid] == c)
+        if (letterList[mid] == c)
             return mid;
-        else if(letterList[mid] > c)
+        else if (letterList[mid] > c)
             r = mid - 1;
         else
             l = mid + 1;

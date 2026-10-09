@@ -18,11 +18,11 @@ using namespace FlintAPI::System;
 
 jbool ConvertToSockAddr(InetAddress *inetAddr, jint port, SockAddr *addr) {
     int32_t family = inetAddr->getFamily();
-    if(family != NET_INET4 && family != NET_INET6)
+    if (family != NET_INET4 && family != NET_INET6)
         return false;
 
     addr->port = port;
-    if(family == NET_INET4) {
+    if (family == NET_INET4) {
         Inet4Address *inet4Addr = (Inet4Address *)inetAddr;
         memset(addr->addr, 0, 10);
         addr->addr[10] = 0xFF;
@@ -36,7 +36,7 @@ jbool ConvertToSockAddr(InetAddress *inetAddr, jint port, SockAddr *addr) {
     else {
         Inet6Address *inet6Addr = (Inet6Address *)inetAddr;
         memcpy(addr->addr, inet6Addr->getAddress()->getData(), 16);
-        if(inet6Addr->getScopeIdSet())
+        if (inet6Addr->getScopeIdSet())
             addr->scopeId = inet6Addr->getScopeId();
         else
             addr->scopeId = 0;
@@ -47,14 +47,14 @@ jbool ConvertToSockAddr(InetAddress *inetAddr, jint port, SockAddr *addr) {
 
 Hook *NativeFlintSocketImpl_GetHook(FNIEnv *env, jobject socketObj, bool throwable) {
     jobject fdObj = env->getObjField(env->getFieldId(socketObj, "fd"));
-    if(fdObj == NULL) {
-        if(throwable)
+    if (fdObj == NULL) {
+        if (throwable)
             env->throwNew(env->findClass("java/io/IOException"), "Socket has not been created");
         return NULL;
     }
     int32_t fd = env->getIntField(env->getFieldId(fdObj, "fd"));
-    if(fd == -1 || (Hook *)fd == NULL) {
-        if(throwable)
+    if (fd == -1 || (Hook *)fd == NULL) {
+        if (throwable)
             env->throwNew(env->findClass("java/io/IOException"), "Socket has not been created");
         return NULL;
     }
@@ -63,12 +63,12 @@ Hook *NativeFlintSocketImpl_GetHook(FNIEnv *env, jobject socketObj, bool throwab
 
 jint NativeFlintSocketImpl_GetSock(FNIEnv *env, jobject socketObj, jbool throwable) {
     Hook *hook = NativeFlintSocketImpl_GetHook(env, socketObj, throwable);
-    if(hook == NULL) return -1;
+    if (hook == NULL) return -1;
     return (int32_t)hook->getHandle();
 }
 
 static bool IsIPv4MappedAddress(uint8_t *addr) {
-    if(
+    if (
         (addr[0] == 0x00) && (addr[1] == 0x00) &&
         (addr[2] == 0x00) && (addr[3] == 0x00) &&
         (addr[4] == 0x00) && (addr[5] == 0x00) &&
@@ -82,14 +82,14 @@ static bool IsIPv4MappedAddress(uint8_t *addr) {
 }
 
 InetAddress *NativeFlintSocketImpl_CreateInetAddress(FNIEnv *env, SockAddr *addr) {
-    if(IsIPv4MappedAddress(addr->addr)) {
+    if (IsIPv4MappedAddress(addr->addr)) {
         int32_t ipv4 = addr->addr[12] << 24;
         ipv4 |= addr->addr[13] << 16;
         ipv4 |= addr->addr[14] << 8;
         ipv4 |= addr->addr[15] << 0;
 
         Inet4Address *inetAddr = (Inet4Address *)env->newObject(env->findClass("java/net/Inet4Address"));
-        if(inetAddr == NULL) return NULL;
+        if (inetAddr == NULL) return NULL;
 
         inetAddr->setHostName(NULL);
         inetAddr->setFamily(NET_INET4);
@@ -100,9 +100,9 @@ InetAddress *NativeFlintSocketImpl_CreateInetAddress(FNIEnv *env, SockAddr *addr
     else {
         Inet6Address *inetAddr = (Inet6Address *)env->newObject(env->findClass("java/net/Inet6Address"));
         jbyteArray byteArr = env->newByteArray(16);
-        if(byteArr == NULL || inetAddr == NULL) {
-            if(inetAddr != NULL) env->freeObject(inetAddr);
-            if(byteArr != NULL) env->freeObject(byteArr);
+        if (byteArr == NULL || inetAddr == NULL) {
+            if (inetAddr != NULL) env->freeObject(inetAddr);
+            if (byteArr != NULL) env->freeObject(byteArr);
             return NULL;
         }
         memcpy(byteArr->getData(), addr->addr, 16);
@@ -111,7 +111,7 @@ InetAddress *NativeFlintSocketImpl_CreateInetAddress(FNIEnv *env, SockAddr *addr
         inetAddr->setFamily(NET_INET6);
         inetAddr->setAddress(byteArr);
         inetAddr->setScopeId(addr->scopeId);
-        if(addr->scopeId > 0)
+        if (addr->scopeId > 0)
             inetAddr->setScopeIdSet(true);
         return inetAddr;
     }
@@ -125,8 +125,8 @@ jvoid NativeFlintSocketImpl_SocketCreate(FNIEnv *env, jobject obj) {
     FExec *exec = (FExec *)env;
     int32_t sock = socket(true);
     Hook *hook = sock == -1 ? NULL : exec->getFlint()->addShutdownHook(exec, (void *)sock, NativeFlintSocketImpl_SocketClose);
-    if(hook == NULL) {
-        if(sock != -1) close(sock);
+    if (hook == NULL) {
+        if (sock != -1) close(sock);
         env->throwNew(env->findClass("java/io/IOException"), "Create socket error");
         return;
     }
@@ -136,23 +136,23 @@ jvoid NativeFlintSocketImpl_SocketCreate(FNIEnv *env, jobject obj) {
 
 jvoid NativeFlintSocketImpl_SocketConnect(FNIEnv *env, jobject obj, jobject address, jint port) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
     InetAddress *inetAddr = (InetAddress *)address;
     SockAddr addr;
-    if(!ConvertToSockAddr(inetAddr, port, &addr)) {
+    if (!ConvertToSockAddr(inetAddr, port, &addr)) {
         env->throwNew(env->findClass("java/io/IOException"), "Invalid address");
         return;
     }
 
     SockError err = connect(sock, &addr);
-    if(err == SOCK_OK) return;
-    else if(err == SOCK_INPROGRESS) {
-        while(!env->hasTerminateRequest()) {
+    if (err == SOCK_OK) return;
+    else if (err == SOCK_INPROGRESS) {
+        while (!env->hasTerminateRequest()) {
             bool connected;
-            if(isConnected(sock, &connected) != SOCK_OK)
+            if (isConnected(sock, &connected) != SOCK_OK)
                 break;
-            if(connected == true)
+            if (connected == true)
                 return;
         }
     }
@@ -161,54 +161,54 @@ jvoid NativeFlintSocketImpl_SocketConnect(FNIEnv *env, jobject obj, jobject addr
 
 jvoid NativeFlintSocketImpl_SocketBind(FNIEnv *env, jobject obj, jobject address, jint port) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
     InetAddress *inetAddr = (InetAddress *)address;
     SockAddr addr;
-    if(!ConvertToSockAddr(inetAddr, port, &addr)) {
+    if (!ConvertToSockAddr(inetAddr, port, &addr)) {
         env->throwNew(env->findClass("java/io/IOException"), "Invalid address");
         return;
     }
-    if(bind(sock, &addr) != SOCK_OK)
+    if (bind(sock, &addr) != SOCK_OK)
         env->throwNew(env->findClass("java/io/IOException"), "Bind error");
 }
 
 jvoid NativeFlintSocketImpl_SocketListen(FNIEnv *env, jobject obj, jint count) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
-    if(listen(sock, count) != SOCK_OK)
+    if (listen(sock, count) != SOCK_OK)
         env->throwNew(env->findClass("java/io/IOException"), "Listen error");
 }
 
 jvoid NativeFlintSocketImpl_SocketAccept(FNIEnv *env, jobject obj, jobject s) {
     int32_t listenSock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(listenSock == -1) return;
+    if (listenSock == -1) return;
 
     SockAddr addr;
     int32_t timeout = env->getIntField(env->getFieldId(obj, "timeout"));
     uint64_t startTime = getTimeMillis();
 
-    while(!env->hasTerminateRequest() && (timeout <= 0 || ((uint64_t)(getTimeMillis() - startTime)) < timeout)) {
+    while (!env->hasTerminateRequest() && (timeout <= 0 || ((uint64_t)(getTimeMillis() - startTime)) < timeout)) {
         int32_t client;
         SockError err = accept(listenSock, &addr, &client);
-        if(err == SOCK_ERR) {
+        if (err == SOCK_ERR) {
             env->throwNew(env->findClass("java/io/IOException"), "Accept error");
             return;
         }
-        else if(err == SOCK_OK) {
+        else if (err == SOCK_OK) {
             FExec *exec = (FExec *)env;
             Hook *hook = exec->getFlint()->addShutdownHook(exec, (void *)client, NativeFlintSocketImpl_SocketClose);
-            if(hook == NULL) {
+            if (hook == NULL) {
                 env->throwNew(env->findClass("java/io/IOException"), "Accept error");
                 close(client);
                 return;
             }
             InetAddress *inetAddr = NativeFlintSocketImpl_CreateInetAddress(env, &addr);
-            if(inetAddr == NULL) return;
+            if (inetAddr == NULL) return;
             env->setObjField(env->getFieldId(s, "address"), inetAddr);
             inetAddr->clearProtected();
-            if(inetAddr->getFamily() == NET_INET6)
+            if (inetAddr->getFamily() == NET_INET6)
                 ((Inet6Address *)inetAddr)->getAddress()->clearProtected();
             env->setIntField(env->getFieldId(env->getObjField(env->getFieldId(s, "fd")), "fd"), (int32_t)hook);
             env->setIntField(env->getFieldId(s, "port"), env->getIntField(env->getFieldId(obj, "port")));
@@ -216,19 +216,19 @@ jvoid NativeFlintSocketImpl_SocketAccept(FNIEnv *env, jobject obj, jobject s) {
             return;
         }
     }
-    if(!env->hasTerminateRequest())
+    if (!env->hasTerminateRequest())
         env->throwNew(env->findClass("java/net/SocketTimeoutException"), "Accept timed out");
 }
 
 jint NativeFlintSocketImpl_SocketAvailable(FNIEnv *env, jobject obj) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return -1;
+    if (sock == -1) return -1;
     return available(sock);
 }
 
 jvoid NativeFlintSocketImpl_SocketClose(FNIEnv *env, jobject obj) {
     Hook *hook = NativeFlintSocketImpl_GetHook(env, obj, false);
-    if(hook == NULL) return;
+    if (hook == NULL) return;
     ((FExec *)env)->getFlint()->removeShutdownHook(hook);
     NativeFlintSocketImpl_SocketClose(hook->getHandle());
 }
@@ -239,17 +239,17 @@ jvoid NativeFlintSocketImpl_InitProto(FNIEnv *env) {
 
 jvoid NativeFlintSocketImpl_SocketSetOption(FNIEnv *env, jobject obj, jint cmd, jbool on, jobject value) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return;
+    if (sock == -1) return;
 
-    switch(cmd) {
+    switch (cmd) {
         case NATIVE_TCP_NODELAY: {
-            if(setSockOpt(sock, SOCK_TCP_NODELAY, on, NULL) != SOCK_OK)
+            if (setSockOpt(sock, SOCK_TCP_NODELAY, on, NULL) != SOCK_OK)
                 env->throwNew(env->findClass("java/io/IOException"), "Set TCP_NODELAY error");
             break;
         }
         case NATIVE_SO_LINGER: {
             int32_t val = (value != NULL) ? value->getFieldByIndex(0)->getInt32() : 0;
-            if(setSockOpt(sock, SOCK_SO_LINGER, on, &val) != SOCK_OK)
+            if (setSockOpt(sock, SOCK_SO_LINGER, on, &val) != SOCK_OK)
                 env->throwNew(env->findClass("java/io/IOException"), "Set SO_LINGER error");
             break;
         }
@@ -261,49 +261,49 @@ jvoid NativeFlintSocketImpl_SocketSetOption(FNIEnv *env, jobject obj, jint cmd, 
 
 jobject NativeFlintSocketImpl_SocketGetOption(FNIEnv *env, jobject obj, jint opt) {
     int32_t sock = NativeFlintSocketImpl_GetSock(env, obj, true);
-    if(sock == -1) return NULL;
+    if (sock == -1) return NULL;
 
-    switch(opt) {
+    switch (opt) {
         case NATIVE_SO_TIMEOUT: {
             jobject ret = env->newObject(env->findClass("java/lang/Integer"));
-            if(ret == NULL) return NULL;
+            if (ret == NULL) return NULL;
             ret->getFieldByIndex(0)->setInt32(env->getIntField(env->getFieldId(obj, "timeout")));
             return ret;
         }
         case NATIVE_TCP_NODELAY: {
             bool val = 0;
-            if(getSockOpt(sock, SOCK_TCP_NODELAY, &val, NULL) != SOCK_OK) {
+            if (getSockOpt(sock, SOCK_TCP_NODELAY, &val, NULL) != SOCK_OK) {
                 env->throwNew(env->findClass("java/io/IOException"), "Get TCP_NODELAY error");
                 return NULL;
             }
             jobject ret = env->newObject(env->findClass("java/lang/Integer"));
-            if(ret == NULL) return NULL;
+            if (ret == NULL) return NULL;
             ret->getFieldByIndex(0)->setInt32(val);
             return ret;
         }
         case NATIVE_SO_LINGER: {
             bool on;
             int32_t linger;
-            if(getSockOpt(sock, SOCK_SO_LINGER, &on, &linger) != SOCK_OK) {
+            if (getSockOpt(sock, SOCK_SO_LINGER, &on, &linger) != SOCK_OK) {
                 env->throwNew(env->findClass("java/io/IOException"), "Get SO_LINGER error");
                 return NULL;
             }
-            if(on == 0) {
+            if (on == 0) {
                 jobject ret = env->newObject(env->findClass("java/lang/Boolean"));
-                if(ret == NULL) return NULL;
+                if (ret == NULL) return NULL;
                 ret->getFieldByIndex(0)->setInt32(0);
                 return ret;
             }
             else {
                 jobject ret = env->newObject(env->findClass("java/lang/Integer"));
-                if(ret == NULL) return NULL;
+                if (ret == NULL) return NULL;
                 ret->getFieldByIndex(0)->setInt32(linger);
                 return ret;
             }
         }
         case NATIVE_SO_BINDADDR: {
             SockAddr addr;
-            if(getSockOpt(sock, SOCK_SO_BINDADDR, NULL, &addr) != SOCK_OK) {
+            if (getSockOpt(sock, SOCK_SO_BINDADDR, NULL, &addr) != SOCK_OK) {
                 env->throwNew(env->findClass("java/io/IOException"), "Get SO_BINDADDR error");
                 return NULL;
             }

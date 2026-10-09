@@ -8,7 +8,7 @@ static const char *ResolvePath(FNIEnv *env, jobject file, char *buff, uint32_t b
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *ptxt = path->getAscii();
     uint32_t len = path->getLength();
-    if(((FExec *)env)->getFlint()->resolvePath(ptxt, len, buff, buffSize) == -1) {
+    if (((FExec *)env)->getFlint()->resolvePath(ptxt, len, buff, buffSize) == -1) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "Unable to resolve the path, file name too long leads to insufficient buffer size");
         return NULL;
@@ -18,7 +18,7 @@ static const char *ResolvePath(FNIEnv *env, jobject file, char *buff, uint32_t b
 
 static FlintAPI::IO::DirHandle OpenDir(FNIEnv *env, jobject file) {
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
     return FlintAPI::IO::opendir(buff);
 }
 
@@ -44,11 +44,11 @@ jstring NativeFile_GetAbsolutePath(FNIEnv *env, jobject file) {
     jstring path = (jstring)file->getFieldByIndex(0)->getObj();
     const char *txt = path->getAscii();
     uint32_t len = path->getLength();
-    if(Flint::isAbsolutePath(txt, len))
+    if (Flint::isAbsolutePath(txt, len))
         return path;
     else {
         char buff[FILE_NAME_BUFF_SIZE];
-        if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
+        if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
         return ((FExec *)env)->getFlint()->newString((FExec *)env, buff);
     }
 }
@@ -56,15 +56,15 @@ jstring NativeFile_GetAbsolutePath(FNIEnv *env, jobject file) {
 jbool NativeFile_Exists(FNIEnv *env, jobject file) {
     (void)env;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
     return FlintAPI::IO::finfo(buff, NULL) == FlintAPI::IO::FILE_RESULT_OK;
 }
 
 jbool NativeFile_CanWrite(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
-    if(FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
         return false;
     return (fileInfo.system | fileInfo.readOnly) ? false : true;
 }
@@ -72,8 +72,8 @@ jbool NativeFile_CanWrite(FNIEnv *env, jobject file) {
 jbool NativeFile_CanRead(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
-    if(FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
         return false;
     return fileInfo.system ? false : true;
 }
@@ -81,8 +81,8 @@ jbool NativeFile_CanRead(FNIEnv *env, jobject file) {
 jbool NativeFile_IsFile(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
-    if(FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
         return false;
     return fileInfo.directory ? false : true;
 }
@@ -94,8 +94,8 @@ jbool NativeFile_IsDirectory(FNIEnv *env, jobject file) {
 jbool NativeFile_IsHidden(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
-    if(FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
         return false;
     return fileInfo.hidden ? true : false;
 }
@@ -103,8 +103,8 @@ jbool NativeFile_IsHidden(FNIEnv *env, jobject file) {
 jlong NativeFile_LastModified(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
-    if(FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
         return 0;
     return fileInfo.time;
 }
@@ -112,33 +112,33 @@ jlong NativeFile_LastModified(FNIEnv *env, jobject file) {
 jlong NativeFile_Length(FNIEnv *env, jobject file) {
     FlintAPI::IO::FileInfo fileInfo;
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
-    if(FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (FlintAPI::IO::finfo(buff, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK)
         return 0;
     return fileInfo.size;
 }
 
 jbool NativeFile_Mkdir(FNIEnv *env, jobject file) {
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
     return FlintAPI::IO::mkdir(buff) == FlintAPI::IO::FILE_RESULT_OK;
 }
 
 jbool NativeFile_RenameTo(FNIEnv *env, jobject file, jobject dest) {
-    if(dest == NULL) {
+    if (dest == NULL) {
         env->throwNew(env->findClass("java/lang/NullPointerException"));
         return false;
     }
     char buff1[FILE_NAME_BUFF_SIZE];
     char buff2[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff1, sizeof(buff1)) == NULL) return false;
-    if(ResolvePath(env, dest, buff2, sizeof(buff2)) == NULL) return false;
+    if (ResolvePath(env, file, buff1, sizeof(buff1)) == NULL) return false;
+    if (ResolvePath(env, dest, buff2, sizeof(buff2)) == NULL) return false;
     return FlintAPI::IO::frename(buff1, buff2) == FlintAPI::IO::FILE_RESULT_OK;
 }
 
 jbool NativeFile_Delete0(FNIEnv *env, jobject file) {
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
     return FlintAPI::IO::fremove(buff) == FlintAPI::IO::FILE_RESULT_OK;
 }
 
@@ -148,25 +148,25 @@ jbool NativeFile_Rmdir0(FNIEnv *env, jobject file) {
 
 jobjectArray NativeFile_List(FNIEnv *env, jobject file) {
     auto handle = OpenDir(env, file);
-    if(handle == NULL) return NULL;
+    if (handle == NULL) return NULL;
 
     Flint *flint = ((FExec *)env)->getFlint();
     jclass strArrCls = flint->findClassOfArray((FExec *)env, "java/lang/String", 1);
     jobjectArray arr = (jobjectArray)flint->newArray((FExec *)env, strArrCls, 16);
-    if(strArrCls == NULL || arr == NULL) return NULL;
+    if (strArrCls == NULL || arr == NULL) return NULL;
     arr->clearArray();
     uint32_t count = 0;
     FlintAPI::IO::FileInfo fileInfo;
-    while(1) {
-        if(FlintAPI::IO::readdir(handle, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK) {
+    while (1) {
+        if (FlintAPI::IO::readdir(handle, &fileInfo) != FlintAPI::IO::FILE_RESULT_OK) {
             env->throwNew(env->findClass("java/io/IOException"), "Error while reading directory");
             break;
         }
-        if(fileInfo.name[0] == 0) {
+        if (fileInfo.name[0] == 0) {
             FlintAPI::IO::closedir(handle);
-            if(count != arr->getLength()) {
+            if (count != arr->getLength()) {
                 jobjectArray newArr = (jobjectArray)flint->newArray((FExec *)env, strArrCls, count);
-                if(newArr == NULL) break;
+                if (newArr == NULL) break;
                 newArr->clearArray();
                 memcpy(newArr->getData(), arr->getData(), newArr->getLength() * sizeof(jobject));
                 env->freeObject(arr);
@@ -174,19 +174,19 @@ jobjectArray NativeFile_List(FNIEnv *env, jobject file) {
             }
             return arr;
         }
-        if(count >= arr->getLength()) {
+        if (count >= arr->getLength()) {
             jobjectArray newArr = (jobjectArray)flint->newArray((FExec *)env, strArrCls, arr->getLength() + 16);
-            if(newArr == NULL) break;
+            if (newArr == NULL) break;
             newArr->clearArray();
             memcpy(newArr->getData(), arr->getData(), arr->getLength() * sizeof(jobject));
             env->freeObject(arr);
             arr = newArr;
         }
         arr->getData()[count] = flint->newString((FExec *)env, fileInfo.name);
-        if(arr->getData()[count] == NULL) break;
+        if (arr->getData()[count] == NULL) break;
         count++;
     }
-    for(uint32_t i = 0; i < count; i++)
+    for (uint32_t i = 0; i < count; i++)
         env->freeObject(arr->getData()[i]);
     env->freeObject(arr);
     FlintAPI::IO::closedir(handle);
@@ -195,24 +195,24 @@ jobjectArray NativeFile_List(FNIEnv *env, jobject file) {
 
 jstring NativeFile_GetCanonicalPath(FNIEnv *env, jobject file, jstring path) {
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return NULL;
     char sep = Flint::getPathSeparator();
     char *src = buff;
     char *dst = buff;
-    while(*src) {
-        if(*src == sep && src[1] == sep) {
+    while (*src) {
+        if (*src == sep && src[1] == sep) {
             src++;
             continue;
         }
-        if(*src == '.' && (src[1] == sep || src[1] == 0)) {
+        if (*src == '.' && (src[1] == sep || src[1] == 0)) {
             src += (src[1] == sep) ? 2 : 1;
             continue;
         }
-        if(*src == '.' && src[1] == '.' && (src[2] == sep || src[2] == 0)) {
+        if (*src == '.' && src[1] == '.' && (src[2] == sep || src[2] == 0)) {
             src += (src[2] == sep) ? 3 : 2;
-            if(dst > buff) {
+            if (dst > buff) {
                 dst--;
-                while(dst > buff && *(dst - 1) != sep) dst--;
+                while (dst > buff && *(dst - 1) != sep) dst--;
             }
             continue;
         }
@@ -224,9 +224,9 @@ jstring NativeFile_GetCanonicalPath(FNIEnv *env, jobject file, jstring path) {
 
 jbool NativeFile_CreateNewFile(FNIEnv *env, jobject file) {
     char buff[FILE_NAME_BUFF_SIZE];
-    if(ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
     auto f = FlintAPI::IO::fopen(buff, FlintAPI::IO::FILE_MODE_CREATE_NEW);
-    if(f == NULL) return false;
+    if (f == NULL) return false;
     FlintAPI::IO::fclose(f);
     return true;
 }

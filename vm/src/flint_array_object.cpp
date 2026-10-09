@@ -18,10 +18,10 @@ uint8_t JArray::componentSize() const {
 const char *JArray::getBaseCompTypeName(uint16_t *length) const {
     const char *name = getTypeName();
     uint32_t len = 0;
-    while(*name == '[') name++;
-    if(*name == 'L') name++;
-    while(name[len] && name[len] != ';') len++;
-    if(len == 1) switch(*name) {
+    while (*name == '[') name++;
+    if (*name == 'L') name++;
+    while (name[len] && name[len] != ';') len++;
+    if (len == 1) switch (*name) {
         case 'Z': *length = strlen("boolean"); return "boolean";
         case 'C': *length = strlen("char"); return "char";
         case 'F': *length = strlen("float"); return "float";

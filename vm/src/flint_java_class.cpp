@@ -24,7 +24,7 @@ ClassLoader *JClass::getClassLoader(void) const {
 }
 
 char JClass::isPrimitive(const char *typeName, uint16_t length) {
-    switch(Hash(typeName, length)) {
+    switch (Hash(typeName, length)) {
         case Hash("int"): return strncmp(typeName, "int", length) == 0 ? 'I' : 0;
         case Hash("void"): return strncmp(typeName, "void", length) == 0 ? 'V' : 0;
         case Hash("byte"): return strncmp(typeName, "byte", length) == 0 ? 'B' : 0;
@@ -48,7 +48,7 @@ bool JClass::isArray(void) const {
 }
 
 JClass *JClass::getNestHost(FExec *ctx) {
-    if(isArray() || isPrimitive()) return this;
+    if (isArray() || isPrimitive()) return this;
     return getClassLoader()->getNestHost(ctx);
 }
 
@@ -62,9 +62,9 @@ JClass *JClass::getNestMember(FExec *ctx, uint16_t index) {
 
 uint8_t JClass::componentSize() const {
     const char *typeName = getTypeName();
-    if(typeName[0] != '[')
+    if (typeName[0] != '[')
         return 0;
-    switch(typeName[1]) {
+    switch (typeName[1]) {
         case 'Z':
         case 'B':
             return 1;

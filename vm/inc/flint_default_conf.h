@@ -32,7 +32,7 @@
 #endif /* MAX_OF_BREAK_POINT */
 
 #ifdef DBG_TX_BUFFER_SIZE
-    #if(DBG_TX_BUFFER_SIZE < 16)
+    #if (DBG_TX_BUFFER_SIZE < 16)
         #error "DBG_TX_BUFFER_SIZE is at least 16 bytes"
     #endif
 #else

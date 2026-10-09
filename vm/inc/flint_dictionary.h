@@ -38,7 +38,7 @@ private:
     }
 
     static void updateHeight(DictNode *node) {
-        if(node) {
+        if (node) {
             uint32_t leftHeight = getHeight(node->left);
             uint32_t rightHeight = getHeight(node->right);
             node->height = 1 + ((leftHeight > rightHeight) ? leftHeight : rightHeight);
@@ -72,17 +72,17 @@ private:
     }
 
     static DictNode *balance(DictNode *node) {
-        if(!node)
+        if (!node)
             return node;
         updateHeight(node);
         int32_t balanceFactor = getBalance(node);
-        if(balanceFactor > 1) {
-            if(getBalance(node->left) >= 0) return rotateRight(node);
+        if (balanceFactor > 1) {
+            if (getBalance(node->left) >= 0) return rotateRight(node);
             node->left = rotateLeft(node->left);
             return rotateRight(node);
         }
-        else if(balanceFactor < -1) {
-            if(getBalance(node->right) <= 0) return rotateLeft(node);
+        else if (balanceFactor < -1) {
+            if (getBalance(node->right) <= 0) return rotateLeft(node);
             node->right = rotateRight(node->right);
             return rotateLeft(node);
         }
@@ -90,13 +90,13 @@ private:
     }
 
     static DictNode *insert(DictNode *root, DictNode *node) {
-        if(!root) return node;
+        if (!root) return node;
         uint32_t h1 = node->getHashKey();
         uint32_t h2 = root->getHashKey();
         int32_t cmp = (h1 == h2) ? node->compareKey(root) : (h1 > h2 ? 1 : -1);
-        if(cmp == 0) cmp = node->compareKey(root);
-        if(cmp < 0) root->left = insert(root->left, node);
-        else if(cmp > 0) root->right = insert(root->right, node);
+        if (cmp == 0) cmp = node->compareKey(root);
+        if (cmp < 0) root->left = insert(root->left, node);
+        else if (cmp > 0) root->right = insert(root->right, node);
         else return root;
         return balance(root);
     }
@@ -104,7 +104,7 @@ private:
     template<typename Func>
     requires std::invocable<Func, T *>
     static void forEach(DictNode *node, Func func) {
-        if(node) {
+        if (node) {
             forEach(node->left, func);
             forEach(node->right, func);
             func((T *)node);
@@ -116,30 +116,30 @@ private:
     }
 
     T *find(const char *key, uint16_t length = 0xFFFF) {
-        if(root == NULL) return NULL;
+        if (root == NULL) return NULL;
         uint32_t h1 = Hash(key, length);
         DictNode *node = root;
-        while(node) {
+        while (node) {
             uint32_t h2 = node->getHashKey();
             int32_t cmp = (h2 == h1) ? node->compareKey(key, length) : (h2 > h1 ? 1 : -1);
-            if(cmp == 0) cmp = node->compareKey(key, length);
-            if(cmp == 0) return (T *)node;
-            else if(cmp < 0) node = node->right;
+            if (cmp == 0) cmp = node->compareKey(key, length);
+            if (cmp == 0) return (T *)node;
+            else if (cmp < 0) node = node->right;
             else node = node->left;
         }
         return NULL;
     }
 
     T *find(T *value) {
-        if(root == NULL) return NULL;
+        if (root == NULL) return NULL;
         uint32_t h1 = value->getHashKey();
         DictNode *node = root;
-        while(node) {
+        while (node) {
             uint32_t h2 = node->getHashKey();
             int32_t cmp = (h2 == h1) ? node->compareKey(value) : (h2 > h1 ? 1 : -1);
-            if(cmp == 0) cmp = node->compareKey(value);
-            if(cmp == 0) return (T *)node;
-            else if(cmp < 0) node = node->right;
+            if (cmp == 0) cmp = node->compareKey(value);
+            if (cmp == 0) return (T *)node;
+            else if (cmp < 0) node = node->right;
             else node = node->left;
         }
         return NULL;
