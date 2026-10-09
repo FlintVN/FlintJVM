@@ -23,9 +23,14 @@ requires std::derived_from<T, ListNode>
 class FList {
 private:
     ListNode *root;
+    uint32_t count;
 public:
     FList(void) : root(NULL) {
 
+    }
+
+    uint32_t length() {
+        return count;
     }
 
     void add(T *node) {
@@ -37,6 +42,7 @@ public:
         if(root != NULL)
             root->prev = node;
         root = node;
+        count++;
     }
 
     void remove(T *node) {
@@ -53,6 +59,7 @@ public:
         node->ownerList = NULL;
         node->prev = NULL;
         node->next = NULL;
+        count--;
     }
 
     bool isContain(T *node) {
