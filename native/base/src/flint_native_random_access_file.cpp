@@ -58,7 +58,11 @@ jvoid NativeRandomAccessFile_Open(FNIEnv *env, jobject obj, jstring name, jint m
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
     Flint *flint = ((FExec *)env)->getFlint();
-    if(flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
+    if(flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) {
+        jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
+        env->throwNew(excpCls, "Unable to resolve the path, file name too long leads to insufficient buffer size");
+        return;
+    }
     flint->lock();
     if(fd != -1)
         env->throwNew(env->findClass("java/io/IOException"), "Stream has been opened");

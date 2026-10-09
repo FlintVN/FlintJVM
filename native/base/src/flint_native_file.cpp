@@ -10,7 +10,7 @@ static const char *ResolvePath(FNIEnv *env, jobject file, char *buff, uint32_t b
     uint32_t len = path->getLength();
     if(((FExec *)env)->getFlint()->resolvePath(ptxt, len, buff, buffSize) == -1) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
-        env->throwNew(excpCls, "Class name cannot exceed %d characters", buffSize - 1);
+        env->throwNew(excpCls, "Unable to resolve the path, file name too long leads to insufficient buffer size");
         return NULL;
     }
     return buff;

@@ -14,7 +14,11 @@ static jint getFd(FNIEnv *env, jobject obj) {
 jvoid NativeFileOutputStream_Open(FNIEnv *env, jobject obj, jstring name, jbool append) {
     char buff[FILE_NAME_BUFF_SIZE];
     Flint *flint = ((FExec *)env)->getFlint();
-    if(flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) return;
+    if(flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) {
+        jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
+        env->throwNew(excpCls, "Unable to resolve the path, file name too long leads to insufficient buffer size");
+        return;
+    }
     flint->lock();
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
