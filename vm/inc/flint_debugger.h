@@ -116,6 +116,7 @@ public:
     FDbg(void);
 
     void setTarget(Flint *flint);
+    void removeTarget(Flint *flint);
 
     virtual bool sendData(uint8_t *data, uint32_t length) = 0;
 

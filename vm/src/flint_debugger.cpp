@@ -41,6 +41,13 @@ void FDbg::setTarget(Flint *flint) {
     dbgMutex.unlock();
 }
 
+void FDbg::removeTarget(Flint *flint) {
+    dbgMutex.lock();
+    if(this->flint == flint)
+        this->flint = NULL;
+    dbgMutex.unlock();
+}
+
 void FDbg::consoleWrite(uint8_t *utf8, uint32_t length) {
     consoleMutex.lock();
     while (length) {
