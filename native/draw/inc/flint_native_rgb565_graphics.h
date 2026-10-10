@@ -7,6 +7,8 @@
 
 jvoid NativeRgb565Graphics_Clear1(FNIEnv *env, jobject obj);
 jvoid NativeRgb565Graphics_Clear2(FNIEnv *env, jobject obj, jobject c);
+jvoid NativeRgb565Graphics_Clear3(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h);
+jvoid NativeRgb565Graphics_Clear4(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h);
 jvoid NativeRgb565Graphics_DrawLine(FNIEnv *env, jobject obj, jobject c, jint x1, jint y1, jint x2, jint y2);
 jvoid NativeRgb565Graphics_DrawRect(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h);
 jvoid NativeRgb565Graphics_FillRect(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h);
@@ -25,6 +27,8 @@ jvoid NativeRgb565Graphics_DrawImage2(FNIEnv *env, jobject obj, jobject img, jin
 inline constexpr NativeMethod rgb565GraphicsMethods[] = {
     NATIVE_METHOD("clear",         "()V",                                                               NativeRgb565Graphics_Clear1),
     NATIVE_METHOD("clear",         "(Lflint/drawing/Color;)V",                                          NativeRgb565Graphics_Clear2),
+    NATIVE_METHOD("clear",         "(IIII)V",                                                           NativeRgb565Graphics_Clear3),
+    NATIVE_METHOD("clear",         "(Lflint/drawing/Color;IIII)V",                                      NativeRgb565Graphics_Clear4),
     NATIVE_METHOD("drawLine",      "(Lflint/drawing/Color;IIII)V",                                      NativeRgb565Graphics_DrawLine),
     NATIVE_METHOD("drawRect",      "(Lflint/drawing/Color;IIII)V",                                      NativeRgb565Graphics_DrawRect),
     NATIVE_METHOD("fillRect",      "(Lflint/drawing/Color;IIII)V",                                      NativeRgb565Graphics_FillRect),
