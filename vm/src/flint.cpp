@@ -1071,7 +1071,7 @@ bool Flint::start(MethodInfo *method, uint32_t argc, ...) {
     return false;
 }
 
-bool Flint::startToMain(uint32_t argc, ...) {
+bool Flint::startToMain(JStringArray *args) {
     Manifest manifest = {};
     if (program == NULL) return false;
     if (!readManifest(this, program, &manifest)) return false;
@@ -1086,9 +1086,7 @@ bool Flint::startToMain(uint32_t argc, ...) {
     FExec *exec = newExecution(NULL);
     if (exec == NULL) return false;
 
-    va_list args;
-    va_start(args, argc);
-    if (exec->vRun(method, argc, args)) return true;
+    if (exec->run(method, 1, args)) return true;
 
     freeExecution(exec);
     return false;

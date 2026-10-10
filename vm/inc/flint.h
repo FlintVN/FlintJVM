@@ -113,7 +113,7 @@ public:
     void gc(void);
 
     bool start(MethodInfo *method, uint32_t argc = 0, ...);
-    bool startToMain(uint32_t argc = 0, ...);
+    bool startToMain(JStringArray *args = NULL);
 
     bool isRunning(void);
     void stopRequest(void);
