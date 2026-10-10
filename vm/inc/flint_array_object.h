@@ -100,6 +100,16 @@ private:
     void operator=(const JObjectArray &) = delete;
 };
 
+class JStringArray : public JArray {
+public:
+    uint32_t getLength(void) const;
+    class JString **getData(void) const;
+private:
+    JStringArray(void) = delete;
+    JStringArray(const JStringArray &) = delete;
+    void operator=(const JStringArray &) = delete;
+};
+
 typedef JInt8Array      JBoolArray;
 typedef JInt16Array     JCharArray;
 typedef JInt8Array      JByteArray;

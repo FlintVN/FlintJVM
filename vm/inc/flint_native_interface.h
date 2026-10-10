@@ -31,6 +31,7 @@ typedef class JInt64Array           *jlongArray;
 typedef class JFloatArray           *jfloatArray;
 typedef class JDoubleArray          *jdoubleArray;
 typedef class JObjectArray          *jobjectArray;
+typedef class JStringArray          *jstringArray;
 
 class jlong {
 private:

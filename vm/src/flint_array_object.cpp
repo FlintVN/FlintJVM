@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include "flint.h"
+#include "flint_java_string.h"
 #include "flint_array_object.h"
 
 uint32_t JArray::getLength(void) const {
@@ -103,4 +104,12 @@ uint32_t JObjectArray::getLength(void) const {
 
 JObject **JObjectArray::getData(void) const {
     return (JObject **)data;
+}
+
+uint32_t JStringArray::getLength(void) const {
+    return size / sizeof(uint32_t);
+}
+
+JString **JStringArray::getData(void) const {
+    return (JString **)data;
 }
