@@ -43,7 +43,7 @@ void FDbg::setTarget(Flint *flint) {
 
 void FDbg::removeTarget(Flint *flint) {
     dbgMutex.lock();
-    if(this->flint == flint)
+    if (this->flint == flint)
         this->flint = NULL;
     dbgMutex.unlock();
 }

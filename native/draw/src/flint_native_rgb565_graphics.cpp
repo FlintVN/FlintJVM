@@ -56,7 +56,7 @@ jvoid NativeRgb565Graphics_Clear2(FNIEnv *env, jobject obj, jobject c) {
 
 jvoid NativeRgb565Graphics_Clear3(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h) {
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
-    if((x | y) == 0 && w == g.width && h == g.height)
+    if ((x | y) == 0 && w == g.width && h == g.height)
         g.clear(0);
     else
         ((Rgb565GfxHelper *)&g)->blendRect(0x1F, 0, x, y, x + w - 1, y + h - 1);
@@ -69,7 +69,7 @@ jvoid NativeRgb565Graphics_Clear4(FNIEnv *env, jobject obj, jobject c, jint x, j
     }
     Rgb565GfxInitHelper g((JRgb565Gfx)obj);
     jint color = ColorRgb565(c->getFieldByIndex(0)->getInt32());
-    if((x | y) == 0 && w == g.width && h == g.height)
+    if ((x | y) == 0 && w == g.width && h == g.height)
         g.clear(color);
     else
         ((Rgb565GfxHelper *)&g)->blendRect(0x1F, 0, x, y, x + w - 1, y + h - 1);

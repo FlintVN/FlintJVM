@@ -18,7 +18,7 @@ typedef struct {
     JClass *cls;
 } ConstClass;
 
-static bool FindInZip(Flint *flint, FExec *ctx, const char *clsName, uint16_t length, ZipFileReader *zip) {
+static bool findInZip(Flint *flint, FExec *ctx, const char *clsName, uint16_t length, ZipFileReader *zip) {
     uint32_t index = 0;
 
     const char *jar = flint->getProgram();
@@ -295,7 +295,7 @@ ClassLoader *ClassLoader::load(Flint *flint, FExec *ctx, const char *clsName, ui
     FileReader *reader;
     ZipFileReader zip;
 
-    if (FindInZip(flint, ctx, clsName, length, &zip))
+    if (findInZip(flint, ctx, clsName, length, &zip))
         reader = &zip;
     else
         return NULL;
