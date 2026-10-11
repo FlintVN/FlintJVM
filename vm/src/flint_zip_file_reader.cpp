@@ -94,13 +94,13 @@ bool ZipFileReader::gotoClassFile(const char *name, uint16_t length) {
         if (!readUInt16(fieldLen)) return false;
         if (!readUInt16(cmtLen)) return false;
 
-        uint32_t fileOff;
-        if (!seek(off + 42)) return false;
-        if (!readUInt32(fileOff)) return false;
-
         if (nameLen == (length + 6)) {
+            uint32_t fileOff;
+            if (!seek(off + 42)) return false;
+            if (!readUInt32(fileOff)) return false;
+
             bool isOk = true;
-            char buff[16];
+            char buff[64];
             uint32_t N = length / sizeof(buff);
             for (uint32_t i = 0; isOk && (i < N); i++) {
                 if (read(buff, sizeof(buff)) != sizeof(buff)) return false;
