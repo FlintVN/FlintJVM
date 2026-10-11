@@ -72,7 +72,7 @@ jvoid NativeRgb565Graphics_Clear4(FNIEnv *env, jobject obj, jobject c, jint x, j
     if ((x | y) == 0 && w == g.width && h == g.height)
         g.clear(color);
     else
-        ((Rgb565GfxHelper *)&g)->blendRect(0x1F, 0, x, y, x + w - 1, y + h - 1);
+        ((Rgb565GfxHelper *)&g)->blendRect(0x1F, color, x, y, x + w - 1, y + h - 1);
 }
 
 jvoid NativeRgb565Graphics_DrawLine(FNIEnv *env, jobject obj, jobject c, jint x1, jint y1, jint x2, jint y2) {
