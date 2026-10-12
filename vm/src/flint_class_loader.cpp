@@ -18,25 +18,18 @@ typedef struct {
     JClass *cls;
 } ConstClass;
 
-static bool findInZip(Flint *flint, FExec *ctx, const char *clsName, uint16_t length, ZipFileReader *zip) {
-    uint32_t index = 0;
-
+static bool findInProgram(Flint *flint, FExec *ctx, const char *clsName, uint16_t length, FileReader *reader) {
+    if (length == 0xFFFF) length = strlen(clsName);
     const char *jar = flint->getProgram();
-    if (jar != NULL) {
-        new (zip)ZipFileReader(ctx, jar);
-        if (zip->open()) {
-            if (zip->gotoClassFile(clsName, length)) return true;
-            zip->close();
+    if (jar == NULL) return NULL;
+    ZipFileReader zip(ctx, jar);
+    if (zip.open()) {
+        if (zip.openClassFileEntry(clsName, length)) {
+            memcpy(reader, &zip, sizeof(FileReader));
+            return true;
         }
+        zip.close();
     }
-    while ((jar = flint->getClassPath(index++)) != NULL) {
-        new (zip)ZipFileReader(ctx, jar);
-        if (zip->open()) {
-            if (zip->gotoClassFile(clsName, length)) return true;
-            zip->close();
-        }
-    }
-
     return false;
 }
 
@@ -292,24 +285,21 @@ bool ClassLoader::load(FileReader *reader) {
 }
 
 ClassLoader *ClassLoader::load(Flint *flint, FExec *ctx, const char *clsName, uint16_t length) {
-    FileReader *reader;
-    ZipFileReader zip;
+    FileReader reader;
 
-    if (findInZip(flint, ctx, clsName, length, &zip))
-        reader = &zip;
-    else
-        return NULL;
-    if (!reader->open())
-        return NULL;
+    if (!findInProgram(flint, ctx, clsName, length, &reader)) {
+        if (!FlintAPI::System::openClassFile(ctx, clsName, length, &reader))
+            return NULL;
+    }
     ClassLoader *loader = (ClassLoader *)flint->malloc(ctx, sizeof(ClassLoader));
     if (loader == NULL) return NULL;
     new (loader)ClassLoader(flint);
-    if (loader->load(reader) == false) {
+    if (loader->load(&reader) == false) {
         loader->~ClassLoader();
         flint->free(loader);
         return NULL;
     }
-    if (reader->close() == false) {
+    if (reader.close() == false) {
         loader->~ClassLoader();
         flint->free(loader);
         return NULL;

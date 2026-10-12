@@ -217,10 +217,6 @@ void Flint::setCwd(const char *path) {
     cwd = path;
 }
 
-const char *Flint::getClassPath(uint32_t index) {
-    return FlintAPI::System::getClassPath(index);
-}
-
 bool Flint::setProgram(const char *jarPath, uint16_t length) {
     if (jarPath == NULL) return false;
     if (Flint::isRunning()) return false;
@@ -1036,7 +1032,7 @@ static bool readManifest(Flint *flint, const char *jarPath, Manifest *manifest) 
     char buff[FILE_NAME_BUFF_SIZE];
     ZipFileReader zip(NULL, jarPath);
     if (!zip.open()) return false;
-    if (!zip.gotoFile("META-INF/MANIFEST.MF")) goto exit;
+    if (!zip.openEntry("META-INF/MANIFEST.MF")) goto exit;
     while (true) {
         int32_t br = zip.readLine(buff, sizeof(buff));
         if (br == -1) goto exit;

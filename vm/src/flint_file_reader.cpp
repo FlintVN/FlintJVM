@@ -2,11 +2,11 @@
 #include "flint.h"
 #include "flint_file_reader.h"
 
-static uint16_t Swap16(uint16_t value) {
+static uint16_t swap16(uint16_t value) {
     return ((value) << 8) | ((value) >> 8);
 }
 
-static uint32_t Swap32(uint32_t value) {
+static uint32_t swap32(uint32_t value) {
     uint32_t ret;
     ((uint8_t *)&ret)[0] = ((uint8_t *)&value)[3];
     ((uint8_t *)&ret)[1] = ((uint8_t *)&value)[2];
@@ -15,7 +15,7 @@ static uint32_t Swap32(uint32_t value) {
     return ret;
 }
 
-static uint64_t Swap64(uint64_t value) {
+static uint64_t swap64(uint64_t value) {
     uint64_t ret;
     ((uint8_t *)&ret)[0] = ((uint8_t *)&value)[7];
     ((uint8_t *)&ret)[1] = ((uint8_t *)&value)[6];
@@ -28,7 +28,7 @@ static uint64_t Swap64(uint64_t value) {
     return ret;
 }
 
-static const char *GetName(const char *filePath) {
+static const char *getName(const char *filePath) {
     const char *name = filePath;
     const char *path = filePath;
     const char separatorChar = Flint::getPathSeparator();
@@ -53,7 +53,7 @@ bool FileReader::open(void) {
     if (handle == NULL) {
         handle = FlintAPI::IO::fopen(filePath, FlintAPI::IO::FILE_MODE_READ);
         if (handle == NULL && ctx != NULL)
-            ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "Failed to open file %s", GetName(filePath));
+            ctx->throwNew(ctx->getFlint()->findClass(ctx, "java/io/IOException"), "Failed to open file %s", getName(filePath));
         return handle != NULL;
     }
     return true;
@@ -98,19 +98,19 @@ bool FileReader::readUInt64(uint64_t &value) {
 
 bool FileReader::readSwapUInt16(uint16_t &value) {
     if (read(&value, 2) != 2) return false;
-    value = Swap16(value);
+    value = swap16(value);
     return true;
 }
 
 bool FileReader::readSwapUInt32(uint32_t &value) {
     if (read(&value, 4) != 4) return false;
-    value = Swap32(value);
+    value = swap32(value);
     return true;
 }
 
 bool FileReader::readSwapUInt64(uint64_t &value) {
     if (read(&value, 8) != 8) return false;
-    value = Swap64(value);
+    value = swap64(value);
     return true;
 }
 

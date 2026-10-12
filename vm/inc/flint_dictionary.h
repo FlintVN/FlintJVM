@@ -111,6 +111,7 @@ private:
         }
     }
 
+public:
     FDict(void) : root(NULL) {
 
     }

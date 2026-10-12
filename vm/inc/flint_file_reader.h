@@ -8,7 +8,7 @@ class FileReader {
 protected:
     FlintAPI::IO::FileHandle handle;
     class FExec *ctx;
-    const char *filePath;
+    const char *filePath;   /* This field must be the last one */
 public:
     FileReader(void);
     FileReader(class FExec *ctx, const char *filePath);

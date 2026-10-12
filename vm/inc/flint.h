@@ -72,7 +72,6 @@ public:
 
     const char *getCwd(void);
     void setCwd(const char *path);
-    const char *getClassPath(uint32_t index);
 
     bool setProgram(const char *jarPath, uint16_t length = 0xFFFF);
     const char *getProgram(void);
