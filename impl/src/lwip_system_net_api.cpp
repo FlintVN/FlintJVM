@@ -33,7 +33,7 @@ AddrFamily FlintAPI::Net::getAddrFamily(AddrInfo addrInfo) {
 
 uint32_t FlintAPI::Net::getIPv4Addr(AddrInfo addInfo) {
     struct sockaddr_in *ipv4 = (struct sockaddr_in *)((struct addrinfo *)addInfo)->ai_addr;
-    return ipv4->sin_addr.s_addr;
+    return lwip_ntohl(ipv4->sin_addr.s_addr);
 }
 
 void FlintAPI::Net::getIPv6Addr(AddrInfo addInfo, uint8_t *ip6, uint32_t *scopeId) {
@@ -54,7 +54,7 @@ int32_t FlintAPI::Net::socket(bool stream) {
     return sock;
 }
 
-static void ConvertToIPV6(FlintAPI::Net::SockAddr *addr, struct sockaddr_in6 *ipv6) {
+static void convertToIPV6(FlintAPI::Net::SockAddr *addr, struct sockaddr_in6 *ipv6) {
     memset(ipv6, 0, sizeof(*ipv6));
     ipv6->sin6_family = AF_INET6;
     ipv6->sin6_port = lwip_htons(addr->port);
@@ -62,15 +62,15 @@ static void ConvertToIPV6(FlintAPI::Net::SockAddr *addr, struct sockaddr_in6 *ip
     memcpy(ipv6->sin6_addr.un.u8_addr, addr->addr, 16);
 }
 
-static void ConvertToSockAddr(struct sockaddr_in6 *ipv6, FlintAPI::Net::SockAddr *addr) {
-    addr->port = ipv6->sin6_port;
-    addr->scopeId = lwip_ntohs(ipv6->sin6_scope_id);
+static void convertToSockAddr(struct sockaddr_in6 *ipv6, FlintAPI::Net::SockAddr *addr) {
+    addr->port = lwip_ntohs(ipv6->sin6_port);
+    addr->scopeId = ipv6->sin6_scope_id;
     memcpy(addr->addr, ipv6->sin6_addr.un.u8_addr, 16);
 }
 
 SockError FlintAPI::Net::connect(int32_t sock, SockAddr *addr) {
     struct sockaddr_in6 ipv6;
-    ConvertToIPV6(addr, &ipv6);
+    convertToIPV6(addr, &ipv6);
     int32_t ret = lwip_connect(sock, (struct sockaddr *)&ipv6, sizeof(ipv6));
     if (ret == -1) return (errno == EINPROGRESS) ? SOCK_INPROGRESS : SOCK_ERR;
     return SOCK_OK;
@@ -106,7 +106,7 @@ SockError FlintAPI::Net::isConnected(int32_t sock, bool *connected) {
 
 SockError FlintAPI::Net::bind(int32_t sock, SockAddr *addr) {
     struct sockaddr_in6 ipv6;
-    ConvertToIPV6(addr, &ipv6);
+    convertToIPV6(addr, &ipv6);
     return lwip_bind(sock, (struct sockaddr *)&ipv6, sizeof(ipv6)) == 0 ? SOCK_OK : SOCK_ERR;
 }
 
@@ -119,7 +119,7 @@ SockError FlintAPI::Net::accept(int32_t server, SockAddr *addr, int32_t *client)
     socklen_t addrLen = sizeof(ipv6);
     int32_t cl = lwip_accept(server, (struct sockaddr *)&ipv6, &addrLen);
     if (cl >= 0) {
-        ConvertToSockAddr(&ipv6, addr);
+        convertToSockAddr(&ipv6, addr);
         *client = cl;
         return SOCK_OK;
     }
@@ -139,7 +139,7 @@ SockError FlintAPI::Net::send(int32_t sock, uint8_t *data, uint32_t len, int32_t
 
 SockError FlintAPI::Net::sendTo(int32_t sock, SockAddr *addr, uint8_t *data, uint32_t len, int32_t *sent) {
     struct sockaddr_in6 ipv6;
-    ConvertToIPV6(addr, &ipv6);
+    convertToIPV6(addr, &ipv6);
     *sent = lwip_sendto(sock, data, len, 0, (struct sockaddr *)&ipv6, sizeof(ipv6));
     if (*sent > 0) return SOCK_OK;
     else if (*sent < 0 && (errno == EAGAIN || errno == EWOULDBLOCK)) return SOCK_PENDING;
@@ -155,11 +155,13 @@ SockError FlintAPI::Net::recv(int32_t sock, uint8_t *buf, uint32_t len, int32_t 
 }
 
 SockError FlintAPI::Net::recvFrom(int32_t sock, SockAddr *addr, uint8_t *buf, uint32_t len, int32_t *read) {
-    struct sockaddr_in6 ipv6;
-    ConvertToIPV6(addr, &ipv6);
+    struct sockaddr_in6 ipv6 = {};
     socklen_t addrlen = sizeof(ipv6);
     *read = lwip_recvfrom(sock, buf, len, 0, (struct sockaddr *)&ipv6, &addrlen);
-    if (*read > 0) return SOCK_OK;
+    if (*read > 0) {
+        convertToSockAddr(&ipv6, addr);
+        return SOCK_OK;
+    }
     else if (*read < 0 && (errno == EINTR || errno == EAGAIN)) return SOCK_TIMEOUT;
     return SOCK_ERR;
 }
@@ -212,7 +214,7 @@ SockError FlintAPI::Net::getSockOpt(int32_t sock, SockOpt opt, bool *on, void *v
             socklen_t addrlen = sizeof(ipv6);
             if (lwip_getsockname(sock, (struct sockaddr *)&ipv6, &addrlen) != 0)
                 return SOCK_ERR;
-            ConvertToSockAddr(&ipv6, (SockAddr *)value);
+            convertToSockAddr(&ipv6, (SockAddr *)value);
             return SOCK_OK;
         }
         default:
