@@ -625,7 +625,8 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
         case 'V': break;
         case 'J':
         case 'D': ret = stackPopInt64(); break;
-        case 'L': ret = (uint64_t)stackPopObject(); break;
+        case 'L':
+        case '[': ret = (uint64_t)stackPopObject(); break;
         default: ret = stackPopInt32(); break;
     }
     if (!(flag & METHOD_NATIVE)) stackRestoreContext();
@@ -1175,7 +1176,20 @@ void FExec::exec(bool initOpcodeLabels) {
         pc++;
         goto *opcodes[code[pc]];
     }
-    op_caload:
+    op_caload: {
+        int32_t index = stackPopInt32();
+        JObject *obj = stackPopObject();
+        if (obj == NULL)
+            goto load_null_array_excp;
+        else if (index < 0 || index >= (obj->size / sizeof(uint16_t))) {
+            JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
+            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(uint16_t)));
+            goto exception_handler;
+        }
+        stackPushInt32(((uint16_t *)obj->data)[index]);
+        pc++;
+        goto *opcodes[code[pc]];
+    }
     op_saload: {
         int32_t index = stackPopInt32();
         JObject *obj = stackPopObject();
@@ -1732,6 +1746,9 @@ void FExec::exec(bool initOpcodeLabels) {
         pc++;
         goto *opcodes[code[pc]];
     op_i2c:
+        stack[sp] = (uint16_t)stack[sp];
+        pc++;
+        goto *opcodes[code[pc]];
     op_i2s:
         stack[sp] = (int16_t)stack[sp];
         pc++;
@@ -2494,7 +2511,9 @@ void FExec::runTask(FExec *exec) {
 bool FExec::run(MethodInfo *method, uint32_t argc, ...) {
     va_list args;
     va_start(args, argc);
-    return vRun(method, argc, args);
+    bool ret = vRun(method, argc, args);
+    va_end(args);
+    return ret;
 }
 
 bool FExec::vRun(MethodInfo *method, uint32_t argc, va_list args) {
