@@ -728,8 +728,21 @@ void FExec::invoke(MethodInfo *methodInfo, uint8_t argc) {
         stackSaveContext();
         initNewContext(methodInfo, argc);
     }
-    else
-        invokeNativeMethod(methodInfo, argc);
+    else {
+        if (methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
+            if (methodInfo->accessFlag & METHOD_STATIC) {
+                invokeNativeMethod(methodInfo, argc);
+                unlockClass(methodInfo->loader);
+            }
+            else {
+                JObject *obj = (JObject *)stack[sp - argc + 1];
+                invokeNativeMethod(methodInfo, argc);
+                unlockObject(obj);
+            }
+        }
+        else
+            invokeNativeMethod(methodInfo, argc);
+    }
 }
 
 void FExec::invokeStatic(ConstMethod *constMethod) {
