@@ -47,14 +47,29 @@ bool JString::setUtf8(Flint *flint, FExec *ctx, const char *utf8) {
 }
 
 bool JString::setAscii(Flint *flint, FExec *ctx, const char *format, va_list args) {
-    int32_t strLen = vsnprintf(NULL, 0, format, args);
+    va_list measured;
+    va_copy(measured, args);
+    int32_t strLen = vsnprintf(NULL, 0, format, measured);
+    va_end(measured);
+    if (strLen < 0) return false;
+    char *formatted = (char *)flint->malloc(ctx, (uint32_t)strLen + 1);
+    if (formatted == NULL) return false;
+    va_list written;
+    va_copy(written, args);
+    int32_t writtenLength = vsnprintf(formatted, (uint32_t)strLen + 1, format, written);
+    va_end(written);
+    if (writtenLength != strLen) {
+        flint->free(formatted);
+        return false;
+    }
     JByteArray *value = (JByteArray *)flint->newArray(ctx, flint->findClass(ctx, "[B"), strLen);
-    if (value == NULL) return false;
+    if (value == NULL) {
+        flint->free(formatted);
+        return false;
+    }
     char *data = (char *)value->getData();
-    /* print starts from data - 1 to workaround losing the last character when buffer size equals the length of the string to print */
-    vsnprintf(data - 1, strLen + 1, format, args);
-    for (int32_t i = strLen - 1; i >= 0; i--) data[i] = data[i - 1];
-    data[-1] = 0;
+    memcpy(data, formatted, strLen);
+    flint->free(formatted);
     setValue(value);
     setCoder(0);
     setHash(0);
@@ -121,9 +136,10 @@ uint16_t JString::getCharAt(uint32_t index) const {
 }
 
 int32_t JString::compareTo(JString *other) const {
+    if (this == other) return 0;
     uint32_t len1 = getLength();
     uint32_t len2 = other->getLength();
-    uint32_t len = (len1 > len2) ? len1 : len2;
+    uint32_t len = (len1 < len2) ? len1 : len2;
     for (uint32_t i = 0; i < len; i++) {
         uint16_t c1 = getCharAt(i);
         uint16_t c2 = other->getCharAt(i);
@@ -137,7 +153,7 @@ int32_t JString::compareTo(const char *utf8, uint16_t length) const {
     uint16_t index1 = 0;
     uint16_t index2 = 0;
     uint32_t len1 = getLength();
-    while (index1 < len1 && utf8[index2]) {
+    while (index1 < len1 && index2 < length && utf8[index2]) {
         uint16_t c1 = getCharAt(index1);
         uint16_t c2 = (uint16_t)Utf8DecodeOneChar(&utf8[index2]);
         if (c1 != c2)
@@ -145,7 +161,7 @@ int32_t JString::compareTo(const char *utf8, uint16_t length) const {
         index1++;
         index2 += Utf8DecodeSizeOneChar(utf8[index2]);
     }
-    return (index1 < len1) ? 1 : ((utf8[index2] && index2 < length) ? -1 : 0);
+    return (index1 < len1) ? 1 : ((index2 < length && utf8[index2]) ? -1 : 0);
 }
 
 uint32_t JString::getHash(void) const {

@@ -65,7 +65,7 @@ jint NativeInflater_Init(FNIEnv *env, jbool nowrap) {
 
     Hook *hook = exec->getFlint()->addShutdownHook(exec, strm, (void (*)(void*))NativeInflater_InflaterEnd);
     if (hook == NULL) {
-        inflateEnd(strm);
+        NativeInflater_InflaterEnd(strm);
         return 0;
     }
 
@@ -154,7 +154,10 @@ jvoid NativeInflater_Reset(FNIEnv *env, jint addr) {
 
 jvoid NativeInflater_End(FNIEnv *env, jint addr) {
     if (addr != 0) {
-        ((FExec *)env)->getFlint()->removeShutdownHook((Hook *)addr);
-        NativeInflater_InflaterEnd(getMzStream(addr));
+        Flint *flint = ((FExec *)env)->getFlint();
+        mz_stream *strm = getMzStream(addr);
+        flint->removeShutdownHook((Hook *)addr);
+        Flint::free((Hook *)addr);
+        NativeInflater_InflaterEnd(strm);
     }
 }

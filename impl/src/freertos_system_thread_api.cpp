@@ -39,5 +39,6 @@ ThreadNotify FlintAPI::Thread::wait(uint32_t ms) {
 }
 
 void FlintAPI::Thread::notify(ThreadHandle handle, ThreadNotify notifyValue) {
+    if (handle == NULL) return;
     xTaskNotify((TaskHandle_t)handle, (uint32_t)notifyValue, eSetValueWithOverwrite);
 }

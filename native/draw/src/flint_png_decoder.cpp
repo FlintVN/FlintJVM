@@ -61,7 +61,7 @@ static void unfilter(uint8_t ft, uint8_t *cur, uint8_t *prev, uint32_t len, uint
             }
             else {
                 for (uint32_t x = bpp; x < len; x++)
-                    cur[x] += paeth(cur[x - bpp], 0, prev[x - bpp]);
+                    cur[x] += paeth(cur[x - bpp], 0, 0);
             }
             return;
         }
