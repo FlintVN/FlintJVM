@@ -157,7 +157,7 @@ jvoid NativeInflater_End(FNIEnv *env, jint addr) {
         Flint *flint = ((FExec *)env)->getFlint();
         mz_stream *strm = getMzStream(addr);
         flint->removeShutdownHook((Hook *)addr);
-        Flint::free((Hook *)addr);
+        flint->free((Hook *)addr);
         NativeInflater_InflaterEnd(strm);
     }
 }
