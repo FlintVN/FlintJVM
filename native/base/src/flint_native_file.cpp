@@ -3,17 +3,31 @@
 #include "flint.h"
 #include "flint_common.h"
 #include "flint_native_file.h"
+#include "flint_utf8.h"
 
-static const char *ResolvePath(FNIEnv *env, jobject file, char *buff, uint32_t buffSize) {
-    jstring path = (jstring)file->getFieldByIndex(0)->getObj();
-    const char *ptxt = path->getAscii();
-    uint32_t len = path->getLength();
-    if (((FExec *)env)->getFlint()->resolvePath(ptxt, len, buff, buffSize) == -1) {
+const char *ResolveFilePath(FNIEnv *env, jstring path, char *buff, uint32_t buffSize) {
+    char utf8[FILE_NAME_BUFF_SIZE];
+    uint32_t len = 0;
+    for (uint32_t i = 0; i < path->getLength(); i++) {
+        uint16_t ch = path->getCharAt(i);
+        uint8_t size = Utf8EncodeSize(ch);
+        if (ch == 0 || len + size >= sizeof(utf8)) {
+            env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "Invalid path or UTF-8 file name too long");
+            return NULL;
+        }
+        len += Utf8EncodeOneChar(ch, &utf8[len]);
+    }
+    utf8[len] = 0;
+    if (((FExec *)env)->getFlint()->resolvePath(utf8, len, buff, buffSize) == -1) {
         jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
         env->throwNew(excpCls, "Unable to resolve the path, file name too long leads to insufficient buffer size");
         return NULL;
     }
     return buff;
+}
+
+static const char *ResolvePath(FNIEnv *env, jobject file, char *buff, uint32_t buffSize) {
+    return ResolveFilePath(env, (jstring)file->getFieldByIndex(0)->getObj(), buff, buffSize);
 }
 
 static FlintAPI::IO::DirHandle OpenDir(FNIEnv *env, jobject file) {

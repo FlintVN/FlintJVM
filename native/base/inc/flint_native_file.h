@@ -4,6 +4,8 @@
 
 #include "flint_native.h"
 
+const char *ResolveFilePath(FNIEnv *env, jstring path, char *buff, uint32_t buffSize);
+
 jchar NativeFile_GetSeparatorChar0(FNIEnv *env);
 jchar NativeFile_GetPathSeparatorChar0(FNIEnv *env);
 jbool NativeFile_IsAbsolute(FNIEnv *env, jobject file);

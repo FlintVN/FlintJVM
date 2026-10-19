@@ -1,6 +1,7 @@
 
 #include "flint.h"
 #include "flint_native_common.h"
+#include "flint_native_file.h"
 #include "flint_native_file_output_stream.h"
 #include "flint_native_random_access_file.h"
 
@@ -58,11 +59,7 @@ jvoid NativeRandomAccessFile_Open(FNIEnv *env, jobject obj, jstring name, jint m
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
     Flint *flint = ((FExec *)env)->getFlint();
-    if (flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) {
-        jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
-        env->throwNew(excpCls, "Unable to resolve the path, file name too long leads to insufficient buffer size");
-        return;
-    }
+    if (ResolveFilePath(env, name, buff, sizeof(buff)) == NULL) return;
     flint->lock();
     if (fd != -1)
         env->throwNew(env->findClass("java/io/IOException"), "Stream has been opened");

@@ -1,6 +1,7 @@
 
 #include "flint.h"
 #include "flint_native_common.h"
+#include "flint_native_file.h"
 #include "flint_native_file_input_stream.h"
 
 static jint getFd(FNIEnv *env, jobject obj) {
@@ -14,11 +15,7 @@ static jint getFd(FNIEnv *env, jobject obj) {
 jvoid NativeFileInputStream_Open(FNIEnv *env, jobject obj, jstring name) {
     char buff[FILE_NAME_BUFF_SIZE];
     Flint *flint = ((FExec *)env)->getFlint();
-    if (flint->resolvePath(name->getAscii(), name->getLength(), buff, sizeof(buff)) == -1) {
-        jclass excpCls = env->findClass("java/lang/IllegalArgumentException");
-        env->throwNew(excpCls, "Unable to resolve the path, file name too long leads to insufficient buffer size");
-        return;
-    }
+    if (ResolveFilePath(env, name, buff, sizeof(buff)) == NULL) return;
     flint->lock();
     jobject fdObj = obj->getFieldByIndex(0)->getObj();
     jint fd = fdObj->getFieldByIndex(0)->getInt32();
