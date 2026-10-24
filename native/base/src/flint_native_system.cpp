@@ -8,7 +8,7 @@
 #include "flint_array_object.h"
 #include "flint_native_system.h"
 
-static jclass GetTypeOfArrayComp(FNIEnv *env, jarray array) {
+static jclass getTypeOfArrayComp(FNIEnv *env, jarray array) {
     const char *typeName = array->getTypeName() + 1;
     if (typeName[0] == 'L') {
         typeName++;
@@ -75,18 +75,18 @@ static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint
         env->throwNew(excpCls, "destination index %d out of bounds for %.*s[%d]", destPos, len, name, ((jarray)dest)->getLength());
         return false;
     }
-    if ((srcPos + length) > ((jarray)src)->getLength()) {
+    if (srcPos > ((jarray)src)->getLength() - length) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = ((jarray)src)->getBaseCompTypeName(&len);
-        env->throwNew(excpCls, "last source index %d out of bounds for %.*s[%d]", srcPos + length, len, name, ((jarray)src)->getLength());
+        env->throwNew(excpCls, "last source index %lld out of bounds for %.*s[%d]", (long long)srcPos + length, len, name, ((jarray)src)->getLength());
         return false;
     }
-    if ((destPos + length) > ((jarray)dest)->getLength()) {
+    if (destPos > ((jarray)dest)->getLength() - length) {
         jclass excpCls = env->findClass("java/lang/ArrayIndexOutOfBoundsException");
         uint16_t len;
         const char *name = ((jarray)dest)->getBaseCompTypeName(&len);
-        env->throwNew(excpCls, "last destination index %d out of bounds for %.*s[%d]", destPos + length, len, name, ((jarray)dest)->getLength());
+        env->throwNew(excpCls, "last destination index %lld out of bounds for %.*s[%d]", (long long)destPos + length, len, name, ((jarray)dest)->getLength());
         return false;
     }
     return true;
@@ -94,36 +94,52 @@ static bool checkParam(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint
 
 jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length) {
     if (checkParam(env, src, srcPos, dest, destPos, length) == false) return;
+    if (length == 0) return;
     if (src->type != dest->type) {
-        jclass destCompType = GetTypeOfArrayComp(env, (jarray)dest);
+        jclass destCompType = getTypeOfArrayComp(env, (jarray)dest);
         if (destCompType == NULL) return;
+        jclass srcCompType = getTypeOfArrayComp(env, (jarray)src);
+        if (srcCompType == NULL) return;
 
-        int32_t step = 1;
-        if (src == dest && destPos > srcPos) {
-            step = -1;
-            srcPos += length - 1;
-            destPos += length - 1;
-        }
         FExec *exec = (FExec *)env;
         jobject *srcVal = &(((jobjectArray)src))->getData()[srcPos];
-        jobject *dstVal = &(((jobjectArray)dest))->getData()[srcPos];
-        for (int32_t i = 0; i < length; i += step) {
-            jobject item = srcVal[i];
-            if (item != NULL && !exec->isInstanceof(item, destCompType)) {
-                const char *msg = "element type mismatch: can not cast one of the elements of %.*s[] to the type of the destination array %.*s[]";
-                uint16_t len1, len2;
-                const char *name1 = ((jarray)src)->getBaseCompTypeName(&len1);
-                const char *name2 = ((jarray)dest)->getBaseCompTypeName(&len2);
-                return env->throwNew(env->findClass("java/lang/ArrayStoreException"), msg, len1, name1, len2, name2);
+        jobject *dstVal = &(((jobjectArray)dest))->getData()[destPos];
+        if (exec->isAssignableFrom(srcCompType, destCompType)) {
+            memmove(dstVal, srcVal, (size_t)length * sizeof(jobject));
+            return;
+        }
+        if (src == dest && destPos > srcPos) {
+            for (int32_t i = length - 1; i >= 0; i--) {
+                jobject item = srcVal[i];
+                if (item != NULL && !exec->isInstanceof(item, destCompType)) {
+                    const char *msg = "element type mismatch: can not cast one of the elements of %.*s[] to the type of the destination array %.*s[]";
+                    uint16_t len1, len2;
+                    const char *name1 = ((jarray)src)->getBaseCompTypeName(&len1);
+                    const char *name2 = ((jarray)dest)->getBaseCompTypeName(&len2);
+                    return env->throwNew(env->findClass("java/lang/ArrayStoreException"), msg, len1, name1, len2, name2);
+                }
+                dstVal[i] = item;
             }
-            dstVal[i] = item;
+        }
+        else {
+            for (int32_t i = 0; i < length; i++) {
+                jobject item = srcVal[i];
+                if (item != NULL && !exec->isInstanceof(item, destCompType)) {
+                    const char *msg = "element type mismatch: can not cast one of the elements of %.*s[] to the type of the destination array %.*s[]";
+                    uint16_t len1, len2;
+                    const char *name1 = ((jarray)src)->getBaseCompTypeName(&len1);
+                    const char *name2 = ((jarray)dest)->getBaseCompTypeName(&len2);
+                    return env->throwNew(env->findClass("java/lang/ArrayStoreException"), msg, len1, name1, len2, name2);
+                }
+                dstVal[i] = item;
+            }
         }
     }
     else {
         uint8_t *srcVal = (uint8_t *)((jarray)src)->getData();
         uint8_t *dstVal = (uint8_t *)((jarray)dest)->getData();
         uint8_t compSz = ((jarray)src)->componentSize();
-        memmove(dstVal + destPos * compSz, srcVal + srcPos * compSz, length * compSz);
+        memmove(dstVal + (size_t)destPos * compSz, srcVal + (size_t)srcPos * compSz, (size_t)length * compSz);
     }
 }
 
