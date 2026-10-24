@@ -7,21 +7,18 @@
 jvoid NativeThread_Start0(FNIEnv *env, jthread thread) {
     static constexpr ConstNameAndType runName("run", "()V");
     Flint *flint = ((FExec *)env)->getFlint();
-    jobject task = thread->getTask();
-    FExec *exec = flint->newExecution(((FExec *)env), thread);
-    if (exec == NULL) return;
-    if (task == 0) task = thread;
-
-    ClassLoader *loader = task->type->getClassLoader();
+    ClassLoader *loader = thread->type->getClassLoader();
     jmethodId method = loader->getMethodInfo(((FExec *)env), (ConstNameAndType *)&runName);
     if (method == NULL) {
-        env->throwNew(env->findClass("java/lang/NoSuchMethodError"), "%s.%s", task->getTypeName(), "run()");
+        env->throwNew(env->findClass("java/lang/NoSuchMethodError"), "%s.run()", thread->getTypeName());
         return;
     }
 
-    if (!exec->run(method, 1, task)) {
+    FExec *exec = flint->newExecution(((FExec *)env), thread);
+    if (exec == NULL) return;
+    if (!exec->run(method, 1, thread)) {
         flint->freeExecution(exec);
-        env->throwNew(env->findClass("java/lang/Exception"), "Thread start failed");
+        env->throwNew(env->findClass("java/lang/OutOfMemoryError"), "Thread start failed");
     }
 }
 
