@@ -65,7 +65,7 @@ jint NativeInflater_Init(FNIEnv *env, jbool nowrap) {
 
     Hook *hook = exec->getFlint()->addShutdownHook(exec, strm, (void (*)(void*))NativeInflater_InflaterEnd);
     if (hook == NULL) {
-        inflateEnd(strm);
+        NativeInflater_InflaterEnd(strm);
         return 0;
     }
 
