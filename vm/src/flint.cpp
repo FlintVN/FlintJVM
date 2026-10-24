@@ -1212,6 +1212,7 @@ bool Flint::removeShutdownHook(Hook *hook) {
     lock();
     shutdownHook.remove(hook);
     unlock();
+    Flint::free(hook);
     return false;
 }
 
