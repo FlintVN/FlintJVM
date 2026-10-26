@@ -9,7 +9,7 @@ using namespace std;
 
 class FMutex {
 private:
-    atomic_flag locked;
+    atomic<bool> locked;
     uint32_t lockNest;
     volatile void *lockThread;
 

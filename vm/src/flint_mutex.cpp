@@ -3,7 +3,7 @@
 #include "flint_system_api.h"
 
 FMutex::FMutex(void) {
-    locked.clear();
+    locked.store(false, memory_order_relaxed);
     lockNest = 0;
     lockThread = NULL;
 }
@@ -11,31 +11,31 @@ FMutex::FMutex(void) {
 void FMutex::lock(void) {
     void *currentThread = FlintAPI::Thread::getCurrentThread();
     while (1) {
-        while (atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
+        while (locked.exchange(true, memory_order_acquire))
             FlintAPI::Thread::yield();
         if (lockThread == NULL) {
             lockNest = 1;
             lockThread = currentThread;
-            atomic_flag_clear_explicit(&locked, memory_order_release);
+            locked.exchange(false, memory_order_release);
             return;
         }
         else if (lockThread == currentThread) {
             lockNest++;
-            atomic_flag_clear_explicit(&locked, memory_order_release);
+            locked.exchange(false, memory_order_release);
             return;
         }
-        atomic_flag_clear_explicit(&locked, memory_order_release);
+        locked.exchange(false, memory_order_release);
         FlintAPI::Thread::yield();
     }
 }
 
 void FMutex::unlock(void) {
     void *currentThread = FlintAPI::Thread::getCurrentThread();
-    while (atomic_flag_test_and_set_explicit(&locked, memory_order_acquire))
+    while (locked.exchange(true, memory_order_acquire))
         FlintAPI::Thread::yield();
     if (currentThread == lockThread && lockNest > 0) {
         if (--lockNest == 0)
             lockThread = NULL;
     }
-    atomic_flag_clear_explicit(&locked, memory_order_release);
+    locked.exchange(false, memory_order_release);
 }
