@@ -805,31 +805,31 @@ void Rgb565Gfx::drawImage(Image *img, int32_t x, int32_t y) {
 
 static void drawImageRGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uint16_t w, uint16_t h) {
     if (w == img->width && h == img->height) return drawImageRGB565(g, img, x, y);
-    uint16_t imgx = GFX_MAX(g->clipX1, x) - x;
-    uint16_t imgy = GFX_MAX(g->clipY1, y) - y;
-    uint16_t imgw = GFX_MIN(g->clipX2 + 1, x + w) - x;
-    uint16_t imgh = GFX_MIN(g->clipY2 + 1, y + h) - y;
+    int32_t imgx = GFX_MAX(g->clipX1, x) - x;
+    int32_t imgy = GFX_MAX(g->clipY1, y) - y;
+    int32_t imgw = GFX_MIN(g->clipX2 + 1, x + w) - x;
+    int32_t imgh = GFX_MIN(g->clipY2 + 1, y + h) - y;
     if (imgx >= imgw) return;
     for (; imgy < imgh; imgy++) {
         uint16_t *src = &((uint16_t *)img->data)[(imgy * img->height / h) * img->width];
         uint16_t *des = &((uint16_t *)g->data)[(imgy + y) * g->width + x];
-        for (uint16_t i = imgx; i < imgw; i++) des[i] = src[i * img->width / w];
+        for (int32_t i = imgx; i < imgw; i++) des[i] = src[i * img->width / w];
     }
 }
 
 static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uint16_t w, uint16_t h) {
     if (w == img->width && h == img->height) return drawImageARGB565(g, img, x, y);
     uint8_t *alpha = &((uint8_t *)img->data)[img->width * img->height * 2];
-    uint16_t imgx = GFX_MAX(g->clipX1, x) - x;
-    uint16_t imgy = GFX_MAX(g->clipY1, y) - y;
-    uint16_t imgw = GFX_MIN(g->clipX2 + 1, x + w) - x;
-    uint16_t imgh = GFX_MIN(g->clipY2 + 1, y + h) - y;
+    int32_t imgx = GFX_MAX(g->clipX1, x) - x;
+    int32_t imgy = GFX_MAX(g->clipY1, y) - y;
+    int32_t imgw = GFX_MIN(g->clipX2 + 1, x + w) - x;
+    int32_t imgh = GFX_MIN(g->clipY2 + 1, y + h) - y;
     if (imgx >= imgw) return;
     for (; imgy < imgh; imgy++) {
         uint32_t tmp = (imgy * img->height / h) * img->width;
         uint16_t *src = &((uint16_t *)img->data)[tmp];
         uint16_t *des = &((uint16_t *)g->data)[(imgy + y) * g->width + x];
-        for (uint16_t i = imgx; i < imgw; i++) {
+        for (int32_t i = imgx; i < imgw; i++) {
             uint32_t srcIdx = i * img->width / w;
             uint32_t aIdx = tmp + srcIdx;
             uint8_t a = (aIdx & 1) ? (alpha[aIdx >> 1] >> 4) : (alpha[aIdx >> 1] & 0x0F);

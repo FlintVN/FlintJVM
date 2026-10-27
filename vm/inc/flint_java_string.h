@@ -26,12 +26,13 @@ public:
 
     int32_t compareTo(JString *other) const;
     int32_t compareTo(const char *utf8, uint16_t length) const;
-private:
+
     uint32_t getHash(void) const;
     void setHash(uint32_t hash);
     bool getHashIsZero(void) const;
     void setHashIsZero(bool value);
 
+private:
     JString(void) = delete;
     JString(const JString &) = delete;
     void operator=(const JString &) = delete;
