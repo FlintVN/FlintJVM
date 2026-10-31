@@ -130,6 +130,7 @@ private:
 
     bool load(FileReader *reader);
     CodeAttribute *readAttributeCode(FileReader *reader);
+    Exceptions *readAttributeExceptions(FileReader *reader);
 public:
     static ClassLoader *load(Flint *flint, FExec *ctx, const char *clsName, uint16_t length = 0xFFFF);
 

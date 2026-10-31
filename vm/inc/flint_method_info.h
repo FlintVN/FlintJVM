@@ -5,16 +5,28 @@
 #include "flint_std.h"
 #include "flint_const_pool.h"
 
-class ExceptionTable {
+class Exceptions {
+public:
+    const uint16_t length;
+    const uint16_t exceptionTypes[];
+private:
+    Exceptions(void) = delete;
+    Exceptions(const Exceptions &) = delete;
+    void operator=(const Exceptions &) = delete;
+
+    friend class ClassLoader;
+};
+
+class ExceptionEntry {
 public:
     const uint16_t startPc;
     const uint16_t endPc;
     const uint16_t handlerPc;
     const uint16_t catchType;
 private:
-    ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType);
-    ExceptionTable(const ExceptionTable &) = delete;
-    void operator=(const ExceptionTable &) = delete;
+    ExceptionEntry(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType);
+    ExceptionEntry(const ExceptionEntry &) = delete;
+    void operator=(const ExceptionEntry &) = delete;
 
     friend class ClassLoader;
 };
@@ -66,6 +78,7 @@ public:
         ConstNameAndType nameAndType;
     };
 private:
+    Exceptions *exceptions;
     const char * retType;
     uint8_t *code;
 public:
@@ -74,8 +87,9 @@ public:
     uint32_t getCodeLength(void) const;
     uint16_t getMaxLocals(void) const;
     uint16_t getMaxStack(void) const;
-    uint16_t getExceptionLength(void) const;
-    ExceptionTable *getException(uint16_t index) const;
+    Exceptions *getExceptions(void) const;
+    uint16_t getExceptionEntryLength(void) const;
+    ExceptionEntry *getExceptionEntry(uint16_t index) const;
 private:
     MethodInfo(ClassLoader *loader, MethodAccessFlag accessFlag, const char *name, const char *desc);
     MethodInfo(const MethodInfo &) = delete;

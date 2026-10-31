@@ -2265,9 +2265,9 @@ void FExec::exec(bool initOpcodeLabels) {
         if (dbg && dbg->exceptionIsEnabled())
             dbg->caughtException(this);
         while (1) {
-            uint16_t exceptionLength = traceMethod->getExceptionLength();
+            uint16_t exceptionLength = traceMethod->getExceptionEntryLength();
             for (uint16_t i = 0; i < exceptionLength; i++) {
-                ExceptionTable *exception = traceMethod->getException(i);
+                ExceptionEntry *exception = traceMethod->getExceptionEntry(i);
                 if (exception->startPc <= tracePc && tracePc < exception->endPc) {
                     bool isMatch = false;
                     if (exception->catchType == 0)

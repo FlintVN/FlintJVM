@@ -252,9 +252,15 @@ bool ClassLoader::load(FileReader *reader) {
                 uint32_t length;
                 if (!reader->readSwapUInt16(attrNameIdx)) return false;
                 if (!reader->readSwapUInt32(length)) return false;
-                if (strcmp(getConstUtf8(attrNameIdx), "Code") == 0 && !(flag & METHOD_NATIVE))
+                if (strcmp(getConstUtf8(attrNameIdx), "Code") == 0 && !(flag & METHOD_NATIVE)) {
                     methods[i].code = (uint8_t *)reader->tell();
-                if (!reader->offset(length)) return false;
+                    if (!reader->offset(length)) return false;
+                }
+                else if (strcmp(getConstUtf8(attrNameIdx), "Exceptions") == 0) {
+                    methods[i].exceptions = readAttributeExceptions(reader);
+                    if (methods[i].exceptions == NULL) return false;
+                }
+                else if (!reader->offset(length)) return false;
             }
         }
     }
@@ -319,7 +325,7 @@ CodeAttribute *ClassLoader::readAttributeCode(FileReader *reader) {
     uint16_t exceptionTableLength;
     if (!reader->readSwapUInt16(exceptionTableLength)) return NULL;
 
-    uint32_t codeAttrSize = sizeof(CodeAttribute) + exceptionTableLength * sizeof(ExceptionTable) + codeLength + 1;
+    uint32_t codeAttrSize = sizeof(CodeAttribute) + exceptionTableLength * sizeof(ExceptionEntry) + codeLength + 1;
     CodeAttribute *codeAttr = (CodeAttribute *)flint->malloc(reader->getContext(), codeAttrSize);
     if (codeAttr == NULL) return NULL;
     codeAttr->maxStack = maxStack;
@@ -328,14 +334,14 @@ CodeAttribute *ClassLoader::readAttributeCode(FileReader *reader) {
     codeAttr->exceptionLength = exceptionTableLength;
 
     if (exceptionTableLength) {
-        ExceptionTable *exceptionTable = (ExceptionTable *)codeAttr->data;
+        ExceptionEntry *exceptionTable = (ExceptionEntry *)codeAttr->data;
         for (uint16_t i = 0; i < exceptionTableLength; i++) {
             uint16_t startPc, endPc, handlerPc, catchType;
             if (!reader->readSwapUInt16(startPc)) { flint->free(codeAttr); return NULL; }
             if (!reader->readSwapUInt16(endPc)) { flint->free(codeAttr); return NULL; }
             if (!reader->readSwapUInt16(handlerPc)) { flint->free(codeAttr); return NULL; }
             if (!reader->readSwapUInt16(catchType)) { flint->free(codeAttr); return NULL; }
-            new (&exceptionTable[i])ExceptionTable(startPc, endPc, handlerPc, catchType);
+            new (&exceptionTable[i])ExceptionEntry(startPc, endPc, handlerPc, catchType);
         }
     }
 
@@ -345,11 +351,24 @@ CodeAttribute *ClassLoader::readAttributeCode(FileReader *reader) {
         if (!dumpAttribute(reader)) { flint->free(codeAttr); return NULL; }
 
     if (!reader->seek(codePos)) { flint->free(codeAttr); return NULL; }
-    uint8_t *code = (uint8_t *)&((ExceptionTable *)codeAttr->data)[exceptionTableLength];
+    uint8_t *code = (uint8_t *)&((ExceptionEntry *)codeAttr->data)[exceptionTableLength];
     if (reader->read(code, codeLength) != codeLength) { flint->free(codeAttr); return NULL; }
     code[codeLength] = OP_EXIT;
 
     return codeAttr;
+}
+
+Exceptions *ClassLoader::readAttributeExceptions(FileReader *reader) {
+    uint16_t length;
+    if (!reader->readSwapUInt16(length) || length == 0) return NULL;
+    Exceptions *exceptions = (Exceptions *)flint->malloc(reader->getContext(), sizeof(Exceptions) + length * sizeof(uint16_t));
+    for (uint16_t i = 0; i < length; i++) {
+        if (!reader->readSwapUInt16(*(uint16_t *)&exceptions->exceptionTypes[i])) {
+            flint->free(exceptions);
+            return NULL;
+        }
+    }
+    return exceptions;
 }
 
 ConstPoolTag ClassLoader::getConstPoolTag(uint16_t poolIndex) const {
@@ -754,6 +773,8 @@ ClassLoader::~ClassLoader(void) {
         for (uint32_t i = 0; i < methodsCount; i++) {
             if (!(methods[i].accessFlag & (METHOD_NATIVE | METHOD_UNLOADED)) && methods[i].code)
                 flint->free(methods[i].code);
+            if (methods[i].exceptions)
+                flint->free(methods[i].exceptions);
         }
         flint->free(methods);
     }

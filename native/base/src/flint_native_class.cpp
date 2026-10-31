@@ -212,17 +212,15 @@ static jobjectArray getParameterTypes(FNIEnv *env, const char *mtDesc) {
 }
 
 static jobjectArray getExceptionTypes(FNIEnv *env, MethodInfo *mt) {
-    if (mt->accessFlag & METHOD_NATIVE)
+    if ((mt->accessFlag & METHOD_NATIVE) || (mt->getExceptions() == NULL))
         return getEmptyClassArray(env);
-    uint16_t exceptionLength = mt->getExceptionLength();
-    if (exceptionLength == 0)
-        return getEmptyClassArray(env);
-    jobjectArray excpTypes = env->newObjectArray(((FExec *)env)->getFlint()->getClassOfClass((FExec *)env), exceptionLength);
+    Exceptions *exceptions = mt->getExceptions();
+    jobjectArray excpTypes = env->newObjectArray(((FExec *)env)->getFlint()->getClassOfClass((FExec *)env), exceptions->length);
     if (excpTypes == NULL) return NULL;
     ClassLoader *loader = mt->loader;
     jobject *data = excpTypes->getData();
-    for (uint16_t i = 0; i < exceptionLength; i++) {
-        jclass cls = loader->getConstClass((FExec *)env, mt->getException(i)->catchType);
+    for (uint16_t i = 0; i < exceptions->length; i++) {
+        jclass cls = loader->getConstClass((FExec *)env, exceptions->exceptionTypes[i]);
         if (cls == NULL) { env->freeObject(excpTypes); return NULL; }
         data[i] = cls;
     }

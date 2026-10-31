@@ -4,14 +4,14 @@
 #include "flint_native.h"
 #include "flint_method_info.h"
 
-ExceptionTable::ExceptionTable(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
+ExceptionEntry::ExceptionEntry(uint16_t startPc, uint16_t endPc, uint16_t handlerPc, uint16_t catchType) :
 startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 }
 
 MethodInfo::MethodInfo(ClassLoader *loader, MethodAccessFlag accessFlag, const char *name, const char *desc) :
 accessFlag(accessFlag), loader(loader), name(name), desc(desc),
-hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)), retType(NULL), code(NULL) {
+hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)), exceptions(NULL), retType(NULL), code(NULL) {
 
 }
 
@@ -32,7 +32,7 @@ uint8_t *MethodInfo::getCode(void) {
         return (uint8_t *)code;
     }
     CodeAttribute *codeAttr = (CodeAttribute *)code;
-    return (uint8_t *)&((ExceptionTable *)codeAttr->data)[codeAttr->exceptionLength];
+    return (uint8_t *)&((ExceptionEntry *)codeAttr->data)[codeAttr->exceptionLength];
 }
 
 uint32_t MethodInfo::getCodeLength(void) const {
@@ -47,13 +47,17 @@ uint16_t MethodInfo::getMaxStack(void) const {
     return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->maxStack;
 }
 
-uint16_t MethodInfo::getExceptionLength(void) const {
+Exceptions *MethodInfo::getExceptions(void) const {
+    return exceptions;
+}
+
+uint16_t MethodInfo::getExceptionEntryLength(void) const {
     return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->exceptionLength;
 }
 
-ExceptionTable *MethodInfo::getException(uint16_t index) const {
+ExceptionEntry *MethodInfo::getExceptionEntry(uint16_t index) const {
     if (accessFlag & METHOD_NATIVE)
         return NULL;
     CodeAttribute *codeAttr = (CodeAttribute *)code;
-    return &((ExceptionTable *)codeAttr->data)[index];
+    return &((ExceptionEntry *)codeAttr->data)[index];
 }
