@@ -623,6 +623,7 @@ JClass *Flint::newClass(FExec *ctx, const char *clsName, uint16_t length, uint8_
     if (cls->initFields(this, ctx, jClsLoader) == false) { Flint::free(cls); return NULL; }
 
     globalObjs.add(cls);
+    cls->clearProtected();
     return cls;
 }
 

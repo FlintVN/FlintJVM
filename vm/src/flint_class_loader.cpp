@@ -78,7 +78,7 @@ int32_t ClassLoader::compareKey(DictNode *other) const {
 bool ClassLoader::load(FileReader *reader) {
     char buff[FILE_NAME_BUFF_SIZE];
     char *utf8Buff = buff;
-    uint16_t utf8Length = sizeof(buff);
+    uint16_t utf8Length = sizeof(buff) - 1; /* Reserve a null terminator. */
     FExec *ctx = reader->getContext();
     this->filePath = reader->getFilePath();
     /* if (!FReadSwapUInt32(reader, magic)) return false; */         /* magic = */
@@ -98,7 +98,7 @@ bool ClassLoader::load(FileReader *reader) {
                 uint16_t length;
                 if (!reader->readSwapUInt16(length)) return false;
                 if (length > utf8Length) {
-                    utf8Buff = (char *)((utf8Buff == buff) ? flint->malloc(ctx, length) : flint->realloc(ctx, utf8Buff, length));
+                    utf8Buff = (char *)((utf8Buff == buff) ? flint->malloc(ctx, length + 1) : flint->realloc(ctx, utf8Buff, length + 1));
                     if (utf8Buff == NULL) return false;
                     utf8Length = length;
                 }
