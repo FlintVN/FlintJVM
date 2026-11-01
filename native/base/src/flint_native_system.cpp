@@ -159,6 +159,7 @@ jstring NativeSystem_GetProperty(FNIEnv *env, jstring key) {
         CASE_KEY("microedition.configuration") return env->newString("CLDC-1.0");
         CASE_KEY("microedition.profiles") return env->newString("MIDP-2.0");
         CASE_KEY("line.separator") return env->newString("\r\n");
+        CASE_KEY("flint.application") return env->newString(((FExec *)env)->getFlint()->getProgram());
         default: return NULL;
     }
 }
