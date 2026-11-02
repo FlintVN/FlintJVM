@@ -92,9 +92,10 @@ jint NativeRandomAccessFile_Read(FNIEnv *env, jobject obj) {
 
 jint NativeRandomAccessFile_ReadBytes(FNIEnv *env, jobject obj, jbyteArray b, jint off, jint len) {
     if (!CheckArrayIndexSize(env, b, off, len)) return 0;
+    if (len == 0) return 0;
     uint32_t br = 0;
     readBytes(env, obj, &b->getData()[off], len, &br);
-    return br;
+    return (br > 0) ? br : -1;
 }
 
 jvoid NativeRandomAccessFile_Write(FNIEnv *env, jobject obj, jint b) {

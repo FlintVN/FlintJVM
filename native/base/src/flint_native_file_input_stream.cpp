@@ -75,13 +75,14 @@ jint NativeFileInputStream_ReadBytes(FNIEnv *env, jobject obj, jbyteArray b, jin
         return 0;
     }
     else {
+        if (len == 0) return 0;
         int8_t *buff = &b->getData()[off];
         uint32_t br = 0;
         void *handle = ((Hook *)fd)->getHandle();
         auto result = FlintAPI::IO::fread((FlintAPI::IO::FileHandle)handle, buff, len, &br);
         if (result != FlintAPI::IO::FILE_RESULT_OK)
             env->throwNew(env->findClass("java/io/IOException"), "Error while reading");
-        return br;
+        return (br > 0) ? br : -1;
     }
 }
 
