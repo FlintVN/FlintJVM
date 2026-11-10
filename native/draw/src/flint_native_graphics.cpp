@@ -1,6 +1,4 @@
 
-#include "flint_default_conf.h"
-
 #include "flint_gfx_common.h"
 #include "flint_java_object.h"
 #include "flint_java_string.h"

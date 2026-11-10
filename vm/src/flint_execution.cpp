@@ -775,7 +775,7 @@ void FExec::invokeSpecial(ConstMethod *constMethod) {
             return invokeStaticCtor(methodInfo->loader);
     }
     if (methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if (lockObject((JObject *)stack[sp - argc - 1]) == false)
+        if (lockObject((JObject *)stack[sp - argc + 1]) == false)
             return FlintAPI::Thread::yield();
     }
     lr = pc + 3;

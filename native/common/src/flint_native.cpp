@@ -36,40 +36,42 @@
 #include "flint_native_graphics.h"
 #include "flint_native_image_decoder.h"
 #include "flint_native_rgb565_graphics.h"
+#include "flint_native_rgb565_graphics_factory.h"
 
 static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
-    NATIVE_CLASS("java/lang/Math",                    mathMethods),
-    NATIVE_CLASS("java/lang/Class",                   classMethods),
-    NATIVE_CLASS("java/lang/reflect/Array",           arrayMethods),
-    NATIVE_CLASS("java/lang/Float",                   floatMethods),
-    NATIVE_CLASS("java/lang/Double",                  doubleMethods),
-    NATIVE_CLASS("java/lang/Object",                  objectMethods),
-    NATIVE_CLASS("java/lang/String",                  stringMethods),
-    NATIVE_CLASS("java/lang/System",                  systemMethods),
-    NATIVE_CLASS("java/lang/Thread",                  threadMethods),
-    NATIVE_CLASS("java/lang/Character",               characterMethods),
-    NATIVE_CLASS("java/lang/reflect/Method",          methodMethods),
-    NATIVE_CLASS("java/lang/reflect/Constructor",     constructorMethods),
-    NATIVE_CLASS("java/io/File",                      fileMethods),
-    NATIVE_CLASS("java/io/FileDescriptor",            fileDescriptorMethods),
-    NATIVE_CLASS("java/io/FileInputStream",           fileInputStreamMethods),
-    NATIVE_CLASS("java/io/FileOutputStream",          fileOutputStreamMethods),
-    NATIVE_CLASS("java/io/RandomAccessFile",          randomAccessFileMethods),
-    NATIVE_CLASS("jdk/internal/reflect/Reflection",   reflectionMethods),
-    NATIVE_CLASS("java/util/zip/CRC32",               crc32Methods),
-    NATIVE_CLASS("java/util/zip/Inflater",            inflaterMethods),
+    NATIVE_CLASS("java/lang/Math",                       mathMethods),
+    NATIVE_CLASS("java/lang/Class",                      classMethods),
+    NATIVE_CLASS("java/lang/reflect/Array",              arrayMethods),
+    NATIVE_CLASS("java/lang/Float",                      floatMethods),
+    NATIVE_CLASS("java/lang/Double",                     doubleMethods),
+    NATIVE_CLASS("java/lang/Object",                     objectMethods),
+    NATIVE_CLASS("java/lang/String",                     stringMethods),
+    NATIVE_CLASS("java/lang/System",                     systemMethods),
+    NATIVE_CLASS("java/lang/Thread",                     threadMethods),
+    NATIVE_CLASS("java/lang/Character",                  characterMethods),
+    NATIVE_CLASS("java/lang/reflect/Method",             methodMethods),
+    NATIVE_CLASS("java/lang/reflect/Constructor",        constructorMethods),
+    NATIVE_CLASS("java/io/File",                         fileMethods),
+    NATIVE_CLASS("java/io/FileDescriptor",               fileDescriptorMethods),
+    NATIVE_CLASS("java/io/FileInputStream",              fileInputStreamMethods),
+    NATIVE_CLASS("java/io/FileOutputStream",             fileOutputStreamMethods),
+    NATIVE_CLASS("java/io/RandomAccessFile",             randomAccessFileMethods),
+    NATIVE_CLASS("jdk/internal/reflect/Reflection",      reflectionMethods),
+    NATIVE_CLASS("java/util/zip/CRC32",                  crc32Methods),
+    NATIVE_CLASS("java/util/zip/Inflater",               inflaterMethods),
 
 #if FLINT_API_NET_ENABLED
-    NATIVE_CLASS("flint/net/FlintSocketImpl",         flintSocketImplMethods),
-    NATIVE_CLASS("flint/net/FlintInetAddressImpl",    flintInetAddressImplMethods),
-    NATIVE_CLASS("flint/net/FlintSocketInputStream",  flintSocketInputStreamMethods),
-    NATIVE_CLASS("flint/net/FlintSocketOutputStream", flintSocketOutputStreamMethods),
-    NATIVE_CLASS("flint/net/FlintDatagramSocketImpl", flintDatagramSocketImplMethods),
+    NATIVE_CLASS("flint/net/FlintSocketImpl",            flintSocketImplMethods),
+    NATIVE_CLASS("flint/net/FlintInetAddressImpl",       flintInetAddressImplMethods),
+    NATIVE_CLASS("flint/net/FlintSocketInputStream",     flintSocketInputStreamMethods),
+    NATIVE_CLASS("flint/net/FlintSocketOutputStream",    flintSocketOutputStreamMethods),
+    NATIVE_CLASS("flint/net/FlintDatagramSocketImpl",    flintDatagramSocketImplMethods),
 #endif /* FLINT_API_NET_ENABLED */
 
-    NATIVE_CLASS("flint/drawing/Graphics",            graphicsMethods),
-    NATIVE_CLASS("flint/drawing/ImageDecoder",        imageDecoderMethods),
-    NATIVE_CLASS("flint/drawing/Rgb565Graphics",      rgb565GraphicsMethods),
+    NATIVE_CLASS("flint/drawing/Graphics",               graphicsMethods),
+    NATIVE_CLASS("flint/drawing/ImageDecoder",           imageDecoderMethods),
+    NATIVE_CLASS("flint/drawing/Rgb565Graphics",         rgb565GraphicsMethods),
+    NATIVE_CLASS("flint/drawing/Rgb565Graphics$Factory", rgb565GraphicsFactoryMethods),
 };
 
 JNMPtr NativeClass::findNativeMethod(MethodInfo *methodInfo) {

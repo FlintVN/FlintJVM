@@ -2,7 +2,6 @@
 #define __FLINT_NATIVE_GRAPHICS_H
 
 #include "flint_native.h"
-#include "flint_default_conf.h"
 
 jbool NativeGraphics_IsVisible(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h);
 jvoid NativeGraphics_SetClip0(FNIEnv *env, jobject obj, jint x, jint y, jint w, jint h, jint mode);

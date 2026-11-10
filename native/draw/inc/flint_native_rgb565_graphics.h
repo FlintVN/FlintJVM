@@ -3,7 +3,6 @@
 #define __FLINT_NATIVE_RGB565_GRAPHICS_H
 
 #include "flint_native.h"
-#include "flint_default_conf.h"
 
 jvoid NativeRgb565Graphics_Clear1(FNIEnv *env, jobject obj);
 jvoid NativeRgb565Graphics_Clear2(FNIEnv *env, jobject obj, jobject c);
