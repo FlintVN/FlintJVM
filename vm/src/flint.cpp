@@ -332,6 +332,7 @@ const char *Flint::getArrayClassName(FExec *ctx, const char *clsName, uint8_t di
 }
 
 bool Flint::isInstanceof(FExec *ctx, JObject *obj, JClass *type) {
+    if (obj == NULL) return false;
     JClass *objType = (obj->type != NULL) ? obj->type : getClassOfClass(ctx);
     return isAssignableFrom(ctx, objType, type);
 }
