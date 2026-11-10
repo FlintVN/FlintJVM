@@ -73,6 +73,7 @@ public:
     ConstNameAndType *nameAndType;
 private:
     class MethodInfo *methodInfo;
+    class ClassLoader *loaderCache;
     uint8_t argc;
 public:
     uint8_t getArgc(void) const;

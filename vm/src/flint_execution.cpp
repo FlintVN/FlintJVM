@@ -796,10 +796,11 @@ void FExec::invokeVirtual(ConstMethod *constMethod) {
         objType = flint->getClassOfClass(this);
         if (objType == NULL) return;
     }
-    if (methodInfo == NULL || methodInfo->loader != objType->getClassLoader()) {
+    if (methodInfo == NULL || constMethod->loaderCache != objType->getClassLoader()) {
         methodInfo = flint->findMethod(this, objType, constMethod->nameAndType);
         if (methodInfo == NULL) return;
         constMethod->methodInfo = methodInfo;
+        constMethod->loaderCache = objType->getClassLoader();
         if (methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
             return invokeStaticCtor(methodInfo->loader);
     }
@@ -825,10 +826,11 @@ void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc)
         objType = flint->getClassOfClass(this);
         if (objType == NULL) return;
     }
-    if (methodInfo == NULL || methodInfo->loader != objType->getClassLoader()) {
+    if (methodInfo == NULL || interfaceMethod->loaderCache != objType->getClassLoader()) {
         methodInfo = flint->findMethod(this, objType, interfaceMethod->nameAndType);
         if (methodInfo == NULL) return;
         interfaceMethod->methodInfo = methodInfo;
+        interfaceMethod->loaderCache = objType->getClassLoader();
         if (methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
             return invokeStaticCtor(methodInfo->loader);
     }
