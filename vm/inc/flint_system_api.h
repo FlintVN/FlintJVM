@@ -14,6 +14,8 @@ namespace FlintAPI::System {
     void *malloc(uint32_t size);
     void *realloc(void *p, uint32_t size);
     void free(void *p);
+    uint32_t freeMemory(void);
+    uint32_t totalMemory(void);
     void consoleWrite(uint8_t *utf8, uint32_t length);
     int64_t getTimeNanos(void);
     int64_t getTimeMillis(void);

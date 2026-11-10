@@ -163,14 +163,3 @@ jstring NativeSystem_GetProperty(FNIEnv *env, jstring key) {
         default: return NULL;
     }
 }
-
-jvoid NativeSystem_Exit(FNIEnv *env, jint status) {
-    Flint *flint = ((FExec *)env)->getFlint();
-    flint->setExitCode(status);
-    flint->terminateRequest();
-}
-
-jvoid NativeSystem_Gc(FNIEnv *env) {
-    (void)env;
-    // TODO
-}

@@ -10,8 +10,6 @@ jlong NativeSystem_NanoTime(FNIEnv *env);
 jvoid NativeSystem_Arraycopy(FNIEnv *env, jobject src, jint srcPos, jobject dest, jint destPos, jint length);
 jint NativeSystem_IdentityHashCode(FNIEnv *env, jobject obj);
 jstring NativeSystem_GetProperty(FNIEnv *env, jstring key);
-jvoid NativeSystem_Exit(FNIEnv *env, jint status);
-jvoid NativeSystem_Gc(FNIEnv *env);
 
 inline constexpr NativeMethod systemMethods[] = {
     NATIVE_METHOD("setOut0",           "(Ljava/io/PrintStream;)V",                   NativeSystem_setOut0),
@@ -20,8 +18,6 @@ inline constexpr NativeMethod systemMethods[] = {
     NATIVE_METHOD("arraycopy",         "(Ljava/lang/Object;ILjava/lang/Object;II)V", NativeSystem_Arraycopy),
     NATIVE_METHOD("identityHashCode",  "(Ljava/lang/Object;)I",                      NativeSystem_IdentityHashCode),
     NATIVE_METHOD("getProperty",       "(Ljava/lang/String;)Ljava/lang/String;",     NativeSystem_GetProperty),
-    NATIVE_METHOD("exit",              "(I)V",                                       NativeSystem_Exit),
-    NATIVE_METHOD("gc",                "()V",                                        NativeSystem_Gc),
 };
 
 #endif /* __FLINT_NATIVE_SYSTEM_H */
