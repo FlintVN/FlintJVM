@@ -249,6 +249,7 @@ jvoid NativeFlintSocketImpl_SocketSetOption(FNIEnv *env, jobject obj, jint cmd, 
         }
         case NATIVE_SO_LINGER: {
             int32_t val = (value != NULL) ? value->getFieldByIndex(0)->getInt32() : 0;
+            if (val > 65535) val = 65535;
             if (setSockOpt(sock, SOCK_SO_LINGER, on, &val) != SOCK_OK)
                 env->throwNew(env->findClass("java/io/IOException"), "Set SO_LINGER error");
             break;

@@ -229,10 +229,12 @@ SockError FlintAPI::Net::setSockOpt(int32_t sock, SockOpt opt, bool on, void *va
             return lwip_setsockopt(sock, IPPROTO_TCP, TCP_NODELAY, &tmp, sizeof(tmp)) == 0 ? SOCK_OK : SOCK_ERR;
         }
         case SOCK_SO_LINGER: {
-            if (value == NULL) return SOCK_ERR;
             struct linger ling = {};
             ling.l_onoff = on ? 1 : 0;
-            ling.l_linger = *(int32_t *)value;
+            if (on) {
+                if (value == NULL) return SOCK_ERR;
+                ling.l_linger = *(int32_t *)value;
+            }
             return lwip_setsockopt(sock, SOL_SOCKET, SO_LINGER, &ling, sizeof(ling)) == 0 ? SOCK_OK : SOCK_ERR;
         }
         case SOCK_SO_REUSEADDR:

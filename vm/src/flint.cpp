@@ -175,6 +175,7 @@ void Flint::print(const char *ascii) {
 }
 
 void Flint::print(JString *str) {
+    if (str == NULL) return;
     char buff[16];
     uint32_t length = str->getLength();
     uint32_t count = 0;
