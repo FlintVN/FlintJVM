@@ -26,6 +26,7 @@ public:
     FieldValue *getField(class FExec *ctx, ConstField *field) const;
     FieldValue *getField(class FExec *ctx, const char *name) const;
     FieldValue *getFieldByIndex(uint32_t index) const;
+    uint16_t getFieldsCount(void) const;
 
     void clearData(void);
 

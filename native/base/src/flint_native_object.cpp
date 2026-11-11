@@ -22,8 +22,20 @@ jobject NativeObject_Clone(FNIEnv *env, jobject obj) {
         return cloneObj;
     }
     else {
-        env->throwNew(env->findClass("java/lang/CloneNotSupportedException"), "Clone method is not supported");
-        return NULL;
+        FExec *exec = (FExec *)env;
+        Flint *flint = exec->getFlint();
+        jclass cloneableCls = flint->getClassOfCloneable(exec);
+        if (cloneableCls == NULL) return NULL;
+        if (obj->type == NULL || !flint->isInstanceof(exec, obj, cloneableCls)) {
+            env->throwNew(env->findClass("java/lang/CloneNotSupportedException"), "%s", obj->getTypeName());
+            return NULL;
+        }
+        jobject cloneObj = env->newObject(obj->type);
+        if (cloneObj == NULL) return NULL;
+        uint16_t count = obj->getFieldsCount();
+        for (uint16_t i = 0; i < count; i++)
+            cloneObj->getFieldByIndex(i)->setInt32(obj->getFieldByIndex(i)->getInt32());
+        return cloneObj;
     }
 }
 

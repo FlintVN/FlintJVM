@@ -35,6 +35,7 @@ public:
     FieldsData(void);
 
     uint16_t hasObjField(void) const;
+    uint16_t getFieldsCount(void) const;
 
     FieldValue *getField(ConstField *field) const;
     FieldValue *getField(const char *name) const;

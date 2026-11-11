@@ -162,6 +162,10 @@ uint16_t FieldsData::hasObjField(void) const {
     return objCount;
 }
 
+uint16_t FieldsData::getFieldsCount(void) const {
+    return count;
+}
+
 FieldValue *FieldsData::getField(ConstField *field) const {
     if (field->fieldIndex == 0 && count) {
         for (uint16_t i = 0; i < count; i++) {

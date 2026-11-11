@@ -48,6 +48,10 @@ FieldValue *JObject::getFieldByIndex(uint32_t index) const {
     return ((FieldsData *)data)->getFieldByIndex(index);
 }
 
+uint16_t JObject::getFieldsCount(void) const {
+    return ((FieldsData *)data)->getFieldsCount();
+}
+
 void JObject::clearData(void) {
     memset(data, 0, size);
 }
