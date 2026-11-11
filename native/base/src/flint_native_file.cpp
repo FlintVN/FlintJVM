@@ -88,7 +88,12 @@ jbool NativeFile_IsFile(FNIEnv *env, jobject file) {
 }
 
 jbool NativeFile_IsDirectory(FNIEnv *env, jobject file) {
-    return !NativeFile_IsFile(env, file);
+    FlintAPI::IO::FileInfo fileInfo;
+    char buff[FILE_NAME_BUFF_SIZE];
+    if (ResolvePath(env, file, buff, sizeof(buff)) == NULL) return false;
+    if (FlintAPI::IO::finfo(buff, &fileInfo) == FlintAPI::IO::FILE_RESULT_OK)
+        return fileInfo.directory ? true : false;
+    return true;
 }
 
 jbool NativeFile_IsHidden(FNIEnv *env, jobject file) {
