@@ -19,6 +19,7 @@ namespace FlintAPI::System {
     void consoleWrite(uint8_t *utf8, uint32_t length);
     int64_t getTimeNanos(void);
     int64_t getTimeMillis(void);
+    const char *getClassPath(uint32_t index);
     bool openClassFile(FExec *ctx, const char *clsName, uint16_t length, FileReader *reader);
     JNMPtr findNativeMethod(MethodInfo *methodInfo);
 };

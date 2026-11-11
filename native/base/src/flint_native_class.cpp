@@ -1,6 +1,7 @@
 
 #include <string.h>
 #include "flint.h"
+#include "flint_system_api.h"
 #include "flint_java_class.h"
 #include "flint_java_string.h"
 #include "flint_native_class.h"
@@ -382,25 +383,36 @@ jclass NativeClass_GetDeclaringClass0(FNIEnv *env, jclass cls) {
     return NULL;
 }
 
-static uint32_t isClassFile(const char *path) {
-    size_t len = strlen(path);
-    if ((len > 6) && (strcasecmp(path + (len - 6), ".class") == 0))
-        return len - 6;
-    return 0;
+static void freeStringArray(FNIEnv *env, jstringArray array, uint32_t count) {
+    for (uint32_t i = 0; i < count; i++) {
+        jstring str = array->getData()[i];
+        env->freeObject(str->getValue());
+        env->freeObject(str);
+    }
+    env->freeObject(array);
 }
 
-jstring NativeClass_GetParentPath(FNIEnv *env, jclass cls) {
-    ClassLoader *loader = cls->getClassLoader();
-    if (loader == NULL)
-        loader = env->findClass("java/lang/Class")->getClassLoader();
-    const char *file = loader->getFilePath();
-    uint32_t len = isClassFile(file);
-    if (len > 0) {
-        char separator = Flint::getPathSeparator();
-        uint32_t lastIndex = len - 1;
-        while (file[lastIndex] != separator)
-            lastIndex--;
-        return env->newString("%.*s", lastIndex, file);
+jstringArray NativeClass_GetClassPath(FNIEnv *env) {
+    uint32_t count = 1;
+    while (FlintAPI::System::getClassPath(count - 1) != NULL)
+        count++;
+    jstringArray clsPath = (jstringArray)env->newObjectArray(env->findClass("java/lang/String"), count);
+    if (clsPath == NULL) return NULL;
+    jstring str = env->newString(((FExec *)env)->getFlint()->getProgram());
+    if (str == NULL) {
+        freeStringArray(env, clsPath, 0);
+        return NULL;
     }
-    return env->newString(file);
+    clsPath->getData()[0] = str;
+    for (uint32_t i = 0; true; i++) {
+        const char *tmp = FlintAPI::System::getClassPath(i);
+        if (tmp == NULL) break;
+        str = env->newString(tmp);
+        if (str == NULL) {
+            freeStringArray(env, clsPath, i + 1);
+            return NULL;
+        }
+        clsPath->getData()[i + 1] = str;
+    }
+    return clsPath;
 }

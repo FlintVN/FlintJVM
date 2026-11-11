@@ -46,6 +46,7 @@ jobject FExec::newObject(jclass type, jmethodId ctor, ...) {
     uint8_t argc = GetArgSlotCount(ctor->desc);
     stackPushObject(obj);
     stackPushArgs(argc, args);
+    va_end(args);
     callMethod(ctor, argc + 1);
     if (hasException() || FExec::hasTerminateRequest()) {
         flint->freeObject(obj);
@@ -57,7 +58,9 @@ jobject FExec::newObject(jclass type, jmethodId ctor, ...) {
 jstring FExec::newString(const char *format, ...) {
     va_list args;
     va_start(args, format);
-    return flint->newAscii(this, format, args);
+    jstring str = flint->newAscii(this, format, args);
+    va_end(args);
+    return str;
 }
 
 jboolArray FExec::newBoolArray(uint32_t count) {
@@ -289,48 +292,62 @@ jvoid FExec::callVoidMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
     vCallMethod(mtid, args);
+    va_end(args);
 }
 
 jbool FExec::callBoolMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
-    return !!vCallMethod(mtid, args);
+    jbool ret = !!vCallMethod(mtid, args);
+    va_end(args);
+    return ret;
 }
 
 jbyte FExec::callByteMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
-    return (jbyte)vCallMethod(mtid, args);
+    jbyte ret = (jbyte)vCallMethod(mtid, args);
+    va_end(args);
+    return ret;
 }
 
 jchar FExec::callCharMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
-    return (jchar)vCallMethod(mtid, args);
+    jchar ret = (jchar)vCallMethod(mtid, args);
+    va_end(args);
+    return ret;
 }
 
 jshort FExec::callShortMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
-    return (jshort)vCallMethod(mtid, args);
+    jshort ret = (jshort)vCallMethod(mtid, args);
+    va_end(args);
+    return ret;
 }
 
 jint FExec::callIntMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
-    return (jint)vCallMethod(mtid, args);
+    jint ret = (jint)vCallMethod(mtid, args);
+    va_end(args);
+    return ret;
 }
 
 jlong FExec::callLongMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
-    return vCallMethod(mtid, args);
+    jlong ret = vCallMethod(mtid, args);
+    va_end(args);
+    return ret;
 }
 
 jfloat FExec::callFloatMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
     uint32_t ret = (uint32_t)vCallMethod(mtid, args);
+    va_end(args);
     return *(float *)&ret;
 }
 
@@ -338,13 +355,16 @@ jdouble FExec::callDoubleMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
     uint64_t ret = vCallMethod(mtid, args);
+    va_end(args);
     return *(double *)&ret;
 }
 
 jobject FExec::callObjectMethod(jmethodId mtid, ...) {
     va_list args;
     va_start(args, mtid);
-    return (jobject)vCallMethod(mtid, args);
+    jobject ret = (jobject)vCallMethod(mtid, args);
+    va_end(args);
+    return ret;
 }
 
 jvoid FExec::freeObject(jobject obj) {
@@ -2555,6 +2575,7 @@ void FExec::throwNew(JClass *cls, const char *msg, ...) {
     va_list args;
     va_start(args, msg);
     vThrowNew(cls, msg, args);
+    va_end(args);
 }
 
 void FExec::vThrowNew(JClass *cls, const char *msg, va_list args) {

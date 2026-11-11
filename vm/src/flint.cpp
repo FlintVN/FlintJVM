@@ -545,7 +545,9 @@ JString *Flint::newString(FExec *ctx, const char *utf8) {
 JString *Flint::newAscii(FExec *ctx, const char *format, ...) {
     va_list args;
     va_start(args, format);
-    return newAscii(ctx, format, args);
+    JString *str = newAscii(ctx, format, args);
+    va_end(args);
+    return str;
 }
 
 JString *Flint::newAscii(FExec *ctx, const char *format, va_list args) {
@@ -1064,7 +1066,11 @@ bool Flint::start(MethodInfo *method, uint32_t argc, ...) {
 
     va_list args;
     va_start(args, argc);
-    if (exec->vRun(method, argc, args)) return true;
+    if (exec->vRun(method, argc, args)) {
+        va_end(args);
+        return true;
+    }
+    va_end(args);
 
     freeExecution(exec);
     return false;

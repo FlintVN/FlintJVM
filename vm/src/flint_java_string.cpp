@@ -47,9 +47,15 @@ bool JString::setUtf8(Flint *flint, FExec *ctx, const char *utf8) {
 }
 
 bool JString::setAscii(Flint *flint, FExec *ctx, const char *format, va_list args) {
-    int32_t strLen = vsnprintf(NULL, 0, format, args);
+    va_list args2;
+    va_copy(args2, args);
+    int32_t strLen = vsnprintf(NULL, 0, format, args2);
+    va_end(args2);
+    if (strLen < 0) return false;
+
     JByteArray *value = (JByteArray *)flint->newArray(ctx, flint->findClass(ctx, "[B"), strLen);
     if (value == NULL) return false;
+
     char *data = (char *)value->getData();
     /* print starts from data - 1 to workaround losing the last character when buffer size equals the length of the string to print */
     vsnprintf(data - 1, strLen + 1, format, args);
