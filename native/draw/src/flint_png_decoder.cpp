@@ -111,7 +111,9 @@ bool PngDecoder::setImageData(const uint8_t *data, uint32_t len) {
             break;
         pos += 12 + clen;
     }
-    if (width <= 0 || height <= 0 || width > 2048 || height > 2048 || interlace != 0 || idatLen == 0)
+    if (width <= 0 || height <= 0 || width > 0x7FFF || height > 0x7FFF || interlace != 0 || idatLen == 0)
+        return false;
+    if ((uint64_t)width * (uint64_t)height > 0x1000000)
         return false;
 
     bool subByte = (colorType == 3 && (bitDepth == 1 || bitDepth == 2 || bitDepth == 4));
