@@ -54,7 +54,8 @@ jvoid NativeFileOutputStream_Write(FNIEnv *env, jobject obj, jint b) {
         ((FExec *)env)->getFlint()->consoleWrite(&buff, 1);
     }
     else if (fd == 2) {  /* err */
-
+        uint8_t buff = (uint8_t)b;
+        ((FExec *)env)->getFlint()->consoleWrite(&buff, 1);
     }
     else {
         uint8_t data = b & 0xFF;
