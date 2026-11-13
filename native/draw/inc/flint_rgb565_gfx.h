@@ -29,6 +29,8 @@ public:
     void fillRoundRect(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h, int32_t r1, int32_t r2, int32_t r3, int32_t r4);
     void drawImage(Image *img, int32_t x, int32_t y);
     void drawImage(Image *img, int32_t x, int32_t y, uint16_t w, uint16_t h);
+    void drawRgb(uint32_t *rgb, int32_t scanlength, int32_t x, int32_t y, int32_t w, int32_t h, bool processAlpha);
+    void drawRegion(Image *img, int32_t sx, int32_t sy, int32_t sw, int32_t sh, uint8_t transform, int32_t x, int32_t y);
     void drawLatin1(uint8_t *str, uint32_t len, Font *font, uint32_t color, int32_t x, int32_t y);
     void drawUTF16(uint8_t *str, uint32_t len, Font *font, uint32_t color, int32_t x, int32_t y);
 private:

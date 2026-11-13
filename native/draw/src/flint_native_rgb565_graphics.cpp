@@ -255,3 +255,55 @@ jvoid NativeRgb565Graphics_DrawImage2(FNIEnv *env, jobject obj, jobject img, jin
     Image cimg(hasAlpha, imgw, imgh, data);
     g.drawImage(&cimg, x + ox, y + oy, w, h);
 }
+
+jvoid NativeRgb565Graphics_DrawRgb(FNIEnv *env, jobject obj, jintArray rgb, jint offset, jint scanlength, jint x, jint y, jint width, jint height, jbool processAlpha) {
+    if (rgb == NULL) {
+        env->throwNew(env->findClass("java/lang/NullPointerException"), "rgb array cannot be null");
+        return;
+    }
+    if (width <= 0 || height <= 0) return;
+
+    int64_t lastRow = (int64_t)(height - 1) * scanlength;
+    int64_t minIdx = (int64_t)offset + (lastRow < 0 ? lastRow : 0);
+    int64_t maxIdx = (int64_t)offset + (lastRow > 0 ? lastRow : 0) + width - 1;
+    if (minIdx < 0 || maxIdx >= (int64_t)rgb->getLength()) {
+        env->throwNew(env->findClass("java/lang/ArrayIndexOutOfBoundsException"), "The requested access exceeds the bounds of rgb array");
+        return;
+    }
+
+    Rgb565GfxInitHelper g((JRgb565Gfx)obj);
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
+    uint32_t *pixels = &((uint32_t *)rgb->getData())[offset];
+    g.drawRgb(pixels, scanlength, x + ox, y + oy, width, height, processAlpha);
+}
+
+jvoid NativeRgb565Graphics_DrawRegion(FNIEnv *env, jobject obj, jobject src, jint sx, jint sy, jint sw, jint sh, jint transform, jint dx, jint dy) {
+    if (src == NULL) {
+        env->throwNew(env->findClass("java/lang/NullPointerException"), "src cannot be null");
+        return;
+    }
+    if (transform < 0 || transform > 7) {
+        env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "Invalid transform");
+        return;
+    }
+    jbyteArray srcData = (jbyteArray)src->getFieldByIndex(3)->getObj();
+    if (srcData == (jbyteArray)obj->getFieldByIndex(8)->getObj()) {
+        env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "src is the same image as the destination of this Graphics object");
+        return;
+    }
+    jbool hasAlpha = src->getFieldByIndex(0)->getInt32();
+    jint imgw = src->getFieldByIndex(1)->getInt32();
+    jint imgh = src->getFieldByIndex(2)->getInt32();
+    if (sw < 0 || sh < 0 || sx < 0 || sy < 0 || sx > imgw - sw || sy > imgh - sh) {
+        env->throwNew(env->findClass("java/lang/IllegalArgumentException"), "The source region exceeds the bounds of the source image");
+        return;
+    }
+    if (sw == 0 || sh == 0) return;
+
+    Rgb565GfxInitHelper g((JRgb565Gfx)obj);
+    jint ox = ((JRgb565Gfx)obj)->getX();
+    jint oy = ((JRgb565Gfx)obj)->getY();
+    Image cimg(hasAlpha, imgw, imgh, srcData->getData());
+    g.drawRegion(&cimg, sx, sy, sw, sh, (uint8_t)transform, dx + ox, dy + oy);
+}

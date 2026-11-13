@@ -35,6 +35,7 @@
 #endif /* FLINT_API_NET_ENABLED */
 
 #include "flint_native_graphics.h"
+#include "flint_native_rgb565_image.h"
 #include "flint_native_image_decoder.h"
 #include "flint_native_rgb565_graphics.h"
 #include "flint_native_rgb565_graphics_factory.h"
@@ -71,6 +72,7 @@ static constexpr NativeClass BASE_NATIVE_CLASS_LIST[] = {
 #endif /* FLINT_API_NET_ENABLED */
 
     NATIVE_CLASS("flint/drawing/Graphics",               graphicsMethods),
+    NATIVE_CLASS("flint/drawing/Rgb565Image",            rgb565ImageMethods),
     NATIVE_CLASS("flint/drawing/ImageDecoder",           imageDecoderMethods),
     NATIVE_CLASS("flint/drawing/Rgb565Graphics",         rgb565GraphicsMethods),
     NATIVE_CLASS("flint/drawing/Rgb565Graphics$Factory", rgb565GraphicsFactoryMethods),

@@ -22,6 +22,8 @@ jvoid NativeRgb565Graphics_FillPolygon(FNIEnv *env, jobject obj, jobject c, jobj
 jvoid NativeRgb565Graphics_DrawString(FNIEnv *env, jobject obj, jstring str, jobject font, jobject c, jint x, jint y);
 jvoid NativeRgb565Graphics_DrawImage1(FNIEnv *env, jobject obj, jobject img, jint x, jint y);
 jvoid NativeRgb565Graphics_DrawImage2(FNIEnv *env, jobject obj, jobject img, jint x, jint y, jint w, jint h);
+jvoid NativeRgb565Graphics_DrawRgb(FNIEnv *env, jobject obj, jintArray rgb, jint offset, jint scanlength, jint x, jint y, jint width, jint height, jbool processAlpha);
+jvoid NativeRgb565Graphics_DrawRegion(FNIEnv *env, jobject obj, jobject src, jint sx, jint sy, jint sw, jint sh, jint transform, jint dx, jint dy);
 
 inline constexpr NativeMethod rgb565GraphicsMethods[] = {
     NATIVE_METHOD("clear",         "()V",                                                               NativeRgb565Graphics_Clear1),
@@ -42,6 +44,8 @@ inline constexpr NativeMethod rgb565GraphicsMethods[] = {
     NATIVE_METHOD("drawString",    "(Ljava/lang/String;Lflint/drawing/Font;Lflint/drawing/Color;II)V",  NativeRgb565Graphics_DrawString),
     NATIVE_METHOD("drawImage",     "(Lflint/drawing/Image;II)V",                                        NativeRgb565Graphics_DrawImage1),
     NATIVE_METHOD("drawImage",     "(Lflint/drawing/Image;IIII)V",                                      NativeRgb565Graphics_DrawImage2),
+    NATIVE_METHOD("drawRgb",       "([IIIIIIIZ)V",                                                      NativeRgb565Graphics_DrawRgb),
+    NATIVE_METHOD("drawRegion",    "(Lflint/drawing/Image;IIIIIII)V",                                   NativeRgb565Graphics_DrawRegion),
 };
 
 #endif /* __FLINT_NATIVE_RGB565_GRAPHICS_H */

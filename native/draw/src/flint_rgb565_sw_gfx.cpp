@@ -22,7 +22,7 @@ void Rgb565Gfx::clear(uint32_t color) {
 void Rgb565Gfx::drawLine(uint32_t color, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
     if (x1 == x2 && y1 == y2)
         return;
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     if (y1 == y2) {
         if (x1 > x2) GFX_SWAP(x1, x2);
         ((Rgb565GfxHelper *)this)->blendHLine(alpha, color, x1, x2, y1);
@@ -76,7 +76,7 @@ void Rgb565Gfx::drawLine(uint32_t color, int32_t x1, int32_t y1, int32_t x2, int
 
 void Rgb565Gfx::drawRect(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h) {
     if (!isVisible(this, x, y, w, h)) return;
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
 
     int32_t xo1 = x;
     int32_t yo1 = y;
@@ -99,7 +99,7 @@ void Rgb565Gfx::drawRect(uint32_t color, int32_t x, int32_t y, int32_t w, int32_
 }
 
 void Rgb565Gfx::fillRect(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h) {
-    ((Rgb565GfxHelper *)this)->blendRect(color >> 27, color, x, y, x + w - 1, y + h - 1);
+    ((Rgb565GfxHelper *)this)->blendRect(((color >> 24) + 4) >> 3, color, x, y, x + w - 1, y + h - 1);
 }
 
 static void radiusAdjustment(int32_t w, int32_t h, int32_t &r1, int32_t &r2, int32_t &r3, int32_t &r4) {
@@ -117,7 +117,7 @@ static void radiusAdjustment(int32_t w, int32_t h, int32_t &r1, int32_t &r2, int
 }
 
 static void plotH2(Rgb565Gfx *g, uint32_t color, FP cx, int32_t cy, FP x) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     FP px1 = cx - x;
     FP px2 = cx + x;
 
@@ -136,7 +136,7 @@ static void plotH2(Rgb565Gfx *g, uint32_t color, FP cx, int32_t cy, FP x) {
 }
 
 static void plotH4(Rgb565Gfx *g, uint32_t color, FP cx, FP cy, FP x, FP y) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     FP px1 = cx - x;
     FP px2 = cx + x;
     int32_t py1 = cy - y;
@@ -165,7 +165,7 @@ static void plotH4(Rgb565Gfx *g, uint32_t color, FP cx, FP cy, FP x, FP y) {
 }
 
 static void plotV2(Rgb565Gfx *g, uint32_t color, int32_t cx, FP cy, FP y) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     FP py1 = cy - y;
     FP py2 = cy + y;
 
@@ -184,7 +184,7 @@ static void plotV2(Rgb565Gfx *g, uint32_t color, int32_t cx, FP cy, FP y) {
 }
 
 static void plotV4(Rgb565Gfx *g, uint32_t color, FP cx, FP cy, FP x, FP y) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     int32_t px1 = cx - x;
     int32_t px2 = cx + x;
     FP py1 = cy - y;
@@ -282,7 +282,7 @@ void Rgb565Gfx::drawEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
 }
 
 static void drawHLineAA(Rgb565Gfx *g, uint32_t color, FP x1, FP x2, int32_t y) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     uint8_t a1 = alpha - x1.fraction(alpha);
     uint8_t a2 = x2.fraction(alpha);
     int32_t px1 = x1;
@@ -294,7 +294,7 @@ static void drawHLineAA(Rgb565Gfx *g, uint32_t color, FP x1, FP x2, int32_t y) {
 
 static void drawHLineAA(Rgb565Gfx *g, uint32_t color, FP x1, int32_t x2, int32_t y) {
     int32_t px1 = x1;
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     uint8_t a1 = alpha - x1.fraction(alpha);
     ((Rgb565GfxHelper *)g)->blendHLine(alpha, color, px1 + 1, x2, y);
     if (a1 > 0) ((Rgb565GfxHelper *)g)->blendPixel(a1, color, px1, y);
@@ -302,14 +302,14 @@ static void drawHLineAA(Rgb565Gfx *g, uint32_t color, FP x1, int32_t x2, int32_t
 
 static void drawHLineAA(Rgb565Gfx *g, uint32_t color, int32_t x1, FP x2, int32_t y) {
     int32_t px2 = x2;
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     uint8_t a2 = x2.fraction(alpha);
     ((Rgb565GfxHelper *)g)->blendHLine(alpha, color, x1, px2 - 1, y);
     if (a2 > 0) ((Rgb565GfxHelper *)g)->blendPixel(a2, color, px2, y);
 }
 
 static void drawVLineAA(Rgb565Gfx *g, uint32_t color, FP y1, int32_t y2, int32_t x) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     uint8_t a1 = alpha - y1.fraction(alpha);
     int32_t py = y1;
     ((Rgb565GfxHelper *)g)->blendVLine(alpha, color, py + 1, y2, x);
@@ -317,7 +317,7 @@ static void drawVLineAA(Rgb565Gfx *g, uint32_t color, FP y1, int32_t y2, int32_t
 }
 
 static void drawVLineAA(Rgb565Gfx *g, uint32_t color, int32_t y1, FP y2, int32_t x) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     uint8_t a2 = y2.fraction(alpha);
     int32_t py = y2;
     ((Rgb565GfxHelper *)g)->blendVLine(alpha, color, y1, py - 1, x);
@@ -332,7 +332,7 @@ static void fillEllipseHLine2(Rgb565Gfx *g, uint32_t color, FP cx, FP cy, FP x, 
     int32_t py1 = cy - y;
     int32_t py2 = cy + y;
 
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     uint8_t a1 = alpha - fx1.fraction(alpha);
     uint8_t a2 = fx2.fraction(alpha);
 
@@ -346,7 +346,7 @@ static void fillEllipseHLine2(Rgb565Gfx *g, uint32_t color, FP cx, FP cy, FP x, 
 }
 
 static void fillEllipseVLine2(Rgb565Gfx *g, uint32_t color, int32_t cx, FP cy, FP yo, FP yi) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
 
     FP fyo = cy - yo;
     int32_t pyo = fyo;
@@ -364,7 +364,7 @@ static void fillEllipseVLine2(Rgb565Gfx *g, uint32_t color, int32_t cx, FP cy, F
 }
 
 static void fillEllipseVLine4(Rgb565Gfx *g, uint32_t color, FP cx, FP cy, FP yo, FP yi, FP x) {
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     int32_t px1 = cx - x;
     int32_t px2 = cx + x;
 
@@ -467,7 +467,7 @@ void Rgb565Gfx::fillEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
 static void drawQuarterCircle1(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t y, int32_t r) {
     if (!isVisible(g, x, y, r, r)) return;
 
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     FP cx = x + r + FP::HALF;
     FP cy = y + r + FP::HALF;
     FP rr = square(r + FP::HALF);
@@ -505,7 +505,7 @@ static void drawQuarterCircle1(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t 
 static void drawQuarterCircle2(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t y, int32_t r) {
     if (!isVisible(g, x, y, r, r)) return;
 
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     FP cx = x - FP::HALF;
     FP cy = y + r + FP::HALF;
     FP rr = square(r + FP::HALF);
@@ -543,7 +543,7 @@ static void drawQuarterCircle2(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t 
 static void drawQuarterCircle3(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t y, int32_t r) {
     if (!isVisible(g, x, y, r, r)) return;
 
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     FP cx = x - FP::HALF;
     FP cy = y - FP::HALF;
     FP rr = square(r + FP::HALF);
@@ -581,7 +581,7 @@ static void drawQuarterCircle3(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t 
 static void drawQuarterCircle4(Rgb565Gfx *g, uint32_t color, int32_t x, int32_t y, int32_t r) {
     if (!isVisible(g, x, y, r, r)) return;
 
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     FP cx = x + r + FP::HALF;
     FP cy = y - FP::HALF;
     FP rr = square(r + FP::HALF);
@@ -620,7 +620,7 @@ void Rgb565Gfx::drawRoundRect(uint32_t color, int32_t x, int32_t y, int32_t w, i
     if (!isVisible(this, x, y, w, h)) return;
     radiusAdjustment(w, h, r1, r2, r3, r4);
 
-    uint8_t a1 = color >> 27;
+    uint8_t a1 = ((color >> 24) + 4) >> 3;
     ((Rgb565GfxHelper *)this)->blendHLine(a1, color, x + r1, x + w - r2, y);
     ((Rgb565GfxHelper *)this)->blendHLine(a1, color, x + r4, x + w - r3, y + h);
     ((Rgb565GfxHelper *)this)->blendVLine(a1, color, y + r1, y + h - r4, x);
@@ -738,7 +738,7 @@ void Rgb565Gfx::fillRoundRect(uint32_t color, int32_t x, int32_t y, int32_t w, i
     if (!isVisible(this, x, y, w, h)) return;
     radiusAdjustment(w, h, r1, r2, r3, r4);
 
-    uint8_t alpha = color >> 27;
+    uint8_t alpha = ((color >> 24) + 4) >> 3;
     int32_t x1, x2;
     int32_t y1 = GFX_MAX(clipY1 - y, 0);
     int32_t y2 = GFX_MIN(clipY2 - y, h - 1);
@@ -784,11 +784,17 @@ static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y) {
             int32_t sx = dx - x;
             uint32_t aIdx = (uint32_t)sy * img->width + sx;
             uint8_t a = (aIdx & 1) ? (alpha[aIdx >> 1] >> 4) : (alpha[aIdx >> 1] & 0x0F);
+            if (a == 0x0F) {
+                des[dx] = src[sx];
+                continue;
+            }
+            if (a == 0) continue;
+            a = ((a * 0x11) + 4) >> 3;
             uint32_t bg = __builtin_bswap16(des[dx]);
             uint32_t fg = __builtin_bswap16(src[sx]);
             bg = (bg | (bg << 16)) & 0x07E0F81F;
             fg = (fg | (fg << 16)) & 0x07E0F81F;
-            bg += (((fg) - bg) * a) >> 4;
+            bg += ((fg - bg) * a) >> 5;
             bg &= 0x07E0F81F;
             bg = (bg | (bg >> 16));
             des[dx] = __builtin_bswap16(bg);
@@ -833,11 +839,17 @@ static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uin
             uint32_t srcIdx = i * img->width / w;
             uint32_t aIdx = tmp + srcIdx;
             uint8_t a = (aIdx & 1) ? (alpha[aIdx >> 1] >> 4) : (alpha[aIdx >> 1] & 0x0F);
+            if (a == 0x0F) {
+                des[i] = src[srcIdx];
+                continue;
+            }
+            if (a == 0) continue;
+            a = ((a * 0x11) + 4) >> 3;
             uint32_t bg = __builtin_bswap16(des[i]);
             uint32_t fg = __builtin_bswap16(src[srcIdx]);
             bg = (bg | (bg << 16)) & 0x07E0F81F;
             fg = (fg | (fg << 16)) & 0x07E0F81F;
-            bg += (((fg) - bg) * a) >> 4;
+            bg += ((fg - bg) * a) >> 5;
             bg &= 0x07E0F81F;
             bg = (bg | (bg >> 16));
             des[i] = __builtin_bswap16(bg);
@@ -852,6 +864,105 @@ void Rgb565Gfx::drawImage(Image *img, int32_t x, int32_t y, uint16_t w, uint16_t
         return drawImageRGB565(this, img, x, y, w, h);
 }
 
+void Rgb565Gfx::drawRgb(uint32_t *rgb, int32_t scanlength, int32_t x, int32_t y, int32_t w, int32_t h, bool processAlpha) {
+    if (w <= 0 || h <= 0) return;
+    int32_t cx1 = GFX_MAX(GFX_MAX(x, clipX1), 0);
+    int32_t cy1 = GFX_MAX(GFX_MAX(y, clipY1), 0);
+    int32_t cx2 = (int32_t)GFX_MIN(GFX_MIN((int64_t)x + w, (int64_t)clipX2 + 1), (int64_t)width);
+    int32_t cy2 = (int32_t)GFX_MIN(GFX_MIN((int64_t)y + h, (int64_t)clipY2 + 1), (int64_t)height);
+    if (cx1 >= cx2 || cy1 >= cy2) return;
+
+    uint16_t *fb = (uint16_t *)data;
+    for (int32_t py = cy1; py < cy2; py++) {
+        const uint32_t *s = &rgb[(py - y) * scanlength + (cx1 - x)];
+        uint16_t *d = &fb[py * width + cx1];
+        uint16_t *end = &fb[py * width + cx2];
+        if (!processAlpha) {
+            for (; d < end; d++, s++) {
+                uint32_t c = *s;
+                *d = __builtin_bswap16(((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x1F));
+            }
+        }
+        else for (; d < end; d++, s++) {
+            uint32_t c = *s;
+            uint32_t a = c >> 24;
+            if (a == 0) continue;
+            uint32_t fg = ((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x1F);
+            if (a == 0xFF) {
+                *d = __builtin_bswap16(fg);
+                continue;
+            }
+            a = (a + 4) >> 3;
+            uint32_t bg = __builtin_bswap16(*d);
+            bg = (bg | (bg << 16)) & 0x07E0F81F;
+            fg = (fg | (fg << 16)) & 0x07E0F81F;
+            bg += ((fg - bg) * a) >> 5;
+            bg &= 0x07E0F81F;
+            bg = (bg | (bg >> 16));
+            *d = __builtin_bswap16(bg);
+        }
+    }
+}
+
+void Rgb565Gfx::drawRegion(Image *img, int32_t sx, int32_t sy, int32_t sw, int32_t sh, uint8_t transform, int32_t x, int32_t y) {
+    if (sw <= 0 || sh <= 0 || transform > 7) return;
+
+    const int32_t iw = img->width;
+    const int32_t top = sy * iw, bottom = (sy + sh - 1) * iw;
+    const int32_t left = sx, right = sx + sw - 1;
+    int32_t base, du, dv;
+    switch (transform) {
+        case 0:  base = top + left;     du = 1;   dv = iw;  break; // NONE
+        case 1:  base = bottom + left;  du = 1;   dv = -iw; break; // MIRROR_ROT180
+        case 2:  base = top + right;    du = -1;  dv = iw;  break; // MIRROR
+        case 3:  base = bottom + right; du = -1;  dv = -iw; break; // ROT180
+        case 4:  base = top + left;     du = iw;  dv = 1;   break; // MIRROR_ROT270
+        case 5:  base = bottom + left;  du = -iw; dv = 1;   break; // ROT90
+        case 6:  base = top + right;    du = iw;  dv = -1;  break; // ROT270
+        default: base = bottom + right; du = -iw; dv = -1;  break; // MIRROR_ROT90
+    }
+    const int32_t dw = (transform & 4) ? sh : sw;
+    const int32_t dh = (transform & 4) ? sw : sh;
+
+    int32_t cx1 = GFX_MAX(GFX_MAX(x, clipX1), 0);
+    int32_t cy1 = GFX_MAX(GFX_MAX(y, clipY1), 0);
+    int32_t cx2 = (int32_t)GFX_MIN(GFX_MIN((int64_t)x + dw, (int64_t)clipX2 + 1), (int64_t)width);
+    int32_t cy2 = (int32_t)GFX_MIN(GFX_MIN((int64_t)y + dh, (int64_t)clipY2 + 1), (int64_t)height);
+    if (cx1 >= cx2 || cy1 >= cy2) return;
+
+    const uint16_t *src = (const uint16_t *)img->data;
+    const uint8_t *alpha = img->hasAlpha ? (const uint8_t *)&src[(uint32_t)img->width * img->height] : NULL;
+    uint16_t *fb = (uint16_t *)data;
+    for (int32_t py = cy1; py < cy2; py++) {
+        int32_t idx = base + (cx1 - x) * du + (py - y) * dv;
+        uint16_t *d = &fb[py * width + cx1];
+        uint16_t *end = &fb[py * width + cx2];
+        if (alpha == NULL) {
+            if (du == 1)
+                memcpy(d, &src[idx], (size_t)(end - d) * 2);
+            else for (; d < end; d++, idx += du)
+                *d = src[idx];
+        }
+        else for (; d < end; d++, idx += du) {
+            uint32_t a = (idx & 1) ? (alpha[idx >> 1] >> 4) : (alpha[idx >> 1] & 0x0F);
+            if (a == 0x0F) {
+                *d = src[idx];
+                continue;
+            }
+            if (a == 0) continue;
+            a = ((a * 0x11) + 4) >> 3;
+            uint32_t bg = __builtin_bswap16(*d);
+            uint32_t fg = __builtin_bswap16(src[idx]);
+            bg = (bg | (bg << 16)) & 0x07E0F81F;
+            fg = (fg | (fg << 16)) & 0x07E0F81F;
+            bg += ((fg - bg) * a) >> 5;
+            bg &= 0x07E0F81F;
+            bg = (bg | (bg >> 16));
+            *d = __builtin_bswap16(bg);
+        }
+    }
+}
+
 static void drawChar(Rgb565GfxHelper *g, const CharInfo *c, uint32_t color, int32_t x, int32_t y) {
     int32_t cx0 = GFX_MAX(g->clipX1 - x, 0);
     int32_t cxw = GFX_MIN(g->clipX2 - x + 1, (int32_t)c->getWidth());
@@ -859,9 +970,9 @@ static void drawChar(Rgb565GfxHelper *g, const CharInfo *c, uint32_t color, int3
 
     uint8_t height = c->getHeight();
     int8_t yOff = c->getYOffset();
-    uint8_t alpha = color >> 27;
+    uint32_t alpha = ((color >> 24) + 4) >> 3;
 
-    if (alpha == 0x1F) {
+    if (alpha == 0x20) {
         for (int32_t cy = 0; cy < height; cy++) {
             int32_t py = y + cy + yOff;
             if (!(g->clipY1 <= py && py <= g->clipY2)) continue;

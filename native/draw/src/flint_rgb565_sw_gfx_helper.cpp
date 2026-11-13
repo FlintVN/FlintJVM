@@ -38,7 +38,7 @@ void Rgb565GfxHelper::blendHLine(uint8_t alpha, uint16_t color, int32_t x1, int3
 
         uint16_t *p = &((uint16_t *)data)[y * width + x1];
         uint16_t *end = &((uint16_t *)data)[y * width + x2];
-        if (alpha == 0x1F)
+        if (alpha == 32)
             for (; p <= end; p++) *p = color;
         else {
             uint32_t fg = __builtin_bswap16(color);
@@ -56,7 +56,7 @@ void Rgb565GfxHelper::blendVLine(uint8_t alpha, uint16_t color, int32_t y1, int3
 
         uint16_t *p = &((uint16_t *)data)[y1 * width + x];
         uint16_t *end = &((uint16_t *)data)[y2 * width + x];
-        if (alpha == 0x1F)
+        if (alpha == 32)
             for (; p <= end; p += width) *p = color;
         else {
             uint32_t fg = __builtin_bswap16(color);
@@ -75,7 +75,7 @@ void Rgb565GfxHelper::blendRect(uint8_t alpha, uint16_t color, int32_t x1, int32
     y2 = GFX_MIN(clipY2, y2);
     if (y1 > y2) return;
 
-    if (alpha == 0x1F) {
+    if (alpha == 32) {
         if (x1 == x2) {
             uint16_t *p = &((uint16_t *)data)[y1 * width + x1];
             uint16_t *end = &((uint16_t *)data)[y2 * width + x1];
