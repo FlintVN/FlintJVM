@@ -78,6 +78,7 @@ PngDecoder::PngDecoder(void) {
     height = 0;
     trnsCount = 0;
     idatLen = 0;
+    idatCount = 0;
     palette = NULL;
     trns = NULL;
     idat = NULL;
@@ -104,8 +105,9 @@ bool PngDecoder::setImageData(const uint8_t *data, uint32_t len) {
             trnsCount = clen;
         }
         else if (!memcmp(ctype, "IDAT", 4)) {
-            idat = cdata;
-            idatLen = clen;
+            if (idatCount == 0) idat = cdata;
+            idatLen += clen;
+            idatCount++;
         }
         else if (!memcmp(ctype, "IEND", 4))
             break;
@@ -153,9 +155,33 @@ uint8_t *PngDecoder::performDecoding(void) const {
     if (bpp < 1) bpp = 1;
     uint32_t expanded = (rowBytes + 1) * height;     /* +1 filter byte/row */
 
+    const uint8_t *zdata = idat;
+    uint8_t *joined = NULL;
+    if (idatCount > 1) {
+        joined = (uint8_t *)FlintAPI::System::malloc(idatLen);
+        if (!joined) return NULL;
+        const uint8_t *chunk = idat - 8;            /* back to the first IDAT chunk header */
+        uint32_t copied = 0;
+        for (uint32_t i = 0; i < idatCount; i++) {
+            uint32_t clen = be32(chunk);
+            if (memcmp(chunk + 4, "IDAT", 4) || copied + clen > idatLen) {
+                FlintAPI::System::free(joined);
+                return NULL;
+            }
+            memcpy(joined + copied, chunk + 8, clen);
+            copied += clen;
+            chunk += 12 + clen;
+        }
+        zdata = joined;
+    }
+
     uint8_t *raw = (uint8_t *)FlintAPI::System::malloc(expanded);
-    if (!raw) return NULL;
-    size_t got = tinfl_decompress_mem_to_mem(raw, expanded, idat, idatLen, TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
+    if (!raw) {
+        if (joined) FlintAPI::System::free(joined);
+        return NULL;
+    }
+    size_t got = tinfl_decompress_mem_to_mem(raw, expanded, zdata, idatLen, TINFL_FLAG_PARSE_ZLIB_HEADER | TINFL_FLAG_USING_NON_WRAPPING_OUTPUT_BUF);
+    if (joined) FlintAPI::System::free(joined);
     if (got == TINFL_FAILED || got < expanded) {
         FlintAPI::System::free(raw);
         return NULL;

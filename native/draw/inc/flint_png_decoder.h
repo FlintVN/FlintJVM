@@ -11,6 +11,7 @@ private:
     int32_t height;
     int32_t trnsCount;
     uint32_t idatLen;
+    uint32_t idatCount;
     uint32_t bitsPerPixel;
     uint32_t rowBytes;
     const uint8_t *palette;
