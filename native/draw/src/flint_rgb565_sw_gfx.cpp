@@ -426,6 +426,7 @@ void Rgb565Gfx::fillCircle(uint32_t color, int32_t x, int32_t y, uint32_t d) {
 
 void Rgb565Gfx::fillEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, uint32_t h) {
     if (w == h) return fillCircle(color, x, y, w);
+    if (w == 0 || h == 0) return;
     if (!isVisible(this, x, y, w, h)) return;
 
     FP a = (FP)w / (int32_t)2;
@@ -811,6 +812,7 @@ void Rgb565Gfx::drawImage(Image *img, int32_t x, int32_t y) {
 
 static void drawImageRGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uint16_t w, uint16_t h) {
     if (w == img->width && h == img->height) return drawImageRGB565(g, img, x, y);
+    if (w == 0 || h == 0) return;
     int32_t imgx = GFX_MAX(g->clipX1, x) - x;
     int32_t imgy = GFX_MAX(g->clipY1, y) - y;
     int32_t imgw = GFX_MIN(g->clipX2 + 1, x + w) - x;
@@ -825,6 +827,7 @@ static void drawImageRGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uint
 
 static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uint16_t w, uint16_t h) {
     if (w == img->width && h == img->height) return drawImageARGB565(g, img, x, y);
+    if (w == 0 || h == 0) return;
     uint8_t *alpha = &((uint8_t *)img->data)[img->width * img->height * 2];
     int32_t imgx = GFX_MAX(g->clipX1, x) - x;
     int32_t imgy = GFX_MAX(g->clipY1, y) - y;
