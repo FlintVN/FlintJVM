@@ -994,7 +994,7 @@ void Flint::gc(void) {
     execs.forEach([this](FExec *exec) {
         if (exec->ownerThread && (exec->ownerThread->getProtected() & 0x01) == 0)
             markObjectRecursion(exec->ownerThread);
-        if (exec->excp != NULL && ((uint32_t)exec->excp & 0x01) != 0 && (exec->excp->getProtected() & 0x01) == 0)
+        if (exec->excp != NULL && ((uint32_t)exec->excp & 0x01) == 0 && (exec->excp->getProtected() & 0x01) == 0)
             markObjectRecursion(exec->excp);
         int32_t startSp = exec->startSp;
         int32_t endSp = (exec->sp > exec->peakSp) ? exec->sp : exec->peakSp;

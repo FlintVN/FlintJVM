@@ -1,4 +1,5 @@
 
+#include <math.h>
 #include <iostream>
 #include <string.h>
 #include "flint.h"
@@ -6,9 +7,6 @@
 #include "flint_execution.h"
 #include "flint_system_api.h"
 #include "flint_default_conf.h"
-
-#define FLOAT_NAN                           0x7FC00000
-#define DOUBLE_NAN                          0x7FF8000000000000
 
 #define ARRAY_TO_INT16(array)               (int16_t)(((array)[0] << 8) | (array)[1])
 #define ARRAY_TO_INT32(array)               (int32_t)(((array)[0] << 24) | ((array)[1] << 16) | ((array)[2] << 8) | (array)[3])
@@ -188,7 +186,7 @@ jlong FExec::getLongField(jfieldId fid) {
 }
 
 jdouble FExec::getDoubleField(jfieldId fid) {
-    if (fid->getFieldInfo()->desc[0] == 'D') {
+    if (fid->getFieldInfo()->desc[0] != 'D') {
         InvalidAccessFieldType(this, fid);
         return 0;
     }
@@ -624,11 +622,11 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
 
     /* Lock Class/Object if method is SYNCHRONIZED */
     if (flag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if (flag & METHOD_NATIVE) while (lockClass(methodInfo->loader) == false) {
+        if (flag & METHOD_STATIC) while (lockClass(methodInfo->loader) == false) {
             if (FExec::hasTerminateRequest()) return 0;
             FlintAPI::Thread::yield();
         }
-        else while (lockObject((JObject *)stack[sp - argc - 1]) == false) {
+        else while (lockObject((JObject *)stack[sp - argc + 1]) == false) {
             if (FExec::hasTerminateRequest()) return 0;
             FlintAPI::Thread::yield();
         }
@@ -1607,16 +1605,14 @@ void FExec::exec(bool initOpcodeLabels) {
     op_frem: {
         float value2 = stackPopFloat();
         float value1 = stackPopFloat();
-        int32_t temp = (int32_t)(value1 / value2);
-        stackPushFloat(value1 - (temp * value2));
+        stackPushFloat(fmodf(value1, value2));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_drem: {
         double value2 = stackPopDouble();
         double value1 = stackPopDouble();
-        int64_t temp = (int64_t)(value1 / value2);
-        stackPushDouble(value1 - (temp * value2));
+        stackPushDouble(fmod(value1, value2));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1797,7 +1793,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_fcmpg: {
         float value2 = stackPopFloat();
         float value1 = stackPopFloat();
-        if ((*(uint32_t *)&value1 == FLOAT_NAN) || (*(uint32_t *)&value2 == FLOAT_NAN))
+        if ((value1 != value1) || (value2 != value2))
             stackPushInt32((code[pc] == OP_FCMPL) ? -1 : 1);
         else if (value1 > value2)
             stackPushInt32(1);
@@ -1812,7 +1808,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_dcmpg: {
         double value2 = stackPopDouble();
         double value1 = stackPopDouble();
-        if ((*(uint64_t *)&value1 == DOUBLE_NAN) || (*(uint64_t *)&value2 == DOUBLE_NAN))
+        if ((value1 != value1) || (value2 != value2))
             stackPushInt32((code[pc] == OP_DCMPL) ? -1 : 1);
         else if (value1 > value2)
             stackPushInt32(1);
@@ -2448,7 +2444,7 @@ void FExec::exec(bool initOpcodeLabels) {
         JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
         uint8_t dimensions = code[pc + 3];
         for (int32_t i = 0; i < dimensions; i++) {
-            if (stack[sp + i] < 0)
+            if (stack[sp - i] < 0)
                 goto negative_array_size_excp;
         }
         JObject *array = flint->newMultiArray(this, cls, &stack[sp - dimensions + 1], dimensions);
