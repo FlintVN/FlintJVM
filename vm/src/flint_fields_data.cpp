@@ -10,35 +10,6 @@ FieldValue::FieldValue(const FieldInfo *fieldInfo) : fieldInfo(fieldInfo), value
 
 }
 
-const FieldInfo *FieldValue::getFieldInfo(void) const {
-    return fieldInfo;
-}
-
-int32_t FieldValue::getInt32(void) const {
-    return (int32_t)value;
-}
-
-JObject *FieldValue::getObj(void) const {
-    return (JObject *)value;
-}
-
-int64_t FieldValue::getInt64(void) const {
-    return ((uint64_t)this[1].value << 32) | this[0].value;
-}
-
-void FieldValue::setInt32(int32_t val) {
-    value = (uint32_t)val;
-}
-
-void FieldValue::setObj(JObject *obj) {
-    value = (uint32_t)obj;
-}
-
-void FieldValue::setInt64(int64_t val) {
-    this[0].value = (uint32_t)val;
-    this[1].value = (uint64_t)val >> 32;
-}
-
 FieldsData::FieldsData(void) : count(0), objCount(0), fields(NULL) {
 
 }

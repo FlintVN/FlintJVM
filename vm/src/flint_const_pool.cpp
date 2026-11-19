@@ -27,7 +27,3 @@ ConstMethod::ConstMethod(const char *className, ConstNameAndType *nameAndType) :
 className(className), nameAndType(nameAndType), methodInfo(NULL), loaderCache(NULL) {
     argc = GetArgSlotCount(nameAndType->desc);
 }
-
-uint8_t ConstMethod::getArgc(void) const {
-    return argc;
-}

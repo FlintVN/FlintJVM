@@ -13,6 +13,10 @@
 #include "flint_java_string.h"
 #include "flint_file_reader.h"
 
+#define FLAG_HAS_STATIC_FIELD   0x01
+#define FLAG_HAS_CLINIT         0x02
+#define FLAG_STATIC_INIT        0x08
+
 typedef enum : uint16_t {
     CLASS_PUBLIC = 0x0001,
     CLASS_FINAL = 0x0010,
@@ -67,11 +71,27 @@ public:
     int32_t compareKey(const char *key, uint16_t length) const override;
     int32_t compareKey(DictNode *other) const override;
 
-    ConstPoolTag getConstPoolTag(uint16_t poolIndex) const;
-    int32_t getConstInteger(uint16_t poolIndex) const;
-    float getConstFloat(uint16_t poolIndex) const;
-    int64_t getConstLong(uint16_t poolIndex) const;
-    double getConstDouble(uint16_t poolIndex) const;
+    inline __attribute__((always_inline)) ConstPoolTag getConstPoolTag(uint16_t poolIndex) const {
+        return (ConstPoolTag)(poolTable[poolIndex - 1].tag & 0x7F);
+    }
+
+    inline __attribute__((always_inline)) int32_t getConstInteger(uint16_t poolIndex) const {
+        return (int32_t)poolTable[poolIndex - 1].value;
+    }
+
+    inline __attribute__((always_inline)) float getConstFloat(uint16_t poolIndex) const {
+        return *(float *)&poolTable[poolIndex - 1].value;
+    }
+
+    inline __attribute__((always_inline)) int64_t getConstLong(uint16_t poolIndex) const {
+        return ((uint64_t)poolTable[poolIndex].value << 32) | poolTable[poolIndex - 1].value;
+    }
+
+    inline __attribute__((always_inline)) double getConstDouble(uint16_t poolIndex) const {
+        uint64_t ret = ((uint64_t)poolTable[poolIndex].value << 32) | poolTable[poolIndex - 1].value;
+        return *(double *)&ret;
+    }
+
     const char *getConstUtf8(uint16_t poolIndex) const;
     const char *getConstClassName(uint16_t poolIndex) const;
 
@@ -119,7 +139,12 @@ public:
     FieldValue *getStaticField(FExec *ctx, const char *name) const;
     FieldValue *getStaticFieldByIndex(uint32_t index) const;
 
-    StaticInitStatus getStaticInitStatus(void) const;
+    inline __attribute__((always_inline)) StaticInitStatus getStaticInitStatus(void) const {
+        if (loaderFlags & FLAG_STATIC_INIT)
+            return INITIALIZED;
+        return (staticFields == NULL) ? UNINITIALIZED : INITIALIZING;
+    }
+
     void staticInitialized(void);
     bool initStaticFields(FExec *ctx);
     void clearStaticFields(void);

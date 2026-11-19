@@ -10,13 +10,34 @@ private:
     const FieldInfo * const fieldInfo;
     uint32_t value;
 public:
-    const FieldInfo *getFieldInfo(void) const;
-    int32_t getInt32(void) const;
-    class JObject *getObj(void) const;
-    int64_t getInt64(void) const;
-    void setInt32(int32_t val);
-    void setObj(class JObject *obj);
-    void setInt64(int64_t val);
+    inline __attribute__((always_inline)) const FieldInfo *getFieldInfo(void) const {
+        return fieldInfo;
+    }
+
+    inline __attribute__((always_inline)) int32_t getInt32(void) const {
+        return (int32_t)value;
+    }
+
+    inline __attribute__((always_inline)) class JObject *getObj(void) const {
+        return (class JObject *)value;
+    }
+
+    inline __attribute__((always_inline)) int64_t getInt64(void) const {
+        return ((uint64_t)this[1].value << 32) | this[0].value;
+    }
+
+    inline __attribute__((always_inline)) void setInt32(int32_t val) {
+        value = (uint32_t)val;
+    }
+
+    inline __attribute__((always_inline)) void setObj(JObject *obj) {
+        value = (uint32_t)obj;
+    }
+
+    inline __attribute__((always_inline)) void setInt64(int64_t val) {
+        this[0].value = (uint32_t)val;
+        this[1].value = (uint64_t)val >> 32;
+    }
 private:
     FieldValue(const FieldInfo *fieldInfo);
     FieldValue(const FieldValue &) = delete;

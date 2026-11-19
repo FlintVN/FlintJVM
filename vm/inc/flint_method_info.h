@@ -3,6 +3,7 @@
 #define __FLINT_METHOD_INFO_H
 
 #include "flint_std.h"
+#include "flint_native.h"
 #include "flint_const_pool.h"
 
 class Exceptions {
@@ -82,14 +83,52 @@ private:
     const char * retType;
     uint8_t *code;
 public:
-    const char *getReturnType(void);
-    uint8_t *getCode(void);
-    uint32_t getCodeLength(void) const;
-    uint16_t getMaxLocals(void) const;
-    uint16_t getMaxStack(void) const;
-    Exceptions *getExceptions(void) const;
-    uint16_t getExceptionEntryLength(void) const;
-    ExceptionEntry *getExceptionEntry(uint16_t index) const;
+    inline __attribute__((always_inline)) const char *getReturnType(void) {
+        if (retType == NULL) {
+            const char *tmp = desc;
+            while (*tmp != ')')
+                tmp++;
+            retType = ++tmp;
+        }
+        return retType;
+    }
+
+    inline __attribute__((always_inline)) uint8_t *getCode(void) {
+        if (accessFlag & METHOD_NATIVE) {
+            if (code == 0)
+                code = (uint8_t *)NativeClass::findNativeMethod(this);
+            return (uint8_t *)code;
+        }
+        CodeAttribute *codeAttr = (CodeAttribute *)code;
+        return (uint8_t *)&((ExceptionEntry *)codeAttr->data)[codeAttr->exceptionLength];
+    }
+
+    inline __attribute__((always_inline)) uint32_t getCodeLength(void) const {
+        return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->codeLength;
+    }
+
+    inline __attribute__((always_inline)) uint16_t getMaxLocals(void) const {
+        return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->maxLocals;
+    }
+
+    inline __attribute__((always_inline)) uint16_t getMaxStack(void) const {
+        return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->maxStack;
+    }
+
+    inline __attribute__((always_inline)) Exceptions *getExceptions(void) const {
+        return exceptions;
+    }
+
+    inline __attribute__((always_inline)) uint16_t getExceptionEntryLength(void) const {
+        return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->exceptionLength;
+    }
+
+    inline __attribute__((always_inline)) ExceptionEntry *getExceptionEntry(uint16_t index) const {
+        if (accessFlag & METHOD_NATIVE)
+            return NULL;
+        CodeAttribute *codeAttr = (CodeAttribute *)code;
+        return &((ExceptionEntry *)codeAttr->data)[index];
+    }
 private:
     MethodInfo(ClassLoader *loader, MethodAccessFlag accessFlag, const char *name, const char *desc);
     MethodInfo(const MethodInfo &) = delete;

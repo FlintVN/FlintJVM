@@ -8,10 +8,6 @@
 #include "flint_class_loader.h"
 #include "flint_zip_file_reader.h"
 
-#define FLAG_HAS_STATIC_FIELD   0x01
-#define FLAG_HAS_CLINIT         0x02
-#define FLAG_STATIC_INIT        0x08
-
 typedef struct {
     ConstPoolTag tag;
     uint16_t clsNameIndex;
@@ -371,27 +367,6 @@ Exceptions *ClassLoader::readAttributeExceptions(FileReader *reader) {
     return exceptions;
 }
 
-ConstPoolTag ClassLoader::getConstPoolTag(uint16_t poolIndex) const {
-    return (ConstPoolTag)(poolTable[poolIndex - 1].tag & 0x7F);
-}
-
-int32_t ClassLoader::getConstInteger(uint16_t poolIndex) const {
-    return (int32_t)poolTable[poolIndex - 1].value;
-}
-
-float ClassLoader::getConstFloat(uint16_t poolIndex) const {
-    return *(float *)&poolTable[poolIndex - 1].value;
-}
-
-int64_t ClassLoader::getConstLong(uint16_t poolIndex) const {
-    return ((uint64_t)poolTable[poolIndex].value << 32) | poolTable[poolIndex - 1].value;
-}
-
-double ClassLoader::getConstDouble(uint16_t poolIndex) const {
-    uint64_t ret = ((uint64_t)poolTable[poolIndex].value << 32) | poolTable[poolIndex - 1].value;
-    return *(double *)&ret;
-}
-
 const char *ClassLoader::getConstUtf8(uint16_t poolIndex) const {
     return (const char *)poolTable[poolIndex - 1].value;
 }
@@ -711,12 +686,6 @@ FieldValue *ClassLoader::getStaticField(FExec *ctx, const char *name) const {
 
 FieldValue *ClassLoader::getStaticFieldByIndex(uint32_t index) const {
     return staticFields->getFieldByIndex(index);
-}
-
-StaticInitStatus ClassLoader::getStaticInitStatus(void) const {
-    if (loaderFlags & FLAG_STATIC_INIT)
-        return INITIALIZED;
-    return (staticFields == NULL) ? UNINITIALIZED : INITIALIZING;
 }
 
 void ClassLoader::staticInitialized(void) {

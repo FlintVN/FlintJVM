@@ -14,8 +14,68 @@
 #define GET_STACK_VALUE(_index)             stack[_index]
 #define SET_STACK_VALUE(_index, _value)     stack[_index] = _value
 
+#define STACK_PUSH_I32(_value)              stack[++sp] = _value
+#define STACK_PUSH_I64(_value)              execPushInt64(stack, sp, (_value))
+#define STACK_PUSH_F32(_value)              execPushFloat(stack, sp, (_value))
+#define STACK_PUSH_F64(_value)              execPushDouble(stack, sp, (_value))
+#define STACK_POP_I32()                     stack[sp--]
+#define STACK_POP_I64()                     execPopInt64(stack, sp)
+#define STACK_POP_F32()                     execPopFloat(stack, sp)
+#define STACK_POP_F64()                     execPopDouble(stack, sp)
+#define STACK_POP_OBJ()                     ((JObject *)stack[sp--])
+
+#define PUSH_OBJ(o) do {                                        \
+    JObject *_pushObj = (JObject *)(o);                         \
+    stack[++sp] = (int32_t)_pushObj;                            \
+    peakSp = sp;                                                \
+    if (_pushObj && (_pushObj->getProtected() & 0x02))          \
+        flint->clearProtLv2(_pushObj);                          \
+} while (0)
+
+#define SYNC_STATE()                        do { this->pc = pc; this->sp = sp; } while (0)
+#define LOAD_STATE()                        do { pc = this->pc; sp = this->sp; code = this->code; locals = this->locals; } while (0)
+#define EXEC_RETURN()                       do { SYNC_STATE(); return; } while (0)
+#define THROW_NEW(...)                      do { SYNC_STATE(); FExec::throwNew(__VA_ARGS__); } while (0)
+
 static const void **opcodeLabelsStop = NULL;
 static const void **opcodeLabelsExit = NULL;
+
+static inline __attribute__((always_inline)) void execPushInt64(int32_t *stack, int32_t &sp, int64_t value) {
+    stack[++sp] = (int32_t)(uint32_t)value;
+    stack[++sp] = (int32_t)(uint32_t)((uint64_t)value >> 32);
+}
+
+static inline __attribute__((always_inline)) void execPushFloat(int32_t *stack, int32_t &sp, float value) {
+    int32_t tmp;
+    memcpy(&tmp, &value, sizeof(tmp));
+    stack[++sp] = tmp;
+}
+
+static inline __attribute__((always_inline)) void execPushDouble(int32_t *stack, int32_t &sp, double value) {
+    int64_t tmp;
+    memcpy(&tmp, &value, sizeof(tmp));
+    execPushInt64(stack, sp, tmp);
+}
+
+static inline __attribute__((always_inline)) int64_t execPopInt64(const int32_t *stack, int32_t &sp) {
+    uint32_t hi = (uint32_t)stack[sp--];
+    uint32_t lo = (uint32_t)stack[sp--];
+    return (int64_t)(((uint64_t)hi << 32) | lo);
+}
+
+static inline __attribute__((always_inline)) float execPopFloat(const int32_t *stack, int32_t &sp) {
+    float ret;
+    int32_t tmp = stack[sp--];
+    memcpy(&ret, &tmp, sizeof(ret));
+    return ret;
+}
+
+static inline __attribute__((always_inline)) double execPopDouble(const int32_t *stack, int32_t &sp) {
+    double ret;
+    int64_t tmp = execPopInt64(stack, sp);
+    memcpy(&ret, &tmp, sizeof(ret));
+    return ret;
+}
 
 jclass FExec::findClass(const char *name, uint16_t length) {
     if ((length == 15 || length == 0xFFFF) && strncmp("java/lang/Class", name, 15) == 0)
@@ -613,7 +673,11 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
             FExec::throwNew(flint->findClass(this, "java/lang/StackOverflowError"));
             return 0;
         }
-        memmove(&stack[sp + 1 + 4], &stack[sp + 1], argc * sizeof(uint32_t));
+        int32_t *args = &stack[sp + 1];
+        for (int32_t i = argc - 1; i >= 0; i--) {
+            args[i + 4] = args[i];
+            __asm__ volatile("" ::: "memory"); /* Keep GCC from turning this loop back into a memmove call */
+        }
         stackSaveContext();
         sp += argc;
         initExitPoint(methodInfo);
@@ -742,7 +806,11 @@ void FExec::invoke(MethodInfo *methodInfo, uint8_t argc) {
         sp -= argc;
         if ((sp + methodInfo->getMaxLocals() + methodInfo->getMaxStack() + 4) >= stackLength)
             return FExec::throwNew(flint->findClass(this, "java/lang/StackOverflowError"));
-        memmove(&stack[sp + 1 + 4], &stack[sp + 1], argc * sizeof(uint32_t));
+        int32_t *args = &stack[sp + 1];
+        for (int32_t i = argc - 1; i >= 0; i--) {
+            args[i + 4] = args[i];
+            __asm__ volatile("" ::: "memory"); /* Keep GCC from turning this loop back into a memmove call */
+        }
         stackSaveContext();
         initNewContext(methodInfo, argc);
     }
@@ -890,17 +958,22 @@ void FExec::exec(bool initOpcodeLabels) {
     FDbg *dbg = flint->getDebugger();
     if (initOpcodeLabels) opcodes = (const void ** volatile)opcodeLabels;
 
-    const uint8_t *code = this->code;
+    const uint8_t *code;
+    uint32_t pc;
+    int32_t sp;
+    int32_t *locals;
+    LOAD_STATE();
 
     if (method->loader->getStaticInitStatus() == UNINITIALIZED) {
         invokeStaticCtor(method->loader);
+        LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        code = this->code;
         goto *opcodes[code[pc]];
     }
 
     goto *opcodes[code[pc]];
     dbg_stop: {
+        SYNC_STATE();
         if (dbg && !dbg->checkStop(this)) {
             if (FExec::hasTerminateRequest()) {
                 // TODO - ERROR
@@ -908,74 +981,75 @@ void FExec::exec(bool initOpcodeLabels) {
             }
             opcodes = (const void ** volatile)opcodeLabels;
         }
+        LOAD_STATE();
         goto *opcodeLabels[code[pc]];
     }
     op_nop:
         pc++;
         goto *opcodes[code[pc]];
     op_iconst_m1:
-        stackPushInt32(-1);
+        STACK_PUSH_I32(-1);
         pc++;
         goto *opcodes[code[pc]];
     op_iconst_0:
     op_aconst_null:
-        stackPushInt32(0);
+        STACK_PUSH_I32(0);
         pc++;
         goto *opcodes[code[pc]];
     op_iconst_1:
-        stackPushInt32(1);
+        STACK_PUSH_I32(1);
         pc++;
         goto *opcodes[code[pc]];
     op_iconst_2:
-        stackPushInt32(2);
+        STACK_PUSH_I32(2);
         pc++;
         goto *opcodes[code[pc]];
     op_iconst_3:
-        stackPushInt32(3);
+        STACK_PUSH_I32(3);
         pc++;
         goto *opcodes[code[pc]];
     op_iconst_4:
-        stackPushInt32(4);
+        STACK_PUSH_I32(4);
         pc++;
         goto *opcodes[code[pc]];
     op_iconst_5:
-        stackPushInt32(5);
+        STACK_PUSH_I32(5);
         pc++;
         goto *opcodes[code[pc]];
     op_lconst_0:
-        stackPushInt64(0);
+        STACK_PUSH_I64(0);
         pc++;
         goto *opcodes[code[pc]];
     op_lconst_1:
-        stackPushInt64(1);
+        STACK_PUSH_I64(1);
         pc++;
         goto *opcodes[code[pc]];
     op_fconst_0:
-        stackPushFloat(0);
+        STACK_PUSH_F32(0);
         pc++;
         goto *opcodes[code[pc]];
     op_fconst_1:
-        stackPushFloat(1);
+        STACK_PUSH_F32(1);
         pc++;
         goto *opcodes[code[pc]];
     op_fconst_2:
-        stackPushFloat(2);
+        STACK_PUSH_F32(2);
         pc++;
         goto *opcodes[code[pc]];
     op_dconst_0:
-        stackPushDouble(0);
+        STACK_PUSH_F64(0);
         pc++;
         goto *opcodes[code[pc]];
     op_dconst_1:
-        stackPushDouble(1);
+        STACK_PUSH_F64(1);
         pc++;
         goto *opcodes[code[pc]];
     op_bipush:
-        stackPushInt32((int8_t)code[pc + 1]);
+        STACK_PUSH_I32((int8_t)code[pc + 1]);
         pc += 2;
         goto *opcodes[code[pc]];
     op_sipush:
-        stackPushInt32(ARRAY_TO_INT16(&code[pc + 1]));
+        STACK_PUSH_I32(ARRAY_TO_INT16(&code[pc + 1]));
         pc += 3;
         goto *opcodes[code[pc]];
     op_ldc: {
@@ -983,24 +1057,24 @@ void FExec::exec(bool initOpcodeLabels) {
         ClassLoader *loader = method->loader;
         switch (loader->getConstPoolTag(poolIndex)) {
             case CONST_INTEGER:
-                stackPushInt32(loader->getConstInteger(poolIndex));
+                STACK_PUSH_I32(loader->getConstInteger(poolIndex));
                 pc += 2;
                 goto *opcodes[code[pc]];
             case CONST_FLOAT:
-                stackPushFloat(loader->getConstFloat(poolIndex));
+                STACK_PUSH_F32(loader->getConstFloat(poolIndex));
                 pc += 2;
                 goto *opcodes[code[pc]];
             case CONST_STRING: {
                 JString *str = loader->getConstString(this, poolIndex);
                 if (str == NULL) goto exception_handler;
-                stackPushObject(str);
+                PUSH_OBJ(str);
                 pc += 2;
                 goto *opcodes[code[pc]];
             }
             case CONST_CLASS: {
                 JClass *cls = loader->getConstClass(this, poolIndex);
                 if (cls == NULL) goto exception_handler;
-                stackPushObject(cls);
+                PUSH_OBJ(cls);
                 pc += 2;
                 goto *opcodes[code[pc]];
             }
@@ -1014,8 +1088,8 @@ void FExec::exec(bool initOpcodeLabels) {
                 goto *opcodes[code[pc]];
             default: {
                 JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
-                FExec::throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
-                return;
+                THROW_NEW(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
+                EXEC_RETURN();
             }
         }
     }
@@ -1024,24 +1098,24 @@ void FExec::exec(bool initOpcodeLabels) {
         ClassLoader *loader = method->loader;
         switch (loader->getConstPoolTag(poolIndex)) {
             case CONST_INTEGER:
-                stackPushInt32(loader->getConstInteger(poolIndex));
+                STACK_PUSH_I32(loader->getConstInteger(poolIndex));
                 pc += 3;
                 goto *opcodes[code[pc]];
             case CONST_FLOAT:
-                stackPushFloat(loader->getConstFloat(poolIndex));
+                STACK_PUSH_F32(loader->getConstFloat(poolIndex));
                 pc += 3;
                 goto *opcodes[code[pc]];
             case CONST_STRING: {
                 JString *str = loader->getConstString(this, poolIndex);
                 if (str == NULL) goto exception_handler;
-                stackPushObject(str);
+                PUSH_OBJ(str);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             case CONST_CLASS: {
                 JClass *cls = loader->getConstClass(this, poolIndex);
                 if (cls == NULL) goto exception_handler;
-                stackPushObject(cls);
+                PUSH_OBJ(cls);
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -1055,8 +1129,8 @@ void FExec::exec(bool initOpcodeLabels) {
                 goto *opcodes[code[pc]];
             default: {
                 JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
-                FExec::throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
-                return;
+                THROW_NEW(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
+                EXEC_RETURN();
             }
         }
     }
@@ -1065,275 +1139,275 @@ void FExec::exec(bool initOpcodeLabels) {
         ClassLoader *loader = method->loader;
         switch (loader->getConstPoolTag(poolIndex)) {
             case CONST_LONG:
-                stackPushInt64(loader->getConstLong(poolIndex));
+                STACK_PUSH_I64(loader->getConstLong(poolIndex));
                 pc += 3;
                 goto *opcodes[code[pc]];
             case CONST_DOUBLE:
-                stackPushDouble(loader->getConstDouble(poolIndex));
+                STACK_PUSH_F64(loader->getConstDouble(poolIndex));
                 pc += 3;
                 goto *opcodes[code[pc]];
             default: {
                 JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
-                FExec::throwNew(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
-                return;
+                THROW_NEW(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
+                EXEC_RETURN();
             }
         }
     }
     op_iload:
     op_fload:
-        stackPushInt32(locals[code[pc + 1]]);
+        STACK_PUSH_I32(locals[code[pc + 1]]);
         pc += 2;
         goto *opcodes[code[pc]];
     op_iload_0:
     op_fload_0:
-        stackPushInt32(locals[0]);
+        STACK_PUSH_I32(locals[0]);
         pc++;
         goto *opcodes[code[pc]];
     op_iload_1:
     op_fload_1:
-        stackPushInt32(locals[1]);
+        STACK_PUSH_I32(locals[1]);
         pc++;
         goto *opcodes[code[pc]];
     op_iload_2:
     op_fload_2:
-        stackPushInt32(locals[2]);
+        STACK_PUSH_I32(locals[2]);
         pc++;
         goto *opcodes[code[pc]];
     op_iload_3:
     op_fload_3:
-        stackPushInt32(locals[3]);
+        STACK_PUSH_I32(locals[3]);
         pc++;
         goto *opcodes[code[pc]];
     op_lload:
     op_dload:
-        stackPushInt64(*(int64_t *)&locals[code[pc + 1]]);
+        STACK_PUSH_I64(*(int64_t *)&locals[code[pc + 1]]);
         pc += 2;
         goto *opcodes[code[pc]];
     op_lload_0:
     op_dload_0:
-        stackPushInt64(*(int64_t *)&locals[0]);
+        STACK_PUSH_I64(*(int64_t *)&locals[0]);
         pc++;
         goto *opcodes[code[pc]];
     op_lload_1:
     op_dload_1:
-        stackPushInt64(*(int64_t *)&locals[1]);
+        STACK_PUSH_I64(*(int64_t *)&locals[1]);
         pc++;
         goto *opcodes[code[pc]];
     op_lload_2:
     op_dload_2:
-        stackPushInt64(*(int64_t *)&locals[2]);
+        STACK_PUSH_I64(*(int64_t *)&locals[2]);
         pc++;
         goto *opcodes[code[pc]];
     op_lload_3:
     op_dload_3:
-        stackPushInt64(*(int64_t *)&locals[3]);
+        STACK_PUSH_I64(*(int64_t *)&locals[3]);
         pc++;
         goto *opcodes[code[pc]];
     op_aload:
-        stackPushObject((JObject *)locals[code[pc + 1]]);
+        PUSH_OBJ((JObject *)locals[code[pc + 1]]);
         pc += 2;
         goto *opcodes[code[pc]];
     op_aload_0:
-        stackPushObject((JObject *)locals[0]);
+        PUSH_OBJ((JObject *)locals[0]);
         pc++;
         goto *opcodes[code[pc]];
     op_aload_1:
-        stackPushObject((JObject *)locals[1]);
+        PUSH_OBJ((JObject *)locals[1]);
         pc++;
         goto *opcodes[code[pc]];
     op_aload_2:
-        stackPushObject((JObject *)locals[2]);
+        PUSH_OBJ((JObject *)locals[2]);
         pc++;
         goto *opcodes[code[pc]];
     op_aload_3:
-        stackPushObject((JObject *)locals[3]);
+        PUSH_OBJ((JObject *)locals[3]);
         pc++;
         goto *opcodes[code[pc]];
     op_iaload:
     op_faload: {
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto load_null_array_excp;
         else if (index < 0 || index >= (obj->size / sizeof(int32_t))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
-        stackPushInt32(((int32_t *)obj->data)[index]);
+        STACK_PUSH_I32(((int32_t *)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_laload:
     op_daload: {
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto load_null_array_excp;
         else if (index < 0 || index >= (obj->size / sizeof(int64_t))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int64_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int64_t)));
             goto exception_handler;
         }
-        stackPushInt64(((int64_t *)obj->data)[index]);
+        STACK_PUSH_I64(((int64_t *)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_aaload: {
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto load_null_array_excp;
         else if (index < 0 || index >= (obj->size / sizeof(int32_t))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
-        stackPushObject(((JObject **)obj->data)[index]);
+        PUSH_OBJ(((JObject **)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_baload: {
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto load_null_array_excp;
         else if (index < 0 || index >= (obj->size / sizeof(int8_t))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int8_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int8_t)));
             goto exception_handler;
         }
-        stackPushInt32(((int8_t *)obj->data)[index]);
+        STACK_PUSH_I32(((int8_t *)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_caload: {
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto load_null_array_excp;
         else if (index < 0 || index >= (obj->size / sizeof(uint16_t))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(uint16_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(uint16_t)));
             goto exception_handler;
         }
-        stackPushInt32(((uint16_t *)obj->data)[index]);
+        STACK_PUSH_I32(((uint16_t *)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_saload: {
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto load_null_array_excp;
         else if (index < 0 || index >= (obj->size / sizeof(int16_t))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int16_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int16_t)));
             goto exception_handler;
         }
-        stackPushInt32(((int16_t *)obj->data)[index]);
+        STACK_PUSH_I32(((int16_t *)obj->data)[index]);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_istore:
     op_fstore: {
         uint32_t index = code[pc + 1];
-        locals[index] = stackPopInt32();
+        locals[index] = STACK_POP_I32();
         pc += 2;
         goto *opcodes[code[pc]];
     }
     op_lstore:
     op_dstore: {
         uint32_t index = code[pc + 1];
-        *(uint64_t *)&locals[index] = stackPopInt64();
+        *(uint64_t *)&locals[index] = STACK_POP_I64();
         pc += 2;
         goto *opcodes[code[pc]];
     }
     op_astore: {
         uint32_t index = code[pc + 1];
-        locals[index] = stackPopInt32();
+        locals[index] = STACK_POP_I32();
         pc += 2;
         goto *opcodes[code[pc]];
     }
     op_istore_0:
     op_fstore_0: {
-        locals[0] = stackPopInt32();
+        locals[0] = STACK_POP_I32();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_istore_1:
     op_fstore_1: {
-        locals[1] = stackPopInt32();
+        locals[1] = STACK_POP_I32();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_istore_2:
     op_fstore_2: {
-        locals[2] = stackPopInt32();
+        locals[2] = STACK_POP_I32();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_istore_3:
     op_fstore_3: {
-        locals[3] = stackPopInt32();
+        locals[3] = STACK_POP_I32();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lstore_0:
     op_dstore_0: {
-        *(uint64_t *)&locals[0] = stackPopInt64();
+        *(uint64_t *)&locals[0] = STACK_POP_I64();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lstore_1:
     op_dstore_1: {
-        *(uint64_t *)&locals[1] = stackPopInt64();
+        *(uint64_t *)&locals[1] = STACK_POP_I64();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lstore_2:
     op_dstore_2: {
-        *(uint64_t *)&locals[2] = stackPopInt64();
+        *(uint64_t *)&locals[2] = STACK_POP_I64();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lstore_3:
     op_dstore_3: {
-        *(uint64_t *)&locals[3] = stackPopInt64();
+        *(uint64_t *)&locals[3] = STACK_POP_I64();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_0: {
-        locals[0] = stackPopInt32();
+        locals[0] = STACK_POP_I32();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_1: {
-        locals[1] = stackPopInt32();
+        locals[1] = STACK_POP_I32();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_2: {
-        locals[2] = stackPopInt32();
+        locals[2] = STACK_POP_I32();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_astore_3: {
-        locals[3] = stackPopInt32();
+        locals[3] = STACK_POP_I32();
         pc++;
         goto *opcodes[code[pc]];
     }
     op_iastore:
     op_fastore:
     op_aastore: {
-        int32_t value = stackPopInt32();
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t value = STACK_POP_I32();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto store_null_array_excp;
         else if ((index < 0) || (index >= (obj->size / sizeof(int32_t)))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int32_t)));
             goto exception_handler;
         }
         ((int32_t *)obj->data)[index] = value;
@@ -1342,14 +1416,14 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     op_lastore:
     op_dastore: {
-        int64_t value = stackPopInt64();
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int64_t value = STACK_POP_I64();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto store_null_array_excp;
         else if ((index < 0) || (index >= (obj->size / sizeof(int64_t)))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int64_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int64_t)));
             goto exception_handler;
         }
         ((int64_t *)obj->data)[index] = value;
@@ -1357,14 +1431,14 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodes[code[pc]];
     }
     op_bastore: {
-        int32_t value = stackPopInt32();
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t value = STACK_POP_I32();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto store_null_array_excp;
         else if ((index < 0) || (index >= (obj->size / sizeof(int8_t)))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int8_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int8_t)));
             goto exception_handler;
         }
         ((int8_t *)obj->data)[index] = value;
@@ -1373,14 +1447,14 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     op_castore:
     op_sastore: {
-        int32_t value = stackPopInt32();
-        int32_t index = stackPopInt32();
-        JObject *obj = stackPopObject();
+        int32_t value = STACK_POP_I32();
+        int32_t index = STACK_POP_I32();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL)
             goto store_null_array_excp;
         else if ((index < 0) || (index >= (obj->size / sizeof(int16_t)))) {
             JClass *excpCls = flint->findClass(this, "java/lang/ArrayIndexOutOfBoundsException");
-            FExec::throwNew(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int16_t)));
+            THROW_NEW(excpCls, "Index %d out of bounds for length %d", index, (obj->size / sizeof(int16_t)));
             goto exception_handler;
         }
         ((int16_t *)obj->data)[index] = value;
@@ -1397,14 +1471,16 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodes[code[pc]];
     op_dup: {
         int32_t value = GET_STACK_VALUE(sp);
-        stackPushInt32(value);
+        STACK_PUSH_I32(value);
+        peakSp = sp;
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dup_x1: {
         int32_t value2 = GET_STACK_VALUE(sp - 1);
         int32_t value1 = GET_STACK_VALUE(sp - 0);
-        stackPushInt32(value1);
+        STACK_PUSH_I32(value1);
+        peakSp = sp;
         SET_STACK_VALUE(sp - 1, value2);
         SET_STACK_VALUE(sp - 2, value1);
         pc++;
@@ -1414,7 +1490,8 @@ void FExec::exec(bool initOpcodeLabels) {
         int32_t value3 = GET_STACK_VALUE(sp - 2);
         int32_t value2 = GET_STACK_VALUE(sp - 1);
         int32_t value1 = GET_STACK_VALUE(sp - 0);
-        stackPushInt32(value1);
+        STACK_PUSH_I32(value1);
+        peakSp = sp;
         SET_STACK_VALUE(sp - 1, value2);
         SET_STACK_VALUE(sp - 2, value3);
         SET_STACK_VALUE(sp - 3, value1);
@@ -1424,8 +1501,9 @@ void FExec::exec(bool initOpcodeLabels) {
     op_dup2: {
         int32_t value2 = GET_STACK_VALUE(sp - 1);
         int32_t value1 = GET_STACK_VALUE(sp - 0);
-        stackPushInt32(value2);
-        stackPushInt32(value1);
+        STACK_PUSH_I32(value2);
+        STACK_PUSH_I32(value1);
+        peakSp = sp;
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1433,8 +1511,9 @@ void FExec::exec(bool initOpcodeLabels) {
         int32_t value3 = GET_STACK_VALUE(sp - 2);
         int32_t value2 = GET_STACK_VALUE(sp - 1);
         int32_t value1 = GET_STACK_VALUE(sp - 0);
-        stackPushInt32(value2);
-        stackPushInt32(value1);
+        STACK_PUSH_I32(value2);
+        STACK_PUSH_I32(value1);
+        peakSp = sp;
         SET_STACK_VALUE(sp - 2, value3);
         SET_STACK_VALUE(sp - 3, value1);
         SET_STACK_VALUE(sp - 4, value2);
@@ -1446,8 +1525,9 @@ void FExec::exec(bool initOpcodeLabels) {
         int32_t value3 = GET_STACK_VALUE(sp - 2);
         int32_t value2 = GET_STACK_VALUE(sp - 1);
         int32_t value1 = GET_STACK_VALUE(sp - 0);
-        stackPushInt32(value2);
-        stackPushInt32(value1);
+        STACK_PUSH_I32(value2);
+        STACK_PUSH_I32(value1);
+        peakSp = sp;
         SET_STACK_VALUE(sp - 2, value3);
         SET_STACK_VALUE(sp - 3, value4);
         SET_STACK_VALUE(sp - 4, value1);
@@ -1461,7 +1541,8 @@ void FExec::exec(bool initOpcodeLabels) {
         /* value1 may hold an object pointer. During the swap operation, the reference could temporarily
          * disappear from the stack, creating a risk that the garbage collector may reclaim the object.
          * To prevent this, value1 is pushed onto the stack as a temporary root before the swap is performed. */
-        stackPushInt32(value1);
+        STACK_PUSH_I32(value1);
+        peakSp = sp;
         SET_STACK_VALUE(sp - 1, value2);
         SET_STACK_VALUE(sp - 2, value1);
         sp--;
@@ -1469,150 +1550,150 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodes[code[pc]];
     }
     op_iadd: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
-        stackPushInt32(value1 + value2);
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
+        STACK_PUSH_I32(value1 + value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_ladd: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
-        stackPushInt64(value1 + value2);
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
+        STACK_PUSH_I64(value1 + value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_fadd: {
-        float value2 = stackPopFloat();
-        float value1 = stackPopFloat();
-        stackPushFloat(value1 + value2);
+        float value2 = STACK_POP_F32();
+        float value1 = STACK_POP_F32();
+        STACK_PUSH_F32(value1 + value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dadd: {
-        double value2 = stackPopDouble();
-        double value1 = stackPopDouble();
-        stackPushDouble(value1 + value2);
+        double value2 = STACK_POP_F64();
+        double value1 = STACK_POP_F64();
+        STACK_PUSH_F64(value1 + value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_isub: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
-        stackPushInt32(value1 - value2);
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
+        STACK_PUSH_I32(value1 - value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lsub: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
-        stackPushInt64(value1 - value2);
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
+        STACK_PUSH_I64(value1 - value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_fsub: {
-        float value2 = stackPopFloat();
-        float value1 = stackPopFloat();
-        stackPushFloat(value1 - value2);
+        float value2 = STACK_POP_F32();
+        float value1 = STACK_POP_F32();
+        STACK_PUSH_F32(value1 - value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dsub: {
-        double value2 = stackPopDouble();
-        double value1 = stackPopDouble();
-        stackPushDouble(value1 - value2);
+        double value2 = STACK_POP_F64();
+        double value1 = STACK_POP_F64();
+        STACK_PUSH_F64(value1 - value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_imul: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
-        stackPushInt32(value1 * value2);
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
+        STACK_PUSH_I32(value1 * value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lmul: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
-        stackPushInt64(value1 * value2);
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
+        STACK_PUSH_I64(value1 * value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_fmul: {
-        float value2 = stackPopFloat();
-        float value1 = stackPopFloat();
-        stackPushFloat(value1 * value2);
+        float value2 = STACK_POP_F32();
+        float value1 = STACK_POP_F32();
+        STACK_PUSH_F32(value1 * value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dmul: {
-        double value2 = stackPopDouble();
-        double value1 = stackPopDouble();
-        stackPushDouble(value1 * value2);
+        double value2 = STACK_POP_F64();
+        double value1 = STACK_POP_F64();
+        STACK_PUSH_F64(value1 * value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_idiv: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
         if (value2 == 0)
             goto divided_by_zero_excp;
-        stackPushInt32(value1 / value2);
+        STACK_PUSH_I32(value1 / value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_ldiv: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
         if (value2 == 0)
             goto divided_by_zero_excp;
-        stackPushInt64(value1 / value2);
+        STACK_PUSH_I64(value1 / value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_fdiv: {
-        float value2 = stackPopFloat();
-        float value1 = stackPopFloat();
-        stackPushFloat(value1 / value2);
+        float value2 = STACK_POP_F32();
+        float value1 = STACK_POP_F32();
+        STACK_PUSH_F32(value1 / value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_ddiv: {
-        double value2 = stackPopDouble();
-        double value1 = stackPopDouble();
-        stackPushDouble(value1 / value2);
+        double value2 = STACK_POP_F64();
+        double value1 = STACK_POP_F64();
+        STACK_PUSH_F64(value1 / value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_irem: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
         if (value2 == 0)
             goto divided_by_zero_excp;
-        stackPushInt32(value1 % value2);
+        STACK_PUSH_I32(value1 % value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lrem: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
         if (value2 == 0)
             goto divided_by_zero_excp;
-        stackPushInt64(value1 % value2);
+        STACK_PUSH_I64(value1 % value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_frem: {
-        float value2 = stackPopFloat();
-        float value1 = stackPopFloat();
-        stackPushFloat(fmodf(value1, value2));
+        float value2 = STACK_POP_F32();
+        float value1 = STACK_POP_F32();
+        STACK_PUSH_F32(fmodf(value1, value2));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_drem: {
-        double value2 = stackPopDouble();
-        double value1 = stackPopDouble();
-        stackPushDouble(fmod(value1, value2));
+        double value2 = STACK_POP_F64();
+        double value1 = STACK_POP_F64();
+        STACK_PUSH_F64(fmod(value1, value2));
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1621,98 +1702,98 @@ void FExec::exec(bool initOpcodeLabels) {
         pc++;
         goto *opcodes[code[pc]];
     op_lneg:
-        stackPushInt64(-stackPopInt64());
+        STACK_PUSH_I64(-STACK_POP_I64());
         pc++;
         goto *opcodes[code[pc]];
     op_fneg:
-        stackPushFloat(-stackPopFloat());
+        STACK_PUSH_F32(-STACK_POP_F32());
         pc++;
         goto *opcodes[code[pc]];
     op_dneg:
-        stackPushDouble(-stackPopDouble());
+        STACK_PUSH_F64(-STACK_POP_F64());
         pc++;
         goto *opcodes[code[pc]];
     op_ishl: {
-        int32_t position = stackPopInt32();
-        int32_t value = stackPopInt32();
-        stackPushInt32(value << position);
+        int32_t position = STACK_POP_I32();
+        int32_t value = STACK_POP_I32();
+        STACK_PUSH_I32(value << position);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lshl: {
-        int32_t position = stackPopInt32();
-        int64_t value = stackPopInt64();
-        stackPushInt64(value << position);
+        int32_t position = STACK_POP_I32();
+        int64_t value = STACK_POP_I64();
+        STACK_PUSH_I64(value << position);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_ishr: {
-        int32_t position = stackPopInt32();
-        int32_t value = stackPopInt32();
-        stackPushInt32(value >> position);
+        int32_t position = STACK_POP_I32();
+        int32_t value = STACK_POP_I32();
+        STACK_PUSH_I32(value >> position);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lshr: {
-        int32_t position = stackPopInt32();
-        int64_t value = stackPopInt64();
-        stackPushInt64(value >> position);
+        int32_t position = STACK_POP_I32();
+        int64_t value = STACK_POP_I64();
+        STACK_PUSH_I64(value >> position);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_iushr: {
-        int32_t position = stackPopInt32();
-        uint32_t value = stackPopInt32();
-        stackPushInt32(value >> position);
+        int32_t position = STACK_POP_I32();
+        uint32_t value = STACK_POP_I32();
+        STACK_PUSH_I32(value >> position);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lushr: {
-        int32_t position = stackPopInt32();
-        uint64_t value = stackPopInt64();
-        stackPushInt64(value >> position);
+        int32_t position = STACK_POP_I32();
+        uint64_t value = STACK_POP_I64();
+        STACK_PUSH_I64(value >> position);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_iand: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
-        stackPushInt32(value1 & value2);
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
+        STACK_PUSH_I32(value1 & value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_land: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
-        stackPushInt64(value1 & value2);
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
+        STACK_PUSH_I64(value1 & value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_ior: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
-        stackPushInt32(value1 | value2);
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
+        STACK_PUSH_I32(value1 | value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lor: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
-        stackPushInt64(value1 | value2);
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
+        STACK_PUSH_I64(value1 | value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_ixor: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
-        stackPushInt32(value1 ^ value2);
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
+        STACK_PUSH_I32(value1 ^ value2);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_lxor: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
-        stackPushInt64(value1 ^ value2);
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
+        STACK_PUSH_I64(value1 ^ value2);
         pc++;
         goto *opcodes[code[pc]];
     }
@@ -1721,7 +1802,7 @@ void FExec::exec(bool initOpcodeLabels) {
         pc += 3;
         goto *opcodes[code[pc]];
     op_i2l:
-        stackPushInt64(stackPopInt32());
+        STACK_PUSH_I64(STACK_POP_I32());
         pc++;
         goto *opcodes[code[pc]];
     op_i2f: {
@@ -1731,19 +1812,19 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodes[code[pc]];
     }
     op_i2d:
-        stackPushDouble(stackPopInt32());
+        STACK_PUSH_F64(STACK_POP_I32());
         pc++;
         goto *opcodes[code[pc]];
     op_l2i:
-        stackPushInt32(stackPopInt64());
+        STACK_PUSH_I32(STACK_POP_I64());
         pc++;
         goto *opcodes[code[pc]];
     op_l2f:
-        stackPushFloat(stackPopInt64());
+        STACK_PUSH_F32(STACK_POP_I64());
         pc++;
         goto *opcodes[code[pc]];
     op_l2d:
-        stackPushDouble(stackPopInt64());
+        STACK_PUSH_F64(STACK_POP_I64());
         pc++;
         goto *opcodes[code[pc]];
     op_f2i:
@@ -1751,23 +1832,23 @@ void FExec::exec(bool initOpcodeLabels) {
         pc++;
         goto *opcodes[code[pc]];
     op_f2l:
-        stackPushInt64(stackPopFloat());
+        STACK_PUSH_I64(STACK_POP_F32());
         pc++;
         goto *opcodes[code[pc]];
     op_f2d:
-        stackPushDouble(stackPopFloat());
+        STACK_PUSH_F64(STACK_POP_F32());
         pc++;
         goto *opcodes[code[pc]];
     op_d2i:
-        stackPushInt32(stackPopDouble());
+        STACK_PUSH_I32(STACK_POP_F64());
         pc++;
         goto *opcodes[code[pc]];
     op_d2l:
-        stackPushInt64(stackPopDouble());
+        STACK_PUSH_I64(STACK_POP_F64());
         pc++;
         goto *opcodes[code[pc]];
     op_d2f:
-        stackPushFloat(stackPopDouble());
+        STACK_PUSH_F32(STACK_POP_F64());
         pc++;
         goto *opcodes[code[pc]];
     op_i2b:
@@ -1783,97 +1864,97 @@ void FExec::exec(bool initOpcodeLabels) {
         pc++;
         goto *opcodes[code[pc]];
     op_lcmp: {
-        int64_t value2 = stackPopInt64();
-        int64_t value1 = stackPopInt64();
-        stackPushInt32((value1 == value2) ? 0 : ((value1 < value2) ? -1 : 1));
+        int64_t value2 = STACK_POP_I64();
+        int64_t value1 = STACK_POP_I64();
+        STACK_PUSH_I32((value1 == value2) ? 0 : ((value1 < value2) ? -1 : 1));
         pc++;
         goto *opcodes[code[pc]];
     }
     op_fcmpl:
     op_fcmpg: {
-        float value2 = stackPopFloat();
-        float value1 = stackPopFloat();
+        float value2 = STACK_POP_F32();
+        float value1 = STACK_POP_F32();
         if ((value1 != value1) || (value2 != value2))
-            stackPushInt32((code[pc] == OP_FCMPL) ? -1 : 1);
+            STACK_PUSH_I32((code[pc] == OP_FCMPL) ? -1 : 1);
         else if (value1 > value2)
-            stackPushInt32(1);
+            STACK_PUSH_I32(1);
         else if (value1 == value2)
-            stackPushInt32(0);
+            STACK_PUSH_I32(0);
         else
-            stackPushInt32(-1);
+            STACK_PUSH_I32(-1);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_dcmpl:
     op_dcmpg: {
-        double value2 = stackPopDouble();
-        double value1 = stackPopDouble();
+        double value2 = STACK_POP_F64();
+        double value1 = STACK_POP_F64();
         if ((value1 != value1) || (value2 != value2))
-            stackPushInt32((code[pc] == OP_DCMPL) ? -1 : 1);
+            STACK_PUSH_I32((code[pc] == OP_DCMPL) ? -1 : 1);
         else if (value1 > value2)
-            stackPushInt32(1);
+            STACK_PUSH_I32(1);
         else if (value1 == value2)
-            stackPushInt32(0);
+            STACK_PUSH_I32(0);
         else
-            stackPushInt32(-1);
+            STACK_PUSH_I32(-1);
         pc++;
         goto *opcodes[code[pc]];
     }
     op_ifeq:
     op_ifnull:
-        pc += (!stackPopInt32()) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
+        pc += (!STACK_POP_I32()) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     op_ifne:
     op_ifnonnull:
-        pc += stackPopInt32() ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
+        pc += STACK_POP_I32() ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     op_iflt:
-        pc += (stackPopInt32() < 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
+        pc += (STACK_POP_I32() < 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     op_ifge:
-        pc += (stackPopInt32() >= 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
+        pc += (STACK_POP_I32() >= 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     op_ifgt:
-        pc += (stackPopInt32() > 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
+        pc += (STACK_POP_I32() > 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     op_ifle:
-        pc += (stackPopInt32() <= 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
+        pc += (STACK_POP_I32() <= 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     op_if_icmpeq:
     op_if_acmpeq: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
         pc += (value1 == value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     }
     op_if_icmpne:
     op_if_acmpne: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
         pc += (value1 != value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     }
     op_if_icmplt: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
         pc += (value1 < value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     }
     op_if_icmpge: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
         pc += (value1 >= value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     }
     op_if_icmpgt: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
         pc += (value1 > value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     }
     op_if_icmple: {
-        int32_t value2 = stackPopInt32();
-        int32_t value1 = stackPopInt32();
+        int32_t value2 = STACK_POP_I32();
+        int32_t value1 = STACK_POP_I32();
         pc += (value1 <= value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
         goto *opcodes[code[pc]];
     }
@@ -1884,18 +1965,18 @@ void FExec::exec(bool initOpcodeLabels) {
         pc += ARRAY_TO_INT32(&code[pc + 1]);
         goto *opcodes[code[pc]];
     op_jsr:
-        stackPushInt32(pc + 3);
+        STACK_PUSH_I32(pc + 3);
         pc += ARRAY_TO_INT16(&code[pc + 1]);
         goto *opcodes[code[pc]];
     op_jsrw:
-        stackPushInt32(pc + 5);
+        STACK_PUSH_I32(pc + 5);
         pc += ARRAY_TO_INT32(&code[pc + 1]);
         goto *opcodes[code[pc]];
     op_ret:
         pc = locals[code[pc + 1]];
         goto *opcodes[code[pc]];
     op_tableswitch: {
-        int32_t index = stackPopInt32();
+        int32_t index = STACK_POP_I32();
         uint8_t padding = (4 - ((pc + 1) % 4)) % 4;
         const uint8_t *table = &code[pc + padding + 1];
         int32_t low = ARRAY_TO_INT32(&table[4]);
@@ -1910,7 +1991,7 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodes[code[pc]];
     }
     op_lookupswitch: {
-        int32_t key = stackPopInt32();
+        int32_t key = STACK_POP_I32();
         uint8_t padding = (4 - (pc + 1)) & 0x03;
         const uint8_t *lookupswitch = &code[pc + padding + 1];
         const uint8_t *table = &lookupswitch[8];
@@ -1934,36 +2015,39 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     op_ireturn:
     op_freturn: {
-        int32_t retVal = stackPopInt32();
+        int32_t retVal = STACK_POP_I32();
+        SYNC_STATE();
         restoreContext();
-        code = this->code;
-        stackPushInt32(retVal);
+        LOAD_STATE();
+        STACK_PUSH_I32(retVal);
         peakSp = sp;
         pc = lr;
         goto *opcodes[code[pc]];
     }
     op_lreturn:
     op_dreturn: {
-        int64_t retVal = stackPopInt64();
+        int64_t retVal = STACK_POP_I64();
+        SYNC_STATE();
         restoreContext();
-        code = this->code;
-        stackPushInt64(retVal);
+        LOAD_STATE();
+        STACK_PUSH_I64(retVal);
         peakSp = sp;
         pc = lr;
         goto *opcodes[code[pc]];
     }
     op_areturn: {
-        int32_t retVal = (int32_t)stackPopObject();
+        int32_t retVal = (int32_t)STACK_POP_OBJ();
+        SYNC_STATE();
         restoreContext();
-        code = this->code;
-        stackPushObject((JObject *)retVal);
-        peakSp = sp;
+        LOAD_STATE();
+        PUSH_OBJ((JObject *)retVal);
         pc = lr;
         goto *opcodes[code[pc]];
     }
     op_return: {
+        SYNC_STATE();
         restoreContext();
-        code = this->code;
+        LOAD_STATE();
         peakSp = sp;
         pc = lr;
         goto *opcodes[code[pc]];
@@ -1984,33 +2068,35 @@ void FExec::exec(bool initOpcodeLabels) {
             switch (constField->nameAndType->desc[0]) {
                 case 'J':
                 case 'D': {
-                    stackPushInt64(fieldValue->getInt64());
+                    STACK_PUSH_I64(fieldValue->getInt64());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'L':
                 case '[': {
-                    stackPushObject(fieldValue->getObj());
+                    PUSH_OBJ(fieldValue->getObj());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 default: {
-                    stackPushInt32(fieldValue->getInt32());
+                    STACK_PUSH_I32(fieldValue->getInt32());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
             }
         }
         else if (initStatus == UNINITIALIZED) {
+            SYNC_STATE();
             invokeStaticCtor(clsLoader);
+            LOAD_STATE();
             if (excp != NULL) goto exception_handler;
-            code = this->code;
             goto *opcodes[code[pc]];
         }
+        SYNC_STATE();
         FlintAPI::Thread::yield();
         if (FExec::hasTerminateRequest()) {
             // TODO - ERROR
-            return;
+            EXEC_RETURN();
         }
         goto *opcodeLabels[OP_GETSTATIC];
     }
@@ -2030,55 +2116,57 @@ void FExec::exec(bool initOpcodeLabels) {
             switch (constField->nameAndType->desc[0]) {
                 case 'Z':
                 case 'B': {
-                    fieldValue->setInt32((int8_t)stackPopInt32());
+                    fieldValue->setInt32((int8_t)STACK_POP_I32());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'C':
                 case 'S': {
-                    fieldValue->setInt32((int16_t)stackPopInt32());
+                    fieldValue->setInt32((int16_t)STACK_POP_I32());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'J':
                 case 'D': {
-                    fieldValue->setInt64(stackPopInt64());
+                    fieldValue->setInt64(STACK_POP_I64());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 case 'L':
                 case '[': {
-                    fieldValue->setObj(stackPopObject());
+                    fieldValue->setObj(STACK_POP_OBJ());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
                 default: {
-                    fieldValue->setInt32(stackPopInt32());
+                    fieldValue->setInt32(STACK_POP_I32());
                     pc += 3;
                     goto *opcodes[code[pc]];
                 }
             }
         }
         else if (initStatus == UNINITIALIZED) {
+            SYNC_STATE();
             invokeStaticCtor(clsLoader);
+            LOAD_STATE();
             if (excp != NULL) goto exception_handler;
-            code = this->code;
             goto *opcodes[code[pc]];
         }
+        SYNC_STATE();
         FlintAPI::Thread::yield();
         if (FExec::hasTerminateRequest()) {
             // TODO - ERROR
-            return;
+            EXEC_RETURN();
         }
         goto *opcodeLabels[OP_PUTSTATIC];
     }
     op_getfield: {
         ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&code[pc + 1]));
         if (constField == NULL) goto exception_handler;
-        JObject *obj = stackPopObject();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL) {
             JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
-            FExec::throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
+            THROW_NEW(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
             goto exception_handler;
         }
         FieldValue *fieldValue = obj->getField(this, constField);
@@ -2086,18 +2174,18 @@ void FExec::exec(bool initOpcodeLabels) {
         switch (constField->nameAndType->desc[0]) {
             case 'J':
             case 'D': {
-                stackPushInt64(fieldValue->getInt64());
+                STACK_PUSH_I64(fieldValue->getInt64());
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             case 'L':
             case '[': {
-                stackPushObject(fieldValue->getObj());
+                PUSH_OBJ(fieldValue->getObj());
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
             default: {
-                stackPushInt32(fieldValue->getInt32());
+                STACK_PUSH_I32(fieldValue->getInt32());
                 pc += 3;
                 goto *opcodes[code[pc]];
             }
@@ -2109,11 +2197,11 @@ void FExec::exec(bool initOpcodeLabels) {
         switch (constField->nameAndType->desc[0]) {
             case 'Z':
             case 'B': {
-                int32_t value = stackPopInt32();
-                JObject *obj = stackPopObject();
+                int32_t value = STACK_POP_I32();
+                JObject *obj = STACK_POP_OBJ();
                 if (obj == NULL) {
                     JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
-                    FExec::throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
+                    THROW_NEW(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
                 FieldValue *fieldValue = obj->getField(this, constField);
@@ -2124,11 +2212,11 @@ void FExec::exec(bool initOpcodeLabels) {
             }
             case 'C':
             case 'S': {
-                int32_t value = stackPopInt32();
-                JObject *obj = stackPopObject();
+                int32_t value = STACK_POP_I32();
+                JObject *obj = STACK_POP_OBJ();
                 if (obj == NULL) {
                     JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
-                    FExec::throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
+                    THROW_NEW(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
                 FieldValue *fieldValue = obj->getField(this, constField);
@@ -2139,11 +2227,11 @@ void FExec::exec(bool initOpcodeLabels) {
             }
             case 'J':
             case 'D': {
-                int64_t value = stackPopInt64();
-                JObject *obj = stackPopObject();
+                int64_t value = STACK_POP_I64();
+                JObject *obj = STACK_POP_OBJ();
                 if (obj == NULL) {
                     JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
-                    FExec::throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
+                    THROW_NEW(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
                 FieldValue *fieldValue = obj->getField(this, constField);
@@ -2154,11 +2242,11 @@ void FExec::exec(bool initOpcodeLabels) {
             }
             case 'L':
             case '[': {
-                JObject *value = stackPopObject();
-                JObject *obj = stackPopObject();
+                JObject *value = STACK_POP_OBJ();
+                JObject *obj = STACK_POP_OBJ();
                 if (obj == NULL) {
                     JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
-                    FExec::throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
+                    THROW_NEW(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
                 FieldValue *fieldValue = obj->getField(this, constField);
@@ -2168,11 +2256,11 @@ void FExec::exec(bool initOpcodeLabels) {
                 goto *opcodes[code[pc]];
             }
             default: {
-                int32_t value = stackPopInt32();
-                JObject *obj = stackPopObject();
+                int32_t value = STACK_POP_I32();
+                JObject *obj = STACK_POP_OBJ();
                 if (obj == NULL) {
                     JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
-                    FExec::throwNew(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
+                    THROW_NEW(excpCls, "Cannot access field %s.%s from null object", constField->className, constField->nameAndType->name);
                     goto exception_handler;
                 }
                 FieldValue *fieldValue = obj->getField(this, constField);
@@ -2186,66 +2274,70 @@ void FExec::exec(bool initOpcodeLabels) {
     op_invokevirtual: {
         ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&code[pc + 1]));
         if (constMethod == NULL) goto exception_handler;
+        SYNC_STATE();
         invokeVirtual(constMethod);
+        LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        code = this->code;
         goto *opcodes[code[pc]];
     }
     op_invokespecial: {
         ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&code[pc + 1]));
         if (constMethod == NULL) goto exception_handler;
+        SYNC_STATE();
         invokeSpecial(constMethod);
+        LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        code = this->code;
         goto *opcodes[code[pc]];
     }
     op_invokestatic: {
         ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&code[pc + 1]));
         if (constMethod == NULL) goto exception_handler;
+        SYNC_STATE();
         invokeStatic(constMethod);
+        LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        code = this->code;
         goto *opcodes[code[pc]];
     }
     op_invokeinterface: {
         ConstInterfaceMethod *interfaceMethod = method->loader->getConstInterfaceMethod(this, ARRAY_TO_INT16(&code[pc + 1]));
         if (interfaceMethod == NULL) goto exception_handler;
         uint8_t count = code[pc + 3];
+        SYNC_STATE();
         invokeInterface(interfaceMethod, count);
+        LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        code = this->code;
         goto *opcodes[code[pc]];
     }
     op_invokedynamic: {
         // TODO
         // goto *opcodes[code[pc]];
         JClass *excpCls = flint->findClass(this, "java/lang/UnsupportedOperationException");
-        FExec::throwNew(excpCls, "Invokedynamic instructions are not supported");
+        THROW_NEW(excpCls, "Invokedynamic instructions are not supported");
         goto exception_handler;
     }
     op_new: {
         JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
         JObject *obj = flint->newObject(this, cls);
         if (obj == NULL) goto exception_handler;
-        stackPushObject(obj);
+        PUSH_OBJ(obj);
         pc += 3;
         goto *opcodes[code[pc]];
     }
     op_newarray: {
         static constexpr const char *primArrayTypeName[] = {"[Z", "[C", "[F", "[D", "[B", "[S", "[I", "[J"};
-        int32_t count = stackPopInt32();
+        int32_t count = STACK_POP_I32();
         if (count < 0)
             goto negative_array_size_excp;
         uint8_t atype = code[pc + 1];
         JObject *obj = flint->newArray(this, flint->findClass(this, primArrayTypeName[atype - 4]), count);
         if (obj == NULL) goto exception_handler;
         obj->clearData();
-        stackPushObject(obj);
+        PUSH_OBJ(obj);
         pc += 2;
         goto *opcodes[code[pc]];
     }
     op_anewarray: {
-        int32_t count = stackPopInt32();
+        int32_t count = STACK_POP_I32();
         if (count < 0)
             goto negative_array_size_excp;
         JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
@@ -2254,32 +2346,33 @@ void FExec::exec(bool initOpcodeLabels) {
         JObject *array = flint->newArray(this, cls, count);
         if (array == NULL) goto exception_handler;
         array->clearData();
-        stackPushObject(array);
+        PUSH_OBJ(array);
         pc += 3;
         goto *opcodes[code[pc]];
     }
     op_arraylength: {
-        JObject *obj = stackPopObject();
+        JObject *obj = STACK_POP_OBJ();
         if (obj == NULL) {
-            FExec::throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot read the array length from null object");
+            THROW_NEW(flint->findClass(this, "java/lang/NullPointerException"), "Cannot read the array length from null object");
             goto exception_handler;
         }
-        stackPushInt32(obj->size / obj->type->componentSize());
+        STACK_PUSH_I32(obj->size / obj->type->componentSize());
         pc++;
         goto *opcodes[code[pc]];
     }
     op_athrow: {
-        excp = (JThrowable *)stackPopObject();
+        excp = (JThrowable *)STACK_POP_OBJ();
         if (excp == NULL)
-            FExec::throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot throw exception by null object");
+            THROW_NEW(flint->findClass(this, "java/lang/NullPointerException"), "Cannot throw exception by null object");
         goto exception_handler;
     }
     exception_handler: {
+        SYNC_STATE();
         uint32_t tracePc = pc;
         int32_t traceStartSp = startSp;
         MethodInfo *traceMethod = method;
         JObject *obj = excp;
-        if (((uint32_t)obj & 0x01) != 0) return; /* Is a fatal error, not a throwable, Cannot be handled */
+        if (((uint32_t)obj & 0x01) != 0) EXEC_RETURN(); /* Is a fatal error, not a throwable, Cannot be handled */
         if (dbg && dbg->exceptionIsEnabled())
             dbg->caughtException(this);
         while (1) {
@@ -2294,7 +2387,7 @@ void FExec::exec(bool initOpcodeLabels) {
                         JClass *catchType = traceMethod->loader->getConstClass(this, exception->catchType);
                         if (catchType == NULL) {
                             while (startSp > traceStartSp) restoreContext();
-                            code = this->code;
+                            LOAD_STATE();
                             sp = startSp + traceMethod->getMaxLocals();
                             pc = exception->handlerPc;
                             peakSp = sp;
@@ -2303,7 +2396,7 @@ void FExec::exec(bool initOpcodeLabels) {
                         isMatch = flint->isInstanceof(this, obj, catchType);
                         if (isMatch == false && excp != obj) {
                             while (startSp > traceStartSp) restoreContext();
-                            code = this->code;
+                            LOAD_STATE();
                             sp = startSp + traceMethod->getMaxLocals();
                             pc = exception->handlerPc;
                             peakSp = sp;
@@ -2312,11 +2405,10 @@ void FExec::exec(bool initOpcodeLabels) {
                     }
                     if (isMatch) {
                         while (startSp > traceStartSp) restoreContext();
-                        code = this->code;
+                        LOAD_STATE();
                         sp = startSp + traceMethod->getMaxLocals();
                         pc = exception->handlerPc;
-                        stackPushObject(obj);
-                        peakSp = sp;
+                        PUSH_OBJ(obj);
                         excp = NULL;
                         goto *opcodes[code[pc]];
                     }
@@ -2325,12 +2417,12 @@ void FExec::exec(bool initOpcodeLabels) {
             if (traceStartSp < 4) {
                 if (dbg && !dbg->exceptionIsEnabled())
                     dbg->caughtException(this);
-                return;
+                EXEC_RETURN();
             }
             traceMethod = (MethodInfo *)stack[traceStartSp - 3];
             tracePc = stack[traceStartSp - 2];
             traceStartSp = stack[traceStartSp];
-            if (tracePc == 0xFFFFFFFF) return;
+            if (tracePc == 0xFFFFFFFF) EXEC_RETURN();
         }
     }
     op_checkcast: {
@@ -2341,7 +2433,7 @@ void FExec::exec(bool initOpcodeLabels) {
             if (isIns == false) {
                 if (excp == NULL) {
                     JClass *excpCls = flint->findClass(this, "java/lang/ClassCastException");
-                    FExec::throwNew(excpCls, "Class %s cannot be cast to class %s", obj->getTypeName(), catchType->getTypeName());
+                    THROW_NEW(excpCls, "Class %s cannot be cast to class %s", obj->getTypeName(), catchType->getTypeName());
                 }
                 goto exception_handler;
             }
@@ -2350,14 +2442,14 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodes[code[pc]];
     }
     op_instanceof: {
-        JObject *obj = stackPopObject();
+        JObject *obj = STACK_POP_OBJ();
         JClass *type = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
         bool isIns = flint->isInstanceof(this, obj, type);
         if (isIns == true)
-            stackPushInt32(1);
+            STACK_PUSH_I32(1);
         else {
             if (excp != NULL) goto exception_handler;
-            stackPushInt32(0);
+            STACK_PUSH_I32(0);
         }
         pc += 3;
         goto *opcodes[code[pc]];
@@ -2365,20 +2457,21 @@ void FExec::exec(bool initOpcodeLabels) {
     op_monitorenter: {
         JObject *obj = (JObject *)GET_STACK_VALUE(sp);
         if (obj == NULL) {
-            FExec::throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot enter synchronized block by null object");
+            THROW_NEW(flint->findClass(this, "java/lang/NullPointerException"), "Cannot enter synchronized block by null object");
             goto exception_handler;
         }
         if (lockObject(obj) == false) {
             if (excp != NULL) goto exception_handler;
+            SYNC_STATE();
             FlintAPI::Thread::yield();
             goto *opcodes[code[pc]];
         }
-        stackPopObject();
+        sp--;
         pc++;
         goto *opcodes[code[pc]];
     }
     op_monitorexit: {
-        JObject *obj = stackPopObject();
+        JObject *obj = STACK_POP_OBJ();
         unlockObject(obj);
         pc++;
         goto *opcodes[code[pc]];
@@ -2393,41 +2486,41 @@ void FExec::exec(bool initOpcodeLabels) {
             }
             case OP_ALOAD: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                stackPushObject((JObject *)locals[index]);
+                PUSH_OBJ((JObject *)locals[index]);
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
             case OP_FLOAD:
             case OP_ILOAD: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                stackPushInt32(locals[index]);
+                STACK_PUSH_I32(locals[index]);
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
             case OP_LLOAD:
             case OP_DLOAD: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                stackPushInt64(*(int64_t *)&locals[index]);
+                STACK_PUSH_I64(*(int64_t *)&locals[index]);
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
             case OP_ASTORE: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                locals[index] = stackPopInt32();
+                locals[index] = STACK_POP_I32();
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
             case OP_FSTORE:
             case OP_ISTORE: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                locals[index] = stackPopInt32();
+                locals[index] = STACK_POP_I32();
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
             case OP_LSTORE:
             case OP_DSTORE: {
                 uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                *(uint64_t *)&locals[index] = stackPopInt64();
+                *(uint64_t *)&locals[index] = STACK_POP_I64();
                 pc += 4;
                 goto *opcodes[code[pc]];
             }
@@ -2450,7 +2543,7 @@ void FExec::exec(bool initOpcodeLabels) {
         JObject *array = flint->newMultiArray(this, cls, &stack[sp - dimensions + 1], dimensions);
         if (array == NULL) goto exception_handler;
         sp -= dimensions;
-        stackPushObject(array);
+        PUSH_OBJ(array);
         pc += 4;
         goto *opcodes[code[pc]];
     }
@@ -2459,11 +2552,13 @@ void FExec::exec(bool initOpcodeLabels) {
             pc++;
             goto *opcodes[code[pc]];
         }
+        SYNC_STATE();
         dbg->hitBreakpoint(this);
         if (FExec::hasTerminateRequest()) {
             // TODO - ERROR
-            return;
+            EXEC_RETURN();
         }
+        LOAD_STATE();
         uint8_t op = code[pc];
         if (op == OP_BREAKPOINT) { /* Check opcode again, maybe breakpoint was deleted by user */
             op = dbg->getSavedOpcode(pc, method);
@@ -2485,27 +2580,27 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodeLabels[op];
     }
     op_unknow: {
-        FExec::throwNew(flint->findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u", code[pc]);
-        return;
+        THROW_NEW(flint->findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u", code[pc]);
+        EXEC_RETURN();
     }
     divided_by_zero_excp: {
-        FExec::throwNew(flint->findClass(this, "java/lang/ArithmeticException"), "Divided by zero");
+        THROW_NEW(flint->findClass(this, "java/lang/ArithmeticException"), "Divided by zero");
         goto exception_handler;
     }
     negative_array_size_excp: {
-        FExec::throwNew(flint->findClass(this, "java/lang/NegativeArraySizeException"), "Size of the array is a negative number");
+        THROW_NEW(flint->findClass(this, "java/lang/NegativeArraySizeException"), "Size of the array is a negative number");
         goto exception_handler;
     }
     load_null_array_excp: {
-        FExec::throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot load from null array object");
+        THROW_NEW(flint->findClass(this, "java/lang/NullPointerException"), "Cannot load from null array object");
         goto exception_handler;
     }
     store_null_array_excp: {
-        FExec::throwNew(flint->findClass(this, "java/lang/NullPointerException"), "Cannot store to null array object");
+        THROW_NEW(flint->findClass(this, "java/lang/NullPointerException"), "Cannot store to null array object");
         goto exception_handler;
     }
     op_exit:
-        return;
+        EXEC_RETURN();
 }
 
 void FExec::runTask(FExec *exec) {

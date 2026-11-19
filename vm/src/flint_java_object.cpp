@@ -77,18 +77,6 @@ char JObject::isArrayOfPrimative(void) const {
     return 0;
 }
 
-void JObject::clearProtected(void) {
-    prot = 0;
-}
-
-void JObject::setProtected(void) {
-    prot = 1;
-}
-
-uint8_t JObject::getProtected(void) const {
-    return prot;
-}
-
 void JObject::destroy(Flint *flint) {
     if (type == NULL || type->isArray() == false)
         ((FieldsData *)data)->destroy(flint);

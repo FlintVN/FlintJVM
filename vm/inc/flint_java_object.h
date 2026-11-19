@@ -32,10 +32,18 @@ public:
 
     bool isArray(void) const;
     char isArrayOfPrimative(void) const;
+    
+    inline __attribute__((always_inline)) void clearProtected(void) {
+        prot = 0;
+    }
 
-    void clearProtected(void);
-    void setProtected(void);
-    uint8_t getProtected(void) const;
+    inline __attribute__((always_inline)) void setProtected(void) {
+        prot = 1;
+    }
+
+    inline __attribute__((always_inline)) uint8_t getProtected(void) const {
+        return prot;
+    }
 protected:
     JObject(uint32_t size, class JClass *type);
     JObject(const JObject &) = delete;

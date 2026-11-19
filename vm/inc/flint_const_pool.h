@@ -76,7 +76,9 @@ private:
     class ClassLoader *loaderCache;
     uint8_t argc;
 public:
-    uint8_t getArgc(void) const;
+    inline __attribute__((always_inline)) uint8_t getArgc(void) const {
+        return argc;
+    }
 private:
     ConstMethod(const char *className, ConstNameAndType *nameAndType);
     ConstMethod(const ConstMethod &) = delete;
