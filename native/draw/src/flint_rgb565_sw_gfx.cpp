@@ -849,8 +849,8 @@ void Rgb565Gfx::fillRoundRect(uint32_t color, int32_t x, int32_t y, int32_t w, i
     int32_t y2 = GFX_MIN(clipY2 - y, h - 1);
 
     for (int32_t i = y1; i <= y2; i++) {
-        x1 = x + (i < r1 ? r1 : (i > (h - r4) ? r4 : 0));
-        x2 = x + w - 1 - (i < r2 ? r2 : (i > (h - r3) ? r3 : 0));
+        x1 = x + (i < r1 ? r1 : (i >= (h - r4) ? r4 : 0));
+        x2 = x + w - 1 - (i < r2 ? r2 : (i >= (h - r3) ? r3 : 0));
         ((Rgb565GfxHelper *)this)->blendHLine(alpha, color, x1, x2, i + y);
     }
 
