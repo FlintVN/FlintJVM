@@ -32,8 +32,8 @@
         flint->clearProtLv2(_pushObj);                          \
 } while (0)
 
-#define SYNC_STATE()                        do { this->pc = pc; this->sp = sp; } while (0)
-#define LOAD_STATE()                        do { pc = this->pc; sp = this->sp; code = this->code; locals = this->locals; } while (0)
+#define SYNC_STATE()                        do { this->pc = (uint32_t)(ip - code); this->sp = sp; } while (0)
+#define LOAD_STATE()                        do { code = this->code; ip = code + this->pc; sp = this->sp; locals = this->locals; } while (0)
 #define EXEC_RETURN()                       do { SYNC_STATE(); return; } while (0)
 #define THROW_NEW(...)                      do { SYNC_STATE(); FExec::throwNew(__VA_ARGS__); } while (0)
 
@@ -959,7 +959,7 @@ void FExec::exec(bool initOpcodeLabels) {
     if (initOpcodeLabels) opcodes = (const void ** volatile)opcodeLabels;
 
     const uint8_t *code;
-    uint32_t pc;
+    const uint8_t *ip;
     int32_t sp;
     int32_t *locals;
     LOAD_STATE();
@@ -968,10 +968,10 @@ void FExec::exec(bool initOpcodeLabels) {
         invokeStaticCtor(method->loader);
         LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        goto *opcodes[code[pc]];
+        goto *opcodes[*ip];
     }
 
-    goto *opcodes[code[pc]];
+    goto *opcodes[*ip];
     dbg_stop: {
         SYNC_STATE();
         if (dbg && !dbg->checkStop(this)) {
@@ -982,110 +982,110 @@ void FExec::exec(bool initOpcodeLabels) {
             opcodes = (const void ** volatile)opcodeLabels;
         }
         LOAD_STATE();
-        goto *opcodeLabels[code[pc]];
+        goto *opcodeLabels[*ip];
     }
     op_nop:
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iconst_m1:
         STACK_PUSH_I32(-1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iconst_0:
     op_aconst_null:
         STACK_PUSH_I32(0);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iconst_1:
         STACK_PUSH_I32(1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iconst_2:
         STACK_PUSH_I32(2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iconst_3:
         STACK_PUSH_I32(3);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iconst_4:
         STACK_PUSH_I32(4);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iconst_5:
         STACK_PUSH_I32(5);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_lconst_0:
         STACK_PUSH_I64(0);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_lconst_1:
         STACK_PUSH_I64(1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_fconst_0:
         STACK_PUSH_F32(0);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_fconst_1:
         STACK_PUSH_F32(1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_fconst_2:
         STACK_PUSH_F32(2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_dconst_0:
         STACK_PUSH_F64(0);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_dconst_1:
         STACK_PUSH_F64(1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_bipush:
-        STACK_PUSH_I32((int8_t)code[pc + 1]);
-        pc += 2;
-        goto *opcodes[code[pc]];
+        STACK_PUSH_I32((int8_t)ip[1]);
+        ip += 2;
+        goto *opcodes[*ip];
     op_sipush:
-        STACK_PUSH_I32(ARRAY_TO_INT16(&code[pc + 1]));
-        pc += 3;
-        goto *opcodes[code[pc]];
+        STACK_PUSH_I32(ARRAY_TO_INT16(&ip[1]));
+        ip += 3;
+        goto *opcodes[*ip];
     op_ldc: {
-        uint8_t poolIndex = code[pc + 1];
+        uint8_t poolIndex = ip[1];
         ClassLoader *loader = method->loader;
         switch (loader->getConstPoolTag(poolIndex)) {
             case CONST_INTEGER:
                 STACK_PUSH_I32(loader->getConstInteger(poolIndex));
-                pc += 2;
-                goto *opcodes[code[pc]];
+                ip += 2;
+                goto *opcodes[*ip];
             case CONST_FLOAT:
                 STACK_PUSH_F32(loader->getConstFloat(poolIndex));
-                pc += 2;
-                goto *opcodes[code[pc]];
+                ip += 2;
+                goto *opcodes[*ip];
             case CONST_STRING: {
                 JString *str = loader->getConstString(this, poolIndex);
                 if (str == NULL) goto exception_handler;
                 PUSH_OBJ(str);
-                pc += 2;
-                goto *opcodes[code[pc]];
+                ip += 2;
+                goto *opcodes[*ip];
             }
             case CONST_CLASS: {
                 JClass *cls = loader->getConstClass(this, poolIndex);
                 if (cls == NULL) goto exception_handler;
                 PUSH_OBJ(cls);
-                pc += 2;
-                goto *opcodes[code[pc]];
+                ip += 2;
+                goto *opcodes[*ip];
             }
             case CONST_METHOD_TYPE:
                 // TODO
-                pc += 2;
-                goto *opcodes[code[pc]];
+                ip += 2;
+                goto *opcodes[*ip];
             case CONST_METHOD_HANDLE:
                 // TODO
-                pc += 2;
-                goto *opcodes[code[pc]];
+                ip += 2;
+                goto *opcodes[*ip];
             default: {
                 JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
                 THROW_NEW(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
@@ -1094,39 +1094,39 @@ void FExec::exec(bool initOpcodeLabels) {
         }
     }
     op_ldc_w: {
-        uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
+        uint16_t poolIndex = ARRAY_TO_INT16(&ip[1]);
         ClassLoader *loader = method->loader;
         switch (loader->getConstPoolTag(poolIndex)) {
             case CONST_INTEGER:
                 STACK_PUSH_I32(loader->getConstInteger(poolIndex));
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             case CONST_FLOAT:
                 STACK_PUSH_F32(loader->getConstFloat(poolIndex));
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             case CONST_STRING: {
                 JString *str = loader->getConstString(this, poolIndex);
                 if (str == NULL) goto exception_handler;
                 PUSH_OBJ(str);
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
             case CONST_CLASS: {
                 JClass *cls = loader->getConstClass(this, poolIndex);
                 if (cls == NULL) goto exception_handler;
                 PUSH_OBJ(cls);
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
             case CONST_METHOD_TYPE:
                 // TODO
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             case CONST_METHOD_HANDLE:
                 // TODO
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             default: {
                 JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
                 THROW_NEW(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
@@ -1135,17 +1135,17 @@ void FExec::exec(bool initOpcodeLabels) {
         }
     }
     op_ldc2_w: {
-        uint16_t poolIndex = ARRAY_TO_INT16(&code[pc + 1]);
+        uint16_t poolIndex = ARRAY_TO_INT16(&ip[1]);
         ClassLoader *loader = method->loader;
         switch (loader->getConstPoolTag(poolIndex)) {
             case CONST_LONG:
                 STACK_PUSH_I64(loader->getConstLong(poolIndex));
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             case CONST_DOUBLE:
                 STACK_PUSH_F64(loader->getConstDouble(poolIndex));
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             default: {
                 JClass *excpCls = flint->findClass(this, "java/lang/ClassFormatError");
                 THROW_NEW(excpCls, "Constant pool tag value (%u) is invalid in class %s", loader->getConstPoolTag(poolIndex), loader->getName());
@@ -1155,74 +1155,74 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     op_iload:
     op_fload:
-        STACK_PUSH_I32(locals[code[pc + 1]]);
-        pc += 2;
-        goto *opcodes[code[pc]];
+        STACK_PUSH_I32(locals[ip[1]]);
+        ip += 2;
+        goto *opcodes[*ip];
     op_iload_0:
     op_fload_0:
         STACK_PUSH_I32(locals[0]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iload_1:
     op_fload_1:
         STACK_PUSH_I32(locals[1]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iload_2:
     op_fload_2:
         STACK_PUSH_I32(locals[2]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iload_3:
     op_fload_3:
         STACK_PUSH_I32(locals[3]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_lload:
     op_dload:
-        STACK_PUSH_I64(*(int64_t *)&locals[code[pc + 1]]);
-        pc += 2;
-        goto *opcodes[code[pc]];
+        STACK_PUSH_I64(*(int64_t *)&locals[ip[1]]);
+        ip += 2;
+        goto *opcodes[*ip];
     op_lload_0:
     op_dload_0:
         STACK_PUSH_I64(*(int64_t *)&locals[0]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_lload_1:
     op_dload_1:
         STACK_PUSH_I64(*(int64_t *)&locals[1]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_lload_2:
     op_dload_2:
         STACK_PUSH_I64(*(int64_t *)&locals[2]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_lload_3:
     op_dload_3:
         STACK_PUSH_I64(*(int64_t *)&locals[3]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_aload:
-        PUSH_OBJ((JObject *)locals[code[pc + 1]]);
-        pc += 2;
-        goto *opcodes[code[pc]];
+        PUSH_OBJ((JObject *)locals[ip[1]]);
+        ip += 2;
+        goto *opcodes[*ip];
     op_aload_0:
         PUSH_OBJ((JObject *)locals[0]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_aload_1:
         PUSH_OBJ((JObject *)locals[1]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_aload_2:
         PUSH_OBJ((JObject *)locals[2]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_aload_3:
         PUSH_OBJ((JObject *)locals[3]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_iaload:
     op_faload: {
         int32_t index = STACK_POP_I32();
@@ -1235,8 +1235,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         STACK_PUSH_I32(((int32_t *)obj->data)[index]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_laload:
     op_daload: {
@@ -1250,8 +1250,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         STACK_PUSH_I64(((int64_t *)obj->data)[index]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_aaload: {
         int32_t index = STACK_POP_I32();
@@ -1264,8 +1264,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         PUSH_OBJ(((JObject **)obj->data)[index]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_baload: {
         int32_t index = STACK_POP_I32();
@@ -1278,8 +1278,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         STACK_PUSH_I32(((int8_t *)obj->data)[index]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_caload: {
         int32_t index = STACK_POP_I32();
@@ -1292,8 +1292,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         STACK_PUSH_I32(((uint16_t *)obj->data)[index]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_saload: {
         int32_t index = STACK_POP_I32();
@@ -1306,96 +1306,96 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         STACK_PUSH_I32(((int16_t *)obj->data)[index]);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_istore:
     op_fstore: {
-        uint32_t index = code[pc + 1];
+        uint32_t index = ip[1];
         locals[index] = STACK_POP_I32();
-        pc += 2;
-        goto *opcodes[code[pc]];
+        ip += 2;
+        goto *opcodes[*ip];
     }
     op_lstore:
     op_dstore: {
-        uint32_t index = code[pc + 1];
+        uint32_t index = ip[1];
         *(uint64_t *)&locals[index] = STACK_POP_I64();
-        pc += 2;
-        goto *opcodes[code[pc]];
+        ip += 2;
+        goto *opcodes[*ip];
     }
     op_astore: {
-        uint32_t index = code[pc + 1];
+        uint32_t index = ip[1];
         locals[index] = STACK_POP_I32();
-        pc += 2;
-        goto *opcodes[code[pc]];
+        ip += 2;
+        goto *opcodes[*ip];
     }
     op_istore_0:
     op_fstore_0: {
         locals[0] = STACK_POP_I32();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_istore_1:
     op_fstore_1: {
         locals[1] = STACK_POP_I32();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_istore_2:
     op_fstore_2: {
         locals[2] = STACK_POP_I32();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_istore_3:
     op_fstore_3: {
         locals[3] = STACK_POP_I32();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lstore_0:
     op_dstore_0: {
         *(uint64_t *)&locals[0] = STACK_POP_I64();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lstore_1:
     op_dstore_1: {
         *(uint64_t *)&locals[1] = STACK_POP_I64();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lstore_2:
     op_dstore_2: {
         *(uint64_t *)&locals[2] = STACK_POP_I64();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lstore_3:
     op_dstore_3: {
         *(uint64_t *)&locals[3] = STACK_POP_I64();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_astore_0: {
         locals[0] = STACK_POP_I32();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_astore_1: {
         locals[1] = STACK_POP_I32();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_astore_2: {
         locals[2] = STACK_POP_I32();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_astore_3: {
         locals[3] = STACK_POP_I32();
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_iastore:
     op_fastore:
@@ -1411,8 +1411,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         ((int32_t *)obj->data)[index] = value;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lastore:
     op_dastore: {
@@ -1427,8 +1427,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         ((int64_t *)obj->data)[index] = value;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_bastore: {
         int32_t value = STACK_POP_I32();
@@ -1442,8 +1442,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         ((int8_t *)obj->data)[index] = value;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_castore:
     op_sastore: {
@@ -1458,23 +1458,23 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         ((int16_t *)obj->data)[index] = value;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_pop:
         sp--;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_pop2:
         sp -= 2;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_dup: {
         int32_t value = GET_STACK_VALUE(sp);
         STACK_PUSH_I32(value);
         peakSp = sp;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dup_x1: {
         int32_t value2 = GET_STACK_VALUE(sp - 1);
@@ -1483,8 +1483,8 @@ void FExec::exec(bool initOpcodeLabels) {
         peakSp = sp;
         SET_STACK_VALUE(sp - 1, value2);
         SET_STACK_VALUE(sp - 2, value1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dup_x2: {
         int32_t value3 = GET_STACK_VALUE(sp - 2);
@@ -1495,8 +1495,8 @@ void FExec::exec(bool initOpcodeLabels) {
         SET_STACK_VALUE(sp - 1, value2);
         SET_STACK_VALUE(sp - 2, value3);
         SET_STACK_VALUE(sp - 3, value1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dup2: {
         int32_t value2 = GET_STACK_VALUE(sp - 1);
@@ -1504,8 +1504,8 @@ void FExec::exec(bool initOpcodeLabels) {
         STACK_PUSH_I32(value2);
         STACK_PUSH_I32(value1);
         peakSp = sp;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dup2_x1: {
         int32_t value3 = GET_STACK_VALUE(sp - 2);
@@ -1517,8 +1517,8 @@ void FExec::exec(bool initOpcodeLabels) {
         SET_STACK_VALUE(sp - 2, value3);
         SET_STACK_VALUE(sp - 3, value1);
         SET_STACK_VALUE(sp - 4, value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dup2_x2: {
         int32_t value4 = GET_STACK_VALUE(sp - 3);
@@ -1532,8 +1532,8 @@ void FExec::exec(bool initOpcodeLabels) {
         SET_STACK_VALUE(sp - 3, value4);
         SET_STACK_VALUE(sp - 4, value1);
         SET_STACK_VALUE(sp - 5, value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_swap: {
         int32_t value2 = GET_STACK_VALUE(sp - 1);
@@ -1546,92 +1546,92 @@ void FExec::exec(bool initOpcodeLabels) {
         SET_STACK_VALUE(sp - 1, value2);
         SET_STACK_VALUE(sp - 2, value1);
         sp--;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_iadd: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
         STACK_PUSH_I32(value1 + value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_ladd: {
         int64_t value2 = STACK_POP_I64();
         int64_t value1 = STACK_POP_I64();
         STACK_PUSH_I64(value1 + value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_fadd: {
         float value2 = STACK_POP_F32();
         float value1 = STACK_POP_F32();
         STACK_PUSH_F32(value1 + value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dadd: {
         double value2 = STACK_POP_F64();
         double value1 = STACK_POP_F64();
         STACK_PUSH_F64(value1 + value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_isub: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
         STACK_PUSH_I32(value1 - value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lsub: {
         int64_t value2 = STACK_POP_I64();
         int64_t value1 = STACK_POP_I64();
         STACK_PUSH_I64(value1 - value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_fsub: {
         float value2 = STACK_POP_F32();
         float value1 = STACK_POP_F32();
         STACK_PUSH_F32(value1 - value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dsub: {
         double value2 = STACK_POP_F64();
         double value1 = STACK_POP_F64();
         STACK_PUSH_F64(value1 - value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_imul: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
         STACK_PUSH_I32(value1 * value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lmul: {
         int64_t value2 = STACK_POP_I64();
         int64_t value1 = STACK_POP_I64();
         STACK_PUSH_I64(value1 * value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_fmul: {
         float value2 = STACK_POP_F32();
         float value1 = STACK_POP_F32();
         STACK_PUSH_F32(value1 * value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dmul: {
         double value2 = STACK_POP_F64();
         double value1 = STACK_POP_F64();
         STACK_PUSH_F64(value1 * value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_idiv: {
         int32_t value2 = STACK_POP_I32();
@@ -1639,8 +1639,8 @@ void FExec::exec(bool initOpcodeLabels) {
         if (value2 == 0)
             goto divided_by_zero_excp;
         STACK_PUSH_I32(value1 / value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_ldiv: {
         int64_t value2 = STACK_POP_I64();
@@ -1648,22 +1648,22 @@ void FExec::exec(bool initOpcodeLabels) {
         if (value2 == 0)
             goto divided_by_zero_excp;
         STACK_PUSH_I64(value1 / value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_fdiv: {
         float value2 = STACK_POP_F32();
         float value1 = STACK_POP_F32();
         STACK_PUSH_F32(value1 / value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_ddiv: {
         double value2 = STACK_POP_F64();
         double value1 = STACK_POP_F64();
         STACK_PUSH_F64(value1 / value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_irem: {
         int32_t value2 = STACK_POP_I32();
@@ -1671,8 +1671,8 @@ void FExec::exec(bool initOpcodeLabels) {
         if (value2 == 0)
             goto divided_by_zero_excp;
         STACK_PUSH_I32(value1 % value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lrem: {
         int64_t value2 = STACK_POP_I64();
@@ -1680,320 +1680,320 @@ void FExec::exec(bool initOpcodeLabels) {
         if (value2 == 0)
             goto divided_by_zero_excp;
         STACK_PUSH_I64(value1 % value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_frem: {
         float value2 = STACK_POP_F32();
         float value1 = STACK_POP_F32();
         STACK_PUSH_F32(fmodf(value1, value2));
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_drem: {
         double value2 = STACK_POP_F64();
         double value1 = STACK_POP_F64();
         STACK_PUSH_F64(fmod(value1, value2));
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_ineg:
         stack[sp] = -stack[sp];
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_lneg:
         STACK_PUSH_I64(-STACK_POP_I64());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_fneg:
         STACK_PUSH_F32(-STACK_POP_F32());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_dneg:
         STACK_PUSH_F64(-STACK_POP_F64());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_ishl: {
         int32_t position = STACK_POP_I32();
         int32_t value = STACK_POP_I32();
         STACK_PUSH_I32(value << position);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lshl: {
         int32_t position = STACK_POP_I32();
         int64_t value = STACK_POP_I64();
         STACK_PUSH_I64(value << position);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_ishr: {
         int32_t position = STACK_POP_I32();
         int32_t value = STACK_POP_I32();
         STACK_PUSH_I32(value >> position);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lshr: {
         int32_t position = STACK_POP_I32();
         int64_t value = STACK_POP_I64();
         STACK_PUSH_I64(value >> position);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_iushr: {
         int32_t position = STACK_POP_I32();
         uint32_t value = STACK_POP_I32();
         STACK_PUSH_I32(value >> position);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lushr: {
         int32_t position = STACK_POP_I32();
         uint64_t value = STACK_POP_I64();
         STACK_PUSH_I64(value >> position);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_iand: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
         STACK_PUSH_I32(value1 & value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_land: {
         int64_t value2 = STACK_POP_I64();
         int64_t value1 = STACK_POP_I64();
         STACK_PUSH_I64(value1 & value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_ior: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
         STACK_PUSH_I32(value1 | value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lor: {
         int64_t value2 = STACK_POP_I64();
         int64_t value1 = STACK_POP_I64();
         STACK_PUSH_I64(value1 | value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_ixor: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
         STACK_PUSH_I32(value1 ^ value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_lxor: {
         int64_t value2 = STACK_POP_I64();
         int64_t value1 = STACK_POP_I64();
         STACK_PUSH_I64(value1 ^ value2);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_iinc:
-        locals[code[pc + 1]] += (int8_t)code[pc + 2];
-        pc += 3;
-        goto *opcodes[code[pc]];
+        locals[ip[1]] += (int8_t)ip[2];
+        ip += 3;
+        goto *opcodes[*ip];
     op_i2l:
         STACK_PUSH_I64(STACK_POP_I32());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_i2f: {
         float value = stack[sp];
         stack[sp] = *(int32_t *)&value;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_i2d:
         STACK_PUSH_F64(STACK_POP_I32());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_l2i:
         STACK_PUSH_I32(STACK_POP_I64());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_l2f:
         STACK_PUSH_F32(STACK_POP_I64());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_l2d:
         STACK_PUSH_F64(STACK_POP_I64());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_f2i:
         stack[sp] = *(float *)&stack[sp];
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_f2l:
         STACK_PUSH_I64(STACK_POP_F32());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_f2d:
         STACK_PUSH_F64(STACK_POP_F32());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_d2i:
         STACK_PUSH_I32(STACK_POP_F64());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_d2l:
         STACK_PUSH_I64(STACK_POP_F64());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_d2f:
         STACK_PUSH_F32(STACK_POP_F64());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_i2b:
         stack[sp] = (int8_t)stack[sp];
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_i2c:
         stack[sp] = (uint16_t)stack[sp];
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_i2s:
         stack[sp] = (int16_t)stack[sp];
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     op_lcmp: {
         int64_t value2 = STACK_POP_I64();
         int64_t value1 = STACK_POP_I64();
         STACK_PUSH_I32((value1 == value2) ? 0 : ((value1 < value2) ? -1 : 1));
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_fcmpl:
     op_fcmpg: {
         float value2 = STACK_POP_F32();
         float value1 = STACK_POP_F32();
         if ((value1 != value1) || (value2 != value2))
-            STACK_PUSH_I32((code[pc] == OP_FCMPL) ? -1 : 1);
+            STACK_PUSH_I32((*ip == OP_FCMPL) ? -1 : 1);
         else if (value1 > value2)
             STACK_PUSH_I32(1);
         else if (value1 == value2)
             STACK_PUSH_I32(0);
         else
             STACK_PUSH_I32(-1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_dcmpl:
     op_dcmpg: {
         double value2 = STACK_POP_F64();
         double value1 = STACK_POP_F64();
         if ((value1 != value1) || (value2 != value2))
-            STACK_PUSH_I32((code[pc] == OP_DCMPL) ? -1 : 1);
+            STACK_PUSH_I32((*ip == OP_DCMPL) ? -1 : 1);
         else if (value1 > value2)
             STACK_PUSH_I32(1);
         else if (value1 == value2)
             STACK_PUSH_I32(0);
         else
             STACK_PUSH_I32(-1);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_ifeq:
     op_ifnull:
-        pc += (!STACK_POP_I32()) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (!STACK_POP_I32()) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     op_ifne:
     op_ifnonnull:
-        pc += STACK_POP_I32() ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += STACK_POP_I32() ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     op_iflt:
-        pc += (STACK_POP_I32() < 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (STACK_POP_I32() < 0) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     op_ifge:
-        pc += (STACK_POP_I32() >= 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (STACK_POP_I32() >= 0) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     op_ifgt:
-        pc += (STACK_POP_I32() > 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (STACK_POP_I32() > 0) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     op_ifle:
-        pc += (STACK_POP_I32() <= 0) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (STACK_POP_I32() <= 0) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     op_if_icmpeq:
     op_if_acmpeq: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
-        pc += (value1 == value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (value1 == value2) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     }
     op_if_icmpne:
     op_if_acmpne: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
-        pc += (value1 != value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (value1 != value2) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     }
     op_if_icmplt: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
-        pc += (value1 < value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (value1 < value2) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     }
     op_if_icmpge: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
-        pc += (value1 >= value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (value1 >= value2) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     }
     op_if_icmpgt: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
-        pc += (value1 > value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (value1 > value2) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     }
     op_if_icmple: {
         int32_t value2 = STACK_POP_I32();
         int32_t value1 = STACK_POP_I32();
-        pc += (value1 <= value2) ? ARRAY_TO_INT16(&code[pc + 1]) : 3;
-        goto *opcodes[code[pc]];
+        ip += (value1 <= value2) ? ARRAY_TO_INT16(&ip[1]) : 3;
+        goto *opcodes[*ip];
     }
     op_goto:
-        pc += ARRAY_TO_INT16(&code[pc + 1]);
-        goto *opcodes[code[pc]];
+        ip += ARRAY_TO_INT16(&ip[1]);
+        goto *opcodes[*ip];
     op_goto_w:
-        pc += ARRAY_TO_INT32(&code[pc + 1]);
-        goto *opcodes[code[pc]];
+        ip += ARRAY_TO_INT32(&ip[1]);
+        goto *opcodes[*ip];
     op_jsr:
-        STACK_PUSH_I32(pc + 3);
-        pc += ARRAY_TO_INT16(&code[pc + 1]);
-        goto *opcodes[code[pc]];
+        STACK_PUSH_I32((int32_t)(ip - code) + 3);
+        ip += ARRAY_TO_INT16(&ip[1]);
+        goto *opcodes[*ip];
     op_jsrw:
-        STACK_PUSH_I32(pc + 5);
-        pc += ARRAY_TO_INT32(&code[pc + 1]);
-        goto *opcodes[code[pc]];
+        STACK_PUSH_I32((int32_t)(ip - code) + 5);
+        ip += ARRAY_TO_INT32(&ip[1]);
+        goto *opcodes[*ip];
     op_ret:
-        pc = locals[code[pc + 1]];
-        goto *opcodes[code[pc]];
+        ip = code + locals[ip[1]];
+        goto *opcodes[*ip];
     op_tableswitch: {
         int32_t index = STACK_POP_I32();
-        uint8_t padding = (4 - ((pc + 1) % 4)) % 4;
-        const uint8_t *table = &code[pc + padding + 1];
+        uint8_t padding = (3 - (uint32_t)(ip - code)) & 0x03;
+        const uint8_t *table = &ip[padding + 1];
         int32_t low = ARRAY_TO_INT32(&table[4]);
         int32_t height = ARRAY_TO_INT32(&table[8]);
         if (index < low || index > height) {
             int32_t defaultOffset = ARRAY_TO_INT32(table);
-            pc += defaultOffset;
-            goto *opcodes[code[pc]];
+            ip += defaultOffset;
+            goto *opcodes[*ip];
         }
         table = &table[12 + (index - low) * 4];
-        pc += ARRAY_TO_INT32(table);
-        goto *opcodes[code[pc]];
+        ip += ARRAY_TO_INT32(table);
+        goto *opcodes[*ip];
     }
     op_lookupswitch: {
         int32_t key = STACK_POP_I32();
-        uint8_t padding = (4 - (pc + 1)) & 0x03;
-        const uint8_t *lookupswitch = &code[pc + padding + 1];
+        uint8_t padding = (3 - (uint32_t)(ip - code)) & 0x03;
+        const uint8_t *lookupswitch = &ip[padding + 1];
         const uint8_t *table = &lookupswitch[8];
         int32_t left = 0;
         int32_t right = ARRAY_TO_INT32(&lookupswitch[4]) - 1;
@@ -2002,16 +2002,16 @@ void FExec::exec(bool initOpcodeLabels) {
             const uint8_t *pair = &table[mid << 3];
             int32_t pairKey = ARRAY_TO_INT32(pair);
             if (key == pairKey) {
-                pc += ARRAY_TO_INT32(&pair[4]);
-                goto *opcodes[code[pc]];
+                ip += ARRAY_TO_INT32(&pair[4]);
+                goto *opcodes[*ip];
             }
             else if (pairKey < key)
                 left = mid + 1;
             else
                 right = mid - 1;
         }
-        pc += ARRAY_TO_INT32(lookupswitch);
-        goto *opcodes[code[pc]];
+        ip += ARRAY_TO_INT32(lookupswitch);
+        goto *opcodes[*ip];
     }
     op_ireturn:
     op_freturn: {
@@ -2021,8 +2021,8 @@ void FExec::exec(bool initOpcodeLabels) {
         LOAD_STATE();
         STACK_PUSH_I32(retVal);
         peakSp = sp;
-        pc = lr;
-        goto *opcodes[code[pc]];
+        ip = code + lr;
+        goto *opcodes[*ip];
     }
     op_lreturn:
     op_dreturn: {
@@ -2032,8 +2032,8 @@ void FExec::exec(bool initOpcodeLabels) {
         LOAD_STATE();
         STACK_PUSH_I64(retVal);
         peakSp = sp;
-        pc = lr;
-        goto *opcodes[code[pc]];
+        ip = code + lr;
+        goto *opcodes[*ip];
     }
     op_areturn: {
         int32_t retVal = (int32_t)STACK_POP_OBJ();
@@ -2041,19 +2041,19 @@ void FExec::exec(bool initOpcodeLabels) {
         restoreContext();
         LOAD_STATE();
         PUSH_OBJ((JObject *)retVal);
-        pc = lr;
-        goto *opcodes[code[pc]];
+        ip = code + lr;
+        goto *opcodes[*ip];
     }
     op_return: {
         SYNC_STATE();
         restoreContext();
         LOAD_STATE();
         peakSp = sp;
-        pc = lr;
-        goto *opcodes[code[pc]];
+        ip = code + lr;
+        goto *opcodes[*ip];
     }
     op_getstatic: {
-        ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&code[pc + 1]));
+        ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&ip[1]));
         if (constField == NULL) goto exception_handler;
         ClassLoader *clsLoader = constField->loader;
         if (clsLoader == NULL) {
@@ -2069,19 +2069,19 @@ void FExec::exec(bool initOpcodeLabels) {
                 case 'J':
                 case 'D': {
                     STACK_PUSH_I64(fieldValue->getInt64());
-                    pc += 3;
-                    goto *opcodes[code[pc]];
+                    ip += 3;
+                    goto *opcodes[*ip];
                 }
                 case 'L':
                 case '[': {
                     PUSH_OBJ(fieldValue->getObj());
-                    pc += 3;
-                    goto *opcodes[code[pc]];
+                    ip += 3;
+                    goto *opcodes[*ip];
                 }
                 default: {
                     STACK_PUSH_I32(fieldValue->getInt32());
-                    pc += 3;
-                    goto *opcodes[code[pc]];
+                    ip += 3;
+                    goto *opcodes[*ip];
                 }
             }
         }
@@ -2090,7 +2090,7 @@ void FExec::exec(bool initOpcodeLabels) {
             invokeStaticCtor(clsLoader);
             LOAD_STATE();
             if (excp != NULL) goto exception_handler;
-            goto *opcodes[code[pc]];
+            goto *opcodes[*ip];
         }
         SYNC_STATE();
         FlintAPI::Thread::yield();
@@ -2101,7 +2101,7 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodeLabels[OP_GETSTATIC];
     }
     op_putstatic: {
-        ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&code[pc + 1]));
+        ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&ip[1]));
         if (constField == NULL) goto exception_handler;
         ClassLoader *clsLoader = constField->loader;
         if (clsLoader == NULL) {
@@ -2117,31 +2117,31 @@ void FExec::exec(bool initOpcodeLabels) {
                 case 'Z':
                 case 'B': {
                     fieldValue->setInt32((int8_t)STACK_POP_I32());
-                    pc += 3;
-                    goto *opcodes[code[pc]];
+                    ip += 3;
+                    goto *opcodes[*ip];
                 }
                 case 'C':
                 case 'S': {
                     fieldValue->setInt32((int16_t)STACK_POP_I32());
-                    pc += 3;
-                    goto *opcodes[code[pc]];
+                    ip += 3;
+                    goto *opcodes[*ip];
                 }
                 case 'J':
                 case 'D': {
                     fieldValue->setInt64(STACK_POP_I64());
-                    pc += 3;
-                    goto *opcodes[code[pc]];
+                    ip += 3;
+                    goto *opcodes[*ip];
                 }
                 case 'L':
                 case '[': {
                     fieldValue->setObj(STACK_POP_OBJ());
-                    pc += 3;
-                    goto *opcodes[code[pc]];
+                    ip += 3;
+                    goto *opcodes[*ip];
                 }
                 default: {
                     fieldValue->setInt32(STACK_POP_I32());
-                    pc += 3;
-                    goto *opcodes[code[pc]];
+                    ip += 3;
+                    goto *opcodes[*ip];
                 }
             }
         }
@@ -2150,7 +2150,7 @@ void FExec::exec(bool initOpcodeLabels) {
             invokeStaticCtor(clsLoader);
             LOAD_STATE();
             if (excp != NULL) goto exception_handler;
-            goto *opcodes[code[pc]];
+            goto *opcodes[*ip];
         }
         SYNC_STATE();
         FlintAPI::Thread::yield();
@@ -2161,7 +2161,7 @@ void FExec::exec(bool initOpcodeLabels) {
         goto *opcodeLabels[OP_PUTSTATIC];
     }
     op_getfield: {
-        ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&code[pc + 1]));
+        ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&ip[1]));
         if (constField == NULL) goto exception_handler;
         JObject *obj = STACK_POP_OBJ();
         if (obj == NULL) {
@@ -2175,24 +2175,24 @@ void FExec::exec(bool initOpcodeLabels) {
             case 'J':
             case 'D': {
                 STACK_PUSH_I64(fieldValue->getInt64());
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
             case 'L':
             case '[': {
                 PUSH_OBJ(fieldValue->getObj());
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
             default: {
                 STACK_PUSH_I32(fieldValue->getInt32());
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
         }
     }
     op_putfield: {
-        ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&code[pc + 1]));
+        ConstField *constField = method->loader->getConstField(this, ARRAY_TO_INT16(&ip[1]));
         if (constField == NULL) goto exception_handler;
         switch (constField->nameAndType->desc[0]) {
             case 'Z':
@@ -2207,8 +2207,8 @@ void FExec::exec(bool initOpcodeLabels) {
                 FieldValue *fieldValue = obj->getField(this, constField);
                 if (fieldValue == NULL) goto exception_handler;
                 fieldValue->setInt32((int8_t)value);
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
             case 'C':
             case 'S': {
@@ -2222,8 +2222,8 @@ void FExec::exec(bool initOpcodeLabels) {
                 FieldValue *fieldValue = obj->getField(this, constField);
                 if (fieldValue == NULL) goto exception_handler;
                 fieldValue->setInt32((int16_t)value);
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
             case 'J':
             case 'D': {
@@ -2237,8 +2237,8 @@ void FExec::exec(bool initOpcodeLabels) {
                 FieldValue *fieldValue = obj->getField(this, constField);
                 if (fieldValue == NULL) goto exception_handler;
                 fieldValue->setInt64(value);
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
             case 'L':
             case '[': {
@@ -2252,8 +2252,8 @@ void FExec::exec(bool initOpcodeLabels) {
                 FieldValue *fieldValue = obj->getField(this, constField);
                 if (fieldValue == NULL) goto exception_handler;
                 fieldValue->setObj(value);
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
             default: {
                 int32_t value = STACK_POP_I32();
@@ -2266,89 +2266,89 @@ void FExec::exec(bool initOpcodeLabels) {
                 FieldValue *fieldValue = obj->getField(this, constField);
                 if (fieldValue == NULL) goto exception_handler;
                 fieldValue->setInt32(value);
-                pc += 3;
-                goto *opcodes[code[pc]];
+                ip += 3;
+                goto *opcodes[*ip];
             }
         }
     }
     op_invokevirtual: {
-        ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&code[pc + 1]));
+        ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&ip[1]));
         if (constMethod == NULL) goto exception_handler;
         SYNC_STATE();
         invokeVirtual(constMethod);
         LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        goto *opcodes[code[pc]];
+        goto *opcodes[*ip];
     }
     op_invokespecial: {
-        ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&code[pc + 1]));
+        ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&ip[1]));
         if (constMethod == NULL) goto exception_handler;
         SYNC_STATE();
         invokeSpecial(constMethod);
         LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        goto *opcodes[code[pc]];
+        goto *opcodes[*ip];
     }
     op_invokestatic: {
-        ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&code[pc + 1]));
+        ConstMethod *constMethod = method->loader->getConstMethod(this, ARRAY_TO_INT16(&ip[1]));
         if (constMethod == NULL) goto exception_handler;
         SYNC_STATE();
         invokeStatic(constMethod);
         LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        goto *opcodes[code[pc]];
+        goto *opcodes[*ip];
     }
     op_invokeinterface: {
-        ConstInterfaceMethod *interfaceMethod = method->loader->getConstInterfaceMethod(this, ARRAY_TO_INT16(&code[pc + 1]));
+        ConstInterfaceMethod *interfaceMethod = method->loader->getConstInterfaceMethod(this, ARRAY_TO_INT16(&ip[1]));
         if (interfaceMethod == NULL) goto exception_handler;
-        uint8_t count = code[pc + 3];
+        uint8_t count = ip[3];
         SYNC_STATE();
         invokeInterface(interfaceMethod, count);
         LOAD_STATE();
         if (excp != NULL) goto exception_handler;
-        goto *opcodes[code[pc]];
+        goto *opcodes[*ip];
     }
     op_invokedynamic: {
         // TODO
-        // goto *opcodes[code[pc]];
+        // goto *opcodes[*ip];
         JClass *excpCls = flint->findClass(this, "java/lang/UnsupportedOperationException");
         THROW_NEW(excpCls, "Invokedynamic instructions are not supported");
         goto exception_handler;
     }
     op_new: {
-        JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
+        JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&ip[1]));
         JObject *obj = flint->newObject(this, cls);
         if (obj == NULL) goto exception_handler;
         PUSH_OBJ(obj);
-        pc += 3;
-        goto *opcodes[code[pc]];
+        ip += 3;
+        goto *opcodes[*ip];
     }
     op_newarray: {
         static constexpr const char *primArrayTypeName[] = {"[Z", "[C", "[F", "[D", "[B", "[S", "[I", "[J"};
         int32_t count = STACK_POP_I32();
         if (count < 0)
             goto negative_array_size_excp;
-        uint8_t atype = code[pc + 1];
+        uint8_t atype = ip[1];
         JObject *obj = flint->newArray(this, flint->findClass(this, primArrayTypeName[atype - 4]), count);
         if (obj == NULL) goto exception_handler;
         obj->clearData();
         PUSH_OBJ(obj);
-        pc += 2;
-        goto *opcodes[code[pc]];
+        ip += 2;
+        goto *opcodes[*ip];
     }
     op_anewarray: {
         int32_t count = STACK_POP_I32();
         if (count < 0)
             goto negative_array_size_excp;
-        JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
+        JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&ip[1]));
         if (cls == NULL) goto exception_handler;
         cls = flint->findClassOfArray(this, cls->getTypeName(), 1);
         JObject *array = flint->newArray(this, cls, count);
         if (array == NULL) goto exception_handler;
         array->clearData();
         PUSH_OBJ(array);
-        pc += 3;
-        goto *opcodes[code[pc]];
+        ip += 3;
+        goto *opcodes[*ip];
     }
     op_arraylength: {
         JObject *obj = STACK_POP_OBJ();
@@ -2357,8 +2357,8 @@ void FExec::exec(bool initOpcodeLabels) {
             goto exception_handler;
         }
         STACK_PUSH_I32(obj->size / obj->type->componentSize());
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_athrow: {
         excp = (JThrowable *)STACK_POP_OBJ();
@@ -2368,7 +2368,7 @@ void FExec::exec(bool initOpcodeLabels) {
     }
     exception_handler: {
         SYNC_STATE();
-        uint32_t tracePc = pc;
+        uint32_t tracePc = this->pc;
         int32_t traceStartSp = startSp;
         MethodInfo *traceMethod = method;
         JObject *obj = excp;
@@ -2389,7 +2389,7 @@ void FExec::exec(bool initOpcodeLabels) {
                             while (startSp > traceStartSp) restoreContext();
                             LOAD_STATE();
                             sp = startSp + traceMethod->getMaxLocals();
-                            pc = exception->handlerPc;
+                            ip = code + exception->handlerPc;
                             peakSp = sp;
                             goto exception_handler;
                         }
@@ -2398,7 +2398,7 @@ void FExec::exec(bool initOpcodeLabels) {
                             while (startSp > traceStartSp) restoreContext();
                             LOAD_STATE();
                             sp = startSp + traceMethod->getMaxLocals();
-                            pc = exception->handlerPc;
+                            ip = code + exception->handlerPc;
                             peakSp = sp;
                             goto exception_handler;
                         }
@@ -2407,10 +2407,10 @@ void FExec::exec(bool initOpcodeLabels) {
                         while (startSp > traceStartSp) restoreContext();
                         LOAD_STATE();
                         sp = startSp + traceMethod->getMaxLocals();
-                        pc = exception->handlerPc;
+                        ip = code + exception->handlerPc;
                         PUSH_OBJ(obj);
                         excp = NULL;
-                        goto *opcodes[code[pc]];
+                        goto *opcodes[*ip];
                     }
                 }
             }
@@ -2428,7 +2428,7 @@ void FExec::exec(bool initOpcodeLabels) {
     op_checkcast: {
         JObject *obj = (JObject *)stack[sp];
         if (obj != NULL) {
-            JClass *catchType = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
+            JClass *catchType = method->loader->getConstClass(this, ARRAY_TO_INT16(&ip[1]));
             bool isIns = flint->isInstanceof(this, obj, catchType);
             if (isIns == false) {
                 if (excp == NULL) {
@@ -2438,12 +2438,12 @@ void FExec::exec(bool initOpcodeLabels) {
                 goto exception_handler;
             }
         }
-        pc += 3;
-        goto *opcodes[code[pc]];
+        ip += 3;
+        goto *opcodes[*ip];
     }
     op_instanceof: {
         JObject *obj = STACK_POP_OBJ();
-        JClass *type = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
+        JClass *type = method->loader->getConstClass(this, ARRAY_TO_INT16(&ip[1]));
         bool isIns = flint->isInstanceof(this, obj, type);
         if (isIns == true)
             STACK_PUSH_I32(1);
@@ -2451,8 +2451,8 @@ void FExec::exec(bool initOpcodeLabels) {
             if (excp != NULL) goto exception_handler;
             STACK_PUSH_I32(0);
         }
-        pc += 3;
-        goto *opcodes[code[pc]];
+        ip += 3;
+        goto *opcodes[*ip];
     }
     op_monitorenter: {
         JObject *obj = (JObject *)GET_STACK_VALUE(sp);
@@ -2464,78 +2464,78 @@ void FExec::exec(bool initOpcodeLabels) {
             if (excp != NULL) goto exception_handler;
             SYNC_STATE();
             FlintAPI::Thread::yield();
-            goto *opcodes[code[pc]];
+            goto *opcodes[*ip];
         }
         sp--;
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_monitorexit: {
         JObject *obj = STACK_POP_OBJ();
         unlockObject(obj);
-        pc++;
-        goto *opcodes[code[pc]];
+        ip++;
+        goto *opcodes[*ip];
     }
     op_wide: {
-        switch ((FlintOpCode)code[pc + 1]) {
+        switch ((FlintOpCode)ip[1]) {
             case OP_IINC: {
-                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                locals[index] += ARRAY_TO_INT16(&code[pc + 4]);
-                pc += 6;
-                goto *opcodes[code[pc]];
+                uint16_t index = ARRAY_TO_INT16(&ip[2]);
+                locals[index] += ARRAY_TO_INT16(&ip[4]);
+                ip += 6;
+                goto *opcodes[*ip];
             }
             case OP_ALOAD: {
-                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                uint16_t index = ARRAY_TO_INT16(&ip[2]);
                 PUSH_OBJ((JObject *)locals[index]);
-                pc += 4;
-                goto *opcodes[code[pc]];
+                ip += 4;
+                goto *opcodes[*ip];
             }
             case OP_FLOAD:
             case OP_ILOAD: {
-                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                uint16_t index = ARRAY_TO_INT16(&ip[2]);
                 STACK_PUSH_I32(locals[index]);
-                pc += 4;
-                goto *opcodes[code[pc]];
+                ip += 4;
+                goto *opcodes[*ip];
             }
             case OP_LLOAD:
             case OP_DLOAD: {
-                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                uint16_t index = ARRAY_TO_INT16(&ip[2]);
                 STACK_PUSH_I64(*(int64_t *)&locals[index]);
-                pc += 4;
-                goto *opcodes[code[pc]];
+                ip += 4;
+                goto *opcodes[*ip];
             }
             case OP_ASTORE: {
-                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                uint16_t index = ARRAY_TO_INT16(&ip[2]);
                 locals[index] = STACK_POP_I32();
-                pc += 4;
-                goto *opcodes[code[pc]];
+                ip += 4;
+                goto *opcodes[*ip];
             }
             case OP_FSTORE:
             case OP_ISTORE: {
-                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                uint16_t index = ARRAY_TO_INT16(&ip[2]);
                 locals[index] = STACK_POP_I32();
-                pc += 4;
-                goto *opcodes[code[pc]];
+                ip += 4;
+                goto *opcodes[*ip];
             }
             case OP_LSTORE:
             case OP_DSTORE: {
-                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
+                uint16_t index = ARRAY_TO_INT16(&ip[2]);
                 *(uint64_t *)&locals[index] = STACK_POP_I64();
-                pc += 4;
-                goto *opcodes[code[pc]];
+                ip += 4;
+                goto *opcodes[*ip];
             }
             case OP_RET: {
-                uint16_t index = ARRAY_TO_INT16(&code[pc + 2]);
-                pc = locals[index];
-                goto *opcodes[code[pc]];
+                uint16_t index = ARRAY_TO_INT16(&ip[2]);
+                ip = code + locals[index];
+                goto *opcodes[*ip];
             }
             default:
                 goto op_unknow;
         }
     }
     op_multianewarray: {
-        JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&code[pc + 1]));
-        uint8_t dimensions = code[pc + 3];
+        JClass *cls = method->loader->getConstClass(this, ARRAY_TO_INT16(&ip[1]));
+        uint8_t dimensions = ip[3];
         for (int32_t i = 0; i < dimensions; i++) {
             if (stack[sp - i] < 0)
                 goto negative_array_size_excp;
@@ -2544,13 +2544,13 @@ void FExec::exec(bool initOpcodeLabels) {
         if (array == NULL) goto exception_handler;
         sp -= dimensions;
         PUSH_OBJ(array);
-        pc += 4;
-        goto *opcodes[code[pc]];
+        ip += 4;
+        goto *opcodes[*ip];
     }
     op_breakpoint: {
         if (!dbg) {
-            pc++;
-            goto *opcodes[code[pc]];
+            ip++;
+            goto *opcodes[*ip];
         }
         SYNC_STATE();
         dbg->hitBreakpoint(this);
@@ -2559,28 +2559,28 @@ void FExec::exec(bool initOpcodeLabels) {
             EXEC_RETURN();
         }
         LOAD_STATE();
-        uint8_t op = code[pc];
+        uint8_t op = *ip;
         if (op == OP_BREAKPOINT) { /* Check opcode again, maybe breakpoint was deleted by user */
-            op = dbg->getSavedOpcode(pc, method);
+            op = dbg->getSavedOpcode((uint32_t)(ip - code), method);
             if (op == OP_UNKNOW)
-                op = code[pc];
+                op = *ip;
             else if (op == OP_BREAKPOINT) {
-                pc++;
+                ip++;
                 goto *opcodes[op];
             }
         }
         goto *opcodeLabels[op];
     }
     op_breakpoint_dummy: {
-        uint8_t op = code[pc];
+        uint8_t op = *ip;
         if (op == OP_BREAKPOINT_DUMMY) {
-            ((uint8_t *)code)[pc] = OP_BREAKPOINT;
-            op = dbg->getSavedOpcode(pc, method);
+            *(uint8_t *)ip = OP_BREAKPOINT;
+            op = dbg->getSavedOpcode((uint32_t)(ip - code), method);
         }
         goto *opcodeLabels[op];
     }
     op_unknow: {
-        THROW_NEW(flint->findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u", code[pc]);
+        THROW_NEW(flint->findClass(this, "java/lang/ClassFormatError"), "Invalid opcode %u", *ip);
         EXEC_RETURN();
     }
     divided_by_zero_excp: {
