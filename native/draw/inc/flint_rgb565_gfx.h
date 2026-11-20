@@ -20,6 +20,7 @@ private:
     void fillCircle(uint32_t color, int32_t x, int32_t y, uint32_t d);
 public:
     void clear(uint32_t color);
+    void clear(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h);
     void drawLine(uint32_t color, int32_t x1, int32_t y1, int32_t x2, int32_t y2);
     void drawRect(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h);
     void fillRect(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h);

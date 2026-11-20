@@ -2,7 +2,6 @@
 #include "flint_java_string.h"
 #include "flint_array_object.h"
 #include "flint_rgb565_gfx.h"
-#include "flint_rgb565_gfx_helper.h"
 #include "flint_native_rgb565_graphics.h"
 
 typedef class : public JObject {
@@ -57,7 +56,7 @@ jvoid NativeRgb565Graphics_Clear3(FNIEnv *env, jobject obj, jint x, jint y, jint
     if ((x | y) == 0 && w == g.width && h == g.height)
         g.clear(0);
     else
-        ((Rgb565GfxHelper *)&g)->blendRect(0x20, 0, x, y, x + w - 1, y + h - 1);
+        g.clear(0, x, y, w, h);
 }
 
 jvoid NativeRgb565Graphics_Clear4(FNIEnv *env, jobject obj, jobject c, jint x, jint y, jint w, jint h) {
@@ -70,7 +69,7 @@ jvoid NativeRgb565Graphics_Clear4(FNIEnv *env, jobject obj, jobject c, jint x, j
     if ((x | y) == 0 && w == g.width && h == g.height)
         g.clear(color);
     else
-        ((Rgb565GfxHelper *)&g)->blendRect(0x20, color, x, y, x + w - 1, y + h - 1);
+        g.clear(color, x, y, w, h);
 }
 
 jvoid NativeRgb565Graphics_DrawLine(FNIEnv *env, jobject obj, jobject c, jint x1, jint y1, jint x2, jint y2) {

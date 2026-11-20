@@ -2,7 +2,15 @@
 #include <string.h>
 #include "flint_rgb565_gfx.h"
 #include "flint_fixed_point.h"
-#include "flint_rgb565_gfx_helper.h"
+
+#define BLEND(_pixel, _alpha, _fg) do {                                 \
+    uint32_t bg = __builtin_bswap16(*(_pixel));                         \
+    bg = (bg | (bg << 16)) & 0x07E0F81F;                                \
+    bg += (((_fg) - bg) * (_alpha)) >> 5;                               \
+    bg &= 0x07E0F81F;                                                   \
+    bg = (bg | (bg >> 16));                                             \
+    *(_pixel) = __builtin_bswap16(bg);                                  \
+} while (0)
 
 static inline bool isVisible(Rgb565Gfx *g, int32_t x, int32_t y, int32_t w, int32_t h) {
     if (x > g->clipX2 || (x + w) <= g->clipX1) return false;
@@ -10,13 +18,109 @@ static inline bool isVisible(Rgb565Gfx *g, int32_t x, int32_t y, int32_t w, int3
     return true;
 }
 
+class Rgb565GfxHelper : public Rgb565Gfx {
+public:
+    inline __attribute__((always_inline)) void blendPixel(uint8_t alpha, uint16_t color, int32_t x, int32_t y) {
+        if (clipX1 <= x && x <= clipX2 && clipY1 <= y && y <= clipY2) {
+            uint32_t fg = __builtin_bswap16(color);
+            fg = (fg | (fg << 16)) & 0x07E0F81F;
+            uint16_t *p = &((uint16_t *)data)[y * width + x];
+            BLEND(p, alpha, fg);
+        }
+    }
+
+    void blendHLine(uint8_t alpha, uint16_t color, int32_t x1, int32_t x2, int32_t y) {
+        if (clipY1 <= y && y <= clipY2) {
+            x1 = GFX_MAX(clipX1, x1);
+            x2 = GFX_MIN(clipX2, x2);
+            if (x1 > x2) return;
+
+            uint16_t *p = &((uint16_t *)data)[y * width + x1];
+            uint16_t *end = &((uint16_t *)data)[y * width + x2];
+            if (alpha == 32)
+                for (; p <= end; p++) *p = color;
+            else {
+                uint32_t fg = __builtin_bswap16(color);
+                fg = (fg | (fg << 16)) & 0x07E0F81F;
+                for (; p <= end; p++) BLEND(p, alpha, fg);
+            }
+        }
+    }
+
+    void blendVLine(uint8_t alpha, uint16_t color, int32_t y1, int32_t y2, int32_t x) {
+        if (clipX1 <= x && x <= clipX2) {
+            y1 = GFX_MAX(clipY1, y1);
+            y2 = GFX_MIN(clipY2, y2);
+            if (y1 > y2) return;
+
+            uint16_t *p = &((uint16_t *)data)[y1 * width + x];
+            uint16_t *end = &((uint16_t *)data)[y2 * width + x];
+            if (alpha == 32)
+                for (; p <= end; p += width) *p = color;
+            else {
+                uint32_t fg = __builtin_bswap16(color);
+                fg = (fg | (fg << 16)) & 0x07E0F81F;
+                for (; p <= end; p += width) BLEND(p, alpha, fg);
+            }
+        }
+    }
+
+    void blendRect(uint8_t alpha, uint16_t color, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
+        x1 = GFX_MAX(clipX1, x1);
+        x2 = GFX_MIN(clipX2, x2);
+        if (x1 > x2) return;
+
+        y1 = GFX_MAX(clipY1, y1);
+        y2 = GFX_MIN(clipY2, y2);
+        if (y1 > y2) return;
+
+        if (alpha == 32) {
+            if (x1 == x2) {
+                uint16_t *p = &((uint16_t *)data)[y1 * width + x1];
+                uint16_t *end = &((uint16_t *)data)[y2 * width + x1];
+                for (; p <= end; p += width) *p = color;
+            }
+            else for (int32_t y = y1; y <= y2; y++) {
+                uint16_t *p = &((uint16_t *)data)[y * width + x1];
+                uint16_t *end = &((uint16_t *)data)[y * width + x2];
+                for (; p <= end; p++) *p = color;
+            }
+        }
+        else {
+            uint32_t fg = __builtin_bswap16(color);
+            fg = (fg | (fg << 16)) & 0x07E0F81F;
+            if (x1 == x2) {
+                uint16_t *p = &((uint16_t *)data)[y1 * width + x1];
+                uint16_t *end = &((uint16_t *)data)[y2 * width + x1];
+                for (; p <= end; p += width) BLEND(p, alpha, fg);
+            }
+            else for (int32_t y = y1; y <= y2; y++) {
+                uint16_t *p = &((uint16_t *)data)[y * width + x1];
+                uint16_t *end = &((uint16_t *)data)[y * width + x2];
+                for (; p <= end; p++) BLEND(p, alpha, fg);
+            }
+        }
+    }
+};
+
 Rgb565Gfx::Rgb565Gfx(int32_t w, int32_t h, int32_t clipX1, int32_t clipY1, int32_t clipX2, int32_t clipY2, uint8_t *data) :
 width(w), height(h), clipX1(clipX1), clipY1(clipY1), clipX2(clipX2), clipY2(clipY2), data(data) {
 
 }
 
 void Rgb565Gfx::clear(uint32_t color) {
-    ((Rgb565GfxHelper *)this)->clear(color);
+    uint16_t c = (uint16_t)color;
+    if (c == 0)
+        memset(data, 0, width * height * 2);
+    else {
+        uint16_t *p = (uint16_t *)data;
+        uint16_t *end = &p[width * height];
+        for (; p < end; p++) *p = c;
+    }
+}
+
+void Rgb565Gfx::clear(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h) {
+    ((Rgb565GfxHelper *)this)->blendRect(0x20, color, x, y, x + w - 1, y + h - 1);
 }
 
 void Rgb565Gfx::drawLine(uint32_t color, int32_t x1, int32_t y1, int32_t x2, int32_t y2) {
@@ -791,14 +895,9 @@ static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y) {
             }
             if (a == 0) continue;
             a = ((a * 0x11) + 4) >> 3;
-            uint32_t bg = __builtin_bswap16(des[dx]);
             uint32_t fg = __builtin_bswap16(src[sx]);
-            bg = (bg | (bg << 16)) & 0x07E0F81F;
             fg = (fg | (fg << 16)) & 0x07E0F81F;
-            bg += ((fg - bg) * a) >> 5;
-            bg &= 0x07E0F81F;
-            bg = (bg | (bg >> 16));
-            des[dx] = __builtin_bswap16(bg);
+            BLEND(&des[dx], a, fg);
         }
     }
 }
@@ -848,14 +947,9 @@ static void drawImageARGB565(Rgb565Gfx *g, Image *img, int32_t x, int32_t y, uin
             }
             if (a == 0) continue;
             a = ((a * 0x11) + 4) >> 3;
-            uint32_t bg = __builtin_bswap16(des[i]);
             uint32_t fg = __builtin_bswap16(src[srcIdx]);
-            bg = (bg | (bg << 16)) & 0x07E0F81F;
             fg = (fg | (fg << 16)) & 0x07E0F81F;
-            bg += ((fg - bg) * a) >> 5;
-            bg &= 0x07E0F81F;
-            bg = (bg | (bg >> 16));
-            des[i] = __builtin_bswap16(bg);
+            BLEND(&des[i], a, fg);
         }
     }
 }
@@ -890,19 +984,16 @@ void Rgb565Gfx::drawRgb(uint32_t *rgb, int32_t scanlength, int32_t x, int32_t y,
             uint32_t c = *s;
             uint32_t a = c >> 24;
             if (a == 0) continue;
-            uint32_t fg = ((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x1F);
             if (a == 0xFF) {
+                uint32_t fg = ((c >> 8) & 0xF800) | ((c >> 5) & 0x07E0) | ((c >> 3) & 0x1F);
                 *d = __builtin_bswap16(fg);
                 continue;
             }
-            a = (a + 4) >> 3;
-            uint32_t bg = __builtin_bswap16(*d);
-            bg = (bg | (bg << 16)) & 0x07E0F81F;
-            fg = (fg | (fg << 16)) & 0x07E0F81F;
-            bg += ((fg - bg) * a) >> 5;
-            bg &= 0x07E0F81F;
-            bg = (bg | (bg >> 16));
-            *d = __builtin_bswap16(bg);
+            else {
+                a = (a + 4) >> 3;
+                uint32_t fg = ((c >> 8) & 0xF800) | ((c << 11) & 0x07E00000) | ((c >> 3) & 0x1F);
+                BLEND(d, a, fg);
+            }
         }
     }
 }
@@ -954,14 +1045,9 @@ void Rgb565Gfx::drawRegion(Image *img, int32_t sx, int32_t sy, int32_t sw, int32
             }
             if (a == 0) continue;
             a = ((a * 0x11) + 4) >> 3;
-            uint32_t bg = __builtin_bswap16(*d);
             uint32_t fg = __builtin_bswap16(src[idx]);
-            bg = (bg | (bg << 16)) & 0x07E0F81F;
             fg = (fg | (fg << 16)) & 0x07E0F81F;
-            bg += ((fg - bg) * a) >> 5;
-            bg &= 0x07E0F81F;
-            bg = (bg | (bg >> 16));
-            *d = __builtin_bswap16(bg);
+            BLEND(d, a, fg);
         }
     }
 }
