@@ -300,6 +300,14 @@ public:
         return value >> FP_PRECISION;
     }
 
+    static constexpr inline __attribute__((always_inline)) FP fromRaw(int32_t raw) {
+        return FP(raw, true);
+    }
+
+    constexpr inline __attribute__((always_inline)) int32_t raw(void) const {
+        return value;
+    }
+
     constexpr inline __attribute__((always_inline)) __attribute__((used)) float toFloat(void) const {
         return (int32_t)*this + fraction();
     }

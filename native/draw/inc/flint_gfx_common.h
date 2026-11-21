@@ -18,11 +18,22 @@ private:
     const int8_t yOff;
     const uint8_t data[];
 public:
-    uint8_t getWidth(void) const;
-    uint8_t getHeight(void) const;
-    int8_t getYOffset(void) const;
+    inline __attribute__((always_inline)) uint8_t getWidth(void) const {
+        return width;
+    }
 
-    bool getPixel(uint8_t x, uint8_t y) const;
+    inline __attribute__((always_inline)) uint8_t getHeight(void) const {
+        return height;
+    }
+
+    inline __attribute__((always_inline)) int8_t getYOffset(void) const {
+        return yOff;
+    }
+
+    inline __attribute__((always_inline)) bool getPixel(uint8_t x, uint8_t y) const {
+        uint32_t bitIndex = x + y * this->width;
+        return (this->data[bitIndex / 8] >> (bitIndex % 8)) & 0x01;
+    }
 private:
     CharInfo(void) = delete;
     CharInfo(const CharInfo &) = delete;

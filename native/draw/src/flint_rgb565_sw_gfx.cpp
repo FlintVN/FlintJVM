@@ -12,6 +12,21 @@
     *(_pixel) = __builtin_bswap16(bg);                                  \
 } while (0)
 
+static inline __attribute__((always_inline)) void fill16(uint16_t *p, uint32_t n, uint16_t color) {
+    if (n >= 16 && (uint8_t)color == (uint8_t)(color >> 8)) {
+        memset(p, (uint8_t)color, n * 2);
+        return;
+    }
+    if (((uintptr_t)p & 2) && n) {
+        *p++ = color;
+        n--;
+    }
+    uint32_t c32 = color | ((uint32_t)color << 16);
+    uint32_t *p32 = (uint32_t *)p;
+    for (uint32_t i = n >> 1; i > 0; i--) *p32++ = c32;
+    if (n & 1) *(uint16_t *)p32 = color;
+}
+
 static inline bool isVisible(Rgb565Gfx *g, int32_t x, int32_t y, int32_t w, int32_t h) {
     if (x > g->clipX2 || (x + w) <= g->clipX1) return false;
     if (y > g->clipY2 || (y + h) <= g->clipY1) return false;
@@ -38,7 +53,7 @@ public:
             uint16_t *p = &((uint16_t *)data)[y * width + x1];
             uint16_t *end = &((uint16_t *)data)[y * width + x2];
             if (alpha == 32)
-                for (; p <= end; p++) *p = color;
+                fill16(p, x2 - x1 + 1, color);
             else {
                 uint32_t fg = __builtin_bswap16(color);
                 fg = (fg | (fg << 16)) & 0x07E0F81F;
@@ -80,10 +95,12 @@ public:
                 uint16_t *end = &((uint16_t *)data)[y2 * width + x1];
                 for (; p <= end; p += width) *p = color;
             }
-            else for (int32_t y = y1; y <= y2; y++) {
-                uint16_t *p = &((uint16_t *)data)[y * width + x1];
-                uint16_t *end = &((uint16_t *)data)[y * width + x2];
-                for (; p <= end; p++) *p = color;
+            else if (x1 == 0 && x2 == width - 1)
+                fill16(&((uint16_t *)data)[y1 * width], (y2 - y1 + 1) * width, color);
+            else {
+                uint16_t *p = &((uint16_t *)data)[y1 * width + x1];
+                uint32_t n = x2 - x1 + 1;
+                for (int32_t y = y1; y <= y2; y++, p += width) fill16(p, n, color);
             }
         }
         else {
@@ -109,14 +126,7 @@ width(w), height(h), clipX1(clipX1), clipY1(clipY1), clipX2(clipX2), clipY2(clip
 }
 
 void Rgb565Gfx::clear(uint32_t color) {
-    uint16_t c = (uint16_t)color;
-    if (c == 0)
-        memset(data, 0, width * height * 2);
-    else {
-        uint16_t *p = (uint16_t *)data;
-        uint16_t *end = &p[width * height];
-        for (; p < end; p++) *p = c;
-    }
+    fill16((uint16_t *)data, width * height, (uint16_t)color);
 }
 
 void Rgb565Gfx::clear(uint32_t color, int32_t x, int32_t y, int32_t w, int32_t h) {
@@ -349,6 +359,14 @@ void Rgb565Gfx::drawCircle(uint32_t color, int32_t x, int32_t y, uint32_t d) {
     }
 }
 
+static inline int64_t ratioQ24(FP num, FP den) {
+    return ((int64_t)num.raw() << 24) / den.raw();
+}
+
+static inline __attribute__((always_inline)) FP mulQ24(FP x, int64_t k) {
+    return FP::fromRaw((int32_t)(((int64_t)x.raw() * k) >> 24));
+}
+
 void Rgb565Gfx::drawEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, uint32_t h) {
     if (w == h) return drawCircle(color, x, y, w);
     if (!isVisible(this, x, y, w, h)) return;
@@ -358,7 +376,8 @@ void Rgb565Gfx::drawEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
     FP cy = y + (FP)h / (int32_t)2;
     FP aa = square((FP)w / (int32_t)2);
     FP bb = square((FP)h / (int32_t)2);
-    FP ab = aa * bb;
+    int64_t kab = ratioQ24(aa, bb);
+    int64_t kba = ratioQ24(bb, aa);
 
     FP yo, xo;
     FP ymax = FP::absMax(cy - clipY1, clipY2 - cy);
@@ -369,8 +388,8 @@ void Rgb565Gfx::drawEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
     if (w & 1) plotV2(this, color, cx, cy, (FP)h / (int32_t)2);
     while (true) {
         if (yo > ymax) return;
-        xo = sqrt((ab - aa * square(yo)) / bb);
-        if (bb * xo >= aa * yo) plotH4(this, color, cx, cy, xo, yo);
+        xo = sqrt(aa - mulQ24(square(yo), kab));
+        if (xo >= mulQ24(yo, kab)) plotH4(this, color, cx, cy, xo, yo);
         else break;
         ++yo;
     }
@@ -380,7 +399,7 @@ void Rgb565Gfx::drawEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
     else if (clipX1 - cx > FP::ONE) xo = (w & 1) ? floor(clipX1 - cx) : (floor(clipX1 - cx) - FP::HALF);
     else xo = (w & 1) ? FP::ONE : FP::HALF;
     for (; xo < xmax; ++xo) {
-        yo = sqrt((ab - bb * square(xo)) / aa);
+        yo = sqrt(bb - mulQ24(square(xo), kba));
         plotV4(this, color, cx, cy, xo, yo);
     }
 }
@@ -541,7 +560,8 @@ void Rgb565Gfx::fillEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
 
     FP aa = square(a);
     FP bb = square(b);
-    FP ab = aa * bb;
+    int64_t kab = ratioQ24(aa, bb);
+    int64_t kba = ratioQ24(bb, aa);
 
     FP yo, xo;
     FP ymax = FP::absMax(cy - clipY1, clipY2 - cy);
@@ -551,8 +571,8 @@ void Rgb565Gfx::fillEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
     if (h & 1) drawHLineAA(this, color, cx - a, cx + a, cy);
     while (true) {
         if (yo > ymax) return;
-        xo = sqrt((ab - aa * square(yo)) / bb);
-        if (bb * xo >= aa * yo) fillEllipseHLine2(this, color, cx, cy, xo, yo);
+        xo = sqrt(aa - mulQ24(square(yo), kab));
+        if (xo >= mulQ24(yo, kab)) fillEllipseHLine2(this, color, cx, cy, xo, yo);
         else break;
         ++yo;
     }
@@ -563,7 +583,7 @@ void Rgb565Gfx::fillEllipse(uint32_t color, int32_t x, int32_t y, uint32_t w, ui
     else if (clipX1 - cx > FP::ONE) xo = (w & 1) ? floor(clipX1 - cx) : (floor(clipX1 - cx) - FP::HALF);
     else xo = (w & 1) ? FP::ONE : FP::HALF;
     for (; xo < xmax; ++xo) {
-        yo = sqrt((ab - bb * square(xo)) / aa);
+        yo = sqrt(bb - mulQ24(square(xo), kba));
         fillEllipseVLine4(this, color, cx, cy, yo, yo0, xo);
     }
     if (w & 1) fillEllipseVLine2(this, color, cx, cy, b, yo0);
@@ -1057,28 +1077,28 @@ static void drawChar(Rgb565GfxHelper *g, const CharInfo *c, uint32_t color, int3
     int32_t cxw = GFX_MIN(g->clipX2 - x + 1, (int32_t)c->getWidth());
     if (cx0 >= cxw) return;
 
-    uint8_t height = c->getHeight();
-    int8_t yOff = c->getYOffset();
-    uint32_t alpha = ((color >> 24) + 4) >> 3;
+    int32_t y0 = y + c->getYOffset();
+    int32_t cy0 = GFX_MAX(g->clipY1 - y0, 0);
+    int32_t cyh = GFX_MIN(g->clipY2 - y0 + 1, (int32_t)c->getHeight());
+    if (cy0 >= cyh) return;
 
+    uint32_t alpha = ((color >> 24) + 4) >> 3;
+    if (alpha == 0) return;
+
+    uint16_t *row = &((uint16_t *)g->data)[(y0 + cy0) * g->width + x];
     if (alpha == 0x20) {
-        for (int32_t cy = 0; cy < height; cy++) {
-            int32_t py = y + cy + yOff;
-            if (!(g->clipY1 <= py && py <= g->clipY2)) continue;
-            uint16_t *p = &((uint16_t *)g->data)[py * g->width + x];
-            for (int32_t cx = cx0; cx < cxw; cx++) {
-                int32_t px = x + cx;
-                if (g->clipX1 <= px && px <= g->clipX2)
-                    if (c->getPixel(cx, cy)) p[cx] = color;
-            }
+        uint16_t c16 = (uint16_t)color;
+        for (int32_t cy = cy0; cy < cyh; cy++, row += g->width) {
+            for (int32_t cx = cx0; cx < cxw; cx++)
+                if (c->getPixel(cx, cy)) row[cx] = c16;
         }
     }
     else {
-        for (int32_t cy = 0; cy < height; cy++) {
-            int32_t py = y + cy + yOff;
-            if (!(g->clipY1 <= py && py <= g->clipY2)) continue;
+        uint32_t fg = __builtin_bswap16((uint16_t)color);
+        fg = (fg | (fg << 16)) & 0x07E0F81F;
+        for (int32_t cy = cy0; cy < cyh; cy++, row += g->width) {
             for (int32_t cx = cx0; cx < cxw; cx++)
-                if (c->getPixel(cx, cy)) g->blendPixel(alpha, color, x + cx, py);
+                if (c->getPixel(cx, cy)) BLEND(&row[cx], alpha, fg);
         }
     }
 }

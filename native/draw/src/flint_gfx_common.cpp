@@ -1,23 +1,6 @@
 
 #include "flint_gfx_common.h"
 
-uint8_t CharInfo::getWidth(void) const {
-    return width;
-}
-
-uint8_t CharInfo::getHeight(void) const {
-    return height;
-}
-
-int8_t CharInfo::getYOffset(void) const {
-    return yOff;
-}
-
-bool CharInfo::getPixel(uint8_t x, uint8_t y) const {
-    uint32_t bitIndex = x + y * this->width;
-    return (this->data[bitIndex / 8] >> (bitIndex % 8)) & 0x01;
-}
-
 uint32_t Font::getCount(void) const {
     return count;
 }
