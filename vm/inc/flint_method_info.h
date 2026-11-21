@@ -34,7 +34,7 @@ private:
 
 class CodeAttribute {
 private:
-    uint16_t maxStack;
+    uint16_t frameSize;
     uint16_t maxLocals;
     uint32_t codeLength;
     uint16_t exceptionLength;
@@ -69,6 +69,7 @@ typedef enum : uint16_t {
 class MethodInfo {
 public:
     MethodAccessFlag accessFlag;
+    const char retType;
     class ClassLoader * const loader;
     union {
         struct {
@@ -80,39 +81,37 @@ public:
     };
 private:
     Exceptions *exceptions;
-    const char * retType;
+    CodeAttribute *codeAttr;
     uint8_t *code;
 public:
-    inline __attribute__((always_inline)) const char *getReturnType(void) {
-        if (retType == NULL) {
-            const char *tmp = desc;
-            while (*tmp != ')')
-                tmp++;
-            retType = ++tmp;
-        }
+    inline __attribute__((always_inline)) char getReturnType(void) const {
         return retType;
     }
 
     inline __attribute__((always_inline)) uint8_t *getCode(void) {
-        if (accessFlag & METHOD_NATIVE) {
-            if (code == 0)
-                code = (uint8_t *)NativeClass::findNativeMethod(this);
-            return (uint8_t *)code;
-        }
-        CodeAttribute *codeAttr = (CodeAttribute *)code;
-        return (uint8_t *)&((ExceptionEntry *)codeAttr->data)[codeAttr->exceptionLength];
+        if ((accessFlag & METHOD_NATIVE) && code == NULL)
+            code = (uint8_t *)NativeClass::findNativeMethod(this);
+        return code;
     }
 
     inline __attribute__((always_inline)) uint32_t getCodeLength(void) const {
-        return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->codeLength;
+        return (accessFlag & METHOD_NATIVE) ? 0 : codeAttr->codeLength;
     }
 
     inline __attribute__((always_inline)) uint16_t getMaxLocals(void) const {
-        return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->maxLocals;
+        return (accessFlag & METHOD_NATIVE) ? 0 : codeAttr->maxLocals;
     }
 
-    inline __attribute__((always_inline)) uint16_t getMaxStack(void) const {
-        return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->maxStack;
+    inline __attribute__((always_inline)) uint8_t *getJavaCode(void) const {
+        return code;
+    }
+
+    inline __attribute__((always_inline)) uint16_t getJavaMaxLocals(void) const {
+        return codeAttr->maxLocals;
+    }
+
+    inline __attribute__((always_inline)) uint16_t getJavaFrameSize(void) const {
+        return codeAttr->frameSize;
     }
 
     inline __attribute__((always_inline)) Exceptions *getExceptions(void) const {
@@ -120,13 +119,12 @@ public:
     }
 
     inline __attribute__((always_inline)) uint16_t getExceptionEntryLength(void) const {
-        return (accessFlag & METHOD_NATIVE) ? 0 : ((CodeAttribute *)code)->exceptionLength;
+        return (accessFlag & METHOD_NATIVE) ? 0 : codeAttr->exceptionLength;
     }
 
     inline __attribute__((always_inline)) ExceptionEntry *getExceptionEntry(uint16_t index) const {
         if (accessFlag & METHOD_NATIVE)
             return NULL;
-        CodeAttribute *codeAttr = (CodeAttribute *)code;
         return &((ExceptionEntry *)codeAttr->data)[index];
     }
 private:

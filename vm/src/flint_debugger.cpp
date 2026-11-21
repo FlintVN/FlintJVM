@@ -1038,7 +1038,7 @@ bool FDbg::addBreakPoint(uint32_t pc, const char *clsName, const char *name, con
         MethodInfo *method = loader->getMethodInfo(NULL, name, desc);
         if (method == NULL) return false;
         if (method->accessFlag & METHOD_NATIVE) return false;
-        uint8_t *code = method->getCode();
+        uint8_t *code = method->getJavaCode();
         for (uint8_t i = 0; i < breakPointCount; i++) {
             if (method == breakPoints[i].method && pc == breakPoints[i].pc) {
                 code[pc] = (uint8_t)OP_BREAKPOINT;
@@ -1071,7 +1071,7 @@ bool FDbg::removeBreakPoint(uint32_t pc, const char *clsName, const char *name, 
         if (method == NULL) return false;
         for (uint8_t i = 0; i < breakPointCount; i++) {
             if (method == breakPoints[i].method && pc == breakPoints[i].pc) {
-                method->getCode()[breakPoints[i].pc] = breakPoints[i].opcode;
+                method->getJavaCode()[breakPoints[i].pc] = breakPoints[i].opcode;
                 breakPoints[i] = breakPoints[breakPointCount - 1];
                 breakPointCount--;
             }

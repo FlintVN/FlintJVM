@@ -47,7 +47,7 @@ private:
     void stackSaveContext(void);
     void stackRestoreContext(void);
     void restoreContext(void);
-    void initNewContext(MethodInfo *methodInfo, uint16_t argc);
+    void initNewContext(MethodInfo *methodInfo);
     void initExitPoint(MethodInfo *methodInfo);
 
     bool lockClass(ClassLoader *cls);

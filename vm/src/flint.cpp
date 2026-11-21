@@ -1239,7 +1239,7 @@ void Flint::objectWait(FExec *ctx, JObject *obj, int64_t millis) {
     ctx->waitingObj = obj;
     uint32_t monitorCountOld = obj->monitorCount;
     obj->monitorCount = 0;
-    obj->ownId = 0;
+    __atomic_store_n(&obj->ownId, 0, __ATOMIC_RELEASE);
 
     while (true) {
         if (ctx->hasTerminateRequest() || ownerThread->getInterrupt()) break;
@@ -1251,18 +1251,12 @@ void Flint::objectWait(FExec *ctx, JObject *obj, int64_t millis) {
         if (FlintAPI::Thread::wait((uint32_t)waitTime) == FlintAPI::Thread::THREAD_NOTIFY_OBJECT_NOTIFY) break;
     }
 
-    volatile uint32_t *monitorCount = &obj->monitorCount;
     if (!ctx->hasTerminateRequest()) {
         while (!ctx->hasTerminateRequest()) {
-            if (*monitorCount == 0) {
-                lock();
-                if (*monitorCount == 0) {
-                    obj->monitorCount = monitorCountOld;
-                    obj->ownId = (uint32_t)ctx;
-                    unlock();
-                    break;
-                }
-                unlock();
+            uint32_t expected = 0;
+            if (__atomic_compare_exchange_n(&obj->ownId, &expected, (uint32_t)ctx, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
+                obj->monitorCount = monitorCountOld;
+                break;
             }
             FlintAPI::Thread::yield();
         }

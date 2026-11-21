@@ -8,8 +8,14 @@ startPc(startPc), endPc(endPc), handlerPc(handlerPc), catchType(catchType) {
 
 }
 
+static char parseReturnType(const char *desc) {
+    while (*desc != ')')
+        desc++;
+    return desc[1];
+}
+
 MethodInfo::MethodInfo(ClassLoader *loader, MethodAccessFlag accessFlag, const char *name, const char *desc) :
-accessFlag(accessFlag), loader(loader), name(name), desc(desc),
-hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)), exceptions(NULL), retType(NULL), code(NULL) {
+accessFlag(accessFlag), retType(parseReturnType(desc)), loader(loader), name(name), desc(desc),
+hash((Hash(name) & 0xFFFF) | (Hash(desc) << 16)), exceptions(NULL), codeAttr(NULL), code(NULL) {
 
 }

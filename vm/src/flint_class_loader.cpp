@@ -324,7 +324,8 @@ CodeAttribute *ClassLoader::readAttributeCode(FileReader *reader) {
     uint32_t codeAttrSize = sizeof(CodeAttribute) + exceptionTableLength * sizeof(ExceptionEntry) + codeLength + 1;
     CodeAttribute *codeAttr = (CodeAttribute *)flint->malloc(reader->getContext(), codeAttrSize);
     if (codeAttr == NULL) return NULL;
-    codeAttr->maxStack = maxStack;
+    uint32_t frameSize = (uint32_t)maxLocals + maxStack + 4;
+    codeAttr->frameSize = (frameSize > 0xFFFF) ? 0xFFFF : (uint16_t)frameSize;
     codeAttr->maxLocals = maxLocals;
     codeAttr->codeLength = codeLength;
     codeAttr->exceptionLength = exceptionTableLength;
@@ -587,12 +588,13 @@ MethodInfo *ClassLoader::getMethodInfo(FExec *ctx, uint16_t methodIndex) {
 
             if (!reader.seek((uint32_t)method->code)) { reader.close(); flint->unlock(); return NULL; }
 
-            uint8_t *attrCode = (uint8_t *)readAttributeCode(&reader);
+            CodeAttribute *attrCode = readAttributeCode(&reader);
             if (attrCode == NULL) { reader.close(); flint->unlock(); return NULL; }
 
             if (!reader.close()) { flint->free(attrCode); flint->unlock(); return NULL; }
 
-            method->code = attrCode;
+            method->codeAttr = attrCode;
+            method->code = (uint8_t *)&((ExceptionEntry *)attrCode->data)[attrCode->exceptionLength];
             method->accessFlag = (MethodAccessFlag)(method->accessFlag & ~METHOD_UNLOADED);
         }
         flint->unlock();
@@ -740,8 +742,8 @@ ClassLoader::~ClassLoader(void) {
         flint->free(fields);
     if (methodsCount && methods) {
         for (uint32_t i = 0; i < methodsCount; i++) {
-            if (!(methods[i].accessFlag & (METHOD_NATIVE | METHOD_UNLOADED)) && methods[i].code)
-                flint->free(methods[i].code);
+            if (methods[i].codeAttr)
+                flint->free(methods[i].codeAttr);
             if (methods[i].exceptions)
                 flint->free(methods[i].exceptions);
         }

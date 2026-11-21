@@ -561,7 +561,7 @@ void FExec::stackRestoreContext(void) {
     lr = stackPopInt32();
     pc = stackPopInt32();
     method = (MethodInfo *)stackPopInt32();
-    code = method->getCode();
+    code = method->getJavaCode();
     locals = &stack[startSp + 1];
 }
 
@@ -578,15 +578,12 @@ void FExec::restoreContext(void) {
     stackRestoreContext();
 }
 
-void FExec::initNewContext(MethodInfo *methodInfo, uint16_t argc) {
-    uint16_t maxLocals = methodInfo->getMaxLocals();
+void FExec::initNewContext(MethodInfo *methodInfo) {
     method = methodInfo;
-    code = methodInfo->getCode();
-    if (code == NULL)
-        return FExec::throwNew(flint->findClass(this, "java/lang/LinkageError"), methodInfo->loader->getName(), methodInfo->name);
+    code = methodInfo->getJavaCode();
     pc = 0;
     locals = &stack[sp + 1];
-    sp += maxLocals;
+    sp += methodInfo->getJavaMaxLocals();
 }
 
 void FExec::initExitPoint(MethodInfo *methodInfo) {
@@ -595,57 +592,64 @@ void FExec::initExitPoint(MethodInfo *methodInfo) {
     this->lr = methodInfo->getCodeLength();  /* OP_EXIT - Initialize exit point */
 }
 
-bool FExec::lockClass(ClassLoader *cls) {
-    flint->lock();
-    if (cls->monitorCount == 0 || cls->monitorOwnId == (int32_t)this) {
-        cls->monitorOwnId = (int32_t)this;
-        if (cls->monitorCount < 0xFFFFFFFF) {
-            cls->monitorCount++;
-            flint->unlock();
-            return true;
-        }
-        flint->unlock();
-        FExec::throwNew(flint->findClass(this, "java/lang/IllegalMonitorStateException"));
-        return false;
+typedef enum : uint8_t {
+    MONITOR_BUSY = 0,
+    MONITOR_ACQUIRED,
+    MONITOR_OVERFLOW,
+} MonitorEnterResult;
+
+static inline __attribute__((always_inline)) MonitorEnterResult monitorTryEnter(uint32_t *ownId, uint32_t *count, uint32_t self) {
+    uint32_t owner = __atomic_load_n(ownId, __ATOMIC_RELAXED);
+    if (owner == self) {
+        if (*count == 0xFFFFFFFF) return MONITOR_OVERFLOW;
+        (*count)++;
+        return MONITOR_ACQUIRED;
     }
-    flint->unlock();
+    if (owner != 0) return MONITOR_BUSY;
+    uint32_t expected = 0;
+    if (!__atomic_compare_exchange_n(ownId, &expected, self, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED))
+        return MONITOR_BUSY;
+    *count = 1;
+    return MONITOR_ACQUIRED;
+}
+
+static inline __attribute__((always_inline)) void monitorExit(uint32_t *ownId, uint32_t *count, uint32_t self) {
+    if (__atomic_load_n(ownId, __ATOMIC_RELAXED) != self) return;
+    if (*count > 1) {
+        (*count)--;
+        return;
+    }
+    *count = 0;
+    __atomic_store_n(ownId, 0, __ATOMIC_RELEASE);
+}
+
+bool FExec::lockClass(ClassLoader *cls) {
+    MonitorEnterResult ret = monitorTryEnter(&cls->monitorOwnId, &cls->monitorCount, (uint32_t)this);
+    if (ret == MONITOR_ACQUIRED) return true;
+    if (ret == MONITOR_OVERFLOW)
+        FExec::throwNew(flint->findClass(this, "java/lang/IllegalMonitorStateException"));
     return false;
 }
 
 void FExec::unlockClass(ClassLoader *cls) {
-    flint->lock();
-    if (cls->monitorCount)
-        cls->monitorCount--;
-    flint->unlock();
+    monitorExit(&cls->monitorOwnId, &cls->monitorCount, (uint32_t)this);
 }
 
 bool FExec::lockObject(JObject *obj) {
-    flint->lock();
-    if (obj->monitorCount == 0 || obj->ownId == (int32_t)this) {
-        obj->ownId = (int32_t)this;
-        if (obj->monitorCount < 0xFFFFFFFF) {
-            obj->monitorCount++;
-            flint->unlock();
-            return true;
-        }
-        flint->unlock();
+    MonitorEnterResult ret = monitorTryEnter(&obj->ownId, &obj->monitorCount, (uint32_t)this);
+    if (ret == MONITOR_ACQUIRED) return true;
+    if (ret == MONITOR_OVERFLOW)
         FExec::throwNew(flint->findClass(this, "java/lang/IllegalMonitorStateException"));
-        return false;
-    }
-    flint->unlock();
     return false;
 }
 
 void FExec::unlockObject(JObject *obj) {
-    flint->lock();
-    if (obj->monitorCount)
-        obj->monitorCount--;
-    flint->unlock();
+    monitorExit(&obj->ownId, &obj->monitorCount, (uint32_t)this);
 }
 
 bool FExec::holdsLock(JObject *obj) {
     if (obj == NULL) return false;
-    return obj->ownId == (int32_t)this;
+    return __atomic_load_n(&obj->ownId, __ATOMIC_RELAXED) == (uint32_t)this;
 }
 
 bool FExec::checkInvokeArgs(JObject *obj, MethodInfo *methodInfo) {
@@ -703,7 +707,7 @@ uint64_t FExec::callMethod(MethodInfo *methodInfo, uint8_t argc) {
         if (hasException() || FExec::hasTerminateRequest()) return 0;
     }
     uint64_t ret = 0;
-    switch (methodInfo->getReturnType()[0]) {
+    switch (methodInfo->getReturnType()) {
         case 'V': break;
         case 'J':
         case 'D': ret = stackPopInt64(); break;
@@ -748,7 +752,7 @@ void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
         FExec::throwNew(flint->findClass(this, "java/lang/LinkageError"), "%s.%s", methodInfo->loader->getName(), methodInfo->name);
         return;
     }
-    switch (methodInfo->getReturnType()[0]) {
+    switch (methodInfo->getReturnType()) {
         case 'V': {
             callToNative(this, (void (*)(FNIEnv *, ...))nmtptr, &stack[sp - argc + 1], argc);
             sp = sp - argc;
@@ -801,10 +805,14 @@ void FExec::invokeNativeMethod(MethodInfo *methodInfo, uint8_t argc) {
 }
 
 void FExec::invoke(MethodInfo *methodInfo, uint8_t argc) {
-    if (!(methodInfo->accessFlag & METHOD_NATIVE)) {
+    MethodAccessFlag flag = methodInfo->accessFlag;
+    if (!(flag & METHOD_NATIVE)) {
+        uint8_t *newCode = methodInfo->getJavaCode();
+        if (newCode == NULL)
+            return FExec::throwNew(flint->findClass(this, "java/lang/LinkageError"), "%s.%s", methodInfo->loader->getName(), methodInfo->name);
         peakSp = sp + 4;
         sp -= argc;
-        if ((sp + methodInfo->getMaxLocals() + methodInfo->getMaxStack() + 4) >= stackLength)
+        if ((sp + methodInfo->getJavaFrameSize()) >= stackLength)
             return FExec::throwNew(flint->findClass(this, "java/lang/StackOverflowError"));
         int32_t *args = &stack[sp + 1];
         for (int32_t i = argc - 1; i >= 0; i--) {
@@ -812,10 +820,10 @@ void FExec::invoke(MethodInfo *methodInfo, uint8_t argc) {
             __asm__ volatile("" ::: "memory"); /* Keep GCC from turning this loop back into a memmove call */
         }
         stackSaveContext();
-        initNewContext(methodInfo, argc);
+        initNewContext(methodInfo);
     }
-    else if (methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
-        if (methodInfo->accessFlag & METHOD_STATIC) {
+    else if (flag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
+        if (flag & METHOD_STATIC) {
             invokeNativeMethod(methodInfo, argc);
             unlockClass(methodInfo->loader);
         }
