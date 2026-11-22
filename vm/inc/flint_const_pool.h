@@ -72,8 +72,10 @@ public:
     const char * const className;
     ConstNameAndType *nameAndType;
 private:
-    class MethodInfo *methodInfo;
-    class ClassLoader *loaderCache;
+    class MethodInfo *methodInfo;       /* For invokestatic/invokespecial only */
+    class MethodInfo *cacheMethod;      /* For invokevirtual/invokeinterface, guarded by cacheSeq (seqlock) */
+    class ClassLoader *cacheLoader;
+    uint32_t cacheSeq;                  /* Odd while an update is in progress */
     uint8_t argc;
 public:
     inline __attribute__((always_inline)) uint8_t getArgc(void) const {

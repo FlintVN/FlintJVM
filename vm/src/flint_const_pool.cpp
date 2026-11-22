@@ -24,6 +24,6 @@ className(className), loader(NULL), nameAndType(nameAndType), fieldIndex(0) {
 }
 
 ConstMethod::ConstMethod(const char *className, ConstNameAndType *nameAndType) :
-className(className), nameAndType(nameAndType), methodInfo(NULL), loaderCache(NULL) {
+className(className), nameAndType(nameAndType), methodInfo(NULL), cacheMethod(NULL), cacheLoader(NULL), cacheSeq(0) {
     argc = GetArgSlotCount(nameAndType->desc);
 }

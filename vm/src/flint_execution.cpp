@@ -883,21 +883,39 @@ void FExec::invokeVirtual(ConstMethod *constMethod) {
         JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
         return FExec::throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", constMethod->className, constMethod->nameAndType->name);
     }
-    MethodInfo *methodInfo = constMethod->methodInfo;
     JClass *objType;
     if (obj->type != NULL) objType = obj->type;
     else {
         objType = flint->getClassOfClass(this);
         if (objType == NULL) return;
     }
-    if (methodInfo == NULL || constMethod->loaderCache != objType->getClassLoader()) {
+
+    MethodInfo *methodInfo;
+    do {
+        ClassLoader *loader = objType->getClassLoader();
+        uint32_t seq = __atomic_load_n(&constMethod->cacheSeq, __ATOMIC_ACQUIRE);
+        if (!(seq & 0x01)) {
+            ClassLoader *cacheLoader = __atomic_load_n(&constMethod->cacheLoader, __ATOMIC_RELAXED);
+            methodInfo = __atomic_load_n(&constMethod->cacheMethod, __ATOMIC_RELAXED);
+            __atomic_thread_fence(__ATOMIC_ACQUIRE);
+            if (cacheLoader == loader && __atomic_load_n(&constMethod->cacheSeq, __ATOMIC_RELAXED) == seq)
+                break;
+        }
+
         methodInfo = flint->findMethod(this, objType, constMethod->nameAndType);
         if (methodInfo == NULL) return;
-        constMethod->methodInfo = methodInfo;
-        constMethod->loaderCache = objType->getClassLoader();
+
+        seq = __atomic_load_n(&constMethod->cacheSeq, __ATOMIC_RELAXED);
+        if (!(seq & 0x01) && __atomic_compare_exchange_n(&constMethod->cacheSeq, &seq, seq + 1, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
+            __atomic_store_n(&constMethod->cacheMethod, methodInfo, __ATOMIC_RELAXED);
+            __atomic_store_n(&constMethod->cacheLoader, loader, __ATOMIC_RELAXED);
+            __atomic_store_n(&constMethod->cacheSeq, seq + 2, __ATOMIC_RELEASE);
+        }
+
         if (methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
             return invokeStaticCtor(methodInfo->loader);
-    }
+    } while (0);
+
     if (methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
         if (lockObject(obj) == false)
             return FlintAPI::Thread::yield();
@@ -913,21 +931,39 @@ void FExec::invokeInterface(ConstInterfaceMethod *interfaceMethod, uint8_t argc)
         JClass *excpCls = flint->findClass(this, "java/lang/NullPointerException");
         return FExec::throwNew(excpCls, "Cannot invoke \"%s.%s\" by null object", interfaceMethod->className, interfaceMethod->nameAndType->name);
     }
-    MethodInfo *methodInfo = interfaceMethod->methodInfo;
     JClass *objType;
     if (obj->type != NULL) objType = obj->type;
     else {
         objType = flint->getClassOfClass(this);
         if (objType == NULL) return;
     }
-    if (methodInfo == NULL || interfaceMethod->loaderCache != objType->getClassLoader()) {
+
+    MethodInfo *methodInfo;
+    do {
+        ClassLoader *loader = objType->getClassLoader();
+        uint32_t seq = __atomic_load_n(&interfaceMethod->cacheSeq, __ATOMIC_ACQUIRE);
+        if (!(seq & 0x01)) {
+            ClassLoader *cacheLoader = __atomic_load_n(&interfaceMethod->cacheLoader, __ATOMIC_RELAXED);
+            methodInfo = __atomic_load_n(&interfaceMethod->cacheMethod, __ATOMIC_RELAXED);
+            __atomic_thread_fence(__ATOMIC_ACQUIRE);
+            if (cacheLoader == loader && __atomic_load_n(&interfaceMethod->cacheSeq, __ATOMIC_RELAXED) == seq)
+                break;
+        }
+
         methodInfo = flint->findMethod(this, objType, interfaceMethod->nameAndType);
         if (methodInfo == NULL) return;
-        interfaceMethod->methodInfo = methodInfo;
-        interfaceMethod->loaderCache = objType->getClassLoader();
+
+        seq = __atomic_load_n(&interfaceMethod->cacheSeq, __ATOMIC_RELAXED);
+        if (!(seq & 0x01) && __atomic_compare_exchange_n(&interfaceMethod->cacheSeq, &seq, seq + 1, false, __ATOMIC_ACQUIRE, __ATOMIC_RELAXED)) {
+            __atomic_store_n(&interfaceMethod->cacheMethod, methodInfo, __ATOMIC_RELAXED);
+            __atomic_store_n(&interfaceMethod->cacheLoader, loader, __ATOMIC_RELAXED);
+            __atomic_store_n(&interfaceMethod->cacheSeq, seq + 2, __ATOMIC_RELEASE);
+        }
+
         if (methodInfo->loader->getStaticInitStatus() == UNINITIALIZED)
             return invokeStaticCtor(methodInfo->loader);
-    }
+    } while (0);
+
     if (methodInfo->accessFlag & (METHOD_SYNCHRONIZED | METHOD_CLINIT)) {
         if (lockObject(obj) == false)
             return FlintAPI::Thread::yield();
