@@ -1,5 +1,42 @@
 # Change Log
+
+## V2.6.0
+
+- New Java API support:
+  - `java.util.zip.Inflater` and `java.util.zip.CRC32`.
+  - `java.io.RandomAccessFile`.
+  - `java.lang.Runtime`.
+  - `Class.getResourceAsStream`, `System.getProperty` (including the `flint.application` property) and `System.err`.
+  - `Thread.holdsLock`.
+  - `Object.clone` now works for objects that implement `Cloneable`.
+- `flint.drawing`:
+  - Added a PNG decoder for `flint.drawing.ImageDecoder`.
+  - Implemented `Rgb565Graphics.Factory.createImage` (including the overload with source region and transform) and added a few necessary methods for `flint.drawing.Image`.
+  - `Graphics.clear` supports clearing a specified area.
+  - **Breaking:** Removed the `Color` object; colors are now represented by `int`.
+  - **Breaking:** Removed line thickness support in `Graphics`.
+  - Fixed several drawing bugs (`drawImage` wrong position and memory overflow, `fillEllipse` and `fillRoundRect` off-by-one/double-drawing, `clear`).
+- Performance:
+  - `invokevirtual`/`invokeinterface` use a method cache (and fixed a race in this cache).
+  - `lookupswitch` uses binary search.
+  - `ClassLoader::getInterface` is now O(1).
+  - Various other performance improvements for method invocation and `Rgb565Graphics`.
+- Critical fixes:
+  - `System.arraycopy` operated incorrectly.
+  - Missing unlock of the class/object for synchronized native methods.
+  - Several critical issues in the execution engine; `instanceof` crashed when checking a null object.
+  - `Utf8DictNode` copied text incorrectly.
+  - Incorrect parameters passed to the `main` method.
+  - Null pointer access in the PNG decoder.
+  - Memory overflow in the class loader (rare).
+- Other fixes:
+  - `FileInputStream.read`, `RandomAccessFile.read` and `FileReader.readLine` now return -1 at end of file.
+  - `Method.getExceptionTypes()` now conforms to the specification.
+  - Fixed memory leaks (`Inflater`, hooks) and other minor issues in the debugger, networking (lwIP) and FatFs implementations.
+- Code cleanup and coding convention updates.
+
 ## V2.5.1
+
 - Fix Rgb565Graphics:
   - Fixed `fillRect` and `fillRoundRect`, which were 1 pixel too large.
   - Fixed `drawString` dose not apply the clip area.
@@ -9,7 +46,9 @@
 - Implemented native methods `Graphics.isVisible`, `Graphics.setClip0`.
 - Implemented missing instruction (swap instruction).
 - FatFs wrapper implementation: Zero-initialize FIL before calling f_open.
+
 ## V2.5.0
+
 - Implement native methods for `flint.net`.
 - Supports the implementation of several SystemAPIs helps reduce workload when porting to a new device.
 - Support storing and managing files opened by the user, to release them (if not) when the program terminates.
@@ -22,62 +61,90 @@
   - Support create new execution (*FExec*) with stackSize specified from Java *Thread* and terminate all daemon Thread when the program terminated.
 - Implement the native methods `Object.wait()`, `Object.notify()` and `Object.notifyAll()`.
 - Implement native method `System.exit()`.
+
 ## V2.4.1
+
 - Fix serious bug: The comparison operation in FDict is running incorrectly.
 - Check current thread in FMutex::unlock.
 - Use a separate mutex for the debugger's console.
+
 ## V2.4.0
+
 - Supports loading and executing `JAR` files instead of classes scattered across memory.
 - Use the same CRC type for the debugger's send and receive communication.
 - Implement the ability to run multiple JAR application files (It is possible to create multiple instances of `Flint` class).
 - Add support for methods in FNIEnv to access fields.
+
 ## V2.3.6
+
 - Fix `System.arraycopy` is not working correctly.
 - Add `FlintAPI::System::getTimeMillis()` method.
+
 ## V2.3.5
+
 - Fixes bug static fields not being initialized when the class lacks a static init block.
 - Correct the behavior of `STEP_IN` and `STEP_OVER` commands in the debugger.
+
 ## V2.3.4
+
 - Implement `java.lang.reflect.Method.invoke0` and `java.lang.reflect.Constructor.newInstance0` native methods.
 - Fix `FileInputStream.skip` that is not working correctly.
+
 ## V2.3.3
+
 - Fixed critical bug, `stackPopDouble` corrupted java stack frame.
 - Fixed bug in `java.io.FileOutputStream.write` method with `FileDescriptor.out` (Big impact on `System.out.print`).
 - Support `FileDescriptor.sync` native method.
+
 ## V2.3.2
+
 - Terminate all when any thread encounters an unhandled exception.
 - Fixed critical bug related to thread synchronization, monitorenter instruction corrupts the stack frame in case the lock object fails.
+
 ## V2.3.1
+
 - Support for specifying class path.
 - Fixed a critical bug related to `Garbage Collection`, objects that are still in use are deleted and objects that are no longer in use are not deleted.
 - Fix memory leak in `ClassLoader` class.
 - Fix the `READ_EXCP_INFO` command in the debugger, which returns an incorrect format when the exception message is null.
+
 ## V2.3.0
+
 - This update is for compatibility with [FlintJDK V1.0.0](https://github.com/FlintVN/FlintJDK/releases/tag/V1.0.0).
 - Support `FileOutputStream.write` with `FileDescriptor.out`.
 - Add support for `System.setOut0` native method.
+
 ## V2.2.0
+
 - Rename `Character.toLower` to `Character.toLowerCase` and `Character.toUpper` to `Charactor.toUpperCase`.
 - Fix issue for `DBG_CMD_READ_FIELD` in debugger when field is array.
 - Support for `java.io.File`, `java.io.FileOutputStream` and `java.io.FileImputStream` classes.
+
 ## V2.1.1
+
 - Fix stuck in `FMutex::lock` with 1 core chips.
+
 ## V2.1.0
+
 - Support call to java method in native interface.
-- Fix bug where existing values ​​could not be found in `FDict`.
+- Fix bug where existing values could not be found in `FDict`.
 - Fix memory leak.
 - `Class.isHidden` return false instead of throwing exception.
+
 ## V2.0.1
+
 - Fix bug in `FNIEnv::newObjectArray`.
 - Fix `Class.initClassName` native method do not assign a value to `Class.name` field.
 - Minor performance optimizations for invoke instructions.
 - Check static initialization before executing `invokevirtual` and `invokeinterface` instructions.
+
 ## V2.0.0
+
 - There are almost no significant changes or additions in this update, but there are huge changes in the structure and usage of the system's API, making it easier to use and more friendly to developers.
   - `FlintConstUtf8` has been removed and only pure string (const char *) is used instead.
   - The type of a java object is represented by `JClass` (which extends JObject) instead of simply `FlintConstUtf8`.
   - The `FlintError` type has been removed in this version and all previous functions that used it have been modified to return only the expected data type along with an easier to use and more automatic exception throwing mechanism instead of having to include an error code.
-  - Change the way of writing for native java methods to be more friendly, easy to use, easy to understand and closer to a basic C/C++ function. The writer does not need to care about the java stack anymore, the input parameters of java will be passed as function parameters in C/C++ and the return values ​​just need to return like a normal C/C++ function.
+  - Change the way of writing for native java methods to be more friendly, easy to use, easy to understand and closer to a basic C/C++ function. The writer does not need to care about the java stack anymore, the input parameters of java will be passed as function parameters in C/C++ and the return values just need to return like a normal C/C++ function.
   - Added support `Flint::newAscii` method to create `JString` with input string format instead of just raw string.
   - Added support `FExec::throwNew` and `FExec::vThrowNew` to make throwing exceptions easier.
   - Changed the format for the debugger command making it incompatible with older versions. To use it, you need to update the `FlintJVM Debug extension`.
@@ -87,7 +154,9 @@
   - Implement `Reflection.getCallerClass`, `Reflection.getClassAccessFlags` and `Reflection.areNestMates` methods.
   - Support for building with `C++20`.
   - And there are many other changes that I may not remember.
+
 ## V1.1.7
+
 - Fixed bug in `FExec::getOwnerThread` function that did not return value.
 - Self-implemented mutex (No need to implement when porting).
 - Debugger:
@@ -97,12 +166,16 @@
 - Slight improvement in bytecode execution performance.
 - Fix memory leak in some native methods of `java.lang.Class`.
 - Fix missing unlock in `Flint::getClassArray0` method.
+
 ## V1.1.6
+
 - Fix VM crash when native method not found.
 - Fix stack trace with wrong PC address when debugging.
 - Fix stuck at `Flint::terminate` for single core chips.
 - Fixed VM throwing wrong type for some exceptions or not displaying messages.
+
 ## V1.1.5
+
 - Fix method not found in invokeInterface (bridge method).
 - Support lazy loading for method code (Reduce RAM consumption).
 - Fix `java.lang.reflect.Array.get` returning short instead of character with character input array.
@@ -110,9 +183,13 @@
 - Eliminate the impact of breakpoints on performance when debugging.
 - Temporarily dropping support for `java.math.BigInteger` for future changes and improvements.
 - Reduce RAM consumption.
+
 ## V1.1.4
+
 - Fix bug when handling finally block in exception.
+
 ## V1.1.3
+
 - Fix bug when calling `invokevirtual` `invokeinterface` with null object.
 - Fix bug stuck in `MethodInfo::getAttribute`, `MethodInfo::getAttributeCode` and `MethodInfo::getAttributeNative`.
 - Fix bug related to object synchronization and static method synchronization.
@@ -129,7 +206,9 @@
   - `Class.getDeclaredConstructors0`.
   - `Class.getDeclaredFields0`.
   - `Class.getDeclaringClass0`.
+
 ## V1.1.2
+
 - Fix the bug in the `Flint::isInstanceof` method when checking with primitive and interface types. It impacts `checkcast`, `instanceof` instructions, `try...catch` in java and more.
 - Add method to support create `IllegalArgumentException` object.
 - Add method to support create wrapper classes (`Boolean`, `Byte`, `Character`, `Short`, `Integer`, `Float`, `Long`, `Double`).
@@ -141,7 +220,9 @@
   - `isAssignableFrom`.
   - `getInterfaces0`.
 - Improve code and fix other bugs.
+
 ## V1.1.1
+
 - Fix bug relate to VM.
   - Bug when call to methods of an array object.
   - Continuous reset error when java code throws exception with null message.
@@ -153,7 +234,9 @@
 - Improved performance for invokeVirtual and invokeInterace.
 - Improved performance for field accessibility.
 - Support `flint.drawing.Graphics` (not completed yet).
+
 ## V1.1.0
+
 - Fix free `ClassData` error when `FlintClassLoader` throws an exception.
 - Workround for ESP32 can't catch exceptions in a top-level of a task.
 - Supports additional methods to create exception objects.
@@ -165,7 +248,9 @@
 - Add method to support check the terminate request.
 - Support thorw `InterruptedException` in `Thread.sleep0` native method.
 - Improve and fix other bugs.
+
 ## V1.0.0
+
 - Support execution of most java bytecode instructions.
 - Support throw and catch mechanism.
 - Support simple garbage collectors.
