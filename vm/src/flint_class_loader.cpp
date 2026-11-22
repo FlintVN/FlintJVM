@@ -17,11 +17,11 @@ typedef struct {
 static bool findInProgram(Flint *flint, FExec *ctx, const char *clsName, uint16_t length, FileReader *reader) {
     if (length == 0xFFFF) length = strlen(clsName);
     const char *jar = flint->getProgram();
-    if (jar == NULL) return NULL;
+    if (jar == NULL) return false;
     ZipFileReader zip(ctx, jar);
     if (zip.open()) {
         if (zip.openClassFileEntry(clsName, length)) {
-            memcpy(reader, &zip, sizeof(FileReader));
+            memcpy((void *)reader, (const void *)&zip, sizeof(FileReader));
             return true;
         }
         zip.close();
